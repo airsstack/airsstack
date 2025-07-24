@@ -25,7 +25,7 @@ AIRS follows a Cargo Workspace structure to organize multiple related packages a
 
 ### MSRV (Minimum Supported Rust Version)
 
-This project requires Rust 1.84.0 or later. We generally track the latest stable Rust release.
+This project requires Rust 1.86.0 or later. We generally track the latest stable Rust release.
 
 ## Development
 
