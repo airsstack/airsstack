@@ -1,0 +1,21 @@
+{
+    "chat.instructionsFilesLocations": {
+        "./copilot/instructions": true
+    },
+    "chat.modeFilesLocations": {
+        "./copilot/chatmodes": true
+    },
+    "files.associations": {
+        "*.md": "markdown"
+    },
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": true,
+        "markdown": true,
+        "scminput": false
+    },
+    "chat.promptFilesLocations": {
+        "./copilot/prompts": true
+    }
+}
