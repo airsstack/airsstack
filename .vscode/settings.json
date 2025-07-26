@@ -1,9 +1,12 @@
 {
     "chat.instructionsFilesLocations": {
-        "./copilot/instructions": true
+        "./.copilot/instructions": true
     },
     "chat.modeFilesLocations": {
-        "./copilot/chatmodes": true
+        "./.copilot/chatmodes": true
+    },
+    "chat.promptFilesLocations": {
+        "./.copilot/prompts": true
     },
     "files.associations": {
         "*.md": "markdown"
@@ -14,8 +17,5 @@
         "plaintext": true,
         "markdown": true,
         "scminput": false
-    },
-    "chat.promptFilesLocations": {
-        "./copilot/prompts": true
     }
 }
