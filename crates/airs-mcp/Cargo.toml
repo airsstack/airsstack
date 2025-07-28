@@ -8,16 +8,43 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Core async runtime
 tokio.workspace = true
+futures.workspace = true
+
+# JSON serialization for JSON-RPC messages
 serde.workspace = true
 serde_json.workspace = true
-futures.workspace = true
+
+# Concurrent collections for request correlation
 dashmap.workspace = true
+
+# Error handling (structured, type-safe)
 thiserror.workspace = true
-tracing.workspace = true
-uuid.workspace = true
+
+# Utilities
+uuid.workspace = true             # Request ID generation
+bytes.workspace = true            # Efficient message handling without allocations
+tokio-util.workspace = true       # STDIO transport framing
+tracing.workspace = true          # Structured logging
 
 [dev-dependencies]
-tokio-test.workspace = true
-proptest.workspace = true
-tracing-subscriber.workspace = true
+tokio-test.workspace = true       # Async testing utilities
+proptest.workspace = true         # Property-based testing
+tracing-subscriber.workspace = true  # Test logging setup
+criterion.workspace = true       # Performance benchmarking
+
+[features]
+default = []
+
+# Future transport features (not needed today)
+# http = []
+# websocket = []
+
+[[bench]]
+name = "jsonrpc_performance"
+harness = false
+
+[[bench]]
+name = "message_correlation"
+harness = false

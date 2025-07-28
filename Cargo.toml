@@ -13,15 +13,28 @@ repository = "https://github.com/rstlix0x0/airs"
 rust-version = "1.84.0"
 
 [workspace.dependencies]
-serde_json = { version = "~1.0" }
-serde = { version = "~1.0", features = ["derive"] }
-tokio = { version = "~1", features = ["full"] }
-tokio-util = { version = "~0.7" }
-tokio-test = { version = "~0.6" }
-futures = { version = "~0.3" }
-dashmap = { version = "~6.1" }
-thiserror = { version = "~2.0" }
-proptest = { version = "~1.0" }
-tracing = { version = "~0.1" }
-tracing-subscriber = { version = "~0.3" }
-uuid = { version = "~1.17", features = ["v4", "serde"] }
+# Core Serialization & Async Runtime
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+tokio-test = "0.6"
+futures = "0.3"
+
+# Concurrent Collections & Utilities
+dashmap = "6.1"
+uuid = { version = "1.17", features = ["v4", "serde"] }
+
+# Error Handling
+thiserror = "2.0"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Testing
+proptest = "1.0"
+
+# JSON-RPC Foundation Requirements (MINIMAL)
+bytes = "1.8"                     # Efficient byte handling for message processing
+criterion = "0.5"                 # Benchmarking for performance validation
