@@ -6,45 +6,28 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Model Context Protocol implementation with JSON-RPC 2.0 foundation"
+keywords = ["mcp", "jsonrpc", "protocol", "rpc"]
+categories = ["network-programming", "api-bindings"]
 
 [dependencies]
-# Core async runtime
-tokio.workspace = true
-futures.workspace = true
-
-# JSON serialization for JSON-RPC messages
+# Core serialization for JSON-RPC messages (current implementation needs)
 serde.workspace = true
 serde_json.workspace = true
 
-# Concurrent collections for request correlation
-dashmap.workspace = true
-
-# Error handling (structured, type-safe)
-thiserror.workspace = true
-
-# Utilities
-uuid.workspace = true             # Request ID generation
-bytes.workspace = true            # Efficient message handling without allocations
-tokio-util.workspace = true       # STDIO transport framing
-tracing.workspace = true          # Structured logging
+# Future dependencies (commented out until actually needed)
+# tokio.workspace = true
+# futures.workspace = true
+# dashmap.workspace = true
+# thiserror.workspace = true
+# uuid.workspace = true
+# bytes.workspace = true
+# tokio-util.workspace = true
+# tracing.workspace = true
 
 [dev-dependencies]
-tokio-test.workspace = true       # Async testing utilities
-proptest.workspace = true         # Property-based testing
-tracing-subscriber.workspace = true  # Test logging setup
-criterion.workspace = true       # Performance benchmarking
-
-[features]
-default = []
-
-# Future transport features (not needed today)
-# http = []
-# websocket = []
-
-[[bench]]
-name = "jsonrpc_performance"
-harness = false
-
-[[bench]]
-name = "message_correlation"
-harness = false
+# Only include what we actually need for current tests
+# tokio-test.workspace = true
+# proptest.workspace = true
+# tracing-subscriber.workspace = true
+# criterion.workspace = true
