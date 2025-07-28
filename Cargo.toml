@@ -1,40 +1,44 @@
 [workspace]
-resolver = "2"
 members = [
     "crates/airs-mcp",
 ]
+resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["rstlix0x0 <rstlix.dev@gmail.com>"]
-license = "MIT OR Apache-2.0"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
 repository = "https://github.com/rstlix0x0/airs"
-rust-version = "1.84.0"
+rust-version = "1.70"
 
 [workspace.dependencies]
-# Core Serialization & Async Runtime
-serde_json = "1.0"
+# Core async runtime
+tokio = { version = "1.35", features = ["full"] }
+futures = { version = "0.3" }
+
+# JSON serialization for JSON-RPC messages
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
-tokio-util = "0.7"
-tokio-test = "0.6"
-futures = "0.3"
+serde_json = { version = "1.0" }
 
-# Concurrent Collections & Utilities
-dashmap = "6.1"
-uuid = { version = "1.17", features = ["v4", "serde"] }
+# Concurrent collections for request correlation
+dashmap = { version = "5.5" }
 
-# Error Handling
-thiserror = "2.0"
+# Error handling (structured, type-safe)
+thiserror = { version = "1.0" }
 
-# Observability
-tracing = "0.1"
-tracing-subscriber = "0.3"
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+bytes = { version = "1.5" }
+tokio-util = { version = "0.7", features = ["codec"] }
+tracing = { version = "0.1" }
 
-# Testing
-proptest = "1.0"
-
-# JSON-RPC Foundation Requirements (MINIMAL)
-bytes = "1.8"                     # Efficient byte handling for message processing
-criterion = "0.5"                 # Benchmarking for performance validation
+[workspace.dev-dependencies]
+# Async testing utilities - ACTUAL VERSION THAT EXISTS
+tokio-test = { version = "0.4" }
+# Property-based testing
+proptest = { version = "1.4" }
+# Test logging setup
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Performance benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
