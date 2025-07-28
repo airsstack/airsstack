@@ -1,5 +1,16 @@
 # System Patterns
 
+## Updated Patterns
+
+- **Trait-Based Serialization Pattern**: All core message types implement `JsonRpcMessage` for DRY, consistent serialization.
+- **Test-Driven Development Pattern**: >95% coverage, trait and message types validated.
+- **VS Code Integration Pattern**: Explicit project linking, CodeLens test discovery.
+- **Documentation Excellence Pattern**: All public APIs documented with examples.
+
+## Decision Log
+
+- **2025-07-28**: Core JSON-RPC message types and trait implementation completed. Transitioning to error system and protocol layer.
+
 This document captures the architectural patterns, design decisions, and technical approaches that define the AIRS project structure and implementation strategy.
 
 ## Architectural Overview
@@ -293,33 +304,3 @@ pub trait JsonRpcMessage {
 - Minimizes refactoring during feature addition
 - Maintains architectural consistency across development phases
 - Preserves core stability while adding complexity
-
-## Decision Log
-
-### 2025-07-28: Core-First Implementation Strategy
-**Decision**: Implement JSON-RPC foundation before advanced MCP features  
-**Context**: Complex MCP specification with multiple interconnected components  
-**Rationale**: Solid foundation prevents architectural mistakes and enables incremental validation  
-**Impact**: Delayed advanced features but higher confidence in core implementation  
-**Review**: Evaluate after core completion for lessons learned
-
-### 2025-07-28: Trait-Based Message Abstraction
-**Decision**: Use common trait for all message types instead of code duplication  
-**Context**: Three message types requiring identical serialization functionality  
-**Rationale**: Eliminates duplication, ensures consistency, provides extension point  
-**Impact**: Cleaner codebase with consistent behavior across all message types  
-**Review**: Monitor for performance implications during high-throughput testing
-
-### 2025-07-28: VS Code Explicit Project Linking
-**Decision**: Use `rust-analyzer.linkedProjects` configuration for workspace focus  
-**Context**: Multi-project development environment causing rust-analyzer confusion  
-**Rationale**: Explicit configuration eliminates ambiguity and improves performance  
-**Impact**: Enables proper test discovery and CodeLens functionality  
-**Review**: Monitor team adoption and consider automation for new developer setup
-
-### 2025-07-28: Git Repository Hygiene Implementation
-**Decision**: Exclude local VS Code settings, provide template and documentation  
-**Context**: Local development configurations with machine-specific paths  
-**Rationale**: Prevents repository pollution while maintaining team consistency  
-**Impact**: Professional repository hygiene with consistent team development environment  
-**Review**: Evaluate effectiveness during team onboarding processes
