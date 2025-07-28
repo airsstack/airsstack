@@ -1,75 +1,104 @@
 # AIRS MCP - Active Context
 
-## Current Development Phase: DESIGN
+## Current Development Phase: IMPLEMENT (Core-First Strategy)
 
-**Phase Status**: Transitioning from ANALYZE to DESIGN  
+**Phase Status**: Strategic pivot to core JSON-RPC implementation  
 **Last Updated**: 2025-07-28  
-**Confidence Score**: 89% (High Confidence - Full Implementation Strategy)
+**Implementation Strategy**: Foundation-first development approach  
 
-## Completed Work (ANALYZE Phase)
+## Strategic Decision: Core-First Implementation
 
-### Requirements Documentation ✅
-- Created comprehensive requirements specification with 26 structured EARS notation requirements
-- Achieved 89% confidence score based on JSON-RPC 2.0 specification clarity
-- Documented in `spec/requirements.md` with complete acceptance criteria
-- Coverage areas: Message Processing, Bidirectional Communication, Transport, Performance, Error Handling, Edge Cases
+### Rationale
+- Build bulletproof JSON-RPC message foundation before advanced features
+- Avoid typical amateur mistake of building complex systems on shaky foundations  
+- Establish solid serialization/validation base for future correlation and transport layers
+- Enable focused testing and validation of core JSON-RPC 2.0 compliance
 
-### Architecture Foundation ✅
-- Confirmed JSON-RPC foundation placement in `src/base/jsonrpc/` module
-- Aligned with documented architecture from `docs/src/plans.md`
-- Established minimal dependency set for optimal performance
-- Memory bank restructured for workspace-aware organization
+### Advanced Knowledge Preservation
+- **Correlation Manager**: Concepts documented in `.agent_work/research/advanced-jsonrpc-architecture.md`
+- **Transport Abstraction**: Architecture preserved for future implementation phases
+- **Performance Optimizations**: Zero-copy strategies documented for later phases
 
-## Current Work (DESIGN Phase)
+## Current Implementation Scope (Phase 1)
 
-### Immediate Objectives
-1. **Create Technical Architecture**: Document detailed design in `spec/design.md`
-2. **Define Implementation Plan**: Structure detailed tasks in `spec/tasks.md`
-3. **Establish Module Structure**: Plan `src/base/jsonrpc/` module organization
-4. **Design Data Flow**: Map message processing pipelines and correlation management
+### Core Message Types ✅ NEXT
+```rust
+// Target implementation in src/base/jsonrpc/
+- JsonRpcRequest      // Request messages with method, params, id
+- JsonRpcResponse     // Response messages with result/error, id  
+- JsonRpcNotification // Notification messages (no response expected)
+- RequestId           // Support for string and numeric IDs
+- JsonRpcError        // Standard JSON-RPC 2.0 error codes
+```
 
-### Technical Design Focus Areas
-- **Core Message Types**: JsonRpcRequest, JsonRpcResponse, JsonRpcNotification structures
-- **Correlation Manager**: Thread-safe bidirectional request/response matching
-- **Transport Abstraction**: STDIO implementation with future HTTP/WebSocket support
-- **Error Handling**: Structured error types conforming to JSON-RPC 2.0 specification
-- **Performance Architecture**: Sub-millisecond processing with minimal allocations
-
-## Architecture Context
-
-### Module Placement Strategy
+### Module Structure
 ```
 src/base/jsonrpc/
-├── mod.rs              # Module exports and public API
-├── message.rs          # Core JSON-RPC message types
-├── request.rs          # Request handling and ID generation  
-├── response.rs         # Response processing and error handling
-├── notification.rs     # Notification message handling
-└── correlation.rs      # Bidirectional request correlation
+├── mod.rs           # Public API exports
+├── message.rs       # Core message types  
+├── error.rs         # JSON-RPC error handling
+├── id.rs            # Request ID implementation
+└── validation.rs    # Message validation logic
 ```
 
-### Dependency Architecture
-- **Core Runtime**: tokio, futures for async operations
-- **Serialization**: serde, serde_json for message handling
-- **Concurrency**: dashmap for thread-safe correlation
-- **Error Handling**: thiserror for structured error types
-- **Utilities**: uuid for request IDs, bytes for efficient message handling
-- **Transport**: tokio-util for STDIO framing
-- **Performance**: criterion for benchmarking
+### Dependencies (Minimal Core)
+- **serde**: Serialization framework
+- **serde_json**: JSON serialization  
+- **thiserror**: Structured error types
 
-## Performance Requirements Context
-- **Latency**: <1ms processing time (99th percentile)
-- **Throughput**: >10,000 messages/second under concurrent load
-- **Memory**: Minimal allocations using zero-copy techniques
-- **Resource Management**: Bounded resource usage with proper cleanup
+## Current Work Focus
+
+### Immediate Objectives (This Week)
+1. **Implement Core Message Types**: JsonRpcRequest, JsonRpcResponse, JsonRpcNotification structures
+2. **Add RequestId Support**: String and numeric ID variants with serde support
+3. **Build Error System**: JsonRpcError with standard codes (-32700 to -32603)
+4. **Create Validation**: Message structure and JSON-RPC 2.0 compliance checking
+
+### Success Criteria (Phase 1)
+- ✅ 100% JSON-RPC 2.0 specification compliance
+- ✅ Parse/generate valid JSON-RPC messages
+- ✅ Handle all standard error codes correctly
+- ✅ Support both string and numeric request IDs
+- ✅ Comprehensive unit test coverage (>95%)
+
+## Deferred Advanced Features
+
+### Not Implementing Yet (Future Phases)
+- ❌ **Correlation Manager**: Bidirectional request/response matching
+- ❌ **Transport Layer**: STDIO, HTTP, WebSocket implementations
+- ❌ **High-Level Client**: Async request/response handling  
+- ❌ **Performance Optimizations**: Zero-copy, buffer pooling
+- ❌ **Concurrent Processing**: Multi-threaded message handling
+
+### Knowledge Preservation Strategy
+- Advanced concepts documented in `.agent_work/research/`
+- Architecture patterns preserved for future implementation
+- Integration points defined for seamless phase transitions
+
+## Development Approach
+
+### Core-First Benefits
+- **Solid Foundation**: Bulletproof message handling before complexity
+- **Focused Testing**: Comprehensive validation of core functionality
+- **Clean Architecture**: Clear separation between foundation and advanced features
+- **Incremental Complexity**: Add sophisticated features on proven base
+
+### Quality Standards
+- **JSON-RPC 2.0 Compliance**: 100% specification adherence
+- **Type Safety**: Leverage Rust's type system for compile-time correctness
+- **Error Handling**: Structured errors with clear diagnostic information
+- **Documentation**: Complete API documentation with usage examples
 
 ## Next Actions
-1. **Design Phase Execution**: Create comprehensive technical architecture
-2. **Task Breakdown**: Structure implementation plan with dependencies
-3. **Module Design**: Define public APIs and internal structure
-4. **Performance Strategy**: Plan benchmarking and optimization approach
+1. **Begin Core Implementation**: Start with message.rs containing core types
+2. **Establish Testing Framework**: Unit tests for serialization and validation
+3. **Validate JSON-RPC Compliance**: Test against specification examples
+4. **Document Public API**: Clear usage examples and integration patterns
 
-## Blockers/Dependencies
-- None currently identified
-- High confidence score supports direct progression to full implementation
-- All requirements clearly defined and testable
+## Integration Strategy (Future)
+- **Phase 2**: Add correlation manager on top of core types
+- **Phase 3**: Implement transport abstraction using core messages
+- **Phase 4**: Build high-level client interface
+- **Phase 5**: Performance optimization and advanced features
+
+This focused approach ensures we build the JSON-RPC foundation correctly before adding architectural sophistication.

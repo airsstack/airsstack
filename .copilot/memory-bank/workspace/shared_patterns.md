@@ -1,18 +1,27 @@
 # AIRS Workspace Shared Patterns
 
 **Last Updated**: 2025-07-28  
-**Pattern Status**: Foundation patterns established, implementation patterns pending
+**Pattern Status**: Core implementation patterns established, advanced patterns preserved
 
 ## Development Methodology Patterns
+
+### Core-First Implementation Strategy ✅
+**Pattern**: Build solid foundation before adding architectural complexity  
+**Usage**: Implement core functionality first, then layer advanced features  
+**Benefits**: Bulletproof foundation, focused testing, incremental complexity  
+**Implementation**:
+- **Phase 1**: Core JSON-RPC message types (JsonRpcRequest, JsonRpcResponse, JsonRpcNotification)
+- **Phase 2**: Advanced features (correlation, transport) on proven foundation
+- **Knowledge Preservation**: Document advanced concepts during core implementation
 
 ### Spec-Driven Workflow Integration ✅
 **Pattern**: Systematic 6-phase development cycle  
 **Usage**: All crates follow ANALYZE → DESIGN → IMPLEMENT → VALIDATE → REFLECT → HANDOFF  
 **Benefits**: Consistent quality, comprehensive documentation, predictable outcomes  
-**Implementation**: 
-- Requirements in EARS notation with confidence scoring
-- Technical architecture before implementation
-- Comprehensive validation and reflection phases
+**Current Status**:
+- **ANALYZE**: ✅ Completed (26 EARS notation requirements)
+- **DESIGN**: ✅ Completed (technical architecture + strategic pivot)
+- **IMPLEMENT**: 🎯 Active (core JSON-RPC message types)
 
 ### Memory Bank Architecture ✅  
 **Pattern**: Workspace-aware persistent project intelligence  
@@ -26,11 +35,45 @@
 └── current_focus.md    # Active work indicator
 ```
 
+### Knowledge Preservation Strategy ✅
+**Pattern**: Document advanced concepts while focusing on core implementation  
+**Usage**: Preserve architectural intelligence for future phases  
+**Benefits**: No lost knowledge, clear future integration path  
+**Implementation**: Advanced concepts in `.agent_work/research/` directory
+
 ### Gilfoyle Code Review Standards ✅
 **Pattern**: Technical excellence with sardonic precision  
 **Usage**: All code subjected to high standards review  
 **Benefits**: Superior code quality, architectural consistency  
 **Standards**: SOLID principles, performance optimization, clean architecture
+
+## Architecture Patterns
+
+### Foundation-First Development ✅
+**Pattern**: Build solid core before adding sophisticated features  
+**Usage**: JSON-RPC message types before correlation and transport  
+**Benefits**: Stable architecture, testable components, performance optimization  
+**Current Implementation**: `src/base/jsonrpc/` contains core message types
+
+### Domain-Driven Module Organization ✅
+**Pattern**: Modules organized by domain boundaries  
+**Usage**: Clear separation of concerns with well-defined interfaces  
+**Benefits**: Maintainable code, clear dependencies, testable units  
+**Structure**:
+```
+src/base/jsonrpc/
+├── mod.rs           # Public API exports
+├── message.rs       # Core message types (CURRENT)
+├── error.rs         # JSON-RPC error handling (NEXT)
+├── id.rs            # Request ID implementation (PENDING)
+└── validation.rs    # Message validation logic (PENDING)
+```
+
+### Incremental Feature Addition (Implementation Strategy)
+**Pattern**: Add features on proven foundation incrementally  
+**Usage**: Core → Error Handling → IDs → Validation → Advanced Features  
+**Benefits**: Each layer builds on tested foundation, clear integration points  
+**Current Status**: Message types implementation in progress
 
 ## Dependency Management Patterns
 
@@ -41,50 +84,73 @@
 **Implementation**:
 ```toml
 [workspace.dependencies]
-tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+thiserror = { version = "1.0" }
 ```
 
 ### Minimal Dependency Strategy ✅
-**Pattern**: Only essential, proven dependencies  
+**Pattern**: Only essential, proven dependencies for core implementation  
 **Usage**: Rigorous evaluation before adding new dependencies  
 **Benefits**: Reduced attack surface, faster builds, simpler maintenance  
-**Current Set**: tokio, serde, dashmap, thiserror, uuid, bytes, tokio-util, criterion
+**Current Core Set**: serde, serde_json, thiserror (for JSON-RPC foundation)
 
-## Architecture Patterns
+## Implementation Patterns
 
-### Foundation-First Development ✅
-**Pattern**: Build solid foundation before adding features  
-**Usage**: JSON-RPC foundation complete before MCP protocol layer  
-**Benefits**: Stable architecture, testable components, performance optimization  
-**Implementation**: `src/base/` contains foundational layers
-
-### Domain-Driven Module Organization ✅
-**Pattern**: Modules organized by domain boundaries  
-**Usage**: Clear separation of concerns with well-defined interfaces  
-**Benefits**: Maintainable code, clear dependencies, testable units  
-**Structure**:
-```
-src/
-├── base/          # Foundation layers (JSON-RPC, transport)
-├── protocol/      # Protocol implementations (MCP)
-├── security/      # Authentication and authorization
-└── utils/         # Shared utilities
+### Type-Safe Message Handling ✅
+**Pattern**: Leverage Rust's type system for compile-time correctness  
+**Usage**: Structured message types with serde serialization  
+**Benefits**: Compile-time protocol compliance, zero-cost abstractions  
+**Implementation**:
+```rust
+// Type-safe JSON-RPC message structures
+pub struct JsonRpcRequest {
+    pub jsonrpc: String,        // Always "2.0"
+    pub method: String,         // Method name
+    pub params: Option<Value>,  // Optional parameters
+    pub id: RequestId,          // Request identifier
+}
 ```
 
-## Performance Patterns
+### Serde Integration Pattern ✅
+**Pattern**: Complete serialization/deserialization with serde  
+**Usage**: All message types derive Serialize/Deserialize  
+**Benefits**: Automatic JSON handling, specification compliance  
+**Implementation**: Derive macros with custom serialization where needed
 
-### Zero-Copy Message Processing (Pending Implementation)
-**Pattern**: Minimize allocations during message handling  
-**Usage**: Use `Bytes` type and buffer pooling  
-**Benefits**: Sub-millisecond latency, high throughput  
-**Target**: <1ms processing (99th percentile), >10,000 msg/sec
+### RequestId Flexibility ✅
+**Pattern**: Support both string and numeric request IDs  
+**Usage**: Untagged enum for JSON-RPC 2.0 compliance  
+**Benefits**: Maximum compatibility with different JSON-RPC implementations  
+**Implementation**:
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RequestId {
+    String(String),
+    Number(i64),
+}
+```
 
-### Concurrent Request Correlation (Pending Implementation)
-**Pattern**: Thread-safe bidirectional request/response matching  
-**Usage**: DashMap for lock-free concurrent operations  
-**Benefits**: Scalable concurrent processing without blocking  
-**Implementation**: Separate correlation spaces for each direction
+## Testing Patterns
+
+### Comprehensive Unit Testing ✅
+**Pattern**: >95% test coverage with unit + integration tests  
+**Usage**: All public APIs and critical paths covered  
+**Benefits**: Quality assurance, refactoring confidence  
+**Strategy**: Unit tests + integration tests + property tests for core types
+
+### JSON-RPC 2.0 Compliance Testing ✅
+**Pattern**: Test against official JSON-RPC specification examples  
+**Usage**: Validate serialization/deserialization with spec examples  
+**Benefits**: Guaranteed specification compliance, interoperability  
+**Implementation**: Test cases using official JSON-RPC examples
+
+### Property-Based Testing ✅
+**Pattern**: Use `proptest` for edge case discovery  
+**Usage**: Generate test cases for message parsing and generation  
+**Benefits**: Comprehensive edge case coverage, specification compliance  
+**Focus**: JSON-RPC message serialization and validation
 
 ## Error Handling Patterns
 
@@ -92,39 +158,39 @@ src/
 **Pattern**: Use `thiserror` for type-safe error handling  
 **Usage**: Domain-specific error types with proper context  
 **Benefits**: Compile-time error safety, clear error propagation  
-**Standard**: JSON-RPC 2.0 compliant error codes and messages
+**Implementation**: JSON-RPC 2.0 compliant error codes and messages
 
-### Error Context Preservation (Pending Implementation)
+### Error Context Preservation (Planned)
 **Pattern**: Maintain error context across async boundaries  
-**Usage**: Error chaining through correlation and transport layers  
+**Usage**: Error chaining through serialization and validation layers  
 **Benefits**: Debuggable error traces, operational visibility  
-**Implementation**: Include correlation IDs in error context
+**Status**: Documented for future implementation
 
-## Testing Patterns
+## Quality Assurance Patterns
 
-### Property-Based Testing ✅
-**Pattern**: Use `proptest` for edge case discovery  
-**Usage**: Generate test cases for protocol compliance  
-**Benefits**: Comprehensive edge case coverage, specification compliance  
-**Focus**: JSON-RPC message parsing and generation
+### JSON-RPC 2.0 Specification Compliance ✅
+**Pattern**: 100% adherence to JSON-RPC 2.0 specification  
+**Usage**: All message types conform to official specification  
+**Benefits**: Interoperability, standard compliance, predictable behavior  
+**Validation**: Test against specification examples and edge cases
 
-### Performance Benchmarking ✅
-**Pattern**: Use `criterion` for performance validation  
-**Usage**: Continuous performance monitoring and regression detection  
-**Benefits**: Measurable performance improvements, target validation  
-**Targets**: Sub-millisecond latency, high throughput validation
+### Zero Technical Debt Policy (Core Phase) ✅
+**Pattern**: Address technical debt immediately during core implementation  
+**Usage**: Technical debt tracking and immediate remediation  
+**Benefits**: Clean foundation for advanced features  
+**Process**: Decision records for all technical decisions
 
-### Comprehensive Test Coverage (Pending Implementation)
-**Pattern**: >95% test coverage with unit + integration tests  
-**Usage**: All public APIs and critical paths covered  
-**Benefits**: Quality assurance, refactoring confidence  
-**Strategy**: Unit tests + integration tests + property tests + benchmarks
+### Gilfoyle Code Review Integration ✅
+**Pattern**: Technical excellence review for all implementations  
+**Usage**: Sardonic precision in code quality assessment  
+**Benefits**: Superior code quality, architectural consistency  
+**Standards**: SOLID principles, performance optimization, clean architecture
 
 ## Documentation Patterns
 
-### API Documentation Standards (Pending Implementation)
-**Pattern**: 100% public API documentation coverage  
-**Usage**: Comprehensive rustdoc with examples  
+### API Documentation Standards ✅
+**Pattern**: Complete rustdoc with usage examples  
+**Usage**: All public APIs documented with examples  
 **Benefits**: Developer experience, adoption facilitation  
 **Standard**: Examples for all public functions and types
 
@@ -134,35 +200,41 @@ src/
 **Benefits**: Always current documentation, development context preservation  
 **Tools**: Memory bank system + spec-driven workflow artifacts
 
-## Quality Assurance Patterns
+## Advanced Patterns (Preserved for Future Implementation)
 
-### Zero Technical Debt Policy ✅
-**Pattern**: Address technical debt immediately or explicitly defer  
-**Usage**: Technical debt tracking and remediation planning  
-**Benefits**: Maintainable codebase, predictable development velocity  
-**Process**: Decision records for all technical debt decisions
+### Request Correlation Architecture (Documented)
+**Pattern**: Thread-safe bidirectional request/response matching  
+**Usage**: DashMap for lock-free concurrent operations  
+**Benefits**: Scalable concurrent processing without blocking  
+**Status**: Documented in `.agent_work/research/advanced-jsonrpc-architecture.md`
 
-### Continuous Quality Monitoring (Pending Implementation)
-**Pattern**: Automated quality checks in development workflow  
-**Usage**: Static analysis, performance regression detection  
-**Benefits**: Early issue detection, consistent quality standards  
-**Tools**: Clippy, rustfmt, criterion benchmarks
-
-## Future Pattern Evolution
-
-### Transport Abstraction (Planned)
+### Transport Abstraction (Documented)
 **Pattern**: Pluggable transport implementations  
 **Usage**: STDIO, HTTP, WebSocket transports behind common interface  
-**Benefits**: Flexibility, testability, protocol independence
+**Benefits**: Flexibility, testability, protocol independence  
+**Status**: Architecture preserved for future implementation
 
-### Configuration Management (Planned)
-**Pattern**: Hierarchical configuration with environment overrides  
-**Usage**: Default → file → environment → CLI argument precedence  
-**Benefits**: Flexible deployment, environment-specific configuration
+### Zero-Copy Message Processing (Documented)
+**Pattern**: Minimize allocations during message handling  
+**Usage**: Use `Bytes` type and buffer pooling  
+**Benefits**: Sub-millisecond latency, high throughput  
+**Status**: Performance strategies documented for future phases
 
-### Observability Integration (Planned)
-**Pattern**: Structured logging and metrics collection  
-**Usage**: OpenTelemetry for distributed tracing and metrics  
-**Benefits**: Production debugging, performance monitoring
+## Pattern Evolution Strategy
 
-These patterns provide the foundation for consistent, high-quality development across all AIRS workspace crates. They will evolve as implementation proceeds and new patterns emerge.
+### Current Phase: Core Implementation
+- **Active Patterns**: Type-safe messages, serde integration, comprehensive testing
+- **Quality Focus**: JSON-RPC 2.0 compliance, technical excellence
+- **Foundation Building**: Solid base for advanced features
+
+### Future Phase: Advanced Features
+- **Integration Patterns**: Correlation manager, transport abstraction
+- **Performance Patterns**: Zero-copy processing, concurrent handling
+- **Scalability Patterns**: Connection pooling, resource management
+
+### Knowledge Preservation
+- **Research Documentation**: Advanced patterns preserved in research files
+- **Integration Points**: Clear boundaries defined for feature addition
+- **Architectural Evolution**: Patterns evolve with implementation phases
+
+These patterns provide the foundation for consistent, high-quality development across all AIRS workspace crates, with particular focus on the core-first implementation strategy that ensures solid foundations before architectural sophistication.
