@@ -3,6 +3,12 @@
 ## In Progress
 
 ## Pending
+- [TASK002] Correlation Manager Implementation
+- [TASK003] Transport Abstraction Implementation
+- [TASK004] Integration Layer Implementation
+- [TASK005] Performance Optimization
+- [TASK006] Security & Compliance Framework
+- [TASK007] Documentation & Developer Experience
 
 ## Completed
 - [TASK001] Core JSON-RPC Message Types Implementation - Completed on 2025-08-01
