@@ -32,11 +32,37 @@ airs/
 └── docs/                  # Project documentation
 ```
 
+
 ### Design Principles
 - **Human Architecture, AI Implementation**: Strategic decisions made by humans, code generated with AI assistance
 - **Rust-First Approach**: Leveraging Rust's memory safety and performance for AI infrastructure
 - **Modular Design**: Each crate serves a specific purpose in the AI ecosystem
 - **Type Safety**: Strong typing for reliable AI tool development
+
+## AI Collaboration & Memory-Bank Management
+
+This project leverages a robust memory-bank management system to ensure resilient, transparent, and context-driven development. The memory bank is a structured set of Markdown files that track requirements, architecture, technical decisions, implementation plans, and progress for every sub-project and the workspace as a whole.
+
+### Memory-Bank System Overview
+- **Workspace-Level Context**: Shared files define the overall vision, architecture, and standards for all sub-projects.
+- **Sub-Project Memory Bank**: Each sub-project maintains its own set of files for requirements, design, tech context, active decisions, and progress.
+- **Task Management**: Every development task is tracked in detail, with status, subtasks, and progress logs, enabling precise project management and onboarding.
+- **Context Snapshots**: Operational state can be saved and restored at any time, supporting historical analysis and rapid recovery from context loss.
+
+### Human/AI Collaboration
+- **Human Architecture, AI Implementation**: Strategic decisions are made by humans, while code and documentation are generated and maintained with AI assistance.
+- **AI Agent Workflow**: The AI agent operates autonomously, executing tasks, updating documentation, and managing context without requiring confirmation or permission.
+- **Specification-Driven Execution**: All work follows a rigorous, specification-driven workflow, ensuring requirements are clear, designs are validated, and implementations are thoroughly documented and tested.
+- **Transparency & Traceability**: Every action, decision, and change is logged in the memory bank, providing a complete audit trail of human/AI collaboration.
+
+### How to Use the Memory Bank
+1. **Review Context**: Start every session by reading all relevant memory bank files for the workspace and active sub-project.
+2. **Track Tasks**: Use the tasks index and individual task files to monitor progress, update statuses, and document decisions.
+3. **Update Documentation**: After every significant change, update the memory bank to reflect the current state and next steps.
+4. **Save Context Snapshots**: Use context snapshots to preserve operational state for onboarding, recovery, or historical analysis.
+5. **Switch Contexts**: For multi-project workspaces, update the active sub-project and re-read all relevant files before proceeding.
+
+For more details, see `.copilot/memory_bank/` and the documentation in `docs/`.
 
 ## Getting Started
 
@@ -59,26 +85,15 @@ cd airs
 cargo build
 ```
 
-3. **Run tests**:
-```bash
-cargo test
-```
 
 4. **Check all workspace members**:
 ```bash
 cargo check --workspace
 ```
 
-### Quick Start
-
-```bash
-# Build specific crate
+```
 cargo build -p airs-mcp
 
-# Run with specific features
-cargo run --bin airs-mcp --features "feature-name"
-
-# Development build with optimizations
 cargo build --release
 ```
 
@@ -92,9 +107,6 @@ airs/
 ├── crates/                       # All workspace members
 │   └── airs-mcp/                # MCP implementation crate
 │       ├── Cargo.toml           # Crate-specific configuration
-│       ├── src/                 # Source code
-│       └── README.md            # Crate documentation
-├── .copilot/                    # AI development tools
 │   ├── chatmodes/               # Custom interaction modes
 │   ├── instructions.md          # Development practices
 │   └── prompts/                 # Reusable AI prompts
