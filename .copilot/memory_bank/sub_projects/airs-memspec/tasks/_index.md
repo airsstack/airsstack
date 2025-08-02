@@ -2,7 +2,6 @@
 
 ## In Progress
 
-- [task_001] project_setup_workspace_integration - Crate structure, Cargo config, workspace integration (Day 1.1)
 - [task_002] cli_framework_implementation - Command structure, argument parsing, help/version (Day 1.2)
 
 ## Pending
@@ -23,6 +22,8 @@
 - [task_016] documentation_final_polish - Inline docs, usage, troubleshooting, final QA (Day 4.4)
 
 ## Completed
+
+- [task_001] project_setup_workspace_integration - Completed on 2025-08-02 (Crate structure, Cargo config, workspace integration)
 
 
 ## Abandoned
