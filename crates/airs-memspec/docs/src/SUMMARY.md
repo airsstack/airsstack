@@ -1,0 +1,16 @@
+# Summary
+
+- [Overview](./overview.md)
+- [Architecture](./architecture.md)
+    - [System Components](./architecture/system_components.md)
+    - [Data Model](./architecture/data_model.md)
+    - [Feature Specifications](./architecture/feature.md)
+    - [Integration Strategy](./architecture/integration.md)
+    - [Technology Stack](./architecture/stack.md)
+- [Development Plans](./development_plans.md)
+    - [Technical Implementation](./development/technical.md)
+    - [Plans](#)
+        - [Day 1](./development/day_1.md)
+        - [Day 2](./development/day_2.md)
+        - [Day 3](./development/day_3.md)
+        - [Day 4](./development/day_4.md)
