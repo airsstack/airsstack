@@ -1,10 +1,64 @@
 [package]
 name = "airs-memspec"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+# Publishing metadata
+description = "Streamline AI-assisted development with Multi-Project Memory Bank management and GitHub Copilot integration"
+keywords = ["cli", "copilot", "memory-bank", "ai", "workspace"]
+categories = ["command-line-utilities", "development-tools", "text-processing"]
+readme = "README.md"
+documentation = "https://docs.rs/airs-memspec"
+homepage = "https://github.com/rstlix0x0/airs/tree/main/crates/airs-memspec"
+publish = false  # Safety lock - change to true when ready to publish
+
+# Binary target for CLI installation
+[[bin]]
+name = "airs-memspec"
+path = "src/main.rs"
+
 [dependencies]
+# Core async runtime (from workspace with specific features)
+tokio = { workspace = true, features = ["fs", "io-util", "macros", "rt"] }
+
+# Serialization (from workspace)
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling (from workspace)
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# CLI framework (from workspace)
+clap = { workspace = true }
+
+# YAML parsing (from workspace)
+serde_yml = { workspace = true }
+
+# Markdown parsing (from workspace)
+pulldown-cmark = { workspace = true }
+
+# File system operations (from workspace)
+walkdir = { workspace = true }
+
+# Terminal output and formatting (from workspace)
+colored = { workspace = true }
+unicode-width = { workspace = true }
+terminal_size = { workspace = true }
+
+# Standard directories (from workspace)
+dirs = { workspace = true }
+
+[dev-dependencies]
+# Testing utilities (versions match workspace dev-dependencies)
+tokio-test = "0.4"
+proptest = "1.4"
+
+# CLI and filesystem testing (versions match workspace)
+tempfile = "3.20"
+assert_cmd = "2.0.17"
+predicates = "3.1"

@@ -34,6 +34,31 @@ bytes = { version = "1.5" }
 tokio-util = { version = "0.7", features = ["codec"] }
 tracing = { version = "0.1" }
 
+# CLI framework (latest stable)
+clap = { version = "4.5", features = ["derive", "help", "usage", "error-context"] }
+
+# YAML parsing (modern replacement for deprecated serde_yaml)
+serde_yml = { version = "0.0.12" }
+
+# Markdown parsing (latest stable)
+pulldown-cmark = { version = "0.13" }
+
+# Enhanced error handling (latest stable)
+anyhow = { version = "1.0.98" }
+
+# File system operations (latest stable)
+walkdir = { version = "2.5" }
+
+# Terminal output (latest stable - major update)
+colored = { version = "3.0" }
+
+# Text formatting utilities (latest stable)
+unicode-width = { version = "0.2" }
+terminal_size = { version = "0.4" }
+
+# Standard directories (latest stable - major update)
+dirs = { version = "6.0" }
+
 [workspace.dev-dependencies]
 # Async testing utilities - ACTUAL VERSION THAT EXISTS
 tokio-test = { version = "0.4" }
@@ -43,3 +68,8 @@ proptest = { version = "1.4" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Performance benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
+
+# Testing utilities (latest stable)
+tempfile = { version = "3.20" }
+assert_cmd = { version = "2.0.17" }
+predicates = { version = "3.1" }
