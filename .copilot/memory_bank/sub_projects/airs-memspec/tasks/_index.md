@@ -2,7 +2,6 @@
 
 ## In Progress
 
-- [task_002] cli_framework_implementation - Command structure, argument parsing, help/version (Day 1.2)
 
 ## Pending
 
@@ -23,6 +22,7 @@
 
 ## Completed
 
+- [task_002] cli_framework_implementation - Completed on 2025-08-02 (CLI framework with clap, all commands, global options)
 - [task_001] project_setup_workspace_integration - Completed on 2025-08-02 (Crate structure, Cargo config, workspace integration)
 
 
