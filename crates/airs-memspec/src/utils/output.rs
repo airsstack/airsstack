@@ -18,9 +18,12 @@
 //! # Usage
 //!
 //! ```rust
-//! use crate::utils::output::{OutputConfig, OutputFormatter};
+//! use airs_memspec::utils::output::{OutputConfig, OutputFormatter};
 //!
 //! // Create configuration based on CLI flags
+//! let no_color_flag = false;
+//! let verbose_flag = true;
+//! let quiet_flag = false;
 //! let config = OutputConfig::new(no_color_flag, verbose_flag, quiet_flag);
 //! let formatter = OutputFormatter::new(config);
 //!
@@ -87,6 +90,8 @@ impl OutputConfig {
     /// # Examples
     ///
     /// ```rust
+    /// use airs_memspec::utils::output::OutputConfig;
+    ///
     /// // Standard configuration
     /// let config = OutputConfig::new(false, false, false);
     ///
@@ -209,6 +214,9 @@ impl OutputConfig {
 /// # Examples
 ///
 /// ```rust
+/// use airs_memspec::utils::output::{OutputConfig, OutputFormatter};
+///
+/// let config = OutputConfig::new(false, false, false);
 /// let formatter = OutputFormatter::new(config);
 ///
 /// // Standard messages
@@ -478,6 +486,10 @@ impl OutputFormatter {
     /// # Examples
     ///
     /// ```rust
+    /// use airs_memspec::utils::output::{OutputConfig, OutputFormatter, Color};
+    ///
+    /// let config = OutputConfig::new(false, false, false);
+    /// let formatter = OutputFormatter::new(config);
     /// let red_text = formatter.colored_text("Error", Color::Red);
     /// let green_text = formatter.colored_text("Success", Color::Green);
     /// ```
@@ -524,6 +536,11 @@ impl OutputFormatter {
     /// # Usage Pattern
     ///
     /// ```rust
+    /// use airs_memspec::utils::output::{OutputConfig, OutputFormatter};
+    ///
+    /// let config = OutputConfig::new(false, false, false);
+    /// let formatter = OutputFormatter::new(config);
+    /// let items = vec!["file1.txt", "file2.txt", "file3.txt"];
     /// for (i, item) in items.iter().enumerate() {
     ///     formatter.progress(i + 1, items.len(), "Processing items");
     ///     // ... process item ...

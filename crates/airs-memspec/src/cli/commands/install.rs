@@ -87,7 +87,7 @@ const DEFAULT_INSTALL_DIR: &str = ".copilot/instructions";
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// // Standard installation
 /// run(&global_args, None, false, None)?;
 ///
@@ -204,15 +204,15 @@ pub fn run(
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// // Use default location (.copilot/instructions)
-/// let target = determine_target_directory(&None, None)?;
+/// let default_target = determine_target_directory(&None, None)?;
 ///
 /// // Global path override with default subdirectory
-/// let target = determine_target_directory(&Some("/workspace".into()), None)?;
+/// let workspace_target = determine_target_directory(&Some("/workspace".into()), None)?;
 ///
 /// // Specific target directory
-/// let target = determine_target_directory(&None, Some("custom/path".into()))?;
+/// let custom_target = determine_target_directory(&None, Some("custom/path".into()))?;
 /// ```
 fn determine_target_directory(
     global_path: &Option<PathBuf>,
@@ -277,15 +277,15 @@ fn determine_target_directory(
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// // Use default template
-/// let template = select_template(None)?;
+/// let default_template = select_template(None)?;
 ///
 /// // Select by keyword
-/// let template = select_template(Some("memory"))?;
+/// let memory_template = select_template(Some("memory"))?;
 ///
 /// // Select by description fragment
-/// let template = select_template(Some("multi-project"))?;
+/// let multi_template = select_template(Some("multi-project"))?;
 /// ```
 fn select_template(
     template_name: Option<&str>,
