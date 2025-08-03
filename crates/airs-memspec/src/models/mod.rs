@@ -4,7 +4,7 @@
 pub mod instruction;
 pub mod task;
 
-// Refactored memory bank modules by domain
+// Domain-specific memory bank modules
 pub mod monitoring;
 pub mod progress;
 pub mod review;
@@ -15,9 +15,6 @@ pub mod tech;
 pub mod testing;
 pub mod types;
 pub mod workspace;
-
-// Compatibility layer for backward compatibility
-pub mod memory_bank;
 
 // Re-export commonly used types for convenience
 pub use sub_project::{ActiveContext, ProductContext, SubProject};
