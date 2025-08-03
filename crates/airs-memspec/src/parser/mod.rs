@@ -4,3 +4,4 @@
 pub mod instructions;
 pub mod markdown;
 pub mod memory_bank;
+pub mod navigation;
