@@ -1,6 +1,6 @@
 # Current Context
 
-**active_sub_project:** airs-memspec
+**active_sub_project:** airs-mcp
 **switched_on:** 2025-08-03T23:30:00Z
 **by:** task_008_completion_and_code_quality_improvements
 **status:** context_correlation_complete_ready_for_command_implementation
