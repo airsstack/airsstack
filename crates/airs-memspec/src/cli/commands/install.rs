@@ -4,6 +4,7 @@
 use crate::cli::GlobalArgs;
 use crate::embedded::instructions::{available_templates, InstructionTemplate};
 use crate::utils::fs::{self, FsResult};
+use crate::utils::output::{OutputConfig, OutputFormatter};
 use std::path::PathBuf;
 
 /// Default installation directory relative to current directory
@@ -16,46 +17,69 @@ pub fn run(
     force: bool,
     template: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Create output formatter
+    let output_config = OutputConfig::new(global.no_color, global.verbose, global.quiet);
+    let formatter = OutputFormatter::new(output_config);
+
     // Determine the target directory
-    let target_dir = determine_target_directory(&global.path, target)
-        .map_err(|e| format!("Failed to determine target directory: {}", e))?;
+    let target_dir = determine_target_directory(&global.path, target).map_err(|e| {
+        formatter.error(&format!("Failed to determine target directory: {}", e));
+        format!("Failed to determine target directory: {}", e)
+    })?;
 
     // Select the instruction template
-    let instruction_template = select_template(template.as_deref())?;
+    let instruction_template = select_template(template.as_deref()).map_err(|e| {
+        formatter.error(&e.to_string());
+        e
+    })?;
 
     // Check if files exist and handle accordingly
     let file_path = target_dir.join(instruction_template.filename());
     if fs::path_exists(&file_path) && !force {
-        return Err(format!(
+        let error_msg = format!(
             "File already exists: {}\nUse --force to overwrite existing files",
             file_path.display()
-        )
-        .into());
+        );
+        formatter.error(&error_msg);
+        return Err(error_msg.into());
     }
 
+    formatter.verbose(&format!(
+        "Installing template: {}",
+        instruction_template.description()
+    ));
+    formatter.verbose(&format!("Target directory: {}", target_dir.display()));
+
     // Perform the installation
-    install_instructions(&target_dir, &instruction_template, force)
-        .map_err(|e| format!("Installation failed: {}", e))?;
+    install_instructions(&target_dir, &instruction_template, force).map_err(|e| {
+        let error_msg = format!("Installation failed: {}", e);
+        formatter.error(&error_msg);
+        error_msg
+    })?;
 
     // Report success
-    println!(
-        "✅ Successfully installed {} to {}",
+    formatter.success(&format!(
+        "Successfully installed {} to {}",
         instruction_template.description(),
         target_dir.display()
-    );
+    ));
 
     if !global.quiet {
-        println!("📁 File: {}", file_path.display());
-        println!("🎯 Use these instructions with GitHub Copilot for enhanced AI assistance");
+        formatter.info(&format!("📁 File: {}", file_path.display()));
+        formatter
+            .message("🎯 Use these instructions with GitHub Copilot for enhanced AI assistance");
 
         if global.verbose {
-            println!("📊 Installation details:");
-            println!("   Template: {}", instruction_template.description());
-            println!("   Target directory: {}", target_dir.display());
-            println!(
+            formatter.header("Installation Details");
+            formatter.message(&format!(
+                "   Template: {}",
+                instruction_template.description()
+            ));
+            formatter.message(&format!("   Target directory: {}", target_dir.display()));
+            formatter.message(&format!(
                 "   File size: {} bytes",
                 instruction_template.content().len()
-            );
+            ));
         }
     }
 
