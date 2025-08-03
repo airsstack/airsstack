@@ -179,6 +179,9 @@
 // Base layer modules
 pub mod base;
 
+// Correlation layer modules
+pub mod correlation;
+
 // Re-export commonly used types for convenience
 // This allows users to import directly from the crate root
 pub use base::jsonrpc::{
@@ -187,6 +190,14 @@ pub use base::jsonrpc::{
     JsonRpcResponse, 
     JsonRpcNotification, 
     RequestId
+};
+
+// Re-export correlation types for convenience
+pub use correlation::{
+    CorrelationManager,
+    CorrelationConfig,
+    CorrelationError,
+    CorrelationResult
 };
 
 // Version information
