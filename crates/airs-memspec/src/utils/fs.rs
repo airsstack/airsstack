@@ -18,6 +18,8 @@ pub enum FsError {
     PermissionDenied { path: PathBuf },
     #[error("File already exists: {path}")]
     FileExists { path: PathBuf },
+    #[error("Parse error: {0}")]
+    ParseError(String),
 }
 
 /// Result type for file system operations
