@@ -53,6 +53,9 @@ terminal_size = { workspace = true }
 # Standard directories (from workspace)
 dirs = { workspace = true }
 
+# Date/time handling (from workspace)
+chrono = { workspace = true }
+
 [dev-dependencies]
 # Testing utilities (versions match workspace dev-dependencies)
 tokio-test = "0.4"
