@@ -10,24 +10,32 @@ description = "Model Context Protocol implementation with JSON-RPC 2.0 foundatio
 keywords = ["mcp", "jsonrpc", "protocol", "rpc"]
 categories = ["network-programming", "api-bindings"]
 
+
 [dependencies]
 # Core serialization for JSON-RPC messages (current implementation needs)
 serde.workspace = true
 serde_json.workspace = true
 
-# Future dependencies (commented out until actually needed)
-# tokio.workspace = true
-# futures.workspace = true
-# dashmap.workspace = true
-# thiserror.workspace = true
-# uuid.workspace = true
-# bytes.workspace = true
-# tokio-util.workspace = true
-# tracing.workspace = true
+# Future dependencies (now enabled for development and future use)
+tokio.workspace = true
+futures.workspace = true
+dashmap.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+bytes.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
-# Only include what we actually need for current tests
-# tokio-test.workspace = true
-# proptest.workspace = true
-# tracing-subscriber.workspace = true
-# criterion.workspace = true
+# Async testing utilities for correlation manager testing
+tokio-test = { version = "0.4.4" }
+
+# Property-based testing for concurrency scenarios  
+proptest = { version = "1.7.0" }
+
+# Performance benchmarking for correlation latency
+criterion = { version = "0.7.0", features = ["html_reports"] }
+
+# Test logging and debugging for async flows
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
