@@ -44,41 +44,42 @@
 
 // Workspace domain
 pub use super::workspace::{
-    ContextSnapshot, CurrentContext, Pattern, SharedPatterns, SharedUtility, Workspace,
-    WorkspaceMetadata,
+    Workspace, WorkspaceMetadata, SharedPatterns, Pattern, SharedUtility,
+    CurrentContext, ContextSnapshot
 };
 
 // Sub-project domain
 pub use super::sub_project::{
-    ActiveContext, Blocker, Change, ProductContext, SubProject, SubProjectMetadata,
+    SubProject, SubProjectMetadata, ProductContext, ActiveContext, Change, Blocker
 };
 
 // System architecture domain
 pub use super::system::{
-    ArchitectureDescription, Component, ComponentRelationship, Integration, SystemPatterns,
-    TechnicalDecision,
+    SystemPatterns, ArchitectureDescription, Component, Integration,
+    TechnicalDecision, ComponentRelationship
 };
 
 // Technology domain
 pub use super::tech::{
-    DependencyManagement, DeploymentContext, DevelopmentSetup, Environment,
-    InfrastructureRequirement, TechContext, TechnicalConstraint, Technology,
+    TechContext, Technology, DevelopmentSetup, TechnicalConstraint,
+    DependencyManagement, DeploymentContext, Environment, InfrastructureRequirement
 };
 
 // Monitoring domain
 pub use super::monitoring::{
-    AlertRule, AlertingConfig, LoggingConfig, MetricsConfig, MonitoringSetup, TracingConfig,
+    MonitoringSetup, LoggingConfig, MetricsConfig, AlertingConfig,
+    AlertRule, TracingConfig
 };
 
 // Progress tracking domain
 pub use super::progress::{
-    Issue, Milestone, Progress, ProgressMetrics, WorkItem, WorkingComponent,
+    Progress, WorkingComponent, WorkItem, Issue, Milestone, ProgressMetrics
 };
 
 // Testing domain
 pub use super::testing::{
-    BenchmarkResult, ManualTestItem, ManualTestStatus, PerformanceResults, PerformanceStatus,
-    TestFailure, TestResults, TestType, TestingInfo,
+    TestingInfo, TestType, TestResults, TestFailure, PerformanceResults,
+    BenchmarkResult, PerformanceStatus, ManualTestItem, ManualTestStatus
 };
 
 // Code review domain
@@ -86,12 +87,12 @@ pub use super::review::{CodeReviewInfo, ReviewStatus};
 
 // Task management domain
 pub use super::task_management::{
-    ProgressLogEntry, Subtask, Task, TaskCollection, TaskDetails, TaskIndex, TaskMetadata,
-    TaskProgress, TaskProgressSummary, TaskStatistics,
+    TaskCollection, TaskIndex, TaskStatistics, Task, TaskDetails,
+    TaskProgress, Subtask, ProgressLogEntry, TaskMetadata, TaskProgressSummary
 };
 
 // Shared types
 pub use super::types::{
-    IssueSeverity, Priority, ProgressLogType, ProgressStatus, ProjectStatus, SubtaskStatus,
-    TaskStatus,
+    Priority, ProgressStatus, IssueSeverity, TaskStatus, SubtaskStatus,
+    ProgressLogType, ProjectStatus
 };
