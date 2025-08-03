@@ -61,7 +61,7 @@ pub struct TaskItem {
 ///
 /// Represents the various states a task can be in, based on common
 /// patterns found in memory bank task tracking.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TaskStatus {
     /// Task has not been started yet
     NotStarted,
