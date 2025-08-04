@@ -195,7 +195,10 @@ pub use base::jsonrpc::{
 pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, CorrelationResult};
 
 // Re-export transport types for convenience
-pub use transport::{StdioTransport, Transport, TransportError};
+pub use transport::{
+    BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StdioTransport, StreamingBuffer,
+    Transport, TransportError,
+};
 
 // Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

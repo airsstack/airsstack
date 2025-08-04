@@ -15,13 +15,13 @@
 //! async fn example_usage<T: Transport>(mut transport: T) -> Result<(), T::Error> {
 //!     // Send a message
 //!     transport.send(b"Hello, world!").await?;
-//!     
+//!
 //!     // Receive a response
 //!     let response = transport.receive().await?;
-//!     
+//!
 //!     // Close the connection
 //!     transport.close().await?;
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -32,7 +32,31 @@
 //! - **Error flexibility**: Associated Error type for transport-specific error handling
 //! - **Generic messages**: Uses `&[u8]` for maximum flexibility and zero-copy potential
 //! - **Resource management**: Explicit `close()` method for proper cleanup
+//! - **Performance-optimized**: Advanced buffer management for high-throughput scenarios
 //! - **Thread safety**: All implementations must be `Send + Sync`
+//!
+//! # Buffer Management
+//!
+//! The transport layer includes advanced buffer management features:
+//!
+//! - **Buffer Pooling**: Reusable buffer allocation to minimize GC pressure
+//! - **Zero-Copy Operations**: Avoid unnecessary data copying where possible
+//! - **Streaming Support**: Efficient handling of partial reads and writes
+//! - **Backpressure Management**: Flow control to prevent memory exhaustion
+//!
+//! ```rust
+//! use airs_mcp::transport::buffer::{BufferManager, BufferConfig};
+//!
+//! async fn buffer_example() -> Result<(), Box<dyn std::error::Error>> {
+//!     let config = BufferConfig::default();
+//!     let buffer_manager = BufferManager::new(config);
+//!     
+//!     let mut buffer = buffer_manager.acquire_read_buffer().await?;
+//!     // Use buffer for I/O operations...
+//!     // Buffer automatically returns to pool when dropped
+//!     Ok(())
+//! }
+//! ```
 //!
 //! # Transports
 //!
@@ -53,10 +77,14 @@
 //! This allows for transport-specific error variants while maintaining
 //! a consistent interface.
 
+// Export main transport components
+pub mod buffer;
 pub mod error;
 pub mod stdio;
 pub mod traits;
 
+// Re-export main types for convenience
+pub use buffer::{BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StreamingBuffer};
 pub use error::TransportError;
 pub use stdio::StdioTransport;
 pub use traits::Transport;
