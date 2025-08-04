@@ -2,6 +2,79 @@
 
 This file documents core implementation, architecture, and methodology patterns shared across all sub-projects in the workspace. These standards ensure consistency, maintainability, and professional code quality across the entire AIRS ecosystem.
 
+## Zero-Warning Policy (Mandatory)
+
+### Code Quality Requirements
+All sub-projects MUST maintain zero compiler warnings:
+
+```bash
+# All these commands must complete with zero warnings
+cargo check --workspace
+cargo clippy --workspace --all-targets --all-features  
+cargo test --workspace --doc
+```
+
+**Enforcement:** CI/CD pipelines will fail if any warnings are present.
+
+### Warning Resolution Strategies
+
+#### Dead Code / Unused Items
+```rust
+// Option 1: Remove unused code entirely (preferred)
+// fn unused_function() { } // DELETE
+
+// Option 2: Mark as intentionally unused for future use
+#[allow(dead_code)] // Framework for future functionality
+struct FutureFeature {
+    placeholder: String,
+}
+
+// Option 3: Add underscore prefix for temporary variables
+fn example() {
+    let _temporary_unused = "will be used later";
+}
+```
+
+#### Unused Imports
+```rust
+// Remove unused imports immediately
+// use std::collections::HashMap; // DELETE if not used
+
+// Use conditional compilation for feature-specific imports
+#[cfg(feature = "advanced")]
+use advanced_feature::AdvancedType;
+```
+
+#### Documentation Tests
+```rust
+/// Example function with properly tested documentation
+///
+/// ```
+/// # use crate::example_function;
+/// let result = example_function(42);
+/// assert_eq!(result, 84);
+/// ```
+pub fn example_function(x: i32) -> i32 {
+    x * 2
+}
+
+/// For complex examples that cannot be tested
+///
+/// ```ignore
+/// // This example requires external setup
+/// let connection = connect_to_external_service().await?;
+/// ```
+pub fn complex_function() { }
+```
+
+### Test Quality Standards
+All sub-projects must maintain:
+
+- **Unit Tests**: 100% coverage of public APIs
+- **Integration Tests**: Critical path validation
+- **Documentation Tests**: All examples must compile and run (or be explicitly ignored)
+- **Property Tests**: For complex algorithms (where applicable)
+
 ## Code Organization Standards
 
 ### Import Order Pattern (Mandatory)
