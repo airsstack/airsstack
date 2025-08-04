@@ -83,24 +83,19 @@ pub enum Commands {
         sub_project: Option<String>,
     },
 
-    /// Manage and display current project context
+    /// Display current project context and active development focus
     #[command(name = "context")]
-    #[command(about = "Manage project context and active sub-project")]
+    #[command(about = "Show active development context and architectural decisions")]
     Context {
-        /// Set active sub-project
-        #[arg(short = 's', long = "set")]
-        #[arg(help = "Set the active sub-project")]
-        set: Option<String>,
+        /// Display workspace-level context
+        #[arg(short = 'w', long = "workspace")]
+        #[arg(help = "Show workspace-level context and integration points")]
+        workspace: bool,
 
-        /// Show current context
-        #[arg(long = "show")]
-        #[arg(help = "Display current context information")]
-        show: bool,
-
-        /// List available sub-projects
-        #[arg(short = 'l', long = "list")]
-        #[arg(help = "List all available sub-projects")]
-        list: bool,
+        /// Display specific sub-project context
+        #[arg(long = "project")]
+        #[arg(help = "Show context for specific sub-project")]
+        project: Option<String>,
     },
 
     /// Handle task management and tracking operations

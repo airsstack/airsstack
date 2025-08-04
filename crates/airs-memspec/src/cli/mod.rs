@@ -26,8 +26,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             detailed,
             sub_project,
         } => commands::status::run(&cli.global, detailed, sub_project),
-        Commands::Context { set, show, list } => {
-            commands::context::run(&cli.global, set, show, list)
+        Commands::Context { workspace, project } => {
+            commands::context::run(&cli.global, workspace, project)
         }
         Commands::Tasks { action } => commands::tasks::run(&cli.global, action),
     }
