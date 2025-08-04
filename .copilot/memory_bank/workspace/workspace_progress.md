@@ -29,7 +29,7 @@ This file tracks cross-project milestones, status, and strategic decisions for t
 - **Test Coverage:** 166 total tests (97 unit + 69 doc) - 100% pass rate
 - **Code Quality:** Zero critical issues, minor clippy suggestions for optimization
 - **Documentation Coverage:** Complete API documentation with examples
-- **Technical Debt:** Zero untracked debt, proactive management framework
+- **Technical Debt:** **1 HIGH PRIORITY ISSUE** - airs-memspec CLI output formatting gap (task_017)
 
 ### Strategic Decisions
 
@@ -48,6 +48,7 @@ This file tracks cross-project milestones, status, and strategic decisions for t
 #### Technical Debt Management
 - **Prevention First:** Design reviews and quality gates prevent debt accumulation
 - **Proactive Tracking:** GitHub issue integration for debt visibility and remediation
+- **Current Critical Issue (2025-08-04):** airs-memspec CLI output formatting gap - HIGH priority technical debt affecting user experience and adoption
 - **Classification System:** Architectural, code quality, documentation, testing, performance debt
 - **Regular Review:** Quarterly debt assessment and prioritization cycles
 

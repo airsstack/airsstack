@@ -1,19 +1,33 @@
 # Active Context: airs-memspec
 
 **Current Work Focus (Updated 2025-08-04):**
-- Context correlation system implementation completed successfully (task_008)
-- Complete workspace context management system with comprehensive correlation pipeline
-- **Technical Standards Integration**: Workspace-level technical standards applied and validated
-- All Day 1 development tasks (1.1-1.4) plus architectural refactoring and Day 2.1-2.4 complete
-- Ready to continue with next development tasks in the pipeline (status/context/tasks commands)
+- **CRITICAL TECHNICAL DEBT IDENTIFIED**: CLI output formatting gap requires immediate attention (task_017)
+- Commands implementation (status/context/tasks) completed but output doesn't match README examples
+- Need OutputFormatter enhancement to deliver promised professional CLI experience
+- User experience and adoption risk due to formatting discrepancy
 
 **Recent Changes:**
-- ✅ **Technical Standards Application (2025-08-04)**:
-  - 3-layer import pattern applied across all modules (std → third-party → internal)
-  - Code formatting updated to workspace standards (cargo fmt compliance)
-  - Import organization standardized following workspace technical patterns
-  - Quality assurance: 12 unit tests + 8 doc tests (20 total), all passing
-  - Integration with workspace-level governance framework
+- ✅ **Commands Implementation Pipeline - COMPLETED (2025-08-04)**:
+  - task_009: status command - working but basic formatting
+  - task_010: context command - working but basic formatting  
+  - task_011: tasks command - working but basic formatting
+  - task_012: output polish - attempted but insufficient for README examples
+
+- ❌ **CRITICAL ISSUE DISCOVERED (2025-08-04)**: 
+  - **Output Formatting Gap**: Current OutputFormatter produces basic console messages
+  - **README Promise**: Documentation shows sophisticated structured layouts with:
+    - Heavy horizontal lines (`━`) for sections
+    - Tabular data with aligned columns
+    - Tree structures (`├─`, `└─`) for hierarchical display
+    - Rich visual hierarchy and information density
+  - **User Impact**: Professional teams expecting documented output will be disappointed
+  - **Technical Debt**: HIGH priority - affects credibility and adoption
+
+**Next Steps:**
+- **PRIORITY 1**: Address CLI output formatting gap (task_017) - 5-7 days effort
+- **Phase 1**: Enhanced OutputFormatter with structured layout engine
+- **Phase 2**: Command-specific formatters matching README examples exactly  
+- **Phase 3**: Documentation alignment and comprehensive testing
 
 - ✅ **Task 008 - Context Correlation System - COMPLETED**:
   - Implemented comprehensive `src/parser/context.rs` with 700+ lines of correlation pipeline

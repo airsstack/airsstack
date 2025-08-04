@@ -191,3 +191,30 @@ fn inefficient_lookup(items: &[Item], target: &str) -> Option<&Item> {
 - **Post-Release Review:** Assess debt created during release crunch
 
 This framework ensures that technical debt is managed as a first-class concern, maintaining the long-term health and maintainability of the AIRS codebase while enabling continued feature development.
+
+## Current High-Priority Technical Debt
+
+### CRITICAL: airs-memspec CLI Output Formatting Gap (2025-08-04)
+
+**Issue**: [task_017] CLI output formatting doesn't match README documentation
+- **Category**: User Experience Debt
+- **Priority**: HIGH - Critical for adoption and credibility
+- **Sub-Project**: airs-memspec
+- **Tracking**: task_017_cli_output_formatting_gap.md
+
+**Problem**: 
+- README shows sophisticated structured layouts with tabular data, tree structures, and rich visual hierarchy
+- Current implementation delivers basic console messages with simple emojis
+- Gap creates user disappointment and adoption risk for professional teams
+
+**Impact**:
+- **User Experience**: CRITICAL - Professional CLI output expected
+- **Business**: HIGH - Affects tool adoption and competitive position  
+- **Technical**: HIGH - Documentation accuracy and maintenance burden
+
+**Effort**: 5-7 days full development
+- Enhanced OutputFormatter with structured layout engine
+- Command-specific formatters matching README examples
+- Documentation alignment and testing
+
+**Decision**: Prioritize immediately due to user-facing impact and credibility risk

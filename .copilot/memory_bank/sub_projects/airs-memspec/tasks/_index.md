@@ -4,6 +4,7 @@
 
 ## Pending
 
+- [task_017] cli_output_formatting_gap - **HIGH PRIORITY TECHNICAL DEBT** - CLI output formatting doesn't match README examples (5-7 days, user experience critical)
 - [task_013] airs_integration_testing - Real workspace test, cross-project validation (Day 4.1)
 - [task_014] error_handling_edge_cases - Robust error handling, user guidance, recovery (Day 4.2)
 - [task_015] performance_optimization - Profiling, caching, benchmarks (Day 4.3)

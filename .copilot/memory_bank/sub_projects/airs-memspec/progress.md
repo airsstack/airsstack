@@ -91,6 +91,10 @@
 - Add integration testing for complete workflows
 
 ### Known Issues
+- **CRITICAL TECHNICAL DEBT**: CLI output formatting gap - Current implementation doesn't match sophisticated formatting shown in README examples (task_017)
+  - Impact: User experience, professional credibility, adoption risk
+  - Priority: HIGH - Requires immediate attention
+  - Effort: 5-7 days for complete OutputFormatter enhancement
 - Minor doctest failures in documentation examples (non-functional, cosmetic only)
 - All core functionality working correctly with comprehensive test coverage
 
