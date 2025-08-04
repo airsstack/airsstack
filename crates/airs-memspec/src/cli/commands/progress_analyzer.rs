@@ -308,43 +308,71 @@ impl ProgressAnalyzer {
         task_names
     }
 
-    /// Detect workspace bottlenecks
+    /// Detect workspace bottlenecks with enhanced analysis
     fn detect_workspace_bottlenecks(&self, workspace: &WorkspaceContext) -> Vec<Bottleneck> {
         let mut bottlenecks = Vec::new();
 
-        // Check for projects with critical health
+        // Enhanced critical project analysis
         for (name, context) in &workspace.sub_project_contexts {
             if context.derived_status.health == ProjectHealth::Critical {
+                let issue_count = context.derived_status.issues.len();
+                let blocked_count = context.task_summary.blocked_tasks.len();
+                
                 bottlenecks.push(Bottleneck {
-                    description: format!("Project {} has critical health status", name),
+                    description: format!(
+                        "Project {} has critical health ({} issues, {} blocked tasks)",
+                        name, issue_count, blocked_count
+                    ),
                     severity: BottleneckSeverity::Critical,
-                    impact: 25.0, // Assume 25% impact
+                    impact: 30.0 + (issue_count as f64 * 5.0),
                     resolution_suggestions: vec![
-                        "Review and resolve critical issues".to_string(),
-                        "Allocate additional resources".to_string(),
+                        format!("URGENT: Focus leadership attention on {}", name),
+                        "Conduct immediate project health review".to_string(),
+                        "Consider reallocating resources".to_string(),
+                        "Implement daily standups for critical items".to_string(),
                     ],
                     affected_tasks: self.get_project_task_names(context),
                 });
             }
         }
 
-        // Check for high blocked task ratio
+        // Enhanced high blocked task ratio analysis
         for (name, context) in &workspace.sub_project_contexts {
             let blocked_count = context.task_summary.blocked_tasks.len();
             let total_count = context.task_summary.total_tasks;
+            let blocked_ratio = if total_count > 0 {
+                blocked_count as f64 / total_count as f64
+            } else {
+                0.0
+            };
 
-            if total_count > 0 && (blocked_count as f64 / total_count as f64) > 0.2 {
+            if total_count > 0 && blocked_ratio > 0.2 {
+                let severity = if blocked_ratio > 0.4 {
+                    BottleneckSeverity::Critical
+                } else if blocked_ratio > 0.3 {
+                    BottleneckSeverity::High
+                } else {
+                    BottleneckSeverity::Medium
+                };
+
+                let mut suggestions = vec![
+                    format!("Prioritize unblocking tasks in {}", name),
+                    "Analyze dependency chains".to_string(),
+                    "Consider parallel work streams".to_string(),
+                ];
+
+                if blocked_ratio > 0.35 {
+                    suggestions.insert(0, "ESCALATION REQUIRED: High blocker density".to_string());
+                }
+
                 bottlenecks.push(Bottleneck {
                     description: format!(
-                        "High blocked task ratio in {}: {}/{}",
-                        name, blocked_count, total_count
+                        "High blocked task ratio in {}: {}/{} ({:.1}%)",
+                        name, blocked_count, total_count, blocked_ratio * 100.0
                     ),
-                    severity: BottleneckSeverity::High,
-                    impact: 15.0,
-                    resolution_suggestions: vec![
-                        "Review and unblock pending tasks".to_string(),
-                        "Address dependency issues".to_string(),
-                    ],
+                    severity,
+                    impact: 20.0 + (blocked_ratio * 30.0),
+                    resolution_suggestions: suggestions,
                     affected_tasks: context
                         .task_summary
                         .blocked_tasks
@@ -355,33 +383,141 @@ impl ProgressAnalyzer {
             }
         }
 
+        // Detect cross-project dependency bottlenecks
+        let projects_with_issues: Vec<_> = workspace
+            .sub_project_contexts
+            .iter()
+            .filter(|(_, ctx)| !ctx.derived_status.issues.is_empty())
+            .collect();
+
+        if projects_with_issues.len() > workspace.sub_project_contexts.len() / 2 {
+            bottlenecks.push(Bottleneck {
+                description: format!(
+                    "Widespread issues across {} of {} projects indicate systemic problems",
+                    projects_with_issues.len(),
+                    workspace.sub_project_contexts.len()
+                ),
+                severity: BottleneckSeverity::High,
+                impact: 25.0,
+                resolution_suggestions: vec![
+                    "Conduct workspace-wide architecture review".to_string(),
+                    "Identify common patterns in issues".to_string(),
+                    "Review cross-project dependencies".to_string(),
+                    "Consider standardizing tools and processes".to_string(),
+                ],
+                affected_tasks: vec!["Multiple projects".to_string()],
+            });
+        }
+
+        // Detect velocity distribution issues
+        let velocities: Vec<f64> = workspace
+            .sub_project_contexts
+            .values()
+            .map(|ctx| self.calculate_project_velocity(ctx))
+            .collect();
+
+        if velocities.len() > 1 {
+            let avg_velocity = velocities.iter().sum::<f64>() / velocities.len() as f64;
+            let low_velocity_projects: Vec<_> = workspace
+                .sub_project_contexts
+                .iter()
+                .filter(|(_, ctx)| {
+                    let velocity = self.calculate_project_velocity(ctx);
+                    velocity < avg_velocity * 0.5 && velocity < 1.0
+                })
+                .collect();
+
+            if low_velocity_projects.len() > 1 {
+                let project_names: Vec<String> = low_velocity_projects
+                    .iter()
+                    .map(|(name, _)| (*name).clone())
+                    .collect();
+
+                bottlenecks.push(Bottleneck {
+                    description: format!(
+                        "Low velocity in projects: {} (avg: {:.1} tasks/week)",
+                        project_names.join(", "), avg_velocity
+                    ),
+                    severity: BottleneckSeverity::Medium,
+                    impact: 15.0,
+                    resolution_suggestions: vec![
+                        "Analyze resource allocation across projects".to_string(),
+                        "Review task complexity and breakdown".to_string(),
+                        "Consider cross-project knowledge sharing".to_string(),
+                        "Identify skill gaps and training needs".to_string(),
+                    ],
+                    affected_tasks: project_names,
+                });
+            }
+        }
+
         bottlenecks
     }
 
-    /// Detect project bottlenecks
+    /// Detect project bottlenecks with enhanced analysis
     fn detect_project_bottlenecks(&self, context: &SubProjectContext) -> Vec<Bottleneck> {
         let mut bottlenecks = Vec::new();
 
-        // Check blocked tasks
+        // Enhanced blocked tasks analysis
         if !context.task_summary.blocked_tasks.is_empty() {
             let blocked_count = context.task_summary.blocked_tasks.len();
-            let severity = if blocked_count > 5 {
+            let total_tasks = context.task_summary.total_tasks;
+            let blocked_ratio = blocked_count as f64 / total_tasks as f64;
+            
+            // Calculate severity based on multiple factors
+            let severity = if blocked_ratio > 0.4 || blocked_count > 8 {
                 BottleneckSeverity::Critical
-            } else if blocked_count > 2 {
+            } else if blocked_ratio > 0.25 || blocked_count > 4 {
                 BottleneckSeverity::High
-            } else {
+            } else if blocked_ratio > 0.15 || blocked_count > 2 {
                 BottleneckSeverity::Medium
+            } else {
+                BottleneckSeverity::Low
             };
 
+            // Enhanced impact calculation
+            let base_impact = blocked_ratio * 100.0;
+            let velocity_impact = if blocked_count > 3 { 15.0 } else { 5.0 };
+            let timeline_impact = if severity >= BottleneckSeverity::High { 20.0 } else { 10.0 };
+            let total_impact = base_impact + velocity_impact + timeline_impact;
+
+            // Enhanced resolution suggestions based on context
+            let mut suggestions = vec![
+                "Analyze root causes of blocked tasks".to_string(),
+                "Prioritize unblocking critical path items".to_string(),
+            ];
+
+            if blocked_count > 5 {
+                suggestions.extend_from_slice(&[
+                    "Consider parallel work streams to reduce dependencies".to_string(),
+                    "Schedule dedicated blocker resolution session".to_string(),
+                ]);
+            }
+
+            if blocked_ratio > 0.3 {
+                suggestions.push("Review project architecture for dependency issues".to_string());
+            }
+
+            // Add escalation suggestions based on severity
+            match severity {
+                BottleneckSeverity::Critical => {
+                    suggestions.insert(0, "IMMEDIATE ACTION REQUIRED: Escalate to project leadership".to_string());
+                    suggestions.push("Consider bringing in additional expertise".to_string());
+                }
+                BottleneckSeverity::High => {
+                    suggestions.push("Escalate to technical leads within 24 hours".to_string());
+                }
+                _ => {}
+            }
+
             bottlenecks.push(Bottleneck {
-                description: format!("{} blocked tasks preventing progress", blocked_count),
+                description: format!(
+                    "{} blocked tasks ({:.1}% of total) creating significant bottleneck",
+                    blocked_count, blocked_ratio * 100.0
+                ),
                 severity,
-                impact: (blocked_count as f64 / context.task_summary.total_tasks as f64) * 100.0,
-                resolution_suggestions: vec![
-                    "Review blocked task dependencies".to_string(),
-                    "Escalate blockers to appropriate teams".to_string(),
-                    "Consider alternative implementation approaches".to_string(),
-                ],
+                impact: total_impact.min(100.0),
+                resolution_suggestions: suggestions,
                 affected_tasks: context
                     .task_summary
                     .blocked_tasks
@@ -391,17 +527,94 @@ impl ProgressAnalyzer {
             });
         }
 
-        // Check for critical health
+        // Enhanced critical health analysis
         if context.derived_status.health == ProjectHealth::Critical {
+            let critical_issues = context.derived_status.issues.len();
+            let severity_multiplier = if critical_issues > 3 { 1.5 } else { 1.0 };
+            
             bottlenecks.push(Bottleneck {
-                description: "Project has critical health status".to_string(),
+                description: format!(
+                    "Critical project health with {} unresolved issues",
+                    critical_issues
+                ),
                 severity: BottleneckSeverity::Critical,
-                impact: 30.0,
+                impact: ((35.0 * severity_multiplier) as f64).min(100.0),
                 resolution_suggestions: vec![
-                    "Address critical issues immediately".to_string(),
-                    "Allocate additional resources".to_string(),
+                    "URGENT: Address all critical issues within 48 hours".to_string(),
+                    "Conduct immediate project health assessment".to_string(),
+                    "Allocate senior resources to critical path".to_string(),
+                    "Consider project scope adjustment if necessary".to_string(),
                 ],
-                affected_tasks: vec![],
+                affected_tasks: vec!["All project tasks".to_string()],
+            });
+        }
+
+        // Detect dependency chain bottlenecks
+        let in_progress_count = context
+            .task_summary
+            .tasks_by_status
+            .get(&TaskStatus::InProgress)
+            .map(|tasks| tasks.len())
+            .unwrap_or(0);
+            
+        let not_started_count = context
+            .task_summary
+            .tasks_by_status
+            .get(&TaskStatus::NotStarted)
+            .map(|tasks| tasks.len())
+            .unwrap_or(0);
+
+        // If too many tasks are not started vs in progress, might indicate dependency issues
+        if not_started_count > 0 && in_progress_count > 0 {
+            let dependency_ratio = not_started_count as f64 / (in_progress_count + not_started_count) as f64;
+            
+            if dependency_ratio > 0.7 && not_started_count > 3 {
+                bottlenecks.push(Bottleneck {
+                    description: format!(
+                        "Potential dependency bottleneck: {} tasks waiting to start vs {} in progress",
+                        not_started_count, in_progress_count
+                    ),
+                    severity: BottleneckSeverity::Medium,
+                    impact: 15.0,
+                    resolution_suggestions: vec![
+                        "Review task dependencies and sequencing".to_string(),
+                        "Identify tasks that can be parallelized".to_string(),
+                        "Consider breaking down large tasks".to_string(),
+                    ],
+                    affected_tasks: vec![format!("{} pending tasks", not_started_count)],
+                });
+            }
+        }
+
+        // Detect velocity bottlenecks (low completion rate)
+        let completed_count = context
+            .task_summary
+            .tasks_by_status
+            .get(&TaskStatus::Completed)
+            .map(|tasks| tasks.len())
+            .unwrap_or(0);
+            
+        let completion_ratio = completed_count as f64 / context.task_summary.total_tasks as f64;
+        
+        if context.task_summary.total_tasks > 5 && completion_ratio < 0.3 {
+            bottlenecks.push(Bottleneck {
+                description: format!(
+                    "Low completion velocity: only {:.1}% tasks completed",
+                    completion_ratio * 100.0
+                ),
+                severity: if completion_ratio < 0.15 {
+                    BottleneckSeverity::High
+                } else {
+                    BottleneckSeverity::Medium
+                },
+                impact: (30.0 - completion_ratio * 30.0).max(10.0),
+                resolution_suggestions: vec![
+                    "Analyze task complexity and breakdown".to_string(),
+                    "Review resource allocation and availability".to_string(),
+                    "Consider if scope needs adjustment".to_string(),
+                    "Identify and address skill gaps".to_string(),
+                ],
+                affected_tasks: vec!["All incomplete tasks".to_string()],
             });
         }
 
