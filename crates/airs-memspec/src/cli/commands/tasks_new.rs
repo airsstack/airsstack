@@ -2,9 +2,9 @@
 // Handles task management and tracking operations
 
 use crate::cli::{GlobalArgs, TaskAction};
-use crate::parser::context::ContextCorrelator;
-use crate::parser::markdown::{TaskItem, TaskStatus};
-use crate::parser::navigation::MemoryBankNavigator;
+use crate::models::types::TaskStatus;
+use crate::parser::context::{ContextCorrelator, TaskSummary};
+use crate::parser::navigation::{MemoryBankNavigator, MemoryBankStructure};
 use crate::utils::fs::FsError;
 use crate::utils::output::{OutputConfig, OutputFormatter};
 use std::collections::HashMap;
@@ -53,12 +53,12 @@ fn list_tasks(
     formatter.header("Task Management");
 
     // Apply project filter
-    let projects_to_show = if let Some(ref project_name) = project_filter {
+    let projects_to_show = if let Some(project_name) = project_filter {
         // Filter to specific project
         let filtered: Vec<_> = workspace_context
             .sub_project_contexts
             .iter()
-            .filter(|(name, _)| *name == project_name)
+            .filter(|(name, _)| **name == project_name)
             .collect();
 
         if filtered.is_empty() {
@@ -74,33 +74,30 @@ fn list_tasks(
     };
 
     // Group tasks by status for better organization
-    let mut task_groups: HashMap<TaskStatus, Vec<(&str, &TaskItem)>> = HashMap::new();
+    let mut task_groups: HashMap<TaskStatus, Vec<(&str, &TaskSummary)>> = HashMap::new();
 
     for (project_name, project_context) in projects_to_show {
-        // Get all tasks from the task summary
-        for (status, tasks) in &project_context.task_summary.tasks_by_status {
-            for task in tasks {
-                // Apply status filter
-                if let Some(ref filter) = status_filter {
-                    let matches = match filter.as_str() {
-                        "all" => true,
-                        "active" => matches!(task.status, TaskStatus::InProgress),
-                        "pending" => matches!(task.status, TaskStatus::NotStarted),
-                        "completed" => matches!(task.status, TaskStatus::Completed),
-                        "blocked" => matches!(task.status, TaskStatus::Blocked),
-                        _ => true,
-                    };
+        for task in &project_context.tasks {
+            // Apply status filter
+            if let Some(ref filter) = status_filter {
+                let matches = match filter.as_str() {
+                    "all" => true,
+                    "active" => matches!(task.status, TaskStatus::InProgress),
+                    "pending" => matches!(task.status, TaskStatus::Pending),
+                    "completed" => matches!(task.status, TaskStatus::Completed),
+                    "blocked" => matches!(task.status, TaskStatus::Blocked),
+                    _ => true,
+                };
 
-                    if !matches {
-                        continue;
-                    }
+                if !matches {
+                    continue;
                 }
-
-                task_groups
-                    .entry(status.clone())
-                    .or_insert_with(Vec::new)
-                    .push((project_name, task));
             }
+
+            task_groups
+                .entry(task.status.clone())
+                .or_insert_with(Vec::new)
+                .push((project_name, task));
         }
     }
 
@@ -108,7 +105,7 @@ fn list_tasks(
     let status_order = [
         TaskStatus::InProgress,
         TaskStatus::Blocked,
-        TaskStatus::NotStarted,
+        TaskStatus::Pending,
         TaskStatus::Completed,
     ];
 
@@ -120,58 +117,53 @@ fn list_tasks(
                 continue;
             }
 
-            // Sort tasks by project name, then by task ID
+            // Sort tasks by priority (implementation needed) and then by name
             let mut sorted_tasks = tasks.clone();
             sorted_tasks.sort_by(|a, b| {
-                a.0.cmp(b.0).then_with(|| match (&a.1.id, &b.1.id) {
-                    (Some(a_id), Some(b_id)) => a_id.cmp(b_id),
-                    (Some(_), None) => std::cmp::Ordering::Less,
-                    (None, Some(_)) => std::cmp::Ordering::Greater,
-                    (None, None) => a.1.title.cmp(&b.1.title),
-                })
+                // First sort by project name, then by task ID
+                a.0.cmp(b.0).then_with(|| a.1.id.cmp(&b.1.id))
             });
 
             let status_header = match status {
                 TaskStatus::InProgress => "🚀 In Progress",
                 TaskStatus::Blocked => "🚫 Blocked",
-                TaskStatus::NotStarted => "📋 Pending",
+                TaskStatus::Pending => "📋 Pending",
                 TaskStatus::Completed => "✅ Completed",
-                TaskStatus::Abandoned => "❌ Abandoned",
-                TaskStatus::Unknown(_) => "❓ Unknown",
             };
 
-            formatter.section_divider(Some(&format!(
-                "{} ({} tasks)",
+            formatter.success(&format!(
+                "\n{} ({} tasks)",
                 status_header,
                 sorted_tasks.len()
-            )));
-            eprintln!(); // Add spacing
+            ));
+            formatter.separator();
 
-            for (project_name, task) in &sorted_tasks {
+            for (project_name, task) in sorted_tasks {
+                let progress_info = if task.completion_percentage > 0 {
+                    format!(" - {}%", task.completion_percentage)
+                } else {
+                    String::new()
+                };
+
                 let project_prefix = if project_filter.is_none() {
                     format!("[{}] ", project_name)
                 } else {
                     String::new()
                 };
 
-                let task_id = task.id.as_deref().unwrap_or("no-id");
+                formatter.info(&format!(
+                    "  {}{} - {}{}",
+                    project_prefix, task.id, task.title, progress_info
+                ));
 
-                formatter.bullet_point(
-                    "▶",
-                    &format!("{}{} - {}", project_prefix, task_id, task.title),
-                    0,
-                );
-
-                if let Some(ref details) = task.details {
-                    formatter.bullet_point("📝", details, 1);
+                if let Some(ref description) = task.description {
+                    formatter.verbose(&format!("    📝 {}", description));
                 }
 
                 // Show latest update if available
-                if let Some(ref updated) = task.updated {
-                    formatter.bullet_point("🕒", &format!("Updated: {}", updated), 1);
+                if let Some(ref updated) = task.last_updated {
+                    formatter.verbose(&format!("    🕒 Updated: {}", updated));
                 }
-
-                eprintln!(); // Add spacing between tasks
             }
 
             total_tasks += sorted_tasks.len();
@@ -188,49 +180,7 @@ fn list_tasks(
 
         formatter.warning(&format!("No tasks found{}", filter_desc));
     } else {
-        formatter.separator();
-
-        // Enhanced project summary with visual progress indicators
-        for (project_name, project_context) in workspace_context.sub_project_contexts.iter() {
-            if project_filter.is_some() && Some(project_name.as_str()) != project_filter.as_deref()
-            {
-                continue;
-            }
-
-            let summary = &project_context.task_summary;
-            if summary.total_tasks > 0 {
-                let completed = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::Completed)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-                let in_progress = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::InProgress)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-                let pending = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::NotStarted)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-
-                formatter.task_summary(
-                    summary.total_tasks,
-                    completed,
-                    in_progress,
-                    pending,
-                    Some(project_name),
-                );
-            }
-        }
-
-        formatter.verbose(
-            "💡 Use --status <filter> to narrow results (active, pending, completed, blocked)",
-        );
-        if project_filter.is_none() && workspace_context.sub_project_contexts.len() > 1 {
-            formatter.verbose("💡 Use --project <name> to focus on a specific project");
-        }
+        formatter.success(&format!("\nTotal: {} tasks displayed", total_tasks));
     }
 
     Ok(())
@@ -305,17 +255,10 @@ fn show_task(
     let mut found_project = None;
 
     for (project_name, project_context) in &workspace_context.sub_project_contexts {
-        for (_status, tasks) in &project_context.task_summary.tasks_by_status {
-            for task in tasks {
-                if let Some(ref id) = task.id {
-                    if *id == task_id {
-                        found_task = Some(task);
-                        found_project = Some(project_name.as_str());
-                        break;
-                    }
-                }
-            }
-            if found_task.is_some() {
+        for task in &project_context.tasks {
+            if task.id == task_id {
+                found_task = Some(task);
+                found_project = Some(project_name.as_str());
                 break;
             }
         }
@@ -326,32 +269,24 @@ fn show_task(
 
     match found_task {
         Some(task) => {
-            let task_id_display = task.id.as_deref().unwrap_or("no-id");
-            formatter.header(&format!("Task Details: {}", task_id_display));
+            formatter.header(&format!("Task Details: {}", task.id));
             formatter.info(&format!("Title: {}", task.title));
             formatter.info(&format!("Project: {}", found_project.unwrap()));
             formatter.info(&format!("Status: {:?}", task.status));
 
-            if let Some(ref details) = task.details {
-                formatter.info(&format!("Details: {}", details));
+            if task.completion_percentage > 0 {
+                formatter.info(&format!("Progress: {}%", task.completion_percentage));
             }
 
-            if let Some(ref updated) = task.updated {
+            if let Some(ref description) = task.description {
+                formatter.info(&format!("Description: {}", description));
+            }
+
+            if let Some(ref updated) = task.last_updated {
                 formatter.info(&format!("Last Updated: {}", updated));
             }
 
-            // Show project-level task summary
-            if let Some(project_context) = workspace_context
-                .sub_project_contexts
-                .get(found_project.unwrap())
-            {
-                let summary = &project_context.task_summary;
-                formatter.verbose(&format!(
-                    "📊 Project has {} total tasks ({:.1}% complete)",
-                    summary.total_tasks, summary.completion_percentage
-                ));
-            }
-
+            // TODO: Show subtasks and progress log if available
             formatter.verbose("💡 Use the tasks update command to modify this task");
         }
         None => {

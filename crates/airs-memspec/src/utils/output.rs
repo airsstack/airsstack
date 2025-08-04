@@ -443,6 +443,255 @@ impl OutputFormatter {
         eprintln!("{}", message);
     }
 
+    /// Display a progress bar for percentage completion
+    ///
+    /// Creates a visual progress bar showing completion percentage with
+    /// customizable width and styling. The bar adapts to terminal width
+    /// and includes percentage text.
+    ///
+    /// # Output Format
+    /// ```text
+    /// ████████████░░░░░░░░ 60% (3/5 tasks)
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `percentage` - Completion percentage (0.0 to 100.0)
+    /// * `label` - Optional descriptive label (e.g., "3/5 tasks")
+    /// * `width` - Progress bar width in characters (default: 20)
+    pub fn progress_bar(&self, percentage: f32, label: Option<&str>, width: Option<usize>) {
+        if self.config.quiet {
+            return;
+        }
+
+        let bar_width = width.unwrap_or(20);
+        let filled = ((percentage / 100.0) * bar_width as f32) as usize;
+        let empty = bar_width.saturating_sub(filled);
+
+        let filled_bar = "█".repeat(filled);
+        let empty_bar = "░".repeat(empty);
+
+        let percentage_text = format!("{:.1}%", percentage);
+        let label_text = label.map(|l| format!(" ({})", l)).unwrap_or_default();
+
+        if self.config.use_color {
+            let color = if percentage >= 80.0 {
+                filled_bar.green()
+            } else if percentage >= 50.0 {
+                filled_bar.yellow()
+            } else {
+                filled_bar.red()
+            };
+            eprintln!(
+                "{}{} {} {}",
+                color,
+                empty_bar.bright_black(),
+                percentage_text.bold(),
+                label_text.dimmed()
+            );
+        } else {
+            eprintln!(
+                "{}{} {}{}",
+                filled_bar, empty_bar, percentage_text, label_text
+            );
+        }
+    }
+
+    /// Display a compact task summary with visual indicators
+    ///
+    /// Shows task counts and completion statistics in a concise,
+    /// visually appealing format with progress indicators.
+    ///
+    /// # Output Format
+    /// ```text
+    /// 📊 Project Summary: 73 tasks  █████████░░ 72.6% complete
+    ///    🔄 1 active  ⏳ 20 pending  ✅ 52 done
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `total` - Total number of tasks
+    /// * `completed` - Number of completed tasks
+    /// * `in_progress` - Number of tasks in progress
+    /// * `pending` - Number of pending tasks
+    /// * `project_name` - Optional project name for context
+    pub fn task_summary(
+        &self,
+        total: usize,
+        completed: usize,
+        in_progress: usize,
+        pending: usize,
+        project_name: Option<&str>,
+    ) {
+        if self.config.quiet {
+            return;
+        }
+
+        let completion_percentage = if total > 0 {
+            (completed as f32 / total as f32) * 100.0
+        } else {
+            0.0
+        };
+
+        let project_text = project_name
+            .map(|name| format!(" for {}", name))
+            .unwrap_or_default();
+
+        // Summary line with progress bar
+        let summary_line = format!("📊 Task Summary{}: {} tasks", project_text, total);
+        eprint!("{} ", summary_line);
+
+        // Inline progress bar
+        let bar_width: usize = 12;
+        let filled = ((completion_percentage / 100.0) * bar_width as f32) as usize;
+        let empty = bar_width.saturating_sub(filled);
+
+        let filled_bar = "█".repeat(filled);
+        let empty_bar = "░".repeat(empty);
+
+        if self.config.use_color {
+            let color = if completion_percentage >= 80.0 {
+                filled_bar.green()
+            } else if completion_percentage >= 50.0 {
+                filled_bar.yellow()
+            } else {
+                filled_bar.red()
+            };
+            eprintln!(
+                "{}{} {:.1}% complete",
+                color,
+                empty_bar.bright_black(),
+                completion_percentage
+            );
+        } else {
+            eprintln!(
+                "{}{} {:.1}% complete",
+                filled_bar, empty_bar, completion_percentage
+            );
+        }
+
+        // Status breakdown
+        let status_line = format!(
+            "   🔄 {} active  ⏳ {} pending  ✅ {} completed",
+            in_progress, pending, completed
+        );
+
+        if self.config.use_color {
+            eprintln!("{}", status_line.dimmed());
+        } else {
+            eprintln!("{}", status_line);
+        }
+    }
+
+    /// Display a section divider with optional title
+    ///
+    /// Creates a visual section break that's less prominent than headers
+    /// but more structured than simple separators. Useful for organizing
+    /// content into logical groups.
+    ///
+    /// # Output Format
+    /// ```text
+    /// ┌─ Section Title ─────────────────────┐
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `title` - Optional section title
+    pub fn section_divider(&self, title: Option<&str>) {
+        if self.config.quiet {
+            return;
+        }
+
+        let max_width = self.config.terminal_width.min(80);
+
+        match title {
+            Some(title_text) => {
+                let title_with_spaces = format!(" {} ", title_text);
+                let remaining_width = max_width.saturating_sub(title_with_spaces.len() + 4); // 4 for "┌─" and "─┐"
+                let left_pad = remaining_width / 2;
+                let right_pad = remaining_width - left_pad;
+
+                let line = format!(
+                    "┌─{}{}{}─┐",
+                    "─".repeat(left_pad),
+                    title_with_spaces,
+                    "─".repeat(right_pad)
+                );
+
+                if self.config.use_color {
+                    eprintln!("{}", line.bright_blue().dimmed());
+                } else {
+                    eprintln!("{}", line);
+                }
+            }
+            None => {
+                let line = format!("┌{}┐", "─".repeat(max_width.saturating_sub(2)));
+                if self.config.use_color {
+                    eprintln!("{}", line.bright_blue().dimmed());
+                } else {
+                    eprintln!("{}", line);
+                }
+            }
+        }
+    }
+
+    /// Display an indented bullet point with custom icon
+    ///
+    /// Creates consistent indented content with customizable icons
+    /// for hierarchical information display.
+    ///
+    /// # Arguments
+    ///
+    /// * `icon` - Icon/emoji to display (e.g., "•", "▶", "📝")
+    /// * `text` - The text content to display
+    /// * `indent_level` - Indentation level (0 = no indent, 1 = 2 spaces, etc.)
+    pub fn bullet_point(&self, icon: &str, text: &str, indent_level: usize) {
+        if self.config.quiet {
+            return;
+        }
+
+        let indent = "  ".repeat(indent_level);
+        eprintln!("{}{} {}", indent, icon, text);
+    }
+
+    /// Display a status badge with colored background
+    ///
+    /// Creates a visually distinct status indicator with background
+    /// color coding for different states.
+    ///
+    /// # Output Format
+    /// ```text
+    /// [ACTIVE] [PENDING] [COMPLETED] [BLOCKED]
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `status` - Status text to display
+    /// * `color` - Background color for the badge
+    pub fn status_badge(&self, status: &str, color: Color) {
+        if self.config.quiet {
+            return;
+        }
+
+        let badge_text = format!(" {} ", status.to_uppercase());
+
+        if self.config.use_color {
+            let colored_badge = match color {
+                Color::Green => badge_text.black().on_green(),
+                Color::Yellow => badge_text.black().on_yellow(),
+                Color::Red => badge_text.white().on_red(),
+                Color::Blue => badge_text.white().on_blue(),
+                Color::Cyan => badge_text.black().on_cyan(),
+                Color::Magenta => badge_text.white().on_magenta(),
+                Color::White => badge_text.black().on_white(),
+                Color::BrightBlack => badge_text.white().on_bright_black(),
+            };
+            eprint!("{}", colored_badge);
+        } else {
+            eprint!("[{}]", status.to_uppercase());
+        }
+    }
+
     /// Display an essential message that bypasses quiet mode
     ///
     /// Essential messages are always displayed regardless of quiet mode settings.

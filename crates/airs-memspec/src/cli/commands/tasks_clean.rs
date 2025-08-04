@@ -2,8 +2,9 @@
 // Handles task management and tracking operations
 
 use crate::cli::{GlobalArgs, TaskAction};
+use crate::models::types::TaskStatus;
 use crate::parser::context::ContextCorrelator;
-use crate::parser::markdown::{TaskItem, TaskStatus};
+use crate::parser::markdown::TaskItem;
 use crate::parser::navigation::MemoryBankNavigator;
 use crate::utils::fs::FsError;
 use crate::utils::output::{OutputConfig, OutputFormatter};
@@ -53,12 +54,12 @@ fn list_tasks(
     formatter.header("Task Management");
 
     // Apply project filter
-    let projects_to_show = if let Some(ref project_name) = project_filter {
+    let projects_to_show = if let Some(project_name) = project_filter {
         // Filter to specific project
         let filtered: Vec<_> = workspace_context
             .sub_project_contexts
             .iter()
-            .filter(|(name, _)| *name == project_name)
+            .filter(|(name, _)| **name == project_name)
             .collect();
 
         if filtered.is_empty() {
@@ -85,7 +86,7 @@ fn list_tasks(
                     let matches = match filter.as_str() {
                         "all" => true,
                         "active" => matches!(task.status, TaskStatus::InProgress),
-                        "pending" => matches!(task.status, TaskStatus::NotStarted),
+                        "pending" => matches!(task.status, TaskStatus::Pending),
                         "completed" => matches!(task.status, TaskStatus::Completed),
                         "blocked" => matches!(task.status, TaskStatus::Blocked),
                         _ => true,
@@ -108,7 +109,7 @@ fn list_tasks(
     let status_order = [
         TaskStatus::InProgress,
         TaskStatus::Blocked,
-        TaskStatus::NotStarted,
+        TaskStatus::Pending,
         TaskStatus::Completed,
     ];
 
@@ -134,20 +135,18 @@ fn list_tasks(
             let status_header = match status {
                 TaskStatus::InProgress => "🚀 In Progress",
                 TaskStatus::Blocked => "🚫 Blocked",
-                TaskStatus::NotStarted => "📋 Pending",
+                TaskStatus::Pending => "📋 Pending",
                 TaskStatus::Completed => "✅ Completed",
-                TaskStatus::Abandoned => "❌ Abandoned",
-                TaskStatus::Unknown(_) => "❓ Unknown",
             };
 
-            formatter.section_divider(Some(&format!(
-                "{} ({} tasks)",
+            formatter.success(&format!(
+                "\n{} ({} tasks)",
                 status_header,
                 sorted_tasks.len()
-            )));
-            eprintln!(); // Add spacing
+            ));
+            formatter.separator();
 
-            for (project_name, task) in &sorted_tasks {
+            for (project_name, task) in sorted_tasks {
                 let project_prefix = if project_filter.is_none() {
                     format!("[{}] ", project_name)
                 } else {
@@ -156,22 +155,16 @@ fn list_tasks(
 
                 let task_id = task.id.as_deref().unwrap_or("no-id");
 
-                formatter.bullet_point(
-                    "▶",
-                    &format!("{}{} - {}", project_prefix, task_id, task.title),
-                    0,
-                );
+                formatter.info(&format!("  {}{} - {}", project_prefix, task_id, task.title));
 
                 if let Some(ref details) = task.details {
-                    formatter.bullet_point("📝", details, 1);
+                    formatter.verbose(&format!("    📝 {}", details));
                 }
 
                 // Show latest update if available
                 if let Some(ref updated) = task.updated {
-                    formatter.bullet_point("🕒", &format!("Updated: {}", updated), 1);
+                    formatter.verbose(&format!("    🕒 Updated: {}", updated));
                 }
-
-                eprintln!(); // Add spacing between tasks
             }
 
             total_tasks += sorted_tasks.len();
@@ -188,9 +181,9 @@ fn list_tasks(
 
         formatter.warning(&format!("No tasks found{}", filter_desc));
     } else {
-        formatter.separator();
+        formatter.success(&format!("\nTotal: {} tasks displayed", total_tasks));
 
-        // Enhanced project summary with visual progress indicators
+        // Show task summary statistics
         for (project_name, project_context) in workspace_context.sub_project_contexts.iter() {
             if project_filter.is_some() && Some(project_name.as_str()) != project_filter.as_deref()
             {
@@ -199,37 +192,11 @@ fn list_tasks(
 
             let summary = &project_context.task_summary;
             if summary.total_tasks > 0 {
-                let completed = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::Completed)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-                let in_progress = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::InProgress)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-                let pending = summary
-                    .tasks_by_status
-                    .get(&TaskStatus::NotStarted)
-                    .map(|tasks| tasks.len())
-                    .unwrap_or(0);
-
-                formatter.task_summary(
-                    summary.total_tasks,
-                    completed,
-                    in_progress,
-                    pending,
-                    Some(project_name),
-                );
+                formatter.verbose(&format!(
+                    "📊 [{}] {} total tasks - {:.1}% complete",
+                    project_name, summary.total_tasks, summary.completion_percentage
+                ));
             }
-        }
-
-        formatter.verbose(
-            "💡 Use --status <filter> to narrow results (active, pending, completed, blocked)",
-        );
-        if project_filter.is_none() && workspace_context.sub_project_contexts.len() > 1 {
-            formatter.verbose("💡 Use --project <name> to focus on a specific project");
         }
     }
 

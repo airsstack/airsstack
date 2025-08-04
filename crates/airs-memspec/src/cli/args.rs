@@ -122,7 +122,7 @@ pub enum TaskAction {
         status: Option<String>,
 
         /// Filter tasks by sub-project
-        #[arg(short = 'p', long = "project")]
+        #[arg(long = "project")]
         #[arg(help = "Filter by sub-project")]
         project: Option<String>,
     },
@@ -136,7 +136,7 @@ pub enum TaskAction {
         title: String,
 
         /// Sub-project for the task
-        #[arg(short = 'p', long = "project")]
+        #[arg(long = "project")]
         #[arg(help = "Sub-project for this task")]
         project: Option<String>,
 
