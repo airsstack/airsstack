@@ -182,31 +182,28 @@ pub mod base;
 // Correlation layer modules
 pub mod correlation;
 
+// Transport layer modules
+pub mod transport;
+
 // Re-export commonly used types for convenience
 // This allows users to import directly from the crate root
 pub use base::jsonrpc::{
-    JsonRpcMessage,
-    JsonRpcRequest, 
-    JsonRpcResponse, 
-    JsonRpcNotification, 
-    RequestId
+    JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, RequestId,
 };
 
 // Re-export correlation types for convenience
-pub use correlation::{
-    CorrelationManager,
-    CorrelationConfig,
-    CorrelationError,
-    CorrelationResult
-};
+pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, CorrelationResult};
+
+// Re-export transport types for convenience
+pub use transport::{StdioTransport, Transport, TransportError};
 
 // Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Get the crate version as a string
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// println!("AIRS MCP version: {}", airs_mcp::version());
 /// ```
@@ -225,18 +222,14 @@ mod integration_tests {
         let request = JsonRpcRequest::new(
             "test_method",
             Some(json!({"param": "value"})),
-            RequestId::new_string("test-123")
+            RequestId::new_string("test-123"),
         );
 
-        let response = JsonRpcResponse::success(
-            json!({"result": "success"}),
-            RequestId::new_number(456)
-        );
+        let response =
+            JsonRpcResponse::success(json!({"result": "success"}), RequestId::new_number(456));
 
-        let notification = JsonRpcNotification::new(
-            "test_event",
-            Some(json!({"event": "occurred"}))
-        );
+        let notification =
+            JsonRpcNotification::new("test_event", Some(json!({"event": "occurred"})));
 
         // Verify trait methods work through re-exports
         assert!(request.to_json().is_ok());
@@ -250,7 +243,7 @@ mod integration_tests {
         let original = JsonRpcRequest::new(
             "echo",
             Some(json!([1, 2, 3])),
-            RequestId::new_string("echo-001")
+            RequestId::new_string("echo-001"),
         );
 
         let json = original.to_json().unwrap();
@@ -262,17 +255,9 @@ mod integration_tests {
     #[test]
     fn test_request_id_types() {
         // Test both RequestId variants work through public API
-        let string_request = JsonRpcRequest::new(
-            "test",
-            None,
-            RequestId::new_string("uuid-12345")
-        );
+        let string_request = JsonRpcRequest::new("test", None, RequestId::new_string("uuid-12345"));
 
-        let numeric_request = JsonRpcRequest::new(
-            "test",
-            None,
-            RequestId::new_number(67890)
-        );
+        let numeric_request = JsonRpcRequest::new("test", None, RequestId::new_number(67890));
 
         let string_json = string_request.to_json().unwrap();
         let numeric_json = numeric_request.to_json().unwrap();
@@ -299,10 +284,10 @@ mod integration_tests {
         // All should support both regular and pretty JSON
         assert!(request.to_json().is_ok());
         assert!(request.to_json_pretty().is_ok());
-        
+
         assert!(response.to_json().is_ok());
         assert!(response.to_json_pretty().is_ok());
-        
+
         assert!(notification.to_json().is_ok());
         assert!(notification.to_json_pretty().is_ok());
 
@@ -316,7 +301,7 @@ mod integration_tests {
     fn test_json_rpc_compliance() {
         // Test that all message types maintain JSON-RPC 2.0 compliance
         let request = JsonRpcRequest::new("ping", None, RequestId::new_number(1));
-        let response = JsonRpcResponse::success(json!("pong"), RequestId::new_number(1));  
+        let response = JsonRpcResponse::success(json!("pong"), RequestId::new_number(1));
         let notification = JsonRpcNotification::new("heartbeat", None);
 
         let request_json = request.to_json().unwrap();
