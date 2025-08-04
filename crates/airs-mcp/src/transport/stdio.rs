@@ -243,6 +243,7 @@ impl StdioTransport {
     ///     let config = BufferConfig {
     ///         max_message_size: 10 * 1024 * 1024, // 10MB max messages
     ///         read_buffer_capacity: 128 * 1024,   // 128KB buffers
+    ///         write_buffer_capacity: 128 * 1024,  // 128KB write buffers
     ///         buffer_pool_size: 200,              // Pool 200 buffers
     ///         pool_timeout: Duration::from_secs(10),
     ///         enable_zero_copy: true,

@@ -161,7 +161,7 @@
 //!
 //! Planned extensions include:
 //! - MCP protocol layer implementation
-//! - Transport abstractions (STDIO, HTTP, WebSocket)
+//! - Transport abstractions (STDIO)
 //! - Request correlation and bidirectional communication
 //! - High-level client and server interfaces
 //! - Performance optimizations and zero-copy processing

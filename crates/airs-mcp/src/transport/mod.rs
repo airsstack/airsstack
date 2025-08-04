@@ -2,7 +2,7 @@
 //!
 //! This module provides transport abstractions for JSON-RPC communication.
 //! The transport layer sits between the correlation manager and the actual
-//! communication protocols (STDIO, HTTP, WebSocket, etc.).
+//! communication protocols.
 //!
 //! # Architecture
 //!
@@ -62,11 +62,6 @@
 //!
 //! Currently implemented transports:
 //! - **STDIO**: Standard input/output for MCP communication (primary)
-//!
-//! Planned transports:
-//! - **HTTP**: RESTful JSON-RPC over HTTP
-//! - **WebSocket**: Real-time bidirectional communication
-//! - **TCP**: Direct socket communication
 //!
 //! # Error Handling
 //!
