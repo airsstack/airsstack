@@ -49,12 +49,14 @@
 //! }
 //! ```
 
-use crate::transport::TransportError;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
 use tokio::sync::{mpsc, Semaphore};
 use tokio::time::timeout;
+
+use crate::transport::TransportError;
 
 /// Configuration for advanced buffer management
 #[derive(Debug, Clone)]

@@ -42,11 +42,13 @@
 //! }
 //! ```
 
-use crate::transport::buffer::{BufferConfig, BufferManager, StreamingBuffer};
-use crate::transport::{Transport, TransportError};
 use std::sync::Arc;
+
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Stdin, Stdout};
 use tokio::sync::Mutex;
+
+use crate::transport::buffer::{BufferConfig, BufferManager, StreamingBuffer};
+use crate::transport::{Transport, TransportError};
 
 /// STDIO transport implementation for JSON-RPC communication.
 ///

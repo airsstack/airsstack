@@ -135,14 +135,17 @@ impl MemoryBankNavigator {
     /// * `Err(FsError)` - If there are file system errors or structure not found
     ///
     /// # Examples
-    /// ```rust
+    /// ```rust,no_run
     /// use airs_memspec::parser::navigation::MemoryBankNavigator;
     /// use std::path::PathBuf;
     ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let structure = MemoryBankNavigator::discover_structure(
     ///     &PathBuf::from("/workspace/project")
     /// )?;
     /// println!("Found {} sub-projects", structure.sub_projects.len());
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn discover_structure(start_path: &Path) -> FsResult<MemoryBankStructure> {
         let memory_bank_path = Self::find_memory_bank_root(start_path)?;

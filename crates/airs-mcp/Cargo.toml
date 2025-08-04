@@ -26,16 +26,17 @@ uuid.workspace = true
 bytes.workspace = true
 tokio-util.workspace = true
 tracing.workspace = true
+async-trait.workspace = true
 
 [dev-dependencies]
 # Async testing utilities for correlation manager testing
-tokio-test = { version = "0.4.4" }
+tokio-test.workspace = true
 
 # Property-based testing for concurrency scenarios  
-proptest = { version = "1.7.0" }
+proptest.workspace = true
 
 # Performance benchmarking for correlation latency
-criterion = { version = "0.7.0", features = ["html_reports"] }
+criterion.workspace = true
 
 # Test logging and debugging for async flows
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber.workspace = true

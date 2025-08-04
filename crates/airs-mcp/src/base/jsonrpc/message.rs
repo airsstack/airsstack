@@ -3,9 +3,10 @@
 //! This module implements the fundamental message structures defined by the
 //! JSON-RPC 2.0 specification with shared serialization behavior through traits.
 
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fmt;
 
 /// Trait for JSON-RPC message serialization and deserialization
 ///

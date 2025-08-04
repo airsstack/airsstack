@@ -3,23 +3,25 @@
 //! This module provides the main CorrelationManager that handles bidirectional
 //! JSON-RPC request/response correlation with timeout management and background cleanup.
 
-use crate::correlation::{
-    error::{CorrelationError, CorrelationResult, RequestId},
-    types::{PendingRequest, RequestIdGenerator},
-};
-use chrono::TimeDelta;
-use dashmap::DashMap;
-use serde_json::Value;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+
+use chrono::TimeDelta;
+use dashmap::DashMap;
+use serde_json::Value;
 use tokio::{
     sync::{oneshot, RwLock},
     task::JoinHandle,
     time::{interval, Duration},
 };
 use tracing::{debug, trace};
+
+use crate::correlation::{
+    error::{CorrelationError, CorrelationResult, RequestId},
+    types::{PendingRequest, RequestIdGenerator},
+};
 
 /// Configuration for the correlation manager
 ///

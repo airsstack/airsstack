@@ -7,9 +7,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::types::{Priority, ProgressLogType, SubtaskStatus, TaskStatus};
 use super::review::CodeReviewInfo;
 use super::testing::TestingInfo;
+use super::types::{Priority, ProgressLogType, SubtaskStatus, TaskStatus};
 
 /// Task collection and management
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

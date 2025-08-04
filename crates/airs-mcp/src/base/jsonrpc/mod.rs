@@ -27,7 +27,7 @@
 //! let json = request.to_json().unwrap();
 //! let pretty_json = request.to_json_pretty().unwrap();
 //! let parsed = JsonRpcRequest::from_json(&json).unwrap();
-//! 
+//!
 //! assert_eq!(request, parsed);
 //! ```
 

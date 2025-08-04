@@ -3,10 +3,11 @@
 //! This module contains data structures and operations related to workspace-level
 //! configuration, shared patterns, context management, and historical snapshots.
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 use super::sub_project::SubProject;
 

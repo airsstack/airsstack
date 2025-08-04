@@ -4,10 +4,11 @@
 //! extracting structured sections, handling YAML frontmatter, and parsing task lists with
 //! status information.
 
-use pulldown_cmark::{Event, Parser, Tag, TagEnd};
-use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 use std::path::Path;
+
+use pulldown_cmark::{Event, Parser, Tag, TagEnd};
+use serde_yml::Value as YamlValue;
 
 use crate::utils::fs::FsResult;
 
@@ -120,12 +121,15 @@ impl MarkdownParser {
     /// * `Err(FsError)` - File reading or parsing errors
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use airs_memspec::parser::markdown::MarkdownParser;
     /// use std::path::PathBuf;
     ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let content = MarkdownParser::parse_file(&PathBuf::from("project_brief.md"))?;
     /// println!("Found {} sections", content.sections.len());
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn parse_file(file_path: &Path) -> FsResult<MarkdownContent> {
         let content = std::fs::read_to_string(file_path).map_err(crate::utils::fs::FsError::Io)?;

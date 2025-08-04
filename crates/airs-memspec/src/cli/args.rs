@@ -1,8 +1,9 @@
 // CLI arguments and global options
 // Defines the main CLI structure using clap derive macros
 
-use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+use clap::{Parser, Subcommand};
 
 /// AI-focused memory bank management tool
 #[derive(Parser, Debug)]

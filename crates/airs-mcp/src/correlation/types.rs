@@ -3,9 +3,10 @@
 //! This module contains core type definitions used throughout the correlation
 //! system for request tracking, ID generation, and result handling.
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::Value;
-use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::oneshot;
 
 // Import RequestId directly from error module

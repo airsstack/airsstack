@@ -23,7 +23,7 @@ use std::future::Future;
 ///
 /// ```rust
 /// use airs_mcp::transport::Transport;
-/// 
+///
 /// // Example with a mock transport (for demonstration)
 /// async fn communicate() -> Result<(), Box<dyn std::error::Error>> {
 ///     // This example shows the trait usage pattern
@@ -80,7 +80,7 @@ pub trait Transport: Send + Sync {
     /// # use airs_mcp::transport::{Transport, StdioTransport};
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut transport = StdioTransport::new().await?;
-    /// 
+    ///
     /// // Send a JSON-RPC notification
     /// let notification = br#"{"jsonrpc":"2.0","method":"initialized"}"#;
     /// transport.send(notification).await?;
@@ -110,7 +110,7 @@ pub trait Transport: Send + Sync {
     /// # use airs_mcp::transport::{Transport, StdioTransport};
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut transport = StdioTransport::new().await?;
-    /// 
+    ///
     /// // Receive and parse a message
     /// let raw_message = transport.receive().await?;
     /// let message_str = String::from_utf8(raw_message)?;
@@ -144,9 +144,9 @@ pub trait Transport: Send + Sync {
     /// # use airs_mcp::transport::{Transport, StdioTransport};
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut transport = StdioTransport::new().await?;
-    /// 
+    ///
     /// // Use transport...
-    /// 
+    ///
     /// // Always close when done
     /// transport.close().await?;
     /// # Ok(())
@@ -220,7 +220,7 @@ mod tests {
             if responses.is_empty() {
                 return Err(MockError::NoResponse);
             }
-            
+
             Ok(responses.remove(0))
         }
 
@@ -234,26 +234,26 @@ mod tests {
     #[tokio::test]
     async fn test_transport_trait_basic_operations() {
         let mut transport = MockTransport::new();
-        
+
         // Add a response for receive
         transport.add_response(b"test response".to_vec()).await;
-        
+
         // Test send
         let message = b"test message";
         transport.send(message).await.unwrap();
-        
+
         // Verify message was sent
         let sent = transport.get_sent_messages().await;
         assert_eq!(sent.len(), 1);
         assert_eq!(sent[0], message);
-        
+
         // Test receive
         let received = transport.receive().await.unwrap();
         assert_eq!(received, b"test response");
-        
+
         // Test close
         transport.close().await.unwrap();
-        
+
         // Verify transport is closed
         assert!(transport.send(b"should fail").await.is_err());
         assert!(transport.receive().await.is_err());
@@ -262,15 +262,15 @@ mod tests {
     #[tokio::test]
     async fn test_transport_trait_error_handling() {
         let mut transport = MockTransport::new();
-        
+
         // Test receive with no responses
         assert!(transport.receive().await.is_err());
-        
+
         // Close and test operations fail
         transport.close().await.unwrap();
         assert!(transport.send(b"fail").await.is_err());
         assert!(transport.receive().await.is_err());
-        
+
         // Test idempotent close
         transport.close().await.unwrap(); // Should not panic
     }
@@ -278,9 +278,9 @@ mod tests {
     #[tokio::test]
     async fn test_transport_trait_concurrency() {
         use tokio::task;
-        
+
         let transport = Arc::new(Mutex::new(MockTransport::new()));
-        
+
         // Add responses for concurrent receives
         {
             let transport_clone = transport.clone();
@@ -288,7 +288,7 @@ mod tests {
             mock.add_response(b"response1".to_vec()).await;
             mock.add_response(b"response2".to_vec()).await;
         }
-        
+
         // Test concurrent sends
         let handles: Vec<_> = (0..5)
             .map(|i| {
@@ -300,12 +300,12 @@ mod tests {
                 })
             })
             .collect();
-        
+
         // Wait for all sends to complete
         for handle in handles {
             handle.await.unwrap().unwrap();
         }
-        
+
         // Verify all messages were sent
         let transport_guard = transport.lock().await;
         let sent = transport_guard.get_sent_messages().await;

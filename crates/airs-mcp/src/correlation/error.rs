@@ -3,8 +3,8 @@
 //! This module defines all error types related to request/response correlation,
 //! providing structured error information for debugging and monitoring.
 
-use thiserror::Error;
 use chrono::TimeDelta;
+use thiserror::Error;
 
 /// Request ID type alias for consistency with JSON-RPC base types
 pub type RequestId = crate::base::jsonrpc::RequestId;
@@ -17,48 +17,48 @@ pub type RequestId = crate::base::jsonrpc::RequestId;
 pub enum CorrelationError {
     /// Request timed out waiting for response
     #[error("Request {id} timed out after {duration}")]
-    Timeout { 
+    Timeout {
         /// The request ID that timed out
-        id: RequestId, 
+        id: RequestId,
         /// The timeout duration that was exceeded
-        duration: TimeDelta 
+        duration: TimeDelta,
     },
-    
+
     /// Request was not found in the correlation table
     #[error("Request {id} not found (may have completed or been cancelled)")]
-    RequestNotFound { 
+    RequestNotFound {
         /// The request ID that was not found
-        id: RequestId 
+        id: RequestId,
     },
-    
+
     /// Attempt to correlate response for already completed request
     #[error("Request {id} has already been completed")]
-    AlreadyCompleted { 
+    AlreadyCompleted {
         /// The request ID that was already completed
-        id: RequestId 
+        id: RequestId,
     },
-    
+
     /// Communication channel was closed unexpectedly
     #[error("Channel error for request {id}: {details}")]
-    ChannelClosed { 
+    ChannelClosed {
         /// The request ID associated with the channel
-        id: RequestId, 
+        id: RequestId,
         /// Additional error details
-        details: String 
+        details: String,
     },
-    
+
     /// Internal correlation system error
     #[error("Internal correlation error: {message}")]
-    Internal { 
+    Internal {
         /// Error message describing the internal issue
-        message: String 
+        message: String,
     },
-    
+
     /// Request was explicitly cancelled
     #[error("Request {id} was cancelled")]
-    Cancelled { 
+    Cancelled {
         /// The request ID that was cancelled
-        id: RequestId 
+        id: RequestId,
     },
 }
 
@@ -80,8 +80,8 @@ pub enum CorrelationError {
 /// let operation_result: CorrelationResult<()> = Ok(());
 ///
 /// // For error cases
-/// let error_result: CorrelationResult<Value> = Err(CorrelationError::Internal { 
-///     message: "Test error".to_string() 
+/// let error_result: CorrelationResult<Value> = Err(CorrelationError::Internal {
+///     message: "Test error".to_string()
 /// });
 /// ```
 pub type CorrelationResult<T> = std::result::Result<T, CorrelationError>;
@@ -96,7 +96,7 @@ mod tests {
             id: RequestId::new_string("test-123"),
             duration: TimeDelta::seconds(30),
         };
-        
+
         let display = format!("{}", timeout_error);
         assert!(display.contains("test-123"));
         assert!(display.contains("timed out"));
@@ -107,7 +107,7 @@ mod tests {
         let not_found_error = CorrelationError::RequestNotFound {
             id: RequestId::new_number(42),
         };
-        
+
         let debug = format!("{:?}", not_found_error);
         assert!(debug.contains("RequestNotFound"));
         assert!(debug.contains("42"));
@@ -117,7 +117,7 @@ mod tests {
     fn test_result_type_usage() {
         let success: CorrelationResult<String> = Ok("test".to_string());
         assert!(success.is_ok());
-        
+
         let failure: CorrelationResult<String> = Err(CorrelationError::Internal {
             message: "test failure".to_string(),
         });

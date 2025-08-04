@@ -182,6 +182,9 @@ pub mod base;
 // Correlation layer modules
 pub mod correlation;
 
+// Integration layer modules
+pub mod integration;
+
 // Transport layer modules
 pub mod transport;
 
@@ -193,6 +196,12 @@ pub use base::jsonrpc::{
 
 // Re-export correlation types for convenience
 pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, CorrelationResult};
+
+// Re-export integration types for convenience
+pub use integration::{
+    Handler, IntegrationError, IntegrationResult, JsonRpcClient, MessageRouter,
+    NotificationHandler, RequestHandler,
+};
 
 // Re-export transport types for convenience
 pub use transport::{

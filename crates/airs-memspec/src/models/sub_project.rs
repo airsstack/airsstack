@@ -7,11 +7,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::types::{ProjectStatus, TaskStatus};
-use super::system::SystemPatterns;
-use super::tech::TechContext;
 use super::progress::Progress;
+use super::system::SystemPatterns;
 use super::task_management::{Task, TaskCollection, TaskIndex, TaskStatistics};
+use super::tech::TechContext;
+use super::types::{ProjectStatus, TaskStatus};
 
 /// Sub-project configuration and state management
 ///
@@ -291,12 +291,16 @@ impl SubProject {
         self.tasks.tasks.insert(task_id.clone(), task);
 
         // Update index
-        self.tasks.task_index.by_status
+        self.tasks
+            .task_index
+            .by_status
             .entry(task_status)
             .or_insert_with(Vec::new)
             .push(task_id.clone());
 
-        self.tasks.task_index.by_priority
+        self.tasks
+            .task_index
+            .by_priority
             .entry(task_priority)
             .or_insert_with(Vec::new)
             .push(task_id.clone());
@@ -315,7 +319,10 @@ impl SubProject {
         new_status: TaskStatus,
         author: String,
     ) -> Result<(), String> {
-        let task = self.tasks.tasks.get_mut(task_id)
+        let task = self
+            .tasks
+            .tasks
+            .get_mut(task_id)
             .ok_or_else(|| format!("Task '{}' not found", task_id))?;
 
         task.update_status(new_status, author);
@@ -326,10 +333,13 @@ impl SubProject {
 
     /// Get tasks by status
     pub fn get_tasks_by_status(&self, status: &TaskStatus) -> Vec<&Task> {
-        self.tasks.task_index.by_status
+        self.tasks
+            .task_index
+            .by_status
             .get(status)
             .map(|task_ids| {
-                task_ids.iter()
+                task_ids
+                    .iter()
                     .filter_map(|id| self.tasks.tasks.get(id))
                     .collect()
             })
@@ -346,20 +356,26 @@ impl SubProject {
         // Rebuild indices
         for (task_id, task) in &self.tasks.tasks {
             // Index by status
-            self.tasks.task_index.by_status
+            self.tasks
+                .task_index
+                .by_status
                 .entry(task.status.clone())
                 .or_insert_with(Vec::new)
                 .push(task_id.clone());
 
             // Index by priority
-            self.tasks.task_index.by_priority
+            self.tasks
+                .task_index
+                .by_priority
                 .entry(task.priority.clone())
                 .or_insert_with(Vec::new)
                 .push(task_id.clone());
 
             // Index by tags
             for tag in &task.metadata.tags {
-                self.tasks.task_index.by_tag
+                self.tasks
+                    .task_index
+                    .by_tag
                     .entry(tag.clone())
                     .or_insert_with(Vec::new)
                     .push(task_id.clone());
@@ -369,9 +385,12 @@ impl SubProject {
         // Update statistics
         self.tasks.statistics.total_tasks = self.tasks.tasks.len();
         self.tasks.statistics.status_counts.clear();
-        
+
         for (status, task_ids) in &self.tasks.task_index.by_status {
-            self.tasks.statistics.status_counts.insert(status.clone(), task_ids.len());
+            self.tasks
+                .statistics
+                .status_counts
+                .insert(status.clone(), task_ids.len());
         }
 
         self.tasks.statistics.updated_at = Utc::now();
