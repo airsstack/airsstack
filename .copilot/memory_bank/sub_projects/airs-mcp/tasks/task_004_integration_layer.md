@@ -1,8 +1,8 @@
 # [TASK004] - Integration Layer Implementation
 
-**Status:** pending  
+**Status:** in_progress  
 **Added:** 2025-08-01  
-**Updated:** 2025-08-01
+**Updated:** 2025-08-04
 
 ## Original Request
 Develop the JsonRpcClient interface, build message routing and handler registration, and ensure end-to-end request/response and notification flows.
@@ -24,7 +24,7 @@ Develop the JsonRpcClient interface, build message routing and handler registrat
 ### Subtasks
 | ID   | Description                                 | Status      | Updated    | Notes                                 |
 |------|---------------------------------------------|-------------|------------|---------------------------------------|
-| 4.1  | Design JsonRpcClient struct                 | not_started | 2025-08-01 | integrates correlation, transport     |
+| 4.1  | Design JsonRpcClient struct                 | in_progress | 2025-08-04 | integrates correlation, transport     |
 | 4.2  | Implement method calls and notifications    | not_started | 2025-08-01 | client API                            |
 | 4.3  | Build message routing and handler reg.      | not_started | 2025-08-01 | extensibility                         |
 | 4.4  | Write end-to-end tests                      | not_started | 2025-08-01 | request/response, notification flows  |
