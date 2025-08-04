@@ -4,6 +4,9 @@
 //! workspace-level and sub-project-specific views. Provides progress tracking,
 //! health assessment, and actionable insights.
 
+use crate::cli::commands::progress_analyzer::{
+    BottleneckSeverity, ProgressAnalyzer, ProgressTrend,
+};
 use crate::cli::GlobalArgs;
 use crate::parser::context::{ContextCorrelator, ProjectHealth, TaskSummary, WorkspaceContext};
 use crate::parser::markdown::TaskStatus;
@@ -52,13 +55,22 @@ pub fn run(
     ));
     let workspace_context = correlator.discover_and_correlate(workspace_path)?;
 
+    // Initialize progress analyzer for enhanced metrics
+    let progress_analyzer = ProgressAnalyzer::new();
+
     // Generate status display based on requested mode
     match sub_project {
         Some(project_name) => {
-            show_sub_project_status(&formatter, &workspace_context, &project_name, detailed)?;
+            show_sub_project_status(
+                &formatter,
+                &workspace_context,
+                &project_name,
+                detailed,
+                &progress_analyzer,
+            )?;
         }
         None => {
-            show_workspace_status(&formatter, &workspace_context, detailed)?;
+            show_workspace_status(&formatter, &workspace_context, detailed, &progress_analyzer)?;
         }
     }
 
@@ -73,11 +85,15 @@ fn show_workspace_status(
     formatter: &OutputFormatter,
     workspace_context: &WorkspaceContext,
     detailed: bool,
+    progress_analyzer: &ProgressAnalyzer,
 ) -> FsResult<()> {
     // Calculate overall workspace health and metrics
     let workspace_health = calculate_workspace_health(workspace_context);
     let overall_progress = calculate_overall_progress(workspace_context);
     let active_project = &workspace_context.current_context.active_sub_project;
+
+    // Perform advanced progress analysis
+    let analytics = progress_analyzer.analyze_workspace(workspace_context);
 
     // Display workspace header
     formatter.header("Workspace Status");
@@ -96,6 +112,27 @@ fn show_workspace_status(
     ));
     formatter.info(&format!("🎯 Active Context: {}", active_project));
     formatter.info(&format!("📈 Overall Progress: {:.1}%", overall_progress));
+
+    // Enhanced progress metrics
+    formatter.info(&format!(
+        "⚡ Velocity: {:.1} tasks/week",
+        analytics.velocity
+    ));
+
+    if let Some(eta_days) = analytics.eta_days {
+        formatter.info(&format!("🏁 Estimated Completion: {:.0} days", eta_days));
+    }
+
+    let trend_icon = match analytics.trend {
+        ProgressTrend::Accelerating => "📈",
+        ProgressTrend::Steady => "➡️",
+        ProgressTrend::Declining => "📉",
+        ProgressTrend::Unknown => "❓",
+    };
+    formatter.info(&format!(
+        "{} Progress Trend: {:?}",
+        trend_icon, analytics.trend
+    ));
 
     formatter.separator();
 
@@ -150,6 +187,13 @@ fn show_workspace_status(
     // Recent activity
     show_recent_activity(formatter, workspace_context);
 
+    // Enhanced analytics sections
+    if detailed {
+        show_workspace_milestones(formatter, &analytics);
+        show_workspace_bottlenecks(formatter, &analytics);
+        show_workspace_kpis(formatter, &analytics);
+    }
+
     // Issues and recommendations
     show_workspace_issues_and_recommendations(formatter, workspace_context);
 
@@ -165,6 +209,7 @@ fn show_sub_project_status(
     workspace_context: &WorkspaceContext,
     project_name: &str,
     detailed: bool,
+    progress_analyzer: &ProgressAnalyzer,
 ) -> FsResult<()> {
     // Find the requested sub-project
     let project_context = workspace_context
@@ -179,6 +224,9 @@ fn show_sub_project_status(
 
     // Display project header
     formatter.header(&format!("Sub-Project Status: {}", project_name));
+
+    // Perform advanced progress analysis
+    let analytics = progress_analyzer.analyze_sub_project(project_context);
 
     // Project health and overview
     let health_icon = match project_context.derived_status.health {
@@ -201,6 +249,27 @@ fn show_sub_project_status(
         project_context.derived_status.current_phase
     ));
 
+    // Enhanced progress metrics
+    formatter.info(&format!(
+        "⚡ Velocity: {:.1} tasks/week",
+        analytics.velocity
+    ));
+
+    if let Some(eta_days) = analytics.eta_days {
+        formatter.info(&format!("🏁 Estimated Completion: {:.0} days", eta_days));
+    }
+
+    let trend_icon = match analytics.trend {
+        ProgressTrend::Accelerating => "📈",
+        ProgressTrend::Steady => "➡️",
+        ProgressTrend::Declining => "📉",
+        ProgressTrend::Unknown => "❓",
+    };
+    formatter.info(&format!(
+        "{} Progress Trend: {:?}",
+        trend_icon, analytics.trend
+    ));
+
     formatter.separator();
 
     // Task breakdown
@@ -208,6 +277,13 @@ fn show_sub_project_status(
 
     // Current context and recent activity
     show_project_context_details(formatter, project_context, detailed);
+
+    // Enhanced analytics sections
+    if detailed {
+        show_project_milestones(formatter, &analytics);
+        show_project_bottlenecks(formatter, &analytics);
+        show_project_kpis(formatter, &analytics);
+    }
 
     // Issues and recommendations
     show_project_issues_and_recommendations(formatter, project_context);
@@ -478,4 +554,183 @@ fn show_project_issues_and_recommendations(
             formatter.info(&format!("  💡 {}", recommendation));
         }
     }
+}
+
+/// Display workspace milestones
+fn show_workspace_milestones(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.milestones.is_empty() {
+        formatter.separator();
+        formatter.header("Milestones");
+
+        for milestone in &analytics.milestones {
+            let critical_icon = if milestone.is_critical {
+                "🔥"
+            } else {
+                "🎯"
+            };
+            formatter.info(&format!(
+                "  {} {}: {:.1}%",
+                critical_icon, milestone.name, milestone.completion
+            ));
+
+            if let Some(eta) = milestone.eta {
+                formatter.verbose(&format!("    ETA: {}", eta.format("%Y-%m-%d")));
+            }
+
+            if !milestone.dependencies.is_empty() {
+                formatter.verbose(&format!(
+                    "    Dependencies: {}",
+                    milestone.dependencies.join(", ")
+                ));
+            }
+        }
+    }
+}
+
+/// Display workspace bottlenecks
+fn show_workspace_bottlenecks(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.bottlenecks.is_empty() {
+        formatter.separator();
+        formatter.header("Bottlenecks");
+
+        for bottleneck in &analytics.bottlenecks {
+            let severity_icon = match bottleneck.severity {
+                BottleneckSeverity::Critical => "🔴",
+                BottleneckSeverity::High => "🟡",
+                BottleneckSeverity::Medium => "🟠",
+                BottleneckSeverity::Low => "🔵",
+            };
+
+            formatter.warning(&format!(
+                "  {} {} (Impact: {:.1}%)",
+                severity_icon, bottleneck.description, bottleneck.impact
+            ));
+
+            for suggestion in &bottleneck.resolution_suggestions {
+                formatter.verbose(&format!("    💡 {}", suggestion));
+            }
+        }
+    }
+}
+
+/// Display workspace KPIs
+fn show_workspace_kpis(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.kpis.is_empty() {
+        formatter.separator();
+        formatter.header("Key Performance Indicators");
+
+        for (name, value) in &analytics.kpis {
+            formatter.info(&format!("  📊 {}: {:.1}", name, value));
+        }
+    }
+}
+
+/// Display project milestones
+fn show_project_milestones(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.milestones.is_empty() {
+        formatter.separator();
+        formatter.header("Milestones");
+
+        for milestone in &analytics.milestones {
+            let critical_icon = if milestone.is_critical {
+                "🔥"
+            } else {
+                "🎯"
+            };
+            let progress_bar = create_progress_bar(milestone.completion);
+
+            formatter.info(&format!(
+                "  {} {}: {:.1}% {}",
+                critical_icon, milestone.name, milestone.completion, progress_bar
+            ));
+
+            if let Some(eta) = milestone.eta {
+                formatter.verbose(&format!("    ETA: {}", eta.format("%Y-%m-%d")));
+            }
+        }
+    }
+}
+
+/// Display project bottlenecks
+fn show_project_bottlenecks(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.bottlenecks.is_empty() {
+        formatter.separator();
+        formatter.header("Bottlenecks");
+
+        for bottleneck in &analytics.bottlenecks {
+            let severity_icon = match bottleneck.severity {
+                BottleneckSeverity::Critical => "🔴",
+                BottleneckSeverity::High => "🟡",
+                BottleneckSeverity::Medium => "🟠",
+                BottleneckSeverity::Low => "🔵",
+            };
+
+            formatter.warning(&format!(
+                "  {} {} (Impact: {:.1}%)",
+                severity_icon, bottleneck.description, bottleneck.impact
+            ));
+
+            if !bottleneck.affected_tasks.is_empty() {
+                formatter.verbose(&format!(
+                    "    Affected tasks: {}",
+                    bottleneck.affected_tasks.len()
+                ));
+            }
+
+            for suggestion in bottleneck.resolution_suggestions.iter().take(2) {
+                formatter.verbose(&format!("    💡 {}", suggestion));
+            }
+        }
+    }
+}
+
+/// Display project KPIs
+fn show_project_kpis(
+    formatter: &OutputFormatter,
+    analytics: &crate::cli::commands::progress_analyzer::ProgressAnalytics,
+) {
+    if !analytics.kpis.is_empty() {
+        formatter.separator();
+        formatter.header("Key Performance Indicators");
+
+        for (name, value) in &analytics.kpis {
+            let kpi_icon = match name.as_str() {
+                "Completion" => "📈",
+                "Velocity" => "⚡",
+                "Blocked Ratio" => "🚧",
+                "Active Ratio" => "🔄",
+                _ => "📊",
+            };
+
+            formatter.info(&format!("  {} {}: {:.1}", kpi_icon, name, value));
+        }
+    }
+}
+
+/// Create a simple text-based progress bar
+fn create_progress_bar(percentage: f64) -> String {
+    let filled = (percentage / 10.0) as usize;
+    let empty = 10 - filled;
+
+    format!(
+        "[{}{}] {:.0}%",
+        "█".repeat(filled),
+        "░".repeat(empty),
+        percentage
+    )
 }
