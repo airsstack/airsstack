@@ -191,17 +191,56 @@ fn display_workspace_patterns(
     // Extract patterns from workspace content if available
     if let Some(shared_patterns) = &workspace_context.workspace_content.shared_patterns {
         if !shared_patterns.sections.is_empty() {
-            for (title, _content) in &shared_patterns.sections {
-                if title.to_lowercase().contains("pattern")
+            let mut pattern_count = 0;
+            for (title, content) in &shared_patterns.sections {
+                if (title.to_lowercase().contains("pattern")
                     || title.to_lowercase().contains("standard")
                     || title.to_lowercase().contains("principle")
+                    || title.to_lowercase().contains("policy"))
+                    && pattern_count < 5
                 {
                     formatter.info(&format!("  📐 {}", title));
+
+                    // Show first meaningful line of content as summary
+                    let lines: Vec<&str> = content.lines().collect();
+                    for line in lines.iter().take(5) {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty()
+                            && !trimmed.starts_with('#')
+                            && !trimmed.starts_with("```")
+                            && trimmed.len() > 20
+                        // Only show substantial content
+                        {
+                            formatter.info(&format!("    • {}", trimmed));
+                            break;
+                        }
+                    }
+                    pattern_count += 1;
                 }
             }
         }
-    } else {
-        formatter.info("  No shared patterns documentation found");
+    }
+
+    // Extract architecture information from workspace architecture
+    if let Some(workspace_arch) = &workspace_context.workspace_content.workspace_architecture {
+        formatter.info("\n  📋 Architectural Principles:");
+        for (title, content) in &workspace_arch.sections {
+            if title.to_lowercase().contains("pattern")
+                || title.to_lowercase().contains("architecture")
+                || title.to_lowercase().contains("layer")
+            {
+                formatter.info(&format!("    🔧 {}", title));
+
+                // Extract key bullet points or principles
+                for line in content.lines().take(3) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+                        formatter.info(&format!("      {}", trimmed));
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     Ok(())
@@ -214,17 +253,116 @@ fn display_integration_points(
 ) -> FsResult<()> {
     formatter.info("\n🔗 Integration Points:");
 
-    // For now, show basic integration information
-    // This could be enhanced to parse actual integration documentation
     let project_count = workspace_context.sub_project_contexts.len();
     if project_count > 1 {
         formatter.info(&format!(
             "  Multi-project workspace with {} sub-projects",
             project_count
         ));
-        formatter.info("  Integration analysis available in workspace documentation");
+
+        // Analyze integration patterns from workspace architecture
+        if let Some(workspace_arch) = &workspace_context.workspace_content.workspace_architecture {
+            for (title, content) in &workspace_arch.sections {
+                if title.to_lowercase().contains("integration")
+                    || title.to_lowercase().contains("communication")
+                    || title.to_lowercase().contains("dependency")
+                {
+                    formatter.info(&format!("  🔄 {}", title));
+
+                    // Extract integration patterns
+                    for line in content.lines() {
+                        let trimmed = line.trim();
+                        if (trimmed.starts_with("- ") || trimmed.starts_with("* "))
+                            && (trimmed.contains("crate")
+                                || trimmed.contains("transport")
+                                || trimmed.contains("API"))
+                        {
+                            formatter.info(&format!("    {}", trimmed));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Show sub-project specializations and relationships
+        formatter.info("\n  🎯 Sub-Project Specializations:");
+        for (name, context) in &workspace_context.sub_project_contexts {
+            if let Some(project_brief) = &context.content.project_brief {
+                // Extract purpose or role from project brief
+                for (section_title, section_content) in &project_brief.sections {
+                    if section_title.to_lowercase().contains("purpose")
+                        || section_title.to_lowercase().contains("responsibility")
+                        || section_title.to_lowercase().contains("role")
+                    {
+                        let lines: Vec<&str> = section_content.lines().collect();
+                        for line in lines.iter().take(3) {
+                            let trimmed = line.trim();
+                            if !trimmed.is_empty()
+                                && !trimmed.starts_with('#')
+                                && trimmed.len() > 15
+                            {
+                                formatter.info(&format!("    🔸 {}: {}", name, trimmed));
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Show workspace-level dependencies and shared resources
+        if let Some(shared_patterns) = &workspace_context.workspace_content.shared_patterns {
+            for (title, content) in &shared_patterns.sections {
+                if title.to_lowercase().contains("dependency")
+                    || title.to_lowercase().contains("shared")
+                    || title.to_lowercase().contains("common")
+                {
+                    formatter.info(&format!("  📦 {}", title));
+
+                    // Extract key dependency or sharing patterns
+                    for line in content.lines().take(2) {
+                        let trimmed = line.trim();
+                        if (trimmed.starts_with("- ") || trimmed.starts_with("* "))
+                            && trimmed.len() > 10
+                        {
+                            formatter.info(&format!("    {}", trimmed));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     } else {
         formatter.info("  Single sub-project workspace");
+
+        // For single project, show internal architecture
+        if let Some((project_name, context)) = workspace_context.sub_project_contexts.iter().next()
+        {
+            formatter.info(&format!("  🏗️ {} Internal Architecture:", project_name));
+
+            if let Some(system_patterns) = &context.content.system_patterns {
+                for (title, content) in &system_patterns.sections {
+                    if title.to_lowercase().contains("component")
+                        || title.to_lowercase().contains("layer")
+                        || title.to_lowercase().contains("flow")
+                    {
+                        formatter.info(&format!("    🔧 {}", title));
+
+                        // Show architectural components
+                        for line in content.lines().take(3) {
+                            let trimmed = line.trim();
+                            if (trimmed.starts_with("- ") || trimmed.starts_with("* "))
+                                && trimmed.len() > 15
+                            {
+                                formatter.info(&format!("      {}", trimmed));
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     Ok(())
@@ -247,18 +385,58 @@ fn display_active_development_focus(
                     || title.to_lowercase().contains("current")
                     || title.to_lowercase().contains("next")
                     || title.to_lowercase().contains("recent")
+                    || title.to_lowercase().contains("change")
+                    || title.to_lowercase().contains("decision")
             })
-            .take(3) // Limit to 3 most relevant sections
+            .take(4) // Expanded to show more relevant sections
             .collect();
 
-        for (title, content) in focus_sections {
-            formatter.info(&format!("  🔸 {}", title));
-            if !content.trim().is_empty() {
-                // Show first line of content as summary
-                if let Some(first_line) = content.lines().next() {
-                    if !first_line.trim().is_empty() {
-                        formatter.info(&format!("    {}", first_line.trim()));
+        if !focus_sections.is_empty() {
+            for (title, content) in focus_sections {
+                formatter.info(&format!("  🔸 {}", title));
+
+                // Extract bullet points or key information
+                let mut shown_lines = 0;
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if shown_lines < 3
+                        && (trimmed.starts_with("- ")
+                            || trimmed.starts_with("* ")
+                            || trimmed.contains("✅")
+                            || trimmed.contains("🔄")
+                            || (trimmed.starts_with("**") && trimmed.contains("**")))
+                    {
+                        let clean_line = if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+                            trimmed.to_string()
+                        } else {
+                            format!("  {}", trimmed)
+                        };
+
+                        if clean_line.len() > 10 {
+                            formatter.info(&format!("    {}", clean_line));
+                            shown_lines += 1;
+                        }
+                    } else if shown_lines == 0
+                        && !trimmed.is_empty()
+                        && !trimmed.starts_with('#')
+                        && trimmed.len() > 20
+                    {
+                        // Show first meaningful sentence if no bullet points
+                        formatter.info(&format!("    {}", trimmed));
+                        shown_lines += 1;
                     }
+                }
+            }
+        } else {
+            // Show any available sections if no specific focus sections found
+            let any_sections: Vec<_> = active_context.sections.iter().take(2).collect();
+            for (title, content) in any_sections {
+                formatter.info(&format!("  📌 {}", title));
+                if let Some(first_line) = content
+                    .lines()
+                    .find(|line| !line.trim().is_empty() && line.trim().len() > 15)
+                {
+                    formatter.info(&format!("    {}", first_line.trim()));
                 }
             }
         }
@@ -284,12 +462,61 @@ fn display_sub_project_patterns(
                 title.to_lowercase().contains("pattern")
                     || title.to_lowercase().contains("architecture")
                     || title.to_lowercase().contains("design")
+                    || title.to_lowercase().contains("component")
+                    || title.to_lowercase().contains("flow")
             })
-            .take(3)
+            .take(5)
             .collect();
 
-        for (title, _content) in pattern_sections {
+        for (title, content) in pattern_sections {
             formatter.info(&format!("  📐 {}", title));
+
+            // Extract key architectural details
+            let mut detail_count = 0;
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if detail_count < 2
+                    && ((trimmed.starts_with("- ") && trimmed.contains(":"))
+                        || (trimmed.starts_with("* ") && trimmed.contains(":"))
+                        || (trimmed.starts_with("**") && trimmed.contains("**"))
+                        || (trimmed.contains("✅") && trimmed.len() > 20))
+                {
+                    let clean_line = trimmed
+                        .replace("**", "")
+                        .replace("✅", "")
+                        .trim()
+                        .to_string();
+                    if clean_line.len() > 15 {
+                        formatter.info(&format!("    • {}", clean_line));
+                        detail_count += 1;
+                    }
+                }
+            }
+        }
+
+        // Show implementation status if available
+        let implementation_sections: Vec<_> = system_patterns
+            .sections
+            .iter()
+            .filter(|(title, _content)| {
+                title.to_lowercase().contains("implementation")
+                    || title.to_lowercase().contains("status")
+                    || title.to_lowercase().contains("objective")
+            })
+            .take(2)
+            .collect();
+
+        if !implementation_sections.is_empty() {
+            formatter.info("\n  🎯 Implementation Status:");
+            for (_title, content) in implementation_sections {
+                for line in content.lines().take(4) {
+                    let trimmed = line.trim();
+                    if trimmed.contains("✅") || trimmed.contains("❌") || trimmed.contains("🔄")
+                    {
+                        formatter.info(&format!("    {}", trimmed));
+                    }
+                }
+            }
         }
     } else {
         formatter.info("  No system patterns documentation found");
