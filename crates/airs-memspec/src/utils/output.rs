@@ -826,6 +826,48 @@ impl OutputFormatter {
             eprintln!(); // Move to new line when complete
         }
     }
+
+    /// Render layout elements using the integrated layout engine
+    ///
+    /// This method provides professional output formatting by rendering layout elements
+    /// through the layout engine, supporting sophisticated structures like headers,
+    /// field rows, tree items, sections, and separators.
+    ///
+    /// # Arguments
+    ///
+    /// * `elements` - Vector of layout elements to render
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use airs_memspec::utils::output::{OutputConfig, OutputFormatter};
+    /// # use airs_memspec::utils::layout::{LayoutElement, HeaderStyle, Alignment};
+    /// let config = OutputConfig::new(false, false, false);
+    /// let formatter = OutputFormatter::new(config);
+    ///
+    /// let elements = vec![
+    ///     LayoutElement::Header {
+    ///         icon: "🏢".to_string(),
+    ///         title: "Workspace Status".to_string(),
+    ///         style: HeaderStyle::Heavy,
+    ///     },
+    ///     LayoutElement::FieldRow {
+    ///         label: "Projects".to_string(),
+    ///         value: "3".to_string(),
+    ///         alignment: Alignment::LeftAligned(15),
+    ///     },
+    /// ];
+    ///
+    /// formatter.render_layout(&elements);
+    /// ```
+    pub fn render_layout(&self, elements: &[crate::utils::layout::LayoutElement]) {
+        let layout_engine = crate::utils::layout::LayoutEngine::new(self.config.clone());
+        let output = layout_engine.render(elements);
+
+        if !self.config.quiet {
+            print!("{output}");
+        }
+    }
 }
 
 /// Color enumeration for consistent terminal output styling

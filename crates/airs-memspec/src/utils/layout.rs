@@ -407,13 +407,8 @@ impl LayoutEngine {
             SeparatorStyle::None => " ".repeat(actual_width),
         };
 
-        let colored_separator = if self.config.use_color && style != &SeparatorStyle::None {
-            separator.blue().to_string()
-        } else {
-            separator
-        };
-
-        format!("{colored_separator}\n")
+        // Always use plain separators without color
+        format!("{separator}\n")
     }
 
     /// Render an indented list with custom bullets and hierarchy levels

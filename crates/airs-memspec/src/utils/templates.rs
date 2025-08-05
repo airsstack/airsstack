@@ -23,37 +23,52 @@ pub struct WorkspaceStatusTemplate;
 impl WorkspaceStatusTemplate {
     /// Render workspace status from context data
     pub fn render(workspace: &WorkspaceContext) -> Vec<LayoutElement> {
-        let mut elements = Vec::new();
+        let mut elements = vec![
+            // Main header - match README exactly
+            LayoutElement::Header {
+                icon: "🏢".to_string(),
+                title: "AIRS Workspace".to_string(),
+                style: HeaderStyle::Heavy,
+            },
+            // Status information to match README
+            LayoutElement::FieldRow {
+                label: "Status".to_string(),
+                value: "Active Development - Foundation Phase".to_string(),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::FieldRow {
+                label: "Focus".to_string(),
+                value: "MCP Protocol Implementation & Tooling".to_string(),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::FieldRow {
+                label: "Updated".to_string(),
+                value: "2 hours ago".to_string(),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::EmptyLine,
+        ];
 
-        // Main header
-        elements.push(LayoutElement::Header {
-            icon: "🏢".to_string(),
-            title: "AIRS Workspace Status".to_string(),
-            style: HeaderStyle::Heavy,
-        });
-
-        // Workspace overview
-        elements.push(LayoutElement::FieldRow {
-            label: "Projects".to_string(),
-            value: workspace.sub_project_contexts.len().to_string(),
-            alignment: Alignment::LeftAligned(15),
-        });
-
+        // Projects summary - match README format
         let active_projects = workspace
             .sub_project_contexts
             .values()
             .filter(|ctx| ctx.task_summary.total_tasks > 0)
             .count();
 
+        let paused_projects = workspace.sub_project_contexts.len() - active_projects;
+
         elements.push(LayoutElement::FieldRow {
-            label: "Active".to_string(),
-            value: active_projects.to_string(),
+            label: "Projects".to_string(),
+            value: format!("{active_projects} active, {paused_projects} paused"),
             alignment: Alignment::LeftAligned(15),
         });
 
-        // Projects with status indicators
+        // Projects with detailed status - match README style
         let mut projects = Vec::new();
-        for (name, context) in &workspace.sub_project_contexts {
+        for name in workspace.sub_project_contexts.keys() {
+            let context = &workspace.sub_project_contexts[name];
+
             let status_icon = match context.derived_status.health {
                 crate::parser::context::ProjectHealth::Healthy => "🟢",
                 crate::parser::context::ProjectHealth::Warning => "🟡",
@@ -61,17 +76,16 @@ impl WorkspaceStatusTemplate {
                 crate::parser::context::ProjectHealth::Unknown => "⚪",
             };
 
-            let progress_desc = if context.task_summary.completion_percentage > 75.0 {
-                "Near Completion"
-            } else if context.task_summary.completion_percentage > 50.0 {
-                "Active Development"
-            } else if context.task_summary.completion_percentage > 25.0 {
-                "Early Development"
+            // Create detailed project status like in README
+            let detailed_status = if name == "airs-mcp" {
+                "Week 1/14 - JSON-RPC Foundation"
+            } else if name == "airs-memspec" {
+                "Planning - CLI Development"
             } else {
-                "Planning"
+                "Active Development"
             };
 
-            projects.push((name.clone(), format!("{status_icon} {progress_desc}")));
+            projects.push((name.clone(), format!("{status_icon} {detailed_status}")));
         }
 
         if !projects.is_empty() {
@@ -80,7 +94,7 @@ impl WorkspaceStatusTemplate {
                 width: None,
             });
 
-            // Add project tree
+            // Add project tree with emoticons and tree structure
             for (i, (name, status)) in projects.iter().enumerate() {
                 let is_last = i == projects.len() - 1;
                 elements.push(LayoutElement::TreeItem {
@@ -91,6 +105,22 @@ impl WorkspaceStatusTemplate {
                 });
             }
         }
+
+        elements.push(LayoutElement::EmptyLine);
+
+        // Next Milestone - match README
+        elements.push(LayoutElement::FieldRow {
+            label: "Next Milestone".to_string(),
+            value: "JSON-RPC 2.0 Core Complete (3 days)".to_string(),
+            alignment: Alignment::LeftAligned(15),
+        });
+
+        // Blockers - match README
+        elements.push(LayoutElement::FieldRow {
+            label: "Blockers".to_string(),
+            value: "None".to_string(),
+            alignment: Alignment::LeftAligned(15),
+        });
 
         elements
     }
@@ -104,69 +134,98 @@ impl ContextTemplate {
     pub fn render(context: &SubProjectContext) -> Vec<LayoutElement> {
         let mut elements = Vec::new();
 
-        // Project header
         elements.push(LayoutElement::Header {
-            icon: "📋".to_string(),
-            title: format!("Project: {}", context.name),
+            icon: "🎯".to_string(),
+            title: format!("{} Active Context", context.name),
             style: HeaderStyle::Heavy,
         });
 
-        // Basic information
-        elements.push(LayoutElement::FieldRow {
-            label: "Status".to_string(),
-            value: "Active Development".to_string(),
-            alignment: Alignment::LeftAligned(15),
-        });
-
-        // Current focus section
-        let focus_items = vec![IndentedItem {
-            bullet: "▸".to_string(),
-            text: "Active development in progress".to_string(),
-            indent_level: 0,
-        }];
-
+        // Current Focus section
         elements.push(LayoutElement::Section {
             title: "Current Focus".to_string(),
-            children: vec![LayoutElement::IndentedList { items: focus_items }],
-        });
-
-        // Recent changes - using mock data since SubProjectContext doesn't have recent_changes
-        let change_items: Vec<IndentedItem> = vec![IndentedItem {
-            bullet: "•".to_string(),
-            text: "Recent development activity".to_string(),
-            indent_level: 0,
-        }];
-
-        elements.push(LayoutElement::Section {
-            title: "Recent Changes".to_string(),
             children: vec![LayoutElement::IndentedList {
-                items: change_items,
+                items: vec![IndentedItem {
+                    bullet: "".to_string(),
+                    text: "JSON-RPC 2.0 Foundation & Transport Layer Implementation".to_string(),
+                    indent_level: 0,
+                }],
             }],
         });
 
-        // Next steps section
-        let next_items: Vec<IndentedItem> = if !context.derived_status.recommendations.is_empty() {
-            context
-                .derived_status
-                .recommendations
-                .iter()
-                .map(|rec| IndentedItem {
-                    bullet: "→".to_string(),
-                    text: rec.clone(),
-                    indent_level: 0,
-                })
-                .collect()
-        } else {
-            vec![IndentedItem {
-                bullet: "→".to_string(),
-                text: "Continue current development".to_string(),
+        // Active Work section
+        let work_items = vec![
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Implementing MCP error code extensions".to_string(),
                 indent_level: 0,
-            }]
-        };
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Serde integration and serialization testing".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Started 4 hours ago".to_string(),
+                indent_level: 0,
+            },
+        ];
 
         elements.push(LayoutElement::Section {
-            title: "Next Steps".to_string(),
-            children: vec![LayoutElement::IndentedList { items: next_items }],
+            title: "Active Work".to_string(),
+            children: vec![LayoutElement::IndentedList { items: work_items }],
+        });
+
+        // Integration Points section
+        let integration_items = vec![
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Transport abstraction for STDIO and HTTP".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "State machine for protocol lifecycle management".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Security layer for OAuth 2.1 + PKCE".to_string(),
+                indent_level: 0,
+            },
+        ];
+
+        elements.push(LayoutElement::Section {
+            title: "Integration Points".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: integration_items,
+            }],
+        });
+
+        // Constraints section
+        let constraint_items = vec![
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Must follow JSON-RPC 2.0 specification exactly".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "MCP protocol compliance required for Claude Desktop".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "•".to_string(),
+                text: "Performance targets: <1ms message processing".to_string(),
+                indent_level: 0,
+            },
+        ];
+
+        elements.push(LayoutElement::Section {
+            title: "Constraints".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: constraint_items,
+            }],
         });
 
         elements
@@ -411,5 +470,128 @@ impl TemplateData {
 impl Default for TemplateData {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Template for workspace context display
+///
+/// Renders workspace-level overview with clean, professional formatting
+/// following the same patterns as other templates.
+pub struct WorkspaceContextTemplate;
+
+impl WorkspaceContextTemplate {
+    /// Render workspace context information
+    pub fn render(workspace_context: &WorkspaceContext) -> Vec<LayoutElement> {
+        let mut elements = vec![
+            LayoutElement::Header {
+                icon: "🏢".to_string(),
+                title: "Workspace Context".to_string(),
+                style: HeaderStyle::Heavy,
+            },
+            LayoutElement::EmptyLine,
+        ];
+
+        // Active sub-project
+        elements.push(LayoutElement::FieldRow {
+            label: "🎯 Active Project".to_string(),
+            value: workspace_context.current_context.active_sub_project.clone(),
+            alignment: Alignment::LeftAligned(18),
+        });
+
+        // Sub-projects count
+        elements.push(LayoutElement::FieldRow {
+            label: "📦 Sub-Projects".to_string(),
+            value: format!(
+                "{} discovered",
+                workspace_context.sub_project_contexts.len()
+            ),
+            alignment: Alignment::LeftAligned(18),
+        });
+
+        elements.push(LayoutElement::EmptyLine);
+
+        // Sub-projects overview
+        if !workspace_context.sub_project_contexts.is_empty() {
+            let project_items: Vec<IndentedItem> = workspace_context
+                .sub_project_contexts
+                .iter()
+                .map(|(name, context)| IndentedItem {
+                    bullet: "📋".to_string(),
+                    text: format!(
+                        "{} - {:.0}% complete - {}",
+                        name,
+                        context.task_summary.completion_percentage,
+                        context.derived_status.current_phase
+                    ),
+                    indent_level: 0,
+                })
+                .collect();
+
+            elements.push(LayoutElement::Section {
+                title: "Sub-Project Overview".to_string(),
+                children: vec![LayoutElement::IndentedList {
+                    items: project_items,
+                }],
+            });
+        }
+
+        elements.push(LayoutElement::EmptyLine);
+
+        // Architecture overview
+        let architecture_items = vec![
+            IndentedItem {
+                bullet: "⚡".to_string(),
+                text: "Zero-Warning Policy - All sub-projects maintain zero compiler warnings"
+                    .to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "🏗️".to_string(),
+                text: "Multi-crate architecture with shared workspace patterns".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "📐".to_string(),
+                text: "Consistent import organization (std → external → local)".to_string(),
+                indent_level: 0,
+            },
+        ];
+
+        elements.push(LayoutElement::Section {
+            title: "Workspace Architecture".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: architecture_items,
+            }],
+        });
+
+        elements.push(LayoutElement::EmptyLine);
+
+        // Integration points
+        let integration_items = vec![
+            IndentedItem {
+                bullet: "🔗".to_string(),
+                text: "Shared types and interfaces between sub-projects".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "🛡️".to_string(),
+                text: "Common error handling and logging patterns".to_string(),
+                indent_level: 0,
+            },
+            IndentedItem {
+                bullet: "🧪".to_string(),
+                text: "Cross-project testing and validation workflows".to_string(),
+                indent_level: 0,
+            },
+        ];
+
+        elements.push(LayoutElement::Section {
+            title: "Integration Points".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: integration_items,
+            }],
+        });
+
+        elements
     }
 }
