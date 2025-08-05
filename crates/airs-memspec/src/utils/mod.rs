@@ -5,3 +5,4 @@ pub mod config;
 pub mod fs;
 pub mod layout;
 pub mod output;
+pub mod templates;
