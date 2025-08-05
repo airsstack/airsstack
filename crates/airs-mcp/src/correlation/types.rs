@@ -101,6 +101,43 @@ impl PendingRequest {
         now.signed_duration_since(self.created_at) > self.timeout
     }
 
+    /// Check if this request has expired at a specific timestamp
+    ///
+    /// This is more efficient than `is_expired()` when checking multiple requests
+    /// as it avoids repeated system calls to get the current time.
+    ///
+    /// # Arguments
+    ///
+    /// * `now` - The current timestamp to compare against
+    ///
+    /// # Returns
+    ///
+    /// `true` if the request has exceeded its timeout period at the given time
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use airs_mcp::correlation::types::PendingRequest;
+    /// # use tokio::sync::oneshot;
+    /// # use chrono::{TimeDelta, Utc};
+    /// # use serde_json::json;
+    /// #
+    /// # let (sender, _receiver) = oneshot::channel();
+    /// # let pending = PendingRequest::new(
+    /// #     sender,
+    /// #     TimeDelta::seconds(30),
+    /// #     json!({"method": "test"})
+    /// # );
+    /// #
+    /// let now = Utc::now();
+    /// if pending.is_expired_at(&now) {
+    ///     println!("Request has timed out");
+    /// }
+    /// ```
+    pub fn is_expired_at(&self, now: &chrono::DateTime<chrono::Utc>) -> bool {
+        now.signed_duration_since(self.created_at) > self.timeout
+    }
+
     /// Get the remaining time before this request expires
     ///
     /// # Returns

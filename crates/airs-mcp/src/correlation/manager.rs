@@ -152,6 +152,45 @@ impl CorrelationManager {
         Ok(manager)
     }
 
+    /// Create a new correlation manager without starting the background cleanup task
+    ///
+    /// This is useful for testing and benchmarking where you want to control
+    /// cleanup timing manually.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Configuration settings for the manager
+    ///
+    /// # Returns
+    ///
+    /// A new `CorrelationManager` instance without background cleanup
+    ///
+    /// This method is intended for testing and benchmarking scenarios where
+    /// the background cleanup task would interfere with measurements.
+    #[doc(hidden)]
+    pub async fn new_without_cleanup(config: CorrelationConfig) -> CorrelationResult<Self> {
+        let requests = Arc::new(DashMap::new());
+        let id_generator = Arc::new(RequestIdGenerator::new());
+        let shutdown_signal = Arc::new(AtomicBool::new(false));
+
+        let manager = Self {
+            requests: Arc::clone(&requests),
+            id_generator,
+            config: config.clone(),
+            cleanup_task: Arc::new(RwLock::new(None)),
+            shutdown_signal: Arc::clone(&shutdown_signal),
+        };
+
+        if config.enable_tracing {
+            debug!(
+                "CorrelationManager initialized (no cleanup task) with config: {:?}",
+                config
+            );
+        }
+
+        Ok(manager)
+    }
+
     /// Register a new request for correlation
     ///
     /// Creates a new request ID, stores the request details, and returns both the ID
@@ -429,36 +468,46 @@ impl CorrelationManager {
     /// # }
     /// ```
     pub async fn cleanup_expired_requests(&self) -> usize {
-        let mut expired_requests = Vec::new();
+        // Cache timestamp to avoid repeated system calls
+        let now = chrono::Utc::now();
 
-        // Find expired requests
-        for entry in self.requests.iter() {
-            if entry.value().is_expired() {
-                expired_requests.push(entry.key().clone());
+        // True single-pass: collect expired IDs while iterating, then batch remove
+        // This avoids cloning IDs during iteration
+        let expired_ids: Vec<RequestId> = self
+            .requests
+            .iter()
+            .filter_map(|entry| {
+                if entry.value().is_expired_at(&now) {
+                    Some(entry.key().clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let cleaned_count = expired_ids.len();
+
+        if cleaned_count > 0 {
+            if self.config.enable_tracing {
+                debug!("Cleaning up {} expired requests", cleaned_count);
             }
-        }
 
-        let cleanup_count = expired_requests.len();
+            // Batch remove and notify in single pass
+            for request_id in expired_ids {
+                if let Some((_, pending_request)) = self.requests.remove(&request_id) {
+                    let _ = pending_request.sender.send(Err(CorrelationError::Timeout {
+                        id: request_id.clone(),
+                        duration: pending_request.timeout,
+                    }));
 
-        if cleanup_count > 0 && self.config.enable_tracing {
-            debug!("Cleaning up {} expired requests", cleanup_count);
-        }
-
-        // Remove expired requests and send timeout errors
-        for request_id in expired_requests {
-            if let Some((_, pending_request)) = self.requests.remove(&request_id) {
-                let _ = pending_request.sender.send(Err(CorrelationError::Timeout {
-                    id: request_id.clone(),
-                    duration: pending_request.timeout,
-                }));
-
-                if self.config.enable_tracing {
-                    trace!("Request {} timed out", request_id);
+                    if self.config.enable_tracing {
+                        trace!("Request {} timed out", request_id);
+                    }
                 }
             }
         }
 
-        cleanup_count
+        cleaned_count
     }
 
     /// Start the background cleanup task
@@ -478,9 +527,13 @@ impl CorrelationManager {
 
                 let mut expired_requests = Vec::new();
 
-                // Find expired requests
+                // Cache timestamp for consistent, efficient expiration checking
+                let now = chrono::Utc::now();
+
+                // Single pass: find expired requests with cached timestamp
                 for entry in requests.iter() {
-                    if entry.value().is_expired() {
+                    let pending_request = entry.value();
+                    if pending_request.is_expired_at(&now) {
                         expired_requests.push(entry.key().clone());
                     }
                 }

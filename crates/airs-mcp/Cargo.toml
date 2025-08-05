@@ -40,3 +40,23 @@ criterion.workspace = true
 
 # Test logging and debugging for async flows
 tracing-subscriber.workspace = true
+
+# Benchmark dependencies
+chrono.workspace = true
+num_cpus = "1.16"
+
+[[bench]]
+name = "message_processing"
+harness = false
+
+[[bench]]
+name = "streaming_performance"
+harness = false
+
+[[bench]]
+name = "correlation_simple"
+harness = false
+
+[[bench]]
+name = "transport_performance"
+harness = false
