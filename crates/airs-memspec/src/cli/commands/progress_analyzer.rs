@@ -317,7 +317,7 @@ impl ProgressAnalyzer {
             if context.derived_status.health == ProjectHealth::Critical {
                 let issue_count = context.derived_status.issues.len();
                 let blocked_count = context.task_summary.blocked_tasks.len();
-                
+
                 bottlenecks.push(Bottleneck {
                     description: format!(
                         "Project {} has critical health ({} issues, {} blocked tasks)",
@@ -368,7 +368,10 @@ impl ProgressAnalyzer {
                 bottlenecks.push(Bottleneck {
                     description: format!(
                         "High blocked task ratio in {}: {}/{} ({:.1}%)",
-                        name, blocked_count, total_count, blocked_ratio * 100.0
+                        name,
+                        blocked_count,
+                        total_count,
+                        blocked_ratio * 100.0
                     ),
                     severity,
                     impact: 20.0 + (blocked_ratio * 30.0),
@@ -436,7 +439,8 @@ impl ProgressAnalyzer {
                 bottlenecks.push(Bottleneck {
                     description: format!(
                         "Low velocity in projects: {} (avg: {:.1} tasks/week)",
-                        project_names.join(", "), avg_velocity
+                        project_names.join(", "),
+                        avg_velocity
                     ),
                     severity: BottleneckSeverity::Medium,
                     impact: 15.0,
@@ -463,7 +467,7 @@ impl ProgressAnalyzer {
             let blocked_count = context.task_summary.blocked_tasks.len();
             let total_tasks = context.task_summary.total_tasks;
             let blocked_ratio = blocked_count as f64 / total_tasks as f64;
-            
+
             // Calculate severity based on multiple factors
             let severity = if blocked_ratio > 0.4 || blocked_count > 8 {
                 BottleneckSeverity::Critical
@@ -478,7 +482,11 @@ impl ProgressAnalyzer {
             // Enhanced impact calculation
             let base_impact = blocked_ratio * 100.0;
             let velocity_impact = if blocked_count > 3 { 15.0 } else { 5.0 };
-            let timeline_impact = if severity >= BottleneckSeverity::High { 20.0 } else { 10.0 };
+            let timeline_impact = if severity >= BottleneckSeverity::High {
+                20.0
+            } else {
+                10.0
+            };
             let total_impact = base_impact + velocity_impact + timeline_impact;
 
             // Enhanced resolution suggestions based on context
@@ -501,7 +509,10 @@ impl ProgressAnalyzer {
             // Add escalation suggestions based on severity
             match severity {
                 BottleneckSeverity::Critical => {
-                    suggestions.insert(0, "IMMEDIATE ACTION REQUIRED: Escalate to project leadership".to_string());
+                    suggestions.insert(
+                        0,
+                        "IMMEDIATE ACTION REQUIRED: Escalate to project leadership".to_string(),
+                    );
                     suggestions.push("Consider bringing in additional expertise".to_string());
                 }
                 BottleneckSeverity::High => {
@@ -513,7 +524,8 @@ impl ProgressAnalyzer {
             bottlenecks.push(Bottleneck {
                 description: format!(
                     "{} blocked tasks ({:.1}% of total) creating significant bottleneck",
-                    blocked_count, blocked_ratio * 100.0
+                    blocked_count,
+                    blocked_ratio * 100.0
                 ),
                 severity,
                 impact: total_impact.min(100.0),
@@ -531,14 +543,13 @@ impl ProgressAnalyzer {
         if context.derived_status.health == ProjectHealth::Critical {
             let critical_issues = context.derived_status.issues.len();
             let severity_multiplier = if critical_issues > 3 { 1.5 } else { 1.0 };
-            
+
             bottlenecks.push(Bottleneck {
                 description: format!(
-                    "Critical project health with {} unresolved issues",
-                    critical_issues
+                    "Critical project health with {critical_issues} unresolved issues"
                 ),
                 severity: BottleneckSeverity::Critical,
-                impact: ((35.0 * severity_multiplier) as f64).min(100.0),
+                impact: (35.0_f64 * severity_multiplier).min(100.0),
                 resolution_suggestions: vec![
                     "URGENT: Address all critical issues within 48 hours".to_string(),
                     "Conduct immediate project health assessment".to_string(),
@@ -556,7 +567,7 @@ impl ProgressAnalyzer {
             .get(&TaskStatus::InProgress)
             .map(|tasks| tasks.len())
             .unwrap_or(0);
-            
+
         let not_started_count = context
             .task_summary
             .tasks_by_status
@@ -566,8 +577,9 @@ impl ProgressAnalyzer {
 
         // If too many tasks are not started vs in progress, might indicate dependency issues
         if not_started_count > 0 && in_progress_count > 0 {
-            let dependency_ratio = not_started_count as f64 / (in_progress_count + not_started_count) as f64;
-            
+            let dependency_ratio =
+                not_started_count as f64 / (in_progress_count + not_started_count) as f64;
+
             if dependency_ratio > 0.7 && not_started_count > 3 {
                 bottlenecks.push(Bottleneck {
                     description: format!(
@@ -593,9 +605,9 @@ impl ProgressAnalyzer {
             .get(&TaskStatus::Completed)
             .map(|tasks| tasks.len())
             .unwrap_or(0);
-            
+
         let completion_ratio = completed_count as f64 / context.task_summary.total_tasks as f64;
-        
+
         if context.task_summary.total_tasks > 5 && completion_ratio < 0.3 {
             bottlenecks.push(Bottleneck {
                 description: format!(
