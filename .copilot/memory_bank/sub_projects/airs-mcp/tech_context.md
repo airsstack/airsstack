@@ -7,6 +7,9 @@
 - Tokio (async runtime)
 - Serde/Serde JSON (serialization)
 - DashMap (concurrent hashmap)
+- Bytes (zero-copy buffer management) ✅ NEW
+- BytesMut (mutable buffer operations) ✅ NEW
+- Thiserror (structured error handling)
 - Optional: OAuth2, Rustls (feature-gated)
 
 ## Development Setup
