@@ -7,6 +7,7 @@
 //!
 //! The JSON-RPC foundation is organized as follows:
 //! - `message`: Core message types with JsonRpcMessage trait for consistent serialization
+//! - `streaming`: High-performance streaming JSON parser for large messages
 //! - `error`: JSON-RPC 2.0 compliant error handling (future)
 //! - `id`: Request ID implementation with string/numeric support (future)
 //! - `validation`: Message structure validation (future)
@@ -32,6 +33,8 @@
 //! ```
 
 pub mod message;
+pub mod streaming;
 
 // Re-export public API for convenient access
 pub use message::*;
+pub use streaming::*;
