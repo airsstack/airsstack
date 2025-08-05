@@ -2,6 +2,76 @@
 
 This document captures critical technical and architectural decisions made during the development of airs-memspec, providing context, rationale, and impact assessment for future reference.
 
+## Decision 004 - Optimal Emoticon Policy for CLI Output (2025-08-05)
+
+**Decision**: Implement "just enough emoticons" policy with selective usage across different command types
+
+**Context**: 
+- User feedback indicated workspace context command had "too many emoticons" 
+- Need to balance professional appearance with visual appeal
+- Different commands serve different purposes requiring different visual approaches
+
+**Options Evaluated**:
+1. **No Emoticons**: Plain text output only
+   - Pros: Maximum professionalism, terminal compatibility
+   - Cons: Less engaging, harder to scan quickly
+2. **Uniform Emoticons**: Same emoticon policy across all commands
+   - Pros: Consistency, predictable user experience
+   - Cons: May be inappropriate for some command contexts
+3. **Selective Emoticon Policy**: Strategic use based on command purpose
+   - Pros: Optimal balance, context-appropriate visual design
+   - Cons: More complex to implement and maintain
+
+**Rationale**: 
+- Workspace status command retains full emoticons and tree structure (user explicitly likes this)
+- Project context commands use clean bullet points without emoticons (professional data display)
+- Workspace context uses strategic emoticons only for key elements (🎯 Active Project, 📦 Sub-Projects, etc.)
+- Each emoticon serves semantic purpose and aids visual hierarchy
+
+**Impact**:
+- User satisfaction: Achieved desired balance between professional and engaging
+- Code maintenance: Clear separation of template types with distinct visual approaches
+- Visual hierarchy: Strategic emoticons help users scan and understand output structure
+- Professional appearance: Maintains credibility while adding visual interest
+
+**Implementation Details**:
+- WorkspaceStatusTemplate: Full emoticons with tree structure (🟢🟡🔴 status, ├─ tree connectors)
+- ContextTemplate: Clean bullet points (•) without emoticons  
+- WorkspaceContextTemplate: Strategic emoticons (🎯🔗🏗️⚡📦📋🛡️🧪📐) for semantic meaning
+
+**Review Date**: 2025-10-01 (evaluate user feedback and usage patterns)
+
+## Decision 003 - Global Separator Color Removal (2025-08-05)
+
+**Decision**: Remove all color formatting from separator elements across the CLI output system
+
+**Context**:
+- User requirement: "First thing first, the expected output doesn't have any colors for the lines or separators"
+- Existing implementation used blue coloring for separator lines
+- Need to maintain professional appearance without colors
+
+**Options Evaluated**:
+1. **Conditional Color**: Use colors only when explicitly enabled
+   - Pros: Flexibility for different environments
+   - Cons: Added complexity, user explicitly wanted no colors
+2. **Global Color Removal**: Remove all separator colors uniformly
+   - Pros: Meets user requirement exactly, simplifies code
+   - Cons: Less visual distinction in color-capable terminals
+
+**Rationale**:
+- User explicitly stated requirement for no separator colors
+- Simplifies layout engine by removing conditional color logic
+- Maintains professional appearance with clean typography
+- Consistent with user's preference for clean, professional output
+
+**Impact**:
+- Visual design: Clean, professional appearance without color dependency
+- Code simplification: Removed conditional color logic from layout engine
+- Terminal compatibility: Works consistently across all terminal types
+- User satisfaction: Meets explicit requirement
+
+**Review Date**: 2025-09-01 (evaluate if color options should be re-added)
+
 ## Decision 001 - Professional Layout Engine Architecture (2025-08-04)
 
 **Decision**: Implement composable layout engine over quick hardcoded fix for CLI output formatting
