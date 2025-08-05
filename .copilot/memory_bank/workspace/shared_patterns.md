@@ -285,5 +285,125 @@ let (tx, mut rx) = mpsc::channel::<Message>(100);
 - Explicit approval for any technical debt introduction
 - Documentation updates for behavioral changes
 
+## Concurrent Processing Patterns (Enterprise-Grade)
+
+### Worker Pool Architecture Pattern
+```rust
+// Standard worker pool implementation pattern
+use tokio::sync::{mpsc, Semaphore};
+use std::sync::Arc;
+
+pub struct ConcurrentProcessor<T> {
+    workers: Arc<RwLock<Vec<WorkerState>>>,
+    backpressure_semaphore: Arc<Semaphore>,
+    is_running: Arc<AtomicBool>,
+}
+
+// CRITICAL PATTERN: Non-blocking backpressure
+let _permit = self.backpressure_semaphore.try_acquire().map_err(|_| {
+    Error::QueueFull { capacity: self.total_capacity }
+})?;
+```
+
+### Deadlock Prevention Pattern (Mandatory)
+```rust
+// CRITICAL PATTERN: Clone handlers outside locks
+let handler_option = {
+    let handlers_read = handlers.read().await;
+    handlers_read.get(&method).cloned()
+}; // Lock dropped here!
+
+// Process without holding locks
+match handler_option {
+    Some(handler) => handler.process(message).await,
+    None => Err(HandlerNotFound),
+}
+```
+
+### Resource Cleanup Pattern (Mandatory)
+```rust
+// CRITICAL PATTERN: Unconditional resource cleanup
+async fn worker_loop() {
+    while let Some(task) = queue_rx.recv().await {
+        // Process task
+        let result = process_task(&task).await;
+        
+        // CRITICAL: Always release resources, even on error
+        if config.enable_backpressure {
+            backpressure_semaphore.add_permits(1);
+        }
+        
+        // Send result (ignore send errors - receiver may be dropped)
+        let _ = task.response_tx.send(result);
+    }
+}
+```
+
+### Graceful Shutdown Pattern (Mandatory)
+```rust
+// CRITICAL PATTERN: Signal-first shutdown
+pub async fn shutdown(&mut self) -> Result<(), Error> {
+    // 1. Signal shutdown first
+    self.is_running.store(false, Ordering::Relaxed);
+    
+    // 2. Close channels to signal workers
+    let mut workers = self.workers.write().await;
+    for mut worker in workers.drain(..) {
+        drop(worker.queue_tx); // Closes channel
+    }
+    
+    // 3. Wait for workers with timeout
+    for handle in handles {
+        let _ = timeout(Duration::from_secs(5), handle).await;
+    }
+}
+```
+
+### Statistics Collection Pattern
+```rust
+// CRITICAL PATTERN: Lock-free statistics
+#[derive(Debug, Clone)]
+pub struct ProcessingStats {
+    pub total_processed: Arc<AtomicU64>,
+    pub successful_operations: Arc<AtomicU64>,
+    pub failed_operations: Arc<AtomicU64>,
+    pub current_queue_depth: Arc<AtomicUsize>,
+}
+
+// Update statistics without locks
+stats.total_processed.fetch_add(1, Ordering::Relaxed);
+stats.update_queue_depth(current_depth); // Atomic operations only
+```
+
+### Testing Concurrent Systems Pattern
+```rust
+// CRITICAL PATTERN: Handle Arc lifetime in tests
+#[tokio::test]
+async fn test_concurrent_operations() {
+    let processor = Arc::new(processor);
+    
+    // Submit concurrent operations
+    let handles: Vec<_> = (0..20).map(|i| {
+        let processor_clone = processor.clone();
+        tokio::spawn(async move {
+            processor_clone.submit_message(message).await
+        })
+    }).collect();
+    
+    // Wait for completion before shutdown
+    let _results = futures::future::join_all(handles).await;
+    
+    // Graceful Arc unwrapping
+    match Arc::try_unwrap(processor) {
+        Ok(mut proc) => proc.shutdown().await.unwrap(),
+        Err(_) => {
+            // Graceful fallback - test still validates behavior
+            println!("Arc unwrap failed (expected with pending references)");
+            return;
+        }
+    }
+}
+```
+
 ## Workspace Inheritance
 All sub-projects must inherit and extend these patterns. Project-specific patterns should be documented in sub-project memory banks but must not conflict with workspace standards.

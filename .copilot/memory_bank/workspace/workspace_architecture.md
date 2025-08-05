@@ -29,7 +29,8 @@ airs/                           # Root workspace
 **Key Components:**
 - **JsonRpcClient:** Main integration layer with call/notify/shutdown methods
 - **CorrelationManager:** Request correlation with background message processing
-- **Transport Abstraction:** Pluggable transport implementations
+- **ConcurrentProcessor:** Enterprise-grade concurrent processing pipeline ✅ NEW
+- **Transport Abstraction:** Pluggable transport implementations with zero-copy optimization
 - **Message Types:** Strongly typed JSON-RPC 2.0 message system
 
 #### airs-memspec: Memory Specification System  
@@ -86,6 +87,8 @@ Each crate follows clean architecture principles with clear layer separation:
 ### Async Programming Model
 - **Tokio Runtime:** Consistent async runtime across all crates
 - **Channel Communication:** `tokio::sync::mpsc` for inter-component messaging
+- **Concurrent Processing:** Worker pool architecture with deadlock-free design ✅ NEW
+- **Backpressure Management:** Non-blocking semaphore-based overload protection ✅ NEW
 - **Async Traits:** `async-trait` for trait definitions requiring async methods
 - **Cancellation Support:** Graceful shutdown and cancellation handling
 
