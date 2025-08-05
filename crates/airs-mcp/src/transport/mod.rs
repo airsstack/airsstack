@@ -77,9 +77,11 @@ pub mod buffer;
 pub mod error;
 pub mod stdio;
 pub mod traits;
+pub mod zero_copy;
 
 // Re-export main types for convenience
 pub use buffer::{BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StreamingBuffer};
 pub use error::TransportError;
 pub use stdio::StdioTransport;
 pub use traits::Transport;
+pub use zero_copy::{ZeroCopyMetrics, ZeroCopyTransport};

@@ -60,6 +60,11 @@ impl TransportError {
             details: details.into(),
         }
     }
+
+    /// Create a connection closed error
+    pub fn connection_closed() -> Self {
+        Self::Closed
+    }
 }
 
 #[cfg(test)]

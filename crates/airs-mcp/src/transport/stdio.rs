@@ -44,10 +44,13 @@
 
 use std::sync::Arc;
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Stdin, Stdout};
+use async_trait::async_trait;
+use bytes::BytesMut;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, Stdin, Stdout};
 use tokio::sync::Mutex;
 
 use crate::transport::buffer::{BufferConfig, BufferManager, StreamingBuffer};
+use crate::transport::zero_copy::{ZeroCopyMetrics, ZeroCopyTransport};
 use crate::transport::{Transport, TransportError};
 
 /// STDIO transport implementation for JSON-RPC communication.
@@ -576,6 +579,191 @@ impl Transport for StdioTransport {
         stdout.flush().await.map_err(TransportError::from)?;
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl ZeroCopyTransport for StdioTransport {
+    async fn send_bytes(&mut self, data: &[u8]) -> Result<(), TransportError> {
+        self.ensure_not_closed().await?;
+
+        // Validate message size
+        if data.len() > self.max_message_size {
+            return Err(TransportError::buffer_overflow(format!(
+                "Message size {} exceeds limit {}",
+                data.len(),
+                self.max_message_size
+            )));
+        }
+
+        // Check for embedded newlines (except trailing)
+        let content = if data.ends_with(b"\n") {
+            &data[..data.len() - 1]
+        } else {
+            data
+        };
+
+        if content.contains(&b'\n') {
+            return Err(TransportError::format(
+                "Message contains embedded newlines, which violates newline-delimited JSON framing",
+            ));
+        }
+
+        // Write data directly to stdout
+        let mut stdout = self.stdout.lock().await;
+        stdout.write_all(data).await.map_err(TransportError::from)?;
+
+        // Add newline if not present
+        if !data.ends_with(b"\n") {
+            stdout
+                .write_all(b"\n")
+                .await
+                .map_err(TransportError::from)?;
+        }
+
+        stdout.flush().await.map_err(TransportError::from)?;
+
+        // Update metrics if buffer manager is available
+        if let Some(buffer_manager) = &self.buffer_manager {
+            buffer_manager.record_zero_copy_send(data.len()).await;
+        }
+
+        Ok(())
+    }
+
+    async fn receive_into_buffer(
+        &mut self,
+        buffer: &mut BytesMut,
+    ) -> Result<usize, TransportError> {
+        self.ensure_not_closed().await?;
+
+        // Clear the buffer for reuse
+        buffer.clear();
+
+        // Use streaming buffer if available for high-performance scenarios
+        if let Some(_buffer_manager) = &self.buffer_manager {
+            let mut streaming_buffer_guard = self.streaming_buffer.lock().await;
+            if let Some(streaming_buffer) = streaming_buffer_guard.as_mut() {
+                let mut stdin_reader = self.stdin_reader.lock().await;
+                return Self::receive_with_streaming_buffer_static(
+                    buffer,
+                    streaming_buffer,
+                    &mut stdin_reader,
+                    self.max_message_size,
+                )
+                .await;
+            }
+        }
+
+        // Fallback to standard line reading
+        let mut stdin_reader = self.stdin_reader.lock().await;
+        let mut line = String::new();
+
+        let bytes_read = stdin_reader
+            .read_line(&mut line)
+            .await
+            .map_err(TransportError::from)?;
+
+        if bytes_read == 0 {
+            return Err(TransportError::connection_closed());
+        }
+
+        // Validate message size
+        if line.len() > self.max_message_size {
+            return Err(TransportError::buffer_overflow(format!(
+                "Received message size {} exceeds limit {}",
+                line.len(),
+                self.max_message_size
+            )));
+        }
+
+        // Remove trailing newline
+        if line.ends_with('\n') {
+            line.pop();
+            if line.ends_with('\r') {
+                line.pop();
+            }
+        }
+
+        // Copy into the provided buffer
+        buffer.extend_from_slice(line.as_bytes());
+
+        // Update metrics if buffer manager is available
+        if let Some(buffer_manager) = &self.buffer_manager {
+            buffer_manager.record_zero_copy_receive(buffer.len()).await;
+        }
+
+        Ok(buffer.len())
+    }
+
+    async fn acquire_buffer(&self) -> Result<BytesMut, TransportError> {
+        if let Some(buffer_manager) = &self.buffer_manager {
+            match buffer_manager.acquire_read_buffer().await {
+                Ok(pooled_buffer) => {
+                    // Convert PooledBuffer to BytesMut for the interface
+                    // Note: This is a temporary bridge until we can modify the interface
+                    let capacity = pooled_buffer.capacity();
+                    Ok(BytesMut::with_capacity(capacity))
+                }
+                Err(_) => {
+                    // Fallback to manual allocation if pool is exhausted
+                    Ok(BytesMut::with_capacity(8192))
+                }
+            }
+        } else {
+            // No buffer manager, create a standard buffer
+            Ok(BytesMut::with_capacity(8192))
+        }
+    }
+
+    fn get_zero_copy_metrics(&self) -> ZeroCopyMetrics {
+        if let Some(buffer_manager) = &self.buffer_manager {
+            buffer_manager.get_zero_copy_metrics()
+        } else {
+            ZeroCopyMetrics::default()
+        }
+    }
+}
+
+impl StdioTransport {
+    /// High-performance receive using streaming buffer (static method to avoid borrowing conflicts)
+    async fn receive_with_streaming_buffer_static(
+        buffer: &mut BytesMut,
+        streaming_buffer: &mut StreamingBuffer,
+        stdin_reader: &mut tokio::sync::MutexGuard<'_, BufReader<Stdin>>,
+        max_message_size: usize,
+    ) -> Result<usize, TransportError> {
+        // Try to read a complete message from the streaming buffer
+        loop {
+            // Check if we have a complete message in the buffer
+            if let Some(message) = streaming_buffer.extract_message() {
+                // Validate message size
+                if message.len() > max_message_size {
+                    return Err(TransportError::buffer_overflow(format!(
+                        "Received message size {} exceeds limit {}",
+                        message.len(),
+                        max_message_size
+                    )));
+                }
+
+                buffer.extend_from_slice(&message);
+                return Ok(message.len());
+            }
+
+            // Need to read more data
+            let mut temp_buffer = [0u8; 8192];
+            let bytes_read = stdin_reader
+                .read(&mut temp_buffer)
+                .await
+                .map_err(TransportError::from)?;
+
+            if bytes_read == 0 {
+                return Err(TransportError::connection_closed());
+            }
+
+            // Add data to streaming buffer
+            streaming_buffer.extend(&temp_buffer[..bytes_read])?;
+        }
     }
 }
 

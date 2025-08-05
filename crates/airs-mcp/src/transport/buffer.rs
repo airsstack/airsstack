@@ -204,6 +204,30 @@ impl BufferManager {
     pub fn is_zero_copy_enabled(&self) -> bool {
         self.config.enable_zero_copy
     }
+
+    /// Record zero-copy send operation metrics
+    pub async fn record_zero_copy_send(&self, bytes_sent: usize) {
+        self.metrics.record_zero_copy_send(bytes_sent);
+    }
+
+    /// Record zero-copy receive operation metrics
+    pub async fn record_zero_copy_receive(&self, bytes_received: usize) {
+        self.metrics.record_zero_copy_receive(bytes_received);
+    }
+
+    /// Get zero-copy specific metrics
+    pub fn get_zero_copy_metrics(&self) -> crate::transport::zero_copy::ZeroCopyMetrics {
+        crate::transport::zero_copy::ZeroCopyMetrics {
+            buffer_pool_hits: self.metrics.buffer_hits.load(Ordering::Relaxed) as u64,
+            buffer_pool_misses: self.metrics.buffer_misses.load(Ordering::Relaxed) as u64,
+            total_bytes_processed: self.metrics.total_bytes_processed.load(Ordering::Relaxed) as u64,
+            zero_copy_sends: self.metrics.zero_copy_sends.load(Ordering::Relaxed) as u64,
+            zero_copy_receives: self.metrics.zero_copy_receives.load(Ordering::Relaxed) as u64,
+            average_buffer_utilization: 0.0, // TODO: Calculate from metrics
+            current_pool_size: 0, // TODO: Implement pool size tracking
+            max_pool_size: self.config.buffer_pool_size,
+        }
+    }
 }
 
 /// High-performance buffer pool implementation
@@ -334,6 +358,10 @@ pub struct BufferMetrics {
     acquisitions_successful: Arc<AtomicUsize>,
     size_violations: Arc<AtomicUsize>,
     total_bytes_processed: Arc<AtomicUsize>,
+    pub buffer_hits: Arc<AtomicUsize>,
+    pub buffer_misses: Arc<AtomicUsize>,
+    pub zero_copy_sends: Arc<AtomicUsize>,
+    pub zero_copy_receives: Arc<AtomicUsize>,
 }
 
 impl BufferMetrics {
@@ -343,6 +371,10 @@ impl BufferMetrics {
             acquisitions_successful: Arc::new(AtomicUsize::new(0)),
             size_violations: Arc::new(AtomicUsize::new(0)),
             total_bytes_processed: Arc::new(AtomicUsize::new(0)),
+            buffer_hits: Arc::new(AtomicUsize::new(0)),
+            buffer_misses: Arc::new(AtomicUsize::new(0)),
+            zero_copy_sends: Arc::new(AtomicUsize::new(0)),
+            zero_copy_receives: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -384,6 +416,18 @@ impl BufferMetrics {
     /// Get number of size violations
     pub fn size_violations(&self) -> usize {
         self.size_violations.load(Ordering::Relaxed)
+    }
+
+    /// Record zero-copy send operation
+    pub fn record_zero_copy_send(&self, bytes: usize) {
+        self.zero_copy_sends.fetch_add(1, Ordering::Relaxed);
+        self.total_bytes_processed.fetch_add(bytes, Ordering::Relaxed);
+    }
+
+    /// Record zero-copy receive operation
+    pub fn record_zero_copy_receive(&self, bytes: usize) {
+        self.zero_copy_receives.fetch_add(1, Ordering::Relaxed);
+        self.total_bytes_processed.fetch_add(bytes, Ordering::Relaxed);
     }
 }
 
