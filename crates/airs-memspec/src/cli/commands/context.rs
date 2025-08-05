@@ -52,11 +52,11 @@ pub fn run(
 
     // Generate context display based on requested mode
     if workspace {
-        show_workspace_context(&formatter, &workspace_context)?;
+        show_workspace_context(&formatter, workspace_context)?;
     } else if let Some(project_name) = project {
-        show_sub_project_context(&formatter, &workspace_context, &project_name)?;
+        show_sub_project_context(&formatter, workspace_context, &project_name)?;
     } else {
-        show_active_context(&formatter, &workspace_context)?;
+        show_active_context(&formatter, workspace_context)?;
     }
 
     Ok(())
@@ -74,14 +74,11 @@ fn show_workspace_context(
 
     // Active context information
     let active_project = &workspace_context.current_context.active_sub_project;
-    formatter.info(&format!("🎯 Active Sub-Project: {}", active_project));
+    formatter.info(&format!("🎯 Active Sub-Project: {active_project}"));
 
     // Sub-projects overview
     let sub_project_count = workspace_context.sub_project_contexts.len();
-    formatter.info(&format!(
-        "📁 Sub-Projects: {} discovered",
-        sub_project_count
-    ));
+    formatter.info(&format!("📁 Sub-Projects: {sub_project_count} discovered"));
 
     // List all sub-projects with health status
     if !workspace_context.sub_project_contexts.is_empty() {
@@ -117,7 +114,7 @@ fn show_sub_project_context(
     workspace_context: &WorkspaceContext,
     project_name: &str,
 ) -> FsResult<()> {
-    formatter.header(&format!("Sub-Project Context: {}", project_name));
+    formatter.header(&format!("Sub-Project Context: {project_name}"));
 
     // Find the requested sub-project
     if let Some(sub_project_context) = workspace_context.sub_project_contexts.get(project_name) {
@@ -175,7 +172,7 @@ fn show_active_context(
     workspace_context: &WorkspaceContext,
 ) -> FsResult<()> {
     let active_project = &workspace_context.current_context.active_sub_project;
-    formatter.header(&format!("Active Context: {}", active_project));
+    formatter.header(&format!("Active Context: {active_project}"));
 
     // Delegate to sub-project context display
     show_sub_project_context(formatter, workspace_context, active_project)
@@ -199,7 +196,7 @@ fn display_workspace_patterns(
                     || title.to_lowercase().contains("policy"))
                     && pattern_count < 5
                 {
-                    formatter.info(&format!("  📐 {}", title));
+                    formatter.info(&format!("  📐 {title}"));
 
                     // Show first meaningful line of content as summary
                     let lines: Vec<&str> = content.lines().collect();
@@ -211,7 +208,7 @@ fn display_workspace_patterns(
                             && trimmed.len() > 20
                         // Only show substantial content
                         {
-                            formatter.info(&format!("    • {}", trimmed));
+                            formatter.info(&format!("    • {trimmed}"));
                             break;
                         }
                     }
@@ -229,13 +226,13 @@ fn display_workspace_patterns(
                 || title.to_lowercase().contains("architecture")
                 || title.to_lowercase().contains("layer")
             {
-                formatter.info(&format!("    🔧 {}", title));
+                formatter.info(&format!("    🔧 {title}"));
 
                 // Extract key bullet points or principles
                 for line in content.lines().take(3) {
                     let trimmed = line.trim();
                     if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
-                        formatter.info(&format!("      {}", trimmed));
+                        formatter.info(&format!("      {trimmed}"));
                         break;
                     }
                 }
@@ -256,8 +253,7 @@ fn display_integration_points(
     let project_count = workspace_context.sub_project_contexts.len();
     if project_count > 1 {
         formatter.info(&format!(
-            "  Multi-project workspace with {} sub-projects",
-            project_count
+            "  Multi-project workspace with {project_count} sub-projects"
         ));
 
         // Analyze integration patterns from workspace architecture
@@ -267,7 +263,7 @@ fn display_integration_points(
                     || title.to_lowercase().contains("communication")
                     || title.to_lowercase().contains("dependency")
                 {
-                    formatter.info(&format!("  🔄 {}", title));
+                    formatter.info(&format!("  🔄 {title}"));
 
                     // Extract integration patterns
                     for line in content.lines() {
@@ -277,7 +273,7 @@ fn display_integration_points(
                                 || trimmed.contains("transport")
                                 || trimmed.contains("API"))
                         {
-                            formatter.info(&format!("    {}", trimmed));
+                            formatter.info(&format!("    {trimmed}"));
                         }
                     }
                 }
@@ -301,7 +297,7 @@ fn display_integration_points(
                                 && !trimmed.starts_with('#')
                                 && trimmed.len() > 15
                             {
-                                formatter.info(&format!("    🔸 {}: {}", name, trimmed));
+                                formatter.info(&format!("    🔸 {name}: {trimmed}"));
                                 break;
                             }
                         }
@@ -318,7 +314,7 @@ fn display_integration_points(
                     || title.to_lowercase().contains("shared")
                     || title.to_lowercase().contains("common")
                 {
-                    formatter.info(&format!("  📦 {}", title));
+                    formatter.info(&format!("  📦 {title}"));
 
                     // Extract key dependency or sharing patterns
                     for line in content.lines().take(2) {
@@ -326,7 +322,7 @@ fn display_integration_points(
                         if (trimmed.starts_with("- ") || trimmed.starts_with("* "))
                             && trimmed.len() > 10
                         {
-                            formatter.info(&format!("    {}", trimmed));
+                            formatter.info(&format!("    {trimmed}"));
                         }
                     }
                     break;
@@ -339,7 +335,7 @@ fn display_integration_points(
         // For single project, show internal architecture
         if let Some((project_name, context)) = workspace_context.sub_project_contexts.iter().next()
         {
-            formatter.info(&format!("  🏗️ {} Internal Architecture:", project_name));
+            formatter.info(&format!("  🏗️ {project_name} Internal Architecture:"));
 
             if let Some(system_patterns) = &context.content.system_patterns {
                 for (title, content) in &system_patterns.sections {
@@ -347,7 +343,7 @@ fn display_integration_points(
                         || title.to_lowercase().contains("layer")
                         || title.to_lowercase().contains("flow")
                     {
-                        formatter.info(&format!("    🔧 {}", title));
+                        formatter.info(&format!("    🔧 {title}"));
 
                         // Show architectural components
                         for line in content.lines().take(3) {
@@ -355,7 +351,7 @@ fn display_integration_points(
                             if (trimmed.starts_with("- ") || trimmed.starts_with("* "))
                                 && trimmed.len() > 15
                             {
-                                formatter.info(&format!("      {}", trimmed));
+                                formatter.info(&format!("      {trimmed}"));
                             }
                         }
                         break;
@@ -393,7 +389,7 @@ fn display_active_development_focus(
 
         if !focus_sections.is_empty() {
             for (title, content) in focus_sections {
-                formatter.info(&format!("  🔸 {}", title));
+                formatter.info(&format!("  🔸 {title}"));
 
                 // Extract bullet points or key information
                 let mut shown_lines = 0;
@@ -409,11 +405,11 @@ fn display_active_development_focus(
                         let clean_line = if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
                             trimmed.to_string()
                         } else {
-                            format!("  {}", trimmed)
+                            format!("  {trimmed}")
                         };
 
                         if clean_line.len() > 10 {
-                            formatter.info(&format!("    {}", clean_line));
+                            formatter.info(&format!("    {clean_line}"));
                             shown_lines += 1;
                         }
                     } else if shown_lines == 0
@@ -422,7 +418,7 @@ fn display_active_development_focus(
                         && trimmed.len() > 20
                     {
                         // Show first meaningful sentence if no bullet points
-                        formatter.info(&format!("    {}", trimmed));
+                        formatter.info(&format!("    {trimmed}"));
                         shown_lines += 1;
                     }
                 }
@@ -431,7 +427,7 @@ fn display_active_development_focus(
             // Show any available sections if no specific focus sections found
             let any_sections: Vec<_> = active_context.sections.iter().take(2).collect();
             for (title, content) in any_sections {
-                formatter.info(&format!("  📌 {}", title));
+                formatter.info(&format!("  📌 {title}"));
                 if let Some(first_line) = content
                     .lines()
                     .find(|line| !line.trim().is_empty() && line.trim().len() > 15)
@@ -469,7 +465,7 @@ fn display_sub_project_patterns(
             .collect();
 
         for (title, content) in pattern_sections {
-            formatter.info(&format!("  📐 {}", title));
+            formatter.info(&format!("  📐 {title}"));
 
             // Extract key architectural details
             let mut detail_count = 0;
@@ -487,7 +483,7 @@ fn display_sub_project_patterns(
                         .trim()
                         .to_string();
                     if clean_line.len() > 15 {
-                        formatter.info(&format!("    • {}", clean_line));
+                        formatter.info(&format!("    • {clean_line}"));
                         detail_count += 1;
                     }
                 }
@@ -513,7 +509,7 @@ fn display_sub_project_patterns(
                     let trimmed = line.trim();
                     if trimmed.contains("✅") || trimmed.contains("❌") || trimmed.contains("🔄")
                     {
-                        formatter.info(&format!("    {}", trimmed));
+                        formatter.info(&format!("    {trimmed}"));
                     }
                 }
             }

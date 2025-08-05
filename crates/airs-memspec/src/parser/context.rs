@@ -220,6 +220,12 @@ pub enum IssueSeverity {
     Critical,
 }
 
+impl Default for ContextCorrelator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContextCorrelator {
     /// Create a new context correlator
     ///
@@ -322,8 +328,7 @@ impl ContextCorrelator {
             .contains_key(sub_project_name)
         {
             return Err(FsError::ParseError(format!(
-                "Sub-project '{}' not found in workspace",
-                sub_project_name
+                "Sub-project '{sub_project_name}' not found in workspace"
             )));
         }
 
@@ -332,7 +337,7 @@ impl ContextCorrelator {
             active_sub_project: sub_project_name.to_string(),
             switched_on: Utc::now(),
             switched_by: switched_by.to_string(),
-            status: format!("switched_to_{}", sub_project_name),
+            status: format!("switched_to_{sub_project_name}"),
             metadata: HashMap::new(),
         };
 
@@ -390,8 +395,7 @@ impl ContextCorrelator {
                     content
                         .sections
                         .keys()
-                        .find(|k| k.contains("active"))
-                        .map(|k| k.clone())
+                        .find(|k| k.contains("active")).cloned()
                 })
                 .unwrap_or_else(|| "unknown".to_string());
 
@@ -682,7 +686,7 @@ impl ContextCorrelator {
             for (status, tasks) in &summary.tasks_by_status {
                 all_tasks_by_status
                     .entry(status.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .extend(tasks.clone());
             }
 

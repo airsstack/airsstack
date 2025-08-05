@@ -199,7 +199,7 @@ impl Workspace {
         switched_by: String,
     ) -> Result<(), String> {
         if !self.sub_projects.contains_key(&sub_project) {
-            return Err(format!("Sub-project '{}' not found", sub_project));
+            return Err(format!("Sub-project '{sub_project}' not found"));
         }
 
         self.current_context = CurrentContext {

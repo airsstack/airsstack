@@ -295,14 +295,14 @@ impl SubProject {
             .task_index
             .by_status
             .entry(task_status)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(task_id.clone());
 
         self.tasks
             .task_index
             .by_priority
             .entry(task_priority)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(task_id.clone());
 
         self.tasks.task_index.recently_updated.push(task_id);
@@ -323,7 +323,7 @@ impl SubProject {
             .tasks
             .tasks
             .get_mut(task_id)
-            .ok_or_else(|| format!("Task '{}' not found", task_id))?;
+            .ok_or_else(|| format!("Task '{task_id}' not found"))?;
 
         task.update_status(new_status, author);
         self.reindex_tasks();
@@ -360,7 +360,7 @@ impl SubProject {
                 .task_index
                 .by_status
                 .entry(task.status.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(task_id.clone());
 
             // Index by priority
@@ -368,7 +368,7 @@ impl SubProject {
                 .task_index
                 .by_priority
                 .entry(task.priority.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(task_id.clone());
 
             // Index by tags
@@ -377,7 +377,7 @@ impl SubProject {
                     .task_index
                     .by_tag
                     .entry(tag.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(task_id.clone());
             }
         }

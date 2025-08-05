@@ -334,7 +334,7 @@ impl Task {
             progress_log: vec![ProgressLogEntry {
                 timestamp: now,
                 entry_type: ProgressLogType::StatusChange,
-                description: format!("Task '{}' created", name),
+                description: format!("Task '{name}' created"),
                 author: "system".to_string(),
                 affected_subtasks: Vec::new(),
                 completion_delta: Some(0.0),
@@ -372,7 +372,7 @@ impl Task {
         self.add_progress_log_entry(ProgressLogEntry {
             timestamp: Utc::now(),
             entry_type: ProgressLogType::StatusChange,
-            description: format!("Status changed from {:?} to {:?}", old_status, new_status),
+            description: format!("Status changed from {old_status:?} to {new_status:?}"),
             author,
             affected_subtasks: Vec::new(),
             completion_delta: None,
@@ -404,7 +404,7 @@ impl Task {
             .subtasks
             .iter_mut()
             .find(|s| s.id == subtask_id)
-            .ok_or_else(|| format!("Subtask '{}' not found", subtask_id))?;
+            .ok_or_else(|| format!("Subtask '{subtask_id}' not found"))?;
 
         let old_status = subtask.status.clone();
         subtask.status = new_status.clone();
@@ -425,8 +425,7 @@ impl Task {
             timestamp: Utc::now(),
             entry_type: ProgressLogType::ProgressUpdate,
             description: format!(
-                "Subtask {} status changed from {:?} to {:?}",
-                subtask_id, old_status, new_status
+                "Subtask {subtask_id} status changed from {old_status:?} to {new_status:?}"
             ),
             author,
             affected_subtasks: vec![subtask_id.to_string()],
@@ -482,8 +481,7 @@ impl Task {
             timestamp: Utc::now(),
             entry_type: ProgressLogType::ProgressUpdate,
             description: format!(
-                "Completion updated from {:.1}% to {:.1}%",
-                old_percentage, percentage
+                "Completion updated from {old_percentage:.1}% to {percentage:.1}%"
             ),
             author,
             affected_subtasks: Vec::new(),

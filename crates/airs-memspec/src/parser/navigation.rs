@@ -485,13 +485,13 @@ impl MemoryBankNavigator {
         } else {
             for (name, sub_project) in &structure.sub_projects {
                 if sub_project.project_brief.is_none() {
-                    warnings.push(format!("Missing {}/project_brief.md", name));
+                    warnings.push(format!("Missing {name}/project_brief.md"));
                 }
                 if sub_project.active_context.is_none() {
-                    warnings.push(format!("Missing {}/active_context.md", name));
+                    warnings.push(format!("Missing {name}/active_context.md"));
                 }
                 if sub_project.progress.is_none() {
-                    warnings.push(format!("Missing {}/progress.md", name));
+                    warnings.push(format!("Missing {name}/progress.md"));
                 }
             }
         }

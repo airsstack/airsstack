@@ -62,9 +62,9 @@ fn list_tasks(
             .collect();
 
         if filtered.is_empty() {
-            formatter.error(&format!("Project '{}' not found", project_name));
+            formatter.error(&format!("Project '{project_name}' not found"));
             return Err(Box::new(FsError::PathNotFound {
-                path: format!("sub_projects/{}", project_name).into(),
+                path: format!("sub_projects/{project_name}").into(),
             }));
         }
         filtered
@@ -98,7 +98,7 @@ fn list_tasks(
 
                 task_groups
                     .entry(status.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push((project_name, task));
             }
         }
@@ -149,7 +149,7 @@ fn list_tasks(
 
             for (project_name, task) in &sorted_tasks {
                 let project_prefix = if project_filter.is_none() {
-                    format!("[{}] ", project_name)
+                    format!("[{project_name}] ")
                 } else {
                     String::new()
                 };
@@ -168,7 +168,7 @@ fn list_tasks(
 
                 // Show latest update if available
                 if let Some(ref updated) = task.updated {
-                    formatter.bullet_point("🕒", &format!("Updated: {}", updated), 1);
+                    formatter.bullet_point("🕒", &format!("Updated: {updated}"), 1);
                 }
 
                 eprintln!(); // Add spacing between tasks
@@ -180,13 +180,13 @@ fn list_tasks(
 
     if total_tasks == 0 {
         let filter_desc = match (&status_filter, &project_filter) {
-            (Some(s), Some(p)) => format!(" matching status '{}' in project '{}'", s, p),
-            (Some(s), None) => format!(" with status '{}'", s),
-            (None, Some(p)) => format!(" in project '{}'", p),
+            (Some(s), Some(p)) => format!(" matching status '{s}' in project '{p}'"),
+            (Some(s), None) => format!(" with status '{s}'"),
+            (None, Some(p)) => format!(" in project '{p}'"),
             (None, None) => String::new(),
         };
 
-        formatter.warning(&format!("No tasks found{}", filter_desc));
+        formatter.warning(&format!("No tasks found{filter_desc}"));
     } else {
         formatter.separator();
 
@@ -245,14 +245,14 @@ fn add_task(
     description: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     formatter.info("Task creation functionality");
-    formatter.info(&format!("Title: {}", title));
+    formatter.info(&format!("Title: {title}"));
 
     if let Some(proj) = project {
-        formatter.info(&format!("Project: {}", proj));
+        formatter.info(&format!("Project: {proj}"));
     }
 
     if let Some(desc) = description {
-        formatter.info(&format!("Description: {}", desc));
+        formatter.info(&format!("Description: {desc}"));
     }
 
     formatter.warning("Task creation not yet implemented - requires file writing capabilities");
@@ -268,14 +268,14 @@ fn update_task(
     note: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     formatter.info("Task update functionality");
-    formatter.info(&format!("Task ID: {}", task_id));
+    formatter.info(&format!("Task ID: {task_id}"));
 
     if let Some(stat) = status {
-        formatter.info(&format!("New Status: {}", stat));
+        formatter.info(&format!("New Status: {stat}"));
     }
 
     if let Some(note_text) = note {
-        formatter.info(&format!("Note: {}", note_text));
+        formatter.info(&format!("Note: {note_text}"));
     }
 
     formatter.warning("Task updates not yet implemented - requires file writing capabilities");
@@ -305,7 +305,7 @@ fn show_task(
     let mut found_project = None;
 
     for (project_name, project_context) in &workspace_context.sub_project_contexts {
-        for (_status, tasks) in &project_context.task_summary.tasks_by_status {
+        for tasks in project_context.task_summary.tasks_by_status.values() {
             for task in tasks {
                 if let Some(ref id) = task.id {
                     if *id == task_id {
@@ -327,17 +327,17 @@ fn show_task(
     match found_task {
         Some(task) => {
             let task_id_display = task.id.as_deref().unwrap_or("no-id");
-            formatter.header(&format!("Task Details: {}", task_id_display));
+            formatter.header(&format!("Task Details: {task_id_display}"));
             formatter.info(&format!("Title: {}", task.title));
             formatter.info(&format!("Project: {}", found_project.unwrap()));
             formatter.info(&format!("Status: {:?}", task.status));
 
             if let Some(ref details) = task.details {
-                formatter.info(&format!("Details: {}", details));
+                formatter.info(&format!("Details: {details}"));
             }
 
             if let Some(ref updated) = task.updated {
-                formatter.info(&format!("Last Updated: {}", updated));
+                formatter.info(&format!("Last Updated: {updated}"));
             }
 
             // Show project-level task summary
@@ -355,10 +355,10 @@ fn show_task(
             formatter.verbose("💡 Use the tasks update command to modify this task");
         }
         None => {
-            formatter.error(&format!("Task '{}' not found", task_id));
+            formatter.error(&format!("Task '{task_id}' not found"));
             formatter.info("💡 Use 'tasks list' to see all available tasks");
             return Err(Box::new(FsError::PathNotFound {
-                path: format!("task {}", task_id).into(),
+                path: format!("task {task_id}").into(),
             }));
         }
     }

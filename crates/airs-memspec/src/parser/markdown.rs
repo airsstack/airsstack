@@ -236,8 +236,7 @@ impl MarkdownParser {
         let frontmatter: HashMap<String, YamlValue> = serde_yml::from_str(&frontmatter_yaml)
             .map_err(|e| {
                 crate::utils::fs::FsError::ParseError(format!(
-                    "YAML frontmatter parsing failed: {}",
-                    e
+                    "YAML frontmatter parsing failed: {e}"
                 ))
             })?;
 

@@ -440,7 +440,7 @@ impl OutputFormatter {
         if self.config.quiet {
             return;
         }
-        eprintln!("{}", message);
+        eprintln!("{message}");
     }
 
     /// Display a progress bar for percentage completion
@@ -471,8 +471,8 @@ impl OutputFormatter {
         let filled_bar = "█".repeat(filled);
         let empty_bar = "░".repeat(empty);
 
-        let percentage_text = format!("{:.1}%", percentage);
-        let label_text = label.map(|l| format!(" ({})", l)).unwrap_or_default();
+        let percentage_text = format!("{percentage:.1}%");
+        let label_text = label.map(|l| format!(" ({l})")).unwrap_or_default();
 
         if self.config.use_color {
             let color = if percentage >= 80.0 {
@@ -491,8 +491,7 @@ impl OutputFormatter {
             );
         } else {
             eprintln!(
-                "{}{} {}{}",
-                filled_bar, empty_bar, percentage_text, label_text
+                "{filled_bar}{empty_bar} {percentage_text}{label_text}"
             );
         }
     }
@@ -534,12 +533,12 @@ impl OutputFormatter {
         };
 
         let project_text = project_name
-            .map(|name| format!(" for {}", name))
+            .map(|name| format!(" for {name}"))
             .unwrap_or_default();
 
         // Summary line with progress bar
-        let summary_line = format!("📊 Task Summary{}: {} tasks", project_text, total);
-        eprint!("{} ", summary_line);
+        let summary_line = format!("📊 Task Summary{project_text}: {total} tasks");
+        eprint!("{summary_line} ");
 
         // Inline progress bar
         let bar_width: usize = 12;
@@ -565,21 +564,19 @@ impl OutputFormatter {
             );
         } else {
             eprintln!(
-                "{}{} {:.1}% complete",
-                filled_bar, empty_bar, completion_percentage
+                "{filled_bar}{empty_bar} {completion_percentage:.1}% complete"
             );
         }
 
         // Status breakdown
         let status_line = format!(
-            "   🔄 {} active  ⏳ {} pending  ✅ {} completed",
-            in_progress, pending, completed
+            "   🔄 {in_progress} active  ⏳ {pending} pending  ✅ {completed} completed"
         );
 
         if self.config.use_color {
             eprintln!("{}", status_line.dimmed());
         } else {
-            eprintln!("{}", status_line);
+            eprintln!("{status_line}");
         }
     }
 
@@ -606,7 +603,7 @@ impl OutputFormatter {
 
         match title {
             Some(title_text) => {
-                let title_with_spaces = format!(" {} ", title_text);
+                let title_with_spaces = format!(" {title_text} ");
                 let remaining_width = max_width.saturating_sub(title_with_spaces.len() + 4); // 4 for "┌─" and "─┐"
                 let left_pad = remaining_width / 2;
                 let right_pad = remaining_width - left_pad;
@@ -621,7 +618,7 @@ impl OutputFormatter {
                 if self.config.use_color {
                     eprintln!("{}", line.bright_blue().dimmed());
                 } else {
-                    eprintln!("{}", line);
+                    eprintln!("{line}");
                 }
             }
             None => {
@@ -629,7 +626,7 @@ impl OutputFormatter {
                 if self.config.use_color {
                     eprintln!("{}", line.bright_blue().dimmed());
                 } else {
-                    eprintln!("{}", line);
+                    eprintln!("{line}");
                 }
             }
         }
@@ -651,7 +648,7 @@ impl OutputFormatter {
         }
 
         let indent = "  ".repeat(indent_level);
-        eprintln!("{}{} {}", indent, icon, text);
+        eprintln!("{indent}{icon} {text}");
     }
 
     /// Display a status badge with colored background
@@ -686,7 +683,7 @@ impl OutputFormatter {
                 Color::White => badge_text.black().on_white(),
                 Color::BrightBlack => badge_text.white().on_bright_black(),
             };
-            eprint!("{}", colored_badge);
+            eprint!("{colored_badge}");
         } else {
             eprint!("[{}]", status.to_uppercase());
         }
@@ -709,7 +706,7 @@ impl OutputFormatter {
     ///
     /// * `message` - The essential message to display
     pub fn essential(&self, message: &str) {
-        eprintln!("{}", message);
+        eprintln!("{message}");
     }
 
     /// Create a colored text string that respects color preferences
@@ -827,7 +824,7 @@ impl OutputFormatter {
         );
 
         // Use \r to overwrite the current line for animation effect
-        eprint!("\r{}", bar);
+        eprint!("\r{bar}");
         io::stdout().flush().unwrap_or(());
 
         if current >= total {

@@ -42,7 +42,7 @@ use crate::cli::GlobalArgs;
 use crate::embedded::instructions::{available_templates, InstructionTemplate};
 use crate::utils::fs::{self, FsResult};
 use crate::utils::output::{OutputConfig, OutputFormatter};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Default installation directory relative to the current working directory
 ///
@@ -106,8 +106,8 @@ pub fn run(
 
     // Resolve target directory with comprehensive path validation
     let target_dir = determine_target_directory(&global.path, target).map_err(|e| {
-        formatter.error(&format!("Failed to determine target directory: {}", e));
-        format!("Failed to determine target directory: {}", e)
+        formatter.error(&format!("Failed to determine target directory: {e}"));
+        format!("Failed to determine target directory: {e}")
     })?;
 
     // Select instruction template with fallback to default
@@ -136,7 +136,7 @@ pub fn run(
 
     // Execute installation with comprehensive error handling
     install_instructions(&target_dir, &instruction_template, force).map_err(|e| {
-        let error_msg = format!("Installation failed: {}", e);
+        let error_msg = format!("Installation failed: {e}");
         formatter.error(&error_msg);
         error_msg
     })?;
@@ -420,7 +420,7 @@ fn install_instructions(
 /// - Checking filesystem integrity
 /// - Verifying available disk space
 /// - Examining file system permissions
-fn validate_installation(target_dir: &PathBuf, template: &InstructionTemplate) -> FsResult<()> {
+fn validate_installation(target_dir: &Path, template: &InstructionTemplate) -> FsResult<()> {
     let file_path = target_dir.join(template.filename());
 
     // Verify file existence and accessibility

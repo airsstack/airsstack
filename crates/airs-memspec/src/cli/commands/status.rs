@@ -63,14 +63,14 @@ pub fn run(
         Some(project_name) => {
             show_sub_project_status(
                 &formatter,
-                &workspace_context,
+                workspace_context,
                 &project_name,
                 detailed,
                 &progress_analyzer,
             )?;
         }
         None => {
-            show_workspace_status(&formatter, &workspace_context, detailed, &progress_analyzer)?;
+            show_workspace_status(&formatter, workspace_context, detailed, &progress_analyzer)?;
         }
     }
 
@@ -107,11 +107,10 @@ fn show_workspace_status(
     };
 
     formatter.info(&format!(
-        "{} Workspace Health: {:?}",
-        health_icon, workspace_health
+        "{health_icon} Workspace Health: {workspace_health:?}"
     ));
-    formatter.info(&format!("🎯 Active Context: {}", active_project));
-    formatter.info(&format!("📈 Overall Progress: {:.1}%", overall_progress));
+    formatter.info(&format!("🎯 Active Context: {active_project}"));
+    formatter.info(&format!("📈 Overall Progress: {overall_progress:.1}%"));
 
     // Enhanced progress metrics
     formatter.info(&format!(
@@ -120,7 +119,7 @@ fn show_workspace_status(
     ));
 
     if let Some(eta_days) = analytics.eta_days {
-        formatter.info(&format!("🏁 Estimated Completion: {:.0} days", eta_days));
+        formatter.info(&format!("🏁 Estimated Completion: {eta_days:.0} days"));
     }
 
     let trend_icon = match analytics.trend {
@@ -164,8 +163,7 @@ fn show_workspace_status(
         };
 
         formatter.info(&format!(
-            "  {} {}: {:.1}% - {}{}",
-            health_icon, name, completion, phase, active_indicator
+            "  {health_icon} {name}: {completion:.1}% - {phase}{active_indicator}"
         ));
 
         // Show additional details in detailed mode
@@ -178,10 +176,9 @@ fn show_workspace_status(
 
     // Summary statistics
     formatter.header("Workspace Summary");
-    formatter.info(&format!("📊 Total Projects: {}", project_count));
+    formatter.info(&format!("📊 Total Projects: {project_count}"));
     formatter.info(&format!(
-        "✅ Healthy Projects: {}/{}",
-        healthy_count, project_count
+        "✅ Healthy Projects: {healthy_count}/{project_count}"
     ));
 
     // Recent activity
@@ -217,13 +214,12 @@ fn show_sub_project_status(
         .get(project_name)
         .ok_or_else(|| {
             crate::utils::fs::FsError::ParseError(format!(
-                "Sub-project '{}' not found in workspace",
-                project_name
+                "Sub-project '{project_name}' not found in workspace"
             ))
         })?;
 
     // Display project header
-    formatter.header(&format!("Sub-Project Status: {}", project_name));
+    formatter.header(&format!("Sub-Project Status: {project_name}"));
 
     // Perform advanced progress analysis
     let analytics = progress_analyzer.analyze_sub_project(project_context);
@@ -256,7 +252,7 @@ fn show_sub_project_status(
     ));
 
     if let Some(eta_days) = analytics.eta_days {
-        formatter.info(&format!("🏁 Estimated Completion: {:.0} days", eta_days));
+        formatter.info(&format!("🏁 Estimated Completion: {eta_days:.0} days"));
     }
 
     let trend_icon = match analytics.trend {
@@ -304,12 +300,12 @@ fn calculate_workspace_health(workspace_context: &WorkspaceContext) -> ProjectHe
     }
 
     // If any project is critical, workspace is critical
-    if healths.iter().any(|&h| h == &ProjectHealth::Critical) {
+    if healths.contains(&(&ProjectHealth::Critical)) {
         return ProjectHealth::Critical;
     }
 
     // If any project has warnings, workspace has warnings
-    if healths.iter().any(|&h| h == &ProjectHealth::Warning) {
+    if healths.contains(&(&ProjectHealth::Warning)) {
         return ProjectHealth::Warning;
     }
 
@@ -446,7 +442,7 @@ fn show_project_context_details(
                 indicator.description, indicator.current_value
             ));
             if let Some(target) = indicator.target_value {
-                formatter.verbose(&format!("    Target: {:.1}%", target));
+                formatter.verbose(&format!("    Target: {target:.1}%"));
             }
         }
     }
@@ -521,7 +517,7 @@ fn show_workspace_issues_and_recommendations(
         formatter.header("Recommendations");
 
         for recommendation in all_recommendations.iter().take(3) {
-            formatter.info(&format!("  💡 {}", recommendation));
+            formatter.info(&format!("  💡 {recommendation}"));
         }
     }
 }
@@ -551,7 +547,7 @@ fn show_project_issues_and_recommendations(
         formatter.header("Recommendations");
 
         for recommendation in &context.derived_status.recommendations {
-            formatter.info(&format!("  💡 {}", recommendation));
+            formatter.info(&format!("  💡 {recommendation}"));
         }
     }
 }
@@ -613,7 +609,7 @@ fn show_workspace_bottlenecks(
             ));
 
             for suggestion in &bottleneck.resolution_suggestions {
-                formatter.verbose(&format!("    💡 {}", suggestion));
+                formatter.verbose(&format!("    💡 {suggestion}"));
             }
         }
     }
@@ -629,7 +625,7 @@ fn show_workspace_kpis(
         formatter.header("Key Performance Indicators");
 
         for (name, value) in &analytics.kpis {
-            formatter.info(&format!("  📊 {}: {:.1}", name, value));
+            formatter.info(&format!("  📊 {name}: {value:.1}"));
         }
     }
 }
@@ -693,7 +689,7 @@ fn show_project_bottlenecks(
             }
 
             for suggestion in bottleneck.resolution_suggestions.iter().take(2) {
-                formatter.verbose(&format!("    💡 {}", suggestion));
+                formatter.verbose(&format!("    💡 {suggestion}"));
             }
         }
     }
@@ -717,7 +713,7 @@ fn show_project_kpis(
                 _ => "📊",
             };
 
-            formatter.info(&format!("  {} {}: {:.1}", kpi_icon, name, value));
+            formatter.info(&format!("  {kpi_icon} {name}: {value:.1}"));
         }
     }
 }

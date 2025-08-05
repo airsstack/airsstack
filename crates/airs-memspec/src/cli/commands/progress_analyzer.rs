@@ -231,7 +231,7 @@ impl ProgressAnalyzer {
             let is_critical = context.derived_status.health == ProjectHealth::Critical;
 
             milestones.push(Milestone {
-                name: format!("{} Completion", name),
+                name: format!("{name} Completion"),
                 completion,
                 is_critical,
                 eta: self.calculate_milestone_eta(completion),
@@ -270,7 +270,7 @@ impl ProgressAnalyzer {
             };
 
             milestones.push(Milestone {
-                name: format!("{}% Completion", threshold),
+                name: format!("{threshold}% Completion"),
                 completion: milestone_completion,
                 is_critical: threshold == 100.0,
                 eta: self.calculate_milestone_eta(milestone_completion),
@@ -320,8 +320,7 @@ impl ProgressAnalyzer {
 
                 bottlenecks.push(Bottleneck {
                     description: format!(
-                        "Project {} has critical health ({} issues, {} blocked tasks)",
-                        name, issue_count, blocked_count
+                        "Project {name} has critical health ({issue_count} issues, {blocked_count} blocked tasks)"
                     ),
                     severity: BottleneckSeverity::Critical,
                     impact: 30.0 + (issue_count as f64 * 5.0),
@@ -583,8 +582,7 @@ impl ProgressAnalyzer {
             if dependency_ratio > 0.7 && not_started_count > 3 {
                 bottlenecks.push(Bottleneck {
                     description: format!(
-                        "Potential dependency bottleneck: {} tasks waiting to start vs {} in progress",
-                        not_started_count, in_progress_count
+                        "Potential dependency bottleneck: {not_started_count} tasks waiting to start vs {in_progress_count} in progress"
                     ),
                     severity: BottleneckSeverity::Medium,
                     impact: 15.0,
