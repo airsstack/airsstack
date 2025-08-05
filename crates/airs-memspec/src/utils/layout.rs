@@ -43,8 +43,9 @@
 //! println!("{}", output);
 //! ```
 
-use crate::utils::output::OutputConfig;
 use colored::*;
+
+use crate::utils::output::OutputConfig;
 
 /// Main layout engine responsible for rendering structured CLI output
 ///

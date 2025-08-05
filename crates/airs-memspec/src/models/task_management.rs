@@ -3,9 +3,10 @@
 //! This module contains comprehensive task management functionality including
 //! task collections, indexing, statistics, and detailed task tracking.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use super::review::CodeReviewInfo;
 use super::testing::TestingInfo;

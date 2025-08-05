@@ -490,9 +490,7 @@ impl OutputFormatter {
                 label_text.dimmed()
             );
         } else {
-            eprintln!(
-                "{filled_bar}{empty_bar} {percentage_text}{label_text}"
-            );
+            eprintln!("{filled_bar}{empty_bar} {percentage_text}{label_text}");
         }
     }
 
@@ -563,15 +561,12 @@ impl OutputFormatter {
                 completion_percentage
             );
         } else {
-            eprintln!(
-                "{filled_bar}{empty_bar} {completion_percentage:.1}% complete"
-            );
+            eprintln!("{filled_bar}{empty_bar} {completion_percentage:.1}% complete");
         }
 
         // Status breakdown
-        let status_line = format!(
-            "   🔄 {in_progress} active  ⏳ {pending} pending  ✅ {completed} completed"
-        );
+        let status_line =
+            format!("   🔄 {in_progress} active  ⏳ {pending} pending  ✅ {completed} completed");
 
         if self.config.use_color {
             eprintln!("{}", status_line.dimmed());

@@ -220,8 +220,7 @@ fn test_context_command_consistency() {
     let first_result = results[0];
     assert!(
         results.iter().all(|&r| r == first_result),
-        "Context command should be consistent across multiple runs: {:?}",
-        results
+        "Context command should be consistent across multiple runs: {results:?}"
     );
 }
 

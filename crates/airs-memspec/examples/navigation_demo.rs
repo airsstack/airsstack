@@ -37,13 +37,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Try to get active sub-project
                 match MemoryBankNavigator::get_active_sub_project(&structure) {
                     Ok(Some(active_project)) => {
-                        println!("  🎯 Active sub-project: {}", active_project);
+                        println!("  🎯 Active sub-project: {active_project}");
                     }
                     Ok(None) => {
                         println!("  ⚠️  No active sub-project specified");
                     }
                     Err(e) => {
-                        println!("  ❌ Error reading active sub-project: {}", e);
+                        println!("  ❌ Error reading active sub-project: {e}");
                     }
                 }
             }
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Show sub-projects
             println!("\n🏗️  Sub-projects ({}):", structure.sub_projects.len());
             for (name, sub_project) in &structure.sub_projects {
-                println!("  📦 {}", name);
+                println!("  📦 {name}");
                 println!("    Path: {}", sub_project.root_path.display());
 
                 let file_count = [
@@ -78,14 +78,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !warnings.is_empty() {
                 println!("\n⚠️  Structure validation warnings:");
                 for warning in warnings {
-                    println!("  • {}", warning);
+                    println!("  • {warning}");
                 }
             } else {
                 println!("\n✅ Memory bank structure is complete!");
             }
         }
         Err(e) => {
-            println!("❌ Failed to discover memory bank structure: {}", e);
+            println!("❌ Failed to discover memory bank structure: {e}");
             println!("\n💡 Make sure you're running this from within a workspace that has a .copilot/memory_bank/ directory");
         }
     }

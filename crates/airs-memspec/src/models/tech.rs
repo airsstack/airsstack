@@ -3,8 +3,9 @@
 //! This module contains data structures for documenting technology stacks,
 //! development environments, deployment contexts, and technical constraints.
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 use super::monitoring::MonitoringSetup;
 

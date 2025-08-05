@@ -20,7 +20,7 @@ More content here.
     println!("Title: {:?}", parsed.metadata.title);
     println!("Sections found: {}", parsed.sections.len());
     for (key, value) in &parsed.sections {
-        println!("  '{}': '{}'", key, value);
+        println!("  '{key}': '{value}'");
     }
     println!();
 

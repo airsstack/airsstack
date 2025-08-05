@@ -66,7 +66,7 @@ fn main() {
 
     println!("=== Workspace Status Demo ===");
     let workspace_output = engine.render(&workspace_elements);
-    println!("{}", workspace_output);
+    println!("{workspace_output}");
 
     // Create context layout matching README example
     let context_elements = vec![
@@ -133,5 +133,5 @@ fn main() {
 
     println!("=== Context Demo ===");
     let context_output = engine.render(&context_elements);
-    println!("{}", context_output);
+    println!("{context_output}");
 }

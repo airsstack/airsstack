@@ -4,8 +4,9 @@
 //! for project status visualization. Analyzes task completion patterns, identifies
 //! bottlenecks, and calculates project velocity metrics.
 
-use chrono::{DateTime, Duration, Utc};
 use std::collections::HashMap;
+
+use chrono::{DateTime, Duration, Utc};
 
 use crate::parser::context::{ProjectHealth, SubProjectContext, WorkspaceContext};
 use crate::parser::markdown::TaskStatus;

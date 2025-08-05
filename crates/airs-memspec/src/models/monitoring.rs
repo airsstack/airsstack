@@ -3,8 +3,9 @@
 //! This module contains data structures for configuring monitoring, logging,
 //! metrics collection, alerting, and distributed tracing systems.
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 /// Monitoring and observability setup
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

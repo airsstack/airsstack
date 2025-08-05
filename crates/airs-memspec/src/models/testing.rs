@@ -3,9 +3,10 @@
 //! This module contains data structures for managing test information,
 //! performance testing, manual testing checklists, and quality metrics.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Testing information for tasks
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

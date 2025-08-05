@@ -1,14 +1,15 @@
 // Tasks command implementation
 // Handles task management and tracking operations
 
+use std::collections::HashMap;
+use std::path::PathBuf;
+
 use crate::cli::{GlobalArgs, TaskAction};
 use crate::parser::context::ContextCorrelator;
 use crate::parser::markdown::{TaskItem, TaskStatus};
 use crate::parser::navigation::MemoryBankNavigator;
 use crate::utils::fs::FsError;
 use crate::utils::output::{OutputConfig, OutputFormatter};
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 /// Run the tasks command
 pub fn run(global: &GlobalArgs, action: TaskAction) -> Result<(), Box<dyn std::error::Error>> {

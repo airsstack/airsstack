@@ -395,7 +395,8 @@ impl ContextCorrelator {
                     content
                         .sections
                         .keys()
-                        .find(|k| k.contains("active")).cloned()
+                        .find(|k| k.contains("active"))
+                        .cloned()
                 })
                 .unwrap_or_else(|| "unknown".to_string());
 

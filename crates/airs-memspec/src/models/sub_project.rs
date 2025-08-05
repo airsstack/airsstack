@@ -3,9 +3,10 @@
 //! This module contains data structures and operations for individual sub-projects
 //! within a workspace, including metadata, context management, and task integration.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use super::progress::Progress;
 use super::system::SystemPatterns;
