@@ -1,5 +1,14 @@
 # Progress - airs-mcp
 
+## Immediate Development Priority 🔥
+
+**TASK008: MCP Protocol Layer Implementation**
+- **CRITICAL GAP**: Library has exceptional infrastructure but no high-level MCP abstractions
+- **BUSINESS IMPACT**: Cannot create real MCP tools without manual message construction 
+- **USER FEEDBACK**: "we need to create it as soon as possible" - confirmed critical priority
+- **FOUNDATION READY**: Outstanding performance base ready for MCP layer development
+- **TARGET**: Complete MCP client/server APIs enabling simple tool development
+
 ## What Works (Production-Ready Components)
 
 ### Complete JSON-RPC MCP Client Implementation
