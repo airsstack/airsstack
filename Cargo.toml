@@ -2,6 +2,7 @@
 members = [
     "crates/airs-mcp", 
     "crates/airs-memspec",
+    "examples/simple-mcp-server",
 ]
 resolver = "2"
 
@@ -48,6 +49,9 @@ pulldown-cmark = { version = "0.13" }
 
 # Enhanced error handling (latest stable)
 anyhow = { version = "1.0.98" }
+
+# Logging for examples
+env_logger = { version = "0.11" }
 
 # File system operations (latest stable)
 walkdir = { version = "2.5" }
