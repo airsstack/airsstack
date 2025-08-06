@@ -56,13 +56,15 @@ Selected **Option C: Message-Type-First Architecture** because:
 
 1. **Leverage Existing Excellence**: The JSON-RPC foundation is production-ready with enterprise-grade performance. Building on this foundation maximizes value.
 
-2. **Type Safety & Protocol Compliance**: Message-type-first approach prevents runtime protocol violations through Rust's type system.
+2. **Type Safety & Protocol Compliance**: Message-type-first approach with domain-specific newtypes prevents runtime protocol violations through Rust's type system.
 
 3. **Performance Preservation**: Integration with existing systems maintains the exceptional 8.5+ GiB/s throughput characteristics.
 
 4. **Incremental Quality**: Following established patterns ensures consistent quality, testing, and documentation standards.
 
 5. **Future-Proof Foundation**: Solid message type foundation supports all advanced MCP features (bidirectional communication, capability negotiation, etc.).
+
+6. **Compile-Time Safety**: Domain-specific newtypes (`Uri`, `MimeType`, `Base64Data`, `ProtocolVersion`) prevent parameter confusion and invalid data at compile time.
 
 ## Implementation Architecture
 
@@ -89,21 +91,25 @@ crates/airs-mcp/src/shared/protocol/
 - **CorrelationManager Integration**: Request/response correlation uses proven system
 - **Transport Abstraction**: Seamless integration with existing STDIO transport
 - **Error Handling**: Extends existing structured error patterns
+- **Domain-Specific Newtypes**: Type-safe wrappers (`Uri`, `MimeType`, `Base64Data`, `ProtocolVersion`) with validation
+- **Encapsulation**: Private newtype fields with controlled access through validated constructors
 
 ### Quality Standards
-- **Testing**: 30+ unit tests with round-trip serialization validation
+- **Testing**: 30+ unit tests with round-trip serialization validation and newtype validation
 - **Specification Compliance**: Validation against official MCP protocol specification
 - **Performance**: Maintain 8.5+ GiB/s throughput characteristics
 - **Documentation**: Complete API documentation with working examples
+- **Type Safety**: Compile-time prevention of invalid protocol messages and parameter confusion
 
 ## Consequences
 
 ### Positive Impacts
-- **Developer Experience**: Type-safe MCP message construction prevents runtime errors
+- **Developer Experience**: Type-safe MCP message construction prevents runtime errors and parameter confusion
 - **Performance**: Maintains exceptional throughput characteristics of existing foundation  
 - **Quality**: Leverages proven patterns for testing, error handling, and documentation
 - **Maintainability**: Consistent architecture patterns across the entire codebase
-- **Protocol Compliance**: Compile-time prevention of invalid MCP messages
+- **Protocol Compliance**: Compile-time prevention of invalid MCP messages through domain-specific types
+- **Validation**: Runtime validation of user inputs at API boundaries with clear error messages
 
 ### Technical Debt & Risks
 - **Implementation Complexity**: Requires comprehensive understanding of MCP protocol specification

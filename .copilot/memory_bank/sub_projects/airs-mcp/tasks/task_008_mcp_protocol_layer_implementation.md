@@ -81,6 +81,9 @@ The current airs-mcp library has exceptional foundational components (JSON-RPC, 
 - **Architecture Decision**: Implement in `src/shared/protocol/` leveraging existing JsonRpcMessage trait
 - **Quality Strategy**: 30+ tests, specification compliance, performance validation
 - **Integration Plan**: Seamless integration with existing correlation and transport systems
+- **Type Safety Enhancement**: Refined design with domain-specific newtypes (`Uri`, `MimeType`, `Base64Data`, `ProtocolVersion`)
+- **Validation Framework**: Compile-time and runtime validation preventing protocol violations
+- **Encapsulation**: Private newtype fields with controlled access through validated constructors
 
 ## Expected API Preview
 
@@ -201,20 +204,156 @@ crates/airs-mcp/src/
 
 **MCP-Specific Enhancements:**
 - **Type-safe message construction**: Prevent invalid MCP protocol messages at compile time
+- **Domain-specific newtypes**: `Uri`, `MimeType`, `Base64Data`, `ProtocolVersion` with validation
 - **Capability-driven features**: Runtime feature availability based on negotiated capabilities
 - **Bidirectional support**: Both client→server and server→client message flows
+- **Encapsulation**: Private fields with controlled access through validated constructors
+
+**Error System** (`src/shared/protocol/errors.rs`):
+```rust
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ProtocolError {
+    #[error("Invalid protocol version: {0}")]
+    InvalidProtocolVersion(String),
+    
+    #[error("Invalid URI: {0}")]
+    InvalidUri(String),
+    
+    #[error("Invalid MIME type: {0}")]
+    InvalidMimeType(String),
+    
+    #[error("Invalid base64 data")]
+    InvalidBase64Data,
+    
+    #[error("Capability negotiation failed: {0}")]
+    CapabilityNegotiationFailed(String),
+    
+    #[error("Unsupported protocol version: {0}")]
+    UnsupportedProtocolVersion(String),
+}
+```
 
 ### Implementation Timeline (Week 1)
 
 #### Day 1-2: Foundation & Core Types
 **Core Protocol Types** (`src/shared/protocol/types/common.rs`):
 ```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProtocolVersion(pub String);
+/// Protocol version with validation and proper encapsulation
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProtocolVersion(String);
+
+impl ProtocolVersion {
+    /// Current MCP protocol version
+    pub const CURRENT: &'static str = "2025-06-18";
+    
+    /// Create a new protocol version with validation
+    pub fn new(version: impl Into<String>) -> Result<Self, ProtocolError> {
+        let version = version.into();
+        if Self::is_valid_version(&version) {
+            Ok(Self(version))
+        } else {
+            Err(ProtocolError::InvalidProtocolVersion(version))
+        }
+    }
+    
+    /// Create current protocol version
+    pub fn current() -> Self {
+        Self(Self::CURRENT.to_string())
+    }
+    
+    /// Get the version string
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    
+    fn is_valid_version(version: &str) -> bool {
+        // Validate YYYY-MM-DD format
+        version.len() == 10 && version.chars().nth(4) == Some('-') && version.chars().nth(7) == Some('-')
+    }
+}
 
 impl Default for ProtocolVersion {
     fn default() -> Self {
-        Self("2025-06-18".to_string())
+        Self::current()
+    }
+}
+
+/// URI with validation and type safety
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct Uri(String);
+
+impl Uri {
+    pub fn new(uri: impl Into<String>) -> Result<Self, ProtocolError> {
+        let uri = uri.into();
+        if Self::is_valid_uri(&uri) {
+            Ok(Self(uri))
+        } else {
+            Err(ProtocolError::InvalidUri(uri))
+        }
+    }
+    
+    pub fn new_unchecked(uri: impl Into<String>) -> Self {
+        Self(uri.into())
+    }
+    
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    
+    pub fn scheme(&self) -> Option<&str> {
+        self.0.split(':').next()
+    }
+    
+    fn is_valid_uri(uri: &str) -> bool {
+        !uri.is_empty() && uri.contains(':')
+    }
+}
+
+/// MIME type with validation
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MimeType(String);
+
+impl MimeType {
+    pub fn new(mime_type: impl Into<String>) -> Result<Self, ProtocolError> {
+        let mime_type = mime_type.into();
+        if Self::is_valid_mime_type(&mime_type) {
+            Ok(Self(mime_type))
+        } else {
+            Err(ProtocolError::InvalidMimeType(mime_type))
+        }
+    }
+    
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    
+    fn is_valid_mime_type(mime_type: &str) -> bool {
+        mime_type.contains('/') && !mime_type.starts_with('/') && !mime_type.ends_with('/')
+    }
+}
+
+/// Base64 encoded data with validation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Base64Data(String);
+
+impl Base64Data {
+    pub fn new(data: impl Into<String>) -> Result<Self, ProtocolError> {
+        let data = data.into();
+        if Self::is_valid_base64(&data) {
+            Ok(Self(data))
+        } else {
+            Err(ProtocolError::InvalidBase64Data)
+        }
+    }
+    
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    
+    fn is_valid_base64(data: &str) -> bool {
+        !data.is_empty() && data.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
     }
 }
 
@@ -233,6 +372,8 @@ pub struct ServerInfo {
 
 **Content System** (`src/shared/protocol/types/content.rs`):
 ```rust
+use super::common::{Uri, MimeType, Base64Data};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Content {
@@ -240,14 +381,14 @@ pub enum Content {
     Text { text: String },
     #[serde(rename = "image")]
     Image { 
-        data: String,  // base64 encoded
-        mime_type: String,
+        data: Base64Data,
+        mime_type: MimeType,
     },
     #[serde(rename = "resource")]
     Resource { 
-        resource: String,  // URI
+        resource: Uri,
         text: Option<String>,
-        mime_type: Option<String>,
+        mime_type: Option<MimeType>,
     },
 }
 ```
@@ -313,12 +454,21 @@ impl JsonRpcMessage for InitializeResponse {}
 #### Day 6-7: Resource Messages
 **Resource Protocol Messages** (`src/shared/protocol/messages/resources.rs`):
 ```rust
+use super::super::types::{Uri, MimeType, Content};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Resource {
-    pub uri: String,
+    pub uri: Uri,
     pub name: String,
     pub description: Option<String>,
-    pub mime_type: Option<String>,
+    pub mime_type: Option<MimeType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplate {
+    pub uri_template: String,  // RFC 6570 URI template
+    pub name: String,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -334,7 +484,7 @@ pub struct ListResourcesResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReadResourceRequest {
-    pub uri: String,
+    pub uri: Uri,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -344,6 +494,8 @@ pub struct ReadResourceResponse {
 
 impl JsonRpcMessage for ListResourcesRequest {}
 impl JsonRpcMessage for ListResourcesResponse {}
+impl JsonRpcMessage for ReadResourceRequest {}
+impl JsonRpcMessage for ReadResourceResponse {}
 ```
 
 ### Integration with Existing Architecture
@@ -384,13 +536,17 @@ impl JsonRpcClient {
 
 ### Expected Week 1 Deliverables
 - ✅ **Complete MCP message type system** (initialization, resources, tools, prompts)
+- ✅ **Type-safe domain newtypes** (`Uri`, `MimeType`, `Base64Data`, `ProtocolVersion`) with validation
 - ✅ **Capability negotiation framework** with type-safe capability definitions
 - ✅ **Seamless JSON-RPC integration** leveraging existing foundation
-- ✅ **Comprehensive test suite** (30+ tests) with specification compliance
+- ✅ **Comprehensive test suite** (30+ tests) with specification compliance and validation testing
 - ✅ **Performance validation** maintaining exceptional throughput characteristics
+- ✅ **Compile-time safety** preventing invalid protocol messages and parameter confusion
 
 ### Strategic Impact
-- **Developer Experience**: Simple, type-safe MCP message construction
-- **Protocol Compliance**: 100% MCP specification adherence
-- **Foundation for Phase 2**: Ready for high-level client/server API implementation
+- **Developer Experience**: Simple, type-safe MCP message construction with compile-time validation
+- **Protocol Compliance**: 100% MCP specification adherence with runtime validation
+- **Type Safety**: Domain-specific newtypes prevent parameter confusion and invalid data
+- **Foundation for Phase 2**: Ready for high-level client/server API implementation  
 - **Production Readiness**: Enterprise-grade quality matching existing components
+- **Error Prevention**: Compile-time prevention of common protocol violations
