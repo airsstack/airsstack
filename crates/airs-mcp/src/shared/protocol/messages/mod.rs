@@ -5,7 +5,15 @@
 
 pub mod capabilities;
 pub mod initialization;
+pub mod logging;
+pub mod prompts;
+pub mod resources;
+pub mod tools;
 
 // Re-export public API
 pub use capabilities::*;
 pub use initialization::*;
+pub use logging::*;
+pub use prompts::*;
+pub use resources::*;
+pub use tools::*;
