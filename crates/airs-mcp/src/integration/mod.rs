@@ -41,9 +41,12 @@ pub mod client;
 pub mod error;
 pub mod handler;
 pub mod router;
+pub mod server;
+pub mod mcp;
 
 // Re-export main types for convenience
 pub use client::JsonRpcClient;
 pub use error::{IntegrationError, IntegrationResult};
 pub use handler::{Handler, NotificationHandler, RequestHandler};
 pub use router::{MessageRouter, RouteConfig};
+pub use server::JsonRpcServer;

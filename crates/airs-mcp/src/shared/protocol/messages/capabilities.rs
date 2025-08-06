@@ -86,7 +86,7 @@ pub struct ServerCapabilities {
 ///     list_changed: Some(true), // Supports change notifications
 /// };
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ResourceCapabilities {
     /// Whether resource subscriptions are supported
     pub subscribe: Option<bool>,
@@ -107,7 +107,7 @@ pub struct ResourceCapabilities {
 ///
 /// let capabilities = ToolCapabilities {};
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ToolCapabilities {
     // Future tool-specific capabilities will be added here
 }
@@ -125,7 +125,7 @@ pub struct ToolCapabilities {
 ///     list_changed: Some(true), // Supports prompt list change notifications
 /// };
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct PromptCapabilities {
     /// Whether prompt list change notifications are supported
     pub list_changed: Option<bool>,
@@ -143,7 +143,7 @@ pub struct PromptCapabilities {
 ///
 /// let capabilities = LoggingCapabilities {};
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct LoggingCapabilities {
     // Future logging-specific capabilities will be added here
 }
