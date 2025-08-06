@@ -112,8 +112,7 @@ impl MessageRouter {
 
         if self.notification_handlers.contains_key(method) {
             return Err(IntegrationError::handler_registration(format!(
-                "Notification handler for method '{}' already registered",
-                method
+                "Notification handler for method '{method}' already registered"
             )));
         }
 
@@ -149,8 +148,7 @@ impl MessageRouter {
 
         if self.request_handlers.contains_key(method) {
             return Err(IntegrationError::handler_registration(format!(
-                "Request handler for method '{}' already registered",
-                method
+                "Request handler for method '{method}' already registered"
             )));
         }
 

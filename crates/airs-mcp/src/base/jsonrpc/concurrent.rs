@@ -543,8 +543,7 @@ impl ConcurrentProcessor {
                 .to_std()
                 .map_err(|_| ConcurrentError::HandlerFailed {
                     reason: format!(
-                        "Invalid result timeout: {:?} cannot be converted to std::time::Duration",
-                        result_timeout
+                        "Invalid result timeout: {result_timeout:?} cannot be converted to std::time::Duration"
                     ),
                 })?;
 
@@ -964,8 +963,7 @@ mod tests {
         // Shutdown should complete quickly when no work is pending
         assert!(
             shutdown_duration < std::time::Duration::from_secs(2),
-            "Shutdown took too long: {:?}",
-            shutdown_duration
+            "Shutdown took too long: {shutdown_duration:?}"
         );
     }
 
@@ -997,7 +995,7 @@ mod tests {
             Err(ConcurrentError::WorkerPoolNotRunning) => {
                 // Expected
             }
-            _ => panic!("Expected WorkerPoolNotRunning error, got: {:?}", result),
+            _ => panic!("Expected WorkerPoolNotRunning error, got: {result:?}"),
         }
     }
 
@@ -1045,8 +1043,7 @@ mod tests {
         // Should complete quickly without deadlocking
         assert!(
             elapsed < std::time::Duration::from_secs(5),
-            "Concurrent submissions took too long: {:?}",
-            elapsed
+            "Concurrent submissions took too long: {elapsed:?}"
         );
 
         let mut successes = 0;
@@ -1062,8 +1059,7 @@ mod tests {
         }
 
         println!(
-            "Concurrent backpressure test: {} successes, {} queue full, {} other errors",
-            successes, queue_full_errors, other_errors
+            "Concurrent backpressure test: {successes} successes, {queue_full_errors} queue full, {other_errors} other errors"
         );
 
         // Should have some of each due to rapid concurrent access
@@ -1171,13 +1167,11 @@ mod tests {
         // Shutdown should complete within reasonable time
         assert!(
             shutdown_duration < std::time::Duration::from_secs(10),
-            "Graceful shutdown took too long: {:?}",
-            shutdown_duration
+            "Graceful shutdown took too long: {shutdown_duration:?}"
         );
 
         println!(
-            "Graceful shutdown with pending work completed in {:?}",
-            shutdown_duration
+            "Graceful shutdown with pending work completed in {shutdown_duration:?}"
         );
     }
 
@@ -1233,13 +1227,11 @@ mod tests {
 
         assert!(
             shutdown_duration < std::time::Duration::from_secs(10),
-            "Shutdown during rapid submissions took too long: {:?}",
-            shutdown_duration
+            "Shutdown during rapid submissions took too long: {shutdown_duration:?}"
         );
 
         println!(
-            "Shutdown during rapid submissions completed in {:?}",
-            shutdown_duration
+            "Shutdown during rapid submissions completed in {shutdown_duration:?}"
         );
     }
 
@@ -1302,7 +1294,7 @@ mod tests {
                     panic!("Got queue full error - permits not being released properly!");
                 }
                 Ok(_) => panic!("Expected error but got success"),
-                Err(e) => panic!("Unexpected error: {:?}", e),
+                Err(e) => panic!("Unexpected error: {e:?}"),
             }
         }
 

@@ -97,7 +97,7 @@ mod tests {
             duration: TimeDelta::seconds(30),
         };
 
-        let display = format!("{}", timeout_error);
+        let display = format!("{timeout_error}");
         assert!(display.contains("test-123"));
         assert!(display.contains("timed out"));
     }
@@ -108,7 +108,7 @@ mod tests {
             id: RequestId::new_number(42),
         };
 
-        let debug = format!("{:?}", not_found_error);
+        let debug = format!("{not_found_error:?}");
         assert!(debug.contains("RequestNotFound"));
         assert!(debug.contains("42"));
     }

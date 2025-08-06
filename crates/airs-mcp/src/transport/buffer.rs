@@ -220,11 +220,12 @@ impl BufferManager {
         crate::transport::zero_copy::ZeroCopyMetrics {
             buffer_pool_hits: self.metrics.buffer_hits.load(Ordering::Relaxed) as u64,
             buffer_pool_misses: self.metrics.buffer_misses.load(Ordering::Relaxed) as u64,
-            total_bytes_processed: self.metrics.total_bytes_processed.load(Ordering::Relaxed) as u64,
+            total_bytes_processed: self.metrics.total_bytes_processed.load(Ordering::Relaxed)
+                as u64,
             zero_copy_sends: self.metrics.zero_copy_sends.load(Ordering::Relaxed) as u64,
             zero_copy_receives: self.metrics.zero_copy_receives.load(Ordering::Relaxed) as u64,
             average_buffer_utilization: 0.0, // TODO: Calculate from metrics
-            current_pool_size: 0, // TODO: Implement pool size tracking
+            current_pool_size: 0,            // TODO: Implement pool size tracking
             max_pool_size: self.config.buffer_pool_size,
         }
     }
@@ -298,12 +299,12 @@ pub struct PooledBuffer {
 
 impl PooledBuffer {
     /// Get a mutable reference to the underlying buffer
-    pub fn as_mut(&mut self) -> &mut Vec<u8> {
+    pub fn as_vec_mut(&mut self) -> &mut Vec<u8> {
         &mut self.buffer
     }
 
     /// Get an immutable reference to the underlying buffer
-    pub fn as_ref(&self) -> &[u8] {
+    pub fn as_slice(&self) -> &[u8] {
         &self.buffer
     }
 
@@ -348,6 +349,18 @@ impl Drop for PooledBuffer {
                 self.pool_metrics.record_drop();
             }
         }
+    }
+}
+
+impl AsRef<[u8]> for PooledBuffer {
+    fn as_ref(&self) -> &[u8] {
+        &self.buffer
+    }
+}
+
+impl AsMut<Vec<u8>> for PooledBuffer {
+    fn as_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.buffer
     }
 }
 
@@ -421,13 +434,15 @@ impl BufferMetrics {
     /// Record zero-copy send operation
     pub fn record_zero_copy_send(&self, bytes: usize) {
         self.zero_copy_sends.fetch_add(1, Ordering::Relaxed);
-        self.total_bytes_processed.fetch_add(bytes, Ordering::Relaxed);
+        self.total_bytes_processed
+            .fetch_add(bytes, Ordering::Relaxed);
     }
 
     /// Record zero-copy receive operation
     pub fn record_zero_copy_receive(&self, bytes: usize) {
         self.zero_copy_receives.fetch_add(1, Ordering::Relaxed);
-        self.total_bytes_processed.fetch_add(bytes, Ordering::Relaxed);
+        self.total_bytes_processed
+            .fetch_add(bytes, Ordering::Relaxed);
     }
 }
 
@@ -732,7 +747,7 @@ mod tests {
         let result = manager.acquire_read_buffer().await;
         // For now, we'll accept either timeout or success since backpressure
         // implementation needs enhancement
-        println!("Buffer acquisition result: {:?}", result);
+        println!("Buffer acquisition result: {result:?}");
     }
 
     #[tokio::test]

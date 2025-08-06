@@ -283,8 +283,8 @@ impl RequestId {
 impl fmt::Display for RequestId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RequestId::String(s) => write!(f, "{}", s),
-            RequestId::Number(n) => write!(f, "{}", n),
+            RequestId::String(s) => write!(f, "{s}"),
+            RequestId::Number(n) => write!(f, "{n}"),
         }
     }
 }
@@ -704,7 +704,7 @@ mod tests {
         let json = notification.to_json().unwrap();
 
         // Debug output to see what's actually being serialized
-        eprintln!("Notification JSON: {}", json);
+        eprintln!("Notification JSON: {json}");
 
         assert!(json.contains(r#""jsonrpc":"2.0""#));
         assert!(json.contains(r#""method":"user_logged_in""#));
@@ -713,8 +713,7 @@ mod tests {
         // More precise assertion with better error message
         assert!(
             !json.contains("\"id\""),
-            "JSON-RPC Notification must not contain 'id' field per specification. Actual JSON: {}",
-            json
+            "JSON-RPC Notification must not contain 'id' field per specification. Actual JSON: {json}"
         );
     }
 

@@ -185,6 +185,9 @@ pub mod correlation;
 // Integration layer modules
 pub mod integration;
 
+// Shared components modules
+pub mod shared;
+
 // Transport layer modules
 pub mod transport;
 
@@ -207,6 +210,12 @@ pub use integration::{
 pub use transport::{
     BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StdioTransport, StreamingBuffer,
     Transport, TransportError,
+};
+
+// Re-export protocol types for convenience
+pub use shared::protocol::{
+    Base64Data, ClientInfo, Content, MimeType, ProtocolError, ProtocolResult, ProtocolVersion,
+    ServerInfo, Uri,
 };
 
 // Version information

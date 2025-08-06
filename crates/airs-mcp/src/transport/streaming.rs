@@ -85,13 +85,13 @@ where
         let message_bytes = transport
             .receive()
             .await
-            .map_err(|e| TransportError::other(format!("Transport receive error: {}", e)))?;
+            .map_err(|e| TransportError::other(format!("Transport receive error: {e}")))?;
 
         // Parse using streaming parser
         let parsed = self
             .parse_message(&message_bytes)
             .await
-            .map_err(|e| TransportError::other(format!("Streaming parse error: {}", e)))?;
+            .map_err(|e| TransportError::other(format!("Streaming parse error: {e}")))?;
 
         Ok(parsed)
     }
@@ -101,7 +101,7 @@ where
         // Convert message to bytes
         let bytes = message
             .to_bytes()
-            .map_err(|e| TransportError::other(format!("Message serialization error: {}", e)))?;
+            .map_err(|e| TransportError::other(format!("Message serialization error: {e}")))?;
 
         let mut transport = self.inner.lock().await;
 
@@ -113,7 +113,7 @@ where
             transport
                 .send(&bytes)
                 .await
-                .map_err(|e| TransportError::other(format!("Transport send error: {}", e)))
+                .map_err(|e| TransportError::other(format!("Transport send error: {e}")))
         }
     }
 

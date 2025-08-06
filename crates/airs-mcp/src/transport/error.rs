@@ -119,7 +119,7 @@ mod tests {
         assert_send_sync::<TransportError>();
 
         // Test Debug
-        let debug_str = format!("{:?}", err);
+        let debug_str = format!("{err:?}");
         assert!(!debug_str.is_empty());
     }
 }

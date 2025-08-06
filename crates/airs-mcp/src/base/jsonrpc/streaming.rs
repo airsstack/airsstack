@@ -551,7 +551,7 @@ mod tests {
         assert_eq!(message.method(), Some("ping"));
 
         let bytes = message.to_bytes().unwrap();
-        assert!(bytes.len() > 0);
+        assert!(!bytes.is_empty());
     }
 
     #[tokio::test]

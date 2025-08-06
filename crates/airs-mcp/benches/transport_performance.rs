@@ -30,7 +30,7 @@ fn create_test_message(size_kb: usize) -> String {
             "size_kb": size_kb,
             "timestamp": chrono::Utc::now()
         })),
-        RequestId::new_string(format!("msg_{}", size_kb)),
+        RequestId::new_string(format!("msg_{size_kb}")),
     );
     request.to_json().unwrap()
 }

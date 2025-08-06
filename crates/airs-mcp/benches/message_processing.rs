@@ -20,7 +20,7 @@ fn create_test_request(size_kb: usize) -> JsonRpcRequest {
             "size_kb": size_kb,
             "timestamp": chrono::Utc::now()
         })),
-        RequestId::new_string(format!("req_{}", size_kb)),
+        RequestId::new_string(format!("req_{size_kb}")),
     )
 }
 
@@ -107,7 +107,7 @@ fn benchmark_message_deserialization(c: &mut Criterion) {
             BenchmarkId::new("request_from_json", size_kb),
             size_kb,
             |b, &_size| {
-                b.iter(|| black_box(JsonRpcRequest::from_json(&json_str)).unwrap());
+                b.iter(|| black_box(JsonRpcRequest::from_json(json_str)).unwrap());
             },
         );
     }
@@ -118,7 +118,7 @@ fn benchmark_message_deserialization(c: &mut Criterion) {
             BenchmarkId::new("notification_from_json", size_kb),
             size_kb,
             |b, &_size| {
-                b.iter(|| black_box(JsonRpcNotification::from_json(&json_str)).unwrap());
+                b.iter(|| black_box(JsonRpcNotification::from_json(json_str)).unwrap());
             },
         );
     }
@@ -129,7 +129,7 @@ fn benchmark_message_deserialization(c: &mut Criterion) {
             BenchmarkId::new("request_from_bytes", size_kb),
             size_kb,
             |b, &_size| {
-                b.iter(|| black_box(JsonRpcRequest::from_bytes(&bytes)).unwrap());
+                b.iter(|| black_box(JsonRpcRequest::from_bytes(bytes)).unwrap());
             },
         );
     }

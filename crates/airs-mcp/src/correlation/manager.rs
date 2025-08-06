@@ -606,7 +606,7 @@ impl CorrelationManager {
             cleanup_handle
                 .await
                 .map_err(|e| CorrelationError::Internal {
-                    message: format!("Failed to join cleanup task: {}", e),
+                    message: format!("Failed to join cleanup task: {e}"),
                 })?;
         }
 
@@ -723,7 +723,7 @@ mod tests {
             Err(CorrelationError::Timeout { id, .. }) => {
                 assert_eq!(id, request_id);
             }
-            _ => panic!("Expected timeout error, got: {:?}", result),
+            _ => panic!("Expected timeout error, got: {result:?}"),
         }
 
         manager.shutdown().await?;
@@ -759,7 +759,7 @@ mod tests {
             Err(CorrelationError::Cancelled { id }) => {
                 assert_eq!(id, request_id);
             }
-            _ => panic!("Expected cancellation error, got: {:?}", result),
+            _ => panic!("Expected cancellation error, got: {result:?}"),
         }
 
         manager.shutdown().await?;
@@ -849,8 +849,7 @@ mod tests {
                 assert!(message.contains("Maximum pending requests exceeded"));
             }
             _ => panic!(
-                "Expected Internal error for max requests, got: {:?}",
-                result
+                "Expected Internal error for max requests, got: {result:?}"
             ),
         }
 

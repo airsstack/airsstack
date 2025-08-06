@@ -295,7 +295,7 @@ mod tests {
                 let transport_clone = transport.clone();
                 task::spawn(async move {
                     let mut transport = transport_clone.lock().await;
-                    let message = format!("message{}", i);
+                    let message = format!("message{i}");
                     transport.send(message.as_bytes()).await
                 })
             })

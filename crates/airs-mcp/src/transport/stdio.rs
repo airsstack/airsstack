@@ -970,11 +970,11 @@ mod tests {
 
                 // Test that close is idempotent and thread-safe
                 let result = transport_ref.close().await;
-                assert!(result.is_ok(), "Close failed for task {}", i);
+                assert!(result.is_ok(), "Close failed for task {i}");
 
                 // Second close should also succeed (idempotent)
                 let result2 = transport_ref.close().await;
-                assert!(result2.is_ok(), "Second close failed for task {}", i);
+                assert!(result2.is_ok(), "Second close failed for task {i}");
 
                 i
             });
@@ -984,7 +984,7 @@ mod tests {
         // Wait for all close operations to complete
         for handle in handles {
             let task_id = handle.await.unwrap();
-            println!("Task {} completed successfully", task_id);
+            println!("Task {task_id} completed successfully");
         }
 
         // Verify final state
@@ -1030,7 +1030,7 @@ mod tests {
         for (task_id, max_size, is_closed) in results {
             assert_eq!(max_size, StdioTransport::DEFAULT_MAX_MESSAGE_SIZE);
             assert!(!is_closed);
-            println!("Task {} read consistent state", task_id);
+            println!("Task {task_id} read consistent state");
         }
     }
 
@@ -1052,7 +1052,7 @@ mod tests {
                 // Create a mutable clone for this task
                 // Note: In a real scenario, each task would have its own mutable reference
                 // or we'd use a different pattern. This is testing the internal mutex behavior.
-                let message = format!(r#"{{"task": {}, "data": "test"}}"#, i);
+                let message = format!(r#"{{"task": {i}, "data": "test"}}"#);
 
                 // The send will likely fail due to stdout not being available in test,
                 // but it should fail gracefully and consistently
@@ -1084,10 +1084,10 @@ mod tests {
 
         // Verify all validations passed consistently
         for (task_id, is_closed, size_valid, no_newlines) in results {
-            assert!(!is_closed, "Task {} saw inconsistent closed state", task_id);
-            assert!(size_valid, "Task {} failed size validation", task_id);
-            assert!(no_newlines, "Task {} failed newline validation", task_id);
-            println!("Task {} passed validation checks", task_id);
+            assert!(!is_closed, "Task {task_id} saw inconsistent closed state");
+            assert!(size_valid, "Task {task_id} failed size validation");
+            assert!(no_newlines, "Task {task_id} failed newline validation");
+            println!("Task {task_id} passed validation checks");
         }
     }
 
@@ -1136,8 +1136,7 @@ mod tests {
             // All initial states should be false (not closed)
             assert!(
                 !state_changes[0],
-                "Task {} saw incorrect initial state",
-                task_id
+                "Task {task_id} saw incorrect initial state"
             );
 
             // State should be consistent within each task
@@ -1146,13 +1145,12 @@ mod tests {
                 if idx < 3 {
                     assert!(
                         !state,
-                        "Task {} saw premature close at index {}",
-                        task_id, idx
+                        "Task {task_id} saw premature close at index {idx}"
                     );
                 }
             }
 
-            println!("Task {} monitored state transitions correctly", task_id);
+            println!("Task {task_id} monitored state transitions correctly");
         }
     }
 
@@ -1185,11 +1183,10 @@ mod tests {
             let (task_id, max_size, is_closed) = handle.await.unwrap();
             assert_eq!(
                 max_size, original_max_size,
-                "Task {} saw different max_size",
-                task_id
+                "Task {task_id} saw different max_size"
             );
-            assert!(!is_closed, "Task {} saw incorrect closed state", task_id);
-            println!("Task {} verified Arc clone consistency", task_id);
+            assert!(!is_closed, "Task {task_id} saw incorrect closed state");
+            println!("Task {task_id} verified Arc clone consistency");
         }
 
         // Original should still have correct state

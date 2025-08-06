@@ -21,7 +21,7 @@ fn create_test_json(size_kb: usize) -> String {
             "size_kb": size_kb,
             "timestamp": chrono::Utc::now()
         })),
-        RequestId::new_string(format!("req_{}", size_kb)),
+        RequestId::new_string(format!("req_{size_kb}")),
     );
     request.to_json().unwrap()
 }
@@ -177,7 +177,7 @@ fn benchmark_streaming_parsing(c: &mut Criterion) {
             message,
             |b, msg| {
                 b.iter_batched(
-                    || StreamingParser::new_default(),
+                    StreamingParser::new_default,
                     |mut parser| {
                         rt.block_on(async {
                             let result = parser.parse_from_bytes(msg.as_bytes()).await.unwrap();
@@ -209,7 +209,7 @@ fn benchmark_streaming_message_sizes(c: &mut Criterion) {
             &test_message,
             |b, msg| {
                 b.iter_batched(
-                    || StreamingParser::new_default(),
+                    StreamingParser::new_default,
                     |mut parser| {
                         rt.block_on(async {
                             let result = parser.parse_from_bytes(msg.as_bytes()).await.unwrap();
@@ -278,7 +278,7 @@ fn benchmark_streaming_batch_parsing(c: &mut Criterion) {
 
     group.bench_function("parse_message_batch", |b| {
         b.iter_batched(
-            || StreamingParser::new_default(),
+            StreamingParser::new_default,
             |mut parser| {
                 rt.block_on(async {
                     let mut results = Vec::new();
