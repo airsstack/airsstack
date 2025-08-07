@@ -1,6 +1,8 @@
 use airs_mcp::integration::mcp::McpServerBuilder;
 use airs_mcp::integration::mcp::{McpError, PromptProvider, ResourceProvider, ToolProvider};
-use airs_mcp::shared::protocol::{Content, MimeType, Prompt, PromptMessage, Resource, Tool, Uri};
+use airs_mcp::shared::protocol::{
+    Content, MimeType, Prompt, PromptArgument, PromptMessage, Resource, Tool, Uri,
+};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -106,7 +108,9 @@ impl ResourceProvider for SimpleResourceProvider {
             }
         };
 
-        let content = vec![Content::text(content_text)];
+        // Use text_with_uri to provide proper URI for resource responses
+        let content = vec![Content::text_with_uri(content_text, uri)
+            .map_err(|e| McpError::internal_error(format!("Failed to create content: {e}")))?];
         info!(uri = %uri, content_size = content_text.len(), "Resource read successfully");
         Ok(content)
     }
@@ -212,39 +216,22 @@ impl PromptProvider for SimplePromptProvider {
                 name: "code_review".to_string(),
                 title: Some("Code Review".to_string()),
                 description: Some("Generate a code review prompt".to_string()),
-                arguments: json!({
-                    "type": "object",
-                    "properties": {
-                        "language": {
-                            "type": "string",
-                            "description": "Programming language"
-                        },
-                        "code": {
-                            "type": "string",
-                            "description": "Code to review"
-                        }
-                    },
-                    "required": ["language", "code"]
-                }),
+                arguments: vec![
+                    PromptArgument::required("language", Some("Programming language")),
+                    PromptArgument::required("code", Some("Code to review")),
+                ],
             },
             Prompt {
                 name: "explain_concept".to_string(),
                 title: Some("Explain Concept".to_string()),
                 description: Some("Explain a technical concept".to_string()),
-                arguments: json!({
-                    "type": "object",
-                    "properties": {
-                        "concept": {
-                            "type": "string",
-                            "description": "Concept to explain"
-                        },
-                        "level": {
-                            "type": "string",
-                            "description": "Difficulty level (beginner, intermediate, advanced)"
-                        }
-                    },
-                    "required": ["concept"]
-                }),
+                arguments: vec![
+                    PromptArgument::required("concept", Some("Concept to explain")),
+                    PromptArgument::optional(
+                        "level",
+                        Some("Difficulty level (beginner, intermediate, advanced)"),
+                    ),
+                ],
             },
         ])
     }
@@ -327,6 +314,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create the MCP server with all providers
     info!("Building MCP server with providers...");
     let server = McpServerBuilder::new()
+        .server_info("simple-mcp-server", env!("CARGO_PKG_VERSION"))
         .with_resource_provider(SimpleResourceProvider)
         .with_tool_provider(SimpleToolProvider)
         .with_prompt_provider(SimplePromptProvider)
