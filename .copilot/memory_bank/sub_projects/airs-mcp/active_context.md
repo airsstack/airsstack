@@ -23,6 +23,13 @@
 - Prompts: `nextCursor` + `display_name` → `title`
 - All test cases and documentation updated for new API signatures
 
+### FOLLOW-UP: Example Updates ✅ COMPLETED 2025-08-07
+- **User Initiative**: Identified need to update examples after core API changes
+- **Examples Updated**: `simple-mcp-server` example updated to use new `title` field API
+- **Validation**: Example compiles and builds successfully with updated API
+- **Scope**: Tool and Prompt struct instantiations updated from `display_name` to `title: Some(...)`
+- **Impact**: Ensures examples demonstrate correct current API usage for developers
+
 **TASK008 Phase 3 COMPLETED**: High-level MCP Client/Server APIs fully implemented ✅
 - **High-Level MCP Client**: Builder pattern with caching, initialization, resource/tool/prompt operations
 - **High-Level MCP Server**: Trait-based provider system with automatic request routing and error handling

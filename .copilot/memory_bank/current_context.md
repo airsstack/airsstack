@@ -2,9 +2,9 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-08-05T23:45:00Z
-**updated_on:** 2025-08-07T23:00:00Z
-**by:** critical_mcp_protocol_field_naming_consistency_fix
-**status:** mcp_protocol_compliance_resolved_full_client_compatibility_restored
+**updated_on:** 2025-08-07T23:30:00Z
+**by:** example_updates_follow_up_mcp_protocol_field_naming_consistency
+**status:** mcp_protocol_compliance_and_examples_fully_updated
 
 # airs-mcp Critical Protocol Compliance Fix - RESOLVED 2025-08-07
 
