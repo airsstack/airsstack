@@ -20,8 +20,11 @@ use tracing_subscriber::{
 fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
     // Try file-based logging first
     let file_layer_result = std::panic::catch_unwind(|| {
-        let file_appender =
-            RollingFileAppender::new(Rotation::DAILY, "/tmp/airs-mcp-logs", "airs-mcp-server.log");
+        let file_appender = RollingFileAppender::new(
+            Rotation::DAILY,
+            "/tmp/simple-mcp-server",
+            "simple-mcp-server.log",
+        );
 
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
