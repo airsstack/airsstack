@@ -23,7 +23,7 @@ use crate::base::jsonrpc::message::JsonRpcMessage;
 ///
 /// let prompt = Prompt::new(
 ///     "code_review",
-///     "Code Review Assistant",
+///     Some("Code Review Assistant"),
 ///     Some("Generate a code review for the given code"),
 ///     json!([{
 ///         "name": "code",
@@ -36,8 +36,8 @@ use crate::base::jsonrpc::message::JsonRpcMessage;
 pub struct Prompt {
     /// Unique identifier for the prompt
     pub name: String,
-    /// Human-readable name for the prompt
-    pub display_name: String,
+    /// Human-readable name for the prompt (renamed from display_name to match MCP spec)
+    pub title: Option<String>,
     /// Optional description of the prompt's purpose
     pub description: Option<String>,
     /// Schema describing the prompt's arguments
@@ -55,7 +55,7 @@ impl Prompt {
     ///
     /// let prompt = Prompt::new(
     ///     "summarize",
-    ///     "Text Summarizer",
+    ///     Some("Text Summarizer"),
     ///     Some("Summarize the provided text"),
     ///     json!([{
     ///         "name": "text",
@@ -66,13 +66,13 @@ impl Prompt {
     /// ```
     pub fn new(
         name: impl Into<String>,
-        display_name: impl Into<String>,
+        title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
         arguments: Value,
     ) -> Self {
         Self {
             name: name.into(),
-            display_name: display_name.into(),
+            title: title.map(|t| t.into()),
             description: description.map(|d| d.into()),
             arguments,
         }
@@ -81,7 +81,7 @@ impl Prompt {
     /// Create a simple prompt with a single required string argument
     pub fn simple(
         name: impl Into<String>,
-        display_name: impl Into<String>,
+        title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
         argument_name: impl Into<String>,
         argument_description: Option<impl Into<String>>,
@@ -93,16 +93,16 @@ impl Prompt {
             "required": true
         }]);
 
-        Self::new(name, display_name, description, arguments)
+        Self::new(name, title, description, arguments)
     }
 
     /// Create a prompt with no arguments
     pub fn no_args(
         name: impl Into<String>,
-        display_name: impl Into<String>,
+        title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
     ) -> Self {
-        Self::new(name, display_name, description, serde_json::json!([]))
+        Self::new(name, title, description, serde_json::json!([]))
     }
 
     /// Check if this prompt requires no arguments
@@ -236,6 +236,7 @@ pub struct ListPromptsResponse {
     /// List of available prompts
     pub prompts: Vec<Prompt>,
     /// Optional cursor for next page of results
+    #[serde(rename = "nextCursor")]
     pub next_cursor: Option<String>,
 }
 
@@ -495,7 +496,7 @@ mod tests {
     fn test_prompt_creation() {
         let prompt = Prompt::new(
             "test_prompt",
-            "Test Prompt",
+            Some("Test Prompt"),
             Some("A test prompt"),
             json!([{
                 "name": "input",
@@ -505,7 +506,7 @@ mod tests {
         );
 
         assert_eq!(prompt.name, "test_prompt");
-        assert_eq!(prompt.display_name, "Test Prompt");
+        assert_eq!(prompt.title, Some("Test Prompt".to_string()));
         assert_eq!(prompt.description, Some("A test prompt".to_string()));
         assert!(!prompt.is_parameterless());
         assert_eq!(prompt.required_arguments(), vec!["input"]);
@@ -516,7 +517,7 @@ mod tests {
     fn test_prompt_simple() {
         let prompt = Prompt::simple(
             "echo",
-            "Echo Prompt",
+            Some("Echo Prompt"),
             Some("Echo the input"),
             "message",
             Some("Message to echo"),
@@ -529,7 +530,7 @@ mod tests {
 
     #[test]
     fn test_parameterless_prompt() {
-        let prompt = Prompt::no_args("status", "Status", None::<&str>);
+        let prompt = Prompt::no_args("status", Some("Status"), None::<&str>);
         assert!(prompt.is_parameterless());
         assert!(prompt.required_arguments().is_empty());
         assert!(prompt.all_arguments().is_empty());
@@ -558,8 +559,20 @@ mod tests {
     #[test]
     fn test_list_prompts_response() {
         let prompts = vec![
-            Prompt::simple("prompt1", "Prompt 1", None::<&str>, "param", None::<&str>),
-            Prompt::simple("prompt2", "Prompt 2", None::<&str>, "param", None::<&str>),
+            Prompt::simple(
+                "prompt1",
+                Some("Prompt 1"),
+                None::<&str>,
+                "param",
+                None::<&str>,
+            ),
+            Prompt::simple(
+                "prompt2",
+                Some("Prompt 2"),
+                None::<&str>,
+                "param",
+                None::<&str>,
+            ),
         ];
 
         let response = ListPromptsResponse::new(prompts.clone());
@@ -662,7 +675,7 @@ mod tests {
     #[test]
     fn test_message_serialization() {
         // Test serialization of all message types
-        let prompt = Prompt::simple("test", "Test", None::<&str>, "param", None::<&str>);
+        let prompt = Prompt::simple("test", Some("Test"), None::<&str>, "param", None::<&str>);
         let json = serde_json::to_string(&prompt).unwrap();
         let deserialized: Prompt = serde_json::from_str(&json).unwrap();
         assert_eq!(prompt, deserialized);

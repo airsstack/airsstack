@@ -22,7 +22,7 @@ use crate::base::jsonrpc::message::JsonRpcMessage;
 ///
 /// let tool = Tool::new(
 ///     "file_read",
-///     "Read File",
+///     Some("Read File"),
 ///     Some("Read content from a file"),
 ///     json!({
 ///         "type": "object",
@@ -40,11 +40,12 @@ use crate::base::jsonrpc::message::JsonRpcMessage;
 pub struct Tool {
     /// Unique identifier for the tool
     pub name: String,
-    /// Human-readable name for the tool
-    pub display_name: String,
+    /// Human-readable name for the tool (renamed from display_name to match MCP spec)
+    pub title: Option<String>,
     /// Optional description of what the tool does
     pub description: Option<String>,
     /// JSON Schema describing the tool's input parameters
+    #[serde(rename = "inputSchema")]
     pub input_schema: Value,
 }
 
@@ -59,7 +60,7 @@ impl Tool {
     ///
     /// let tool = Tool::new(
     ///     "calculator",
-    ///     "Calculator",
+    ///     Some("Calculator"),
     ///     Some("Perform mathematical calculations"),
     ///     json!({
     ///         "type": "object",
@@ -71,13 +72,13 @@ impl Tool {
     /// ```
     pub fn new(
         name: impl Into<String>,
-        display_name: impl Into<String>,
+        title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
         input_schema: Value,
     ) -> Self {
         Self {
             name: name.into(),
-            display_name: display_name.into(),
+            title: title.map(|t| t.into()),
             description: description.map(|d| d.into()),
             input_schema,
         }
@@ -86,7 +87,7 @@ impl Tool {
     /// Create a simple tool with basic string parameter
     pub fn simple(
         name: impl Into<String>,
-        display_name: impl Into<String>,
+        title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
         parameter_name: impl Into<String>,
         parameter_description: Option<impl Into<String>>,
@@ -104,7 +105,7 @@ impl Tool {
             "required": [param_name]
         });
 
-        Self::new(name, display_name, description, input_schema)
+        Self::new(name, title, description, input_schema)
     }
 
     /// Check if this tool requires no parameters
@@ -176,6 +177,7 @@ pub struct ListToolsResponse {
     /// List of available tools
     pub tools: Vec<Tool>,
     /// Optional cursor for next page of results
+    #[serde(rename = "nextCursor")]
     pub next_cursor: Option<String>,
 }
 
@@ -307,11 +309,12 @@ pub struct CallToolResponse {
     /// Content returned by the tool
     pub content: Vec<Content>,
     /// Whether the tool execution was successful
-    #[serde(default = "default_true")]
+    #[serde(default = "default_false")]
+    #[serde(rename = "isError")]
     pub is_error: bool,
 }
 
-fn default_true() -> bool {
+fn default_false() -> bool {
     false
 }
 
@@ -405,6 +408,7 @@ impl JsonRpcMessage for CallToolResponse {}
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ToolProgressNotification {
     /// Identifier for the progress session
+    #[serde(rename = "progressToken")]
     pub progress_token: String,
     /// Current progress (0.0 to 1.0)
     pub progress: f64,
@@ -467,7 +471,7 @@ mod tests {
     fn test_tool_creation() {
         let tool = Tool::new(
             "test_tool",
-            "Test Tool",
+            Some("Test Tool"),
             Some("A test tool"),
             json!({
                 "type": "object",
@@ -479,7 +483,7 @@ mod tests {
         );
 
         assert_eq!(tool.name, "test_tool");
-        assert_eq!(tool.display_name, "Test Tool");
+        assert_eq!(tool.title, Some("Test Tool".to_string()));
         assert_eq!(tool.description, Some("A test tool".to_string()));
         assert!(!tool.is_parameterless());
         assert_eq!(tool.required_parameters(), vec!["input"]);
@@ -489,7 +493,7 @@ mod tests {
     fn test_tool_simple() {
         let tool = Tool::simple(
             "echo",
-            "Echo Tool",
+            Some("Echo Tool"),
             Some("Echo input"),
             "message",
             Some("Message to echo"),
@@ -504,7 +508,7 @@ mod tests {
     fn test_parameterless_tool() {
         let tool = Tool::new(
             "status",
-            "Status Check",
+            Some("Status Check"),
             None::<&str>,
             json!({"type": "object", "properties": {}}),
         );
@@ -525,8 +529,8 @@ mod tests {
     #[test]
     fn test_list_tools_response() {
         let tools = vec![
-            Tool::simple("tool1", "Tool 1", None::<&str>, "param", None::<&str>),
-            Tool::simple("tool2", "Tool 2", None::<&str>, "param", None::<&str>),
+            Tool::simple("tool1", Some("Tool 1"), None::<&str>, "param", None::<&str>),
+            Tool::simple("tool2", Some("Tool 2"), None::<&str>, "param", None::<&str>),
         ];
 
         let response = ListToolsResponse::new(tools.clone());
@@ -603,7 +607,7 @@ mod tests {
     #[test]
     fn test_message_serialization() {
         // Test serialization of all message types
-        let tool = Tool::simple("test", "Test", None::<&str>, "param", None::<&str>);
+        let tool = Tool::simple("test", Some("Test"), None::<&str>, "param", None::<&str>);
         let json = serde_json::to_string(&tool).unwrap();
         let deserialized: Tool = serde_json::from_str(&json).unwrap();
         assert_eq!(tool, deserialized);

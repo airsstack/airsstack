@@ -35,6 +35,7 @@ pub struct Resource {
     /// Optional description of the resource
     pub description: Option<String>,
     /// Optional MIME type of the resource content
+    #[serde(rename = "mimeType")]
     pub mime_type: Option<MimeType>,
 }
 
@@ -100,12 +101,14 @@ impl Resource {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourceTemplate {
     /// RFC 6570 URI template string
+    #[serde(rename = "uriTemplate")]
     pub uri_template: String,
     /// Human-readable name for the template
     pub name: String,
     /// Optional description of the template
     pub description: Option<String>,
     /// Optional MIME type for resources generated from this template
+    #[serde(rename = "mimeType")]
     pub mime_type: Option<MimeType>,
 }
 
@@ -175,6 +178,7 @@ pub struct ListResourcesResponse {
     /// List of available resources
     pub resources: Vec<Resource>,
     /// Optional cursor for next page of results
+    #[serde(rename = "nextCursor")]
     pub next_cursor: Option<String>,
 }
 

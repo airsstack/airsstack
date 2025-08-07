@@ -34,12 +34,14 @@ use super::capabilities::{ClientCapabilities, ServerCapabilities};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InitializeRequest {
     /// Protocol version being requested
+    #[serde(rename = "protocolVersion")]
     pub protocol_version: ProtocolVersion,
 
     /// Client capabilities
     pub capabilities: ClientCapabilities,
 
     /// Client information
+    #[serde(rename = "clientInfo")]
     pub client_info: ClientInfo,
 }
 
@@ -67,12 +69,14 @@ pub struct InitializeRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InitializeResponse {
     /// Protocol version being used
+    #[serde(rename = "protocolVersion")]
     pub protocol_version: ProtocolVersion,
 
     /// Server capabilities
     pub capabilities: ServerCapabilities,
 
     /// Server information
+    #[serde(rename = "serverInfo")]
     pub server_info: ServerInfo,
 
     /// Optional instructions for the client
