@@ -2,7 +2,6 @@
 members = [
     "crates/airs-mcp", 
     "crates/airs-memspec",
-    "examples/simple-mcp-server",
 ]
 resolver = "2"
 

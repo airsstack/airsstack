@@ -1,0 +1,18 @@
+[package]
+name = "simple-mcp-server"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+repository = "https://github.com/rstlix0x0/airs"
+rust-version = "1.70"
+description = "Simple MCP server example demonstrating airs-mcp usage"
+
+[workspace]
+
+[dependencies]
+airs-mcp = { path = "../.." }
+tokio = { version = "1.35", features = ["full"] }
+serde_json = { version = "1.0" }
+env_logger = { version = "0.11" }
+async-trait = { version = "0.1.88" }
