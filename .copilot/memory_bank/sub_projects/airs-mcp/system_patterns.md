@@ -6,11 +6,39 @@
 - Async-native performance: Tokio-based async, sub-ms latency, high throughput
 - Operational requirements: Structured logging, metrics, error handling, connection recovery, 24/7 stability
 
-## Core Component Design
+## MCP Protocol Compliance Patterns (CRITICAL ARCHITECTURE)
+
+### Field Naming Convention Compliance ✅ RESOLVED 2025-08-07
+- **JSON Serialization Standard**: All compound fields must serialize to camelCase per MCP specification
+- **Rust Implementation Pattern**: Use snake_case internally with `#[serde(rename = "camelCase")]` attributes
+- **Specification Alignment**: Direct mapping to official MCP TypeScript schema definitions
+- **Client Compatibility**: Ensures compatibility with Claude Desktop and other MCP clients
+
+**Field Mapping Standards:**
+```rust
+// Protocol message fields requiring camelCase serialization
+#[serde(rename = "protocolVersion")]  // initialization
+#[serde(rename = "clientInfo")]       // initialization  
+#[serde(rename = "serverInfo")]       // initialization
+#[serde(rename = "mimeType")]         // resources
+#[serde(rename = "uriTemplate")]      // resources
+#[serde(rename = "nextCursor")]       // pagination (resources, tools, prompts)
+#[serde(rename = "inputSchema")]      // tools
+#[serde(rename = "isError")]          // tools
+#[serde(rename = "progressToken")]    // tools
+```
+
+**Structural Compliance:**
+- `display_name` → `title` (field renamed to match official MCP specification)
+- All `title` fields are `Option<String>` per specification requirements
+- Maintains Rust ergonomics with internal snake_case while ensuring JSON compatibility
+
+### Protocol Message Architecture Patterns
 - **JSON-RPC 2.0 Foundation**: Complete message type system with serialization/deserialization ✅
 - **Correlation Manager**: Production-ready request/response correlation with DashMap, timeout management, background cleanup ✅
 - **Message validation and error handling**: Structured error system with 6 error variants and context ✅
 - **Advanced Concurrency**: Lock-free DashMap, oneshot channels, atomic operations, Arc shared ownership ✅
+- **MCP Protocol Compliance**: Field naming consistency with official specification, camelCase JSON serialization ✅
 
 ## Data Flow Architecture (IMPLEMENTED)
 - **Request Registration**: Unique ID generation → oneshot channel creation → DashMap storage ✅

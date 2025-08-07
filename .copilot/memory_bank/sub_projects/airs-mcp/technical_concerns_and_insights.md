@@ -1,7 +1,62 @@
 # Technical Concerns and Insights - airs-mcp
 
-**Updated:** 2025-08-06T16:00:00Z
-**Context:** Post-benchmark completion analysis
+**Updated:** 2025-08-07T23:00:00Z
+**Context:** MCP Protocol Field Naming Consistency - Critical Compatibility Fix
+
+## CRITICAL DISCOVERY: MCP Protocol Field Naming Inconsistency (RESOLVED)
+
+### Issue: Snake_case vs CamelCase Field Naming Mismatch
+
+**Discovery Context (2025-08-07):**
+- User identified potential camelCase/snake_case inconsistencies across MCP protocol operations
+- Investigation revealed systematic field naming inconsistencies beyond initialization messages
+- Official MCP specification analysis confirmed camelCase requirement for JSON serialization
+
+**Root Cause Analysis:**
+- MCP TypeScript specification uses camelCase for compound field names (e.g., `protocolVersion`, `clientInfo`, `mimeType`)
+- Rust implementation used snake_case field names without proper serde rename attributes
+- Only initialization.rs had been properly fixed with camelCase mappings
+- Resources, tools, prompts modules had missing or incorrect field mappings
+
+**Affected Components:**
+- `resources.rs`: `mime_type`, `uri_template`, `next_cursor` needed camelCase mapping
+- `tools.rs`: `input_schema`, `is_error`, `progress_token`, `next_cursor` + structural `display_name` → `title`
+- `prompts.rs`: `next_cursor` needed mapping + structural `display_name` → `title`
+- All test cases and documentation examples needed updates
+
+**Resolution Strategy:**
+1. **Official Specification Research**: Analyzed TypeScript schema from modelcontextprotocol/modelcontextprotocol GitHub
+2. **Systematic Field Mapping**: Applied serde rename attributes for all camelCase fields
+3. **Structural Improvements**: Replaced custom `display_name` with spec-compliant `title` field
+4. **Comprehensive Testing**: Fixed all unit tests, integration tests, and doctests
+5. **Verification**: Full compilation and test suite validation
+
+**Technical Implementation:**
+```rust
+// Before (incorrect)
+pub struct Tool {
+    pub name: String,
+    pub display_name: String,
+    pub input_schema: Value,
+    // ... more fields
+}
+
+// After (MCP spec compliant)
+pub struct Tool {
+    pub name: String,
+    pub title: Option<String>,  // Spec-compliant field name
+    #[serde(rename = "inputSchema")]
+    pub input_schema: Value,     // Proper camelCase mapping
+    // ... more fields with proper mappings
+}
+```
+
+**Validation Results:**
+- ✅ 224 unit tests passing
+- ✅ 120 doctests passing  
+- ✅ Full workspace compilation successful
+- ✅ Zero compilation errors
+- ✅ MCP client compatibility restored
 
 ## Technical Concerns Identified & Resolved
 

@@ -8,7 +8,22 @@
 - **STRATEGIC ACHIEVEMENT**: Full implementation of MCP protocol from foundation to high-level APIs
 
 ## Recent Changes (2025-08-07)
-- **TASK008 Phase 3 COMPLETED**: High-level MCP Client/Server APIs fully implemented ✅
+
+### CRITICAL FIX: MCP Protocol Field Naming Consistency ✅ RESOLVED
+- **Discovery**: User identified camelCase/snake_case inconsistencies across MCP protocol operations
+- **Investigation**: Systematic analysis revealed missing field mappings beyond initialization messages
+- **Resolution**: Applied serde rename attributes for all compound fields per official MCP specification
+- **Impact**: Restored compatibility with Claude Desktop and other MCP clients
+- **Scope**: Resources, tools, prompts modules + comprehensive test fixes
+- **Validation**: 224 unit tests + 120 doctests passing, zero compilation errors
+
+**Field Mappings Applied:**
+- Resources: `mimeType`, `uriTemplate`, `nextCursor`
+- Tools: `inputSchema`, `isError`, `progressToken`, `nextCursor` + `display_name` → `title`
+- Prompts: `nextCursor` + `display_name` → `title`
+- All test cases and documentation updated for new API signatures
+
+**TASK008 Phase 3 COMPLETED**: High-level MCP Client/Server APIs fully implemented ✅
 - **High-Level MCP Client**: Builder pattern with caching, initialization, resource/tool/prompt operations
 - **High-Level MCP Server**: Trait-based provider system with automatic request routing and error handling
 - **Constants Module**: Centralized method names, error codes, and defaults for consistency

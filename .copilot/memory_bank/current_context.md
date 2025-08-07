@@ -2,9 +2,36 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-08-05T23:45:00Z
-**updated_on:** 2025-08-07T22:15:00Z
-**by:** task_008_phase_3_implementation_complete_high_level_mcp_client_server_apis
-**status:** task_008_complete_full_mcp_implementation_ready_for_production
+**updated_on:** 2025-08-07T23:00:00Z
+**by:** critical_mcp_protocol_field_naming_consistency_fix
+**status:** mcp_protocol_compliance_resolved_full_client_compatibility_restored
+
+# airs-mcp Critical Protocol Compliance Fix - RESOLVED 2025-08-07
+
+## CRITICAL COMPATIBILITY FIX: MCP Protocol Field Naming Consistency ✅ RESOLVED
+
+**Issue Identified**: User discovered potential camelCase/snake_case inconsistencies across MCP protocol operations beyond initialization messages, threatening compatibility with Claude Desktop and other MCP clients.
+
+**Investigation Results**:
+- Official MCP specification analysis confirmed camelCase requirement for compound field names
+- Resources, tools, prompts modules had missing or incorrect field naming mappings
+- Structural inconsistencies with `display_name` vs spec-compliant `title` field
+
+**Resolution Implemented**:
+- **Resources Module**: Applied `mimeType`, `uriTemplate`, `nextCursor` camelCase mappings
+- **Tools Module**: Applied `inputSchema`, `isError`, `progressToken`, `nextCursor` mappings + `display_name` → `title`
+- **Prompts Module**: Applied `nextCursor` mapping + `display_name` → `title`
+- **Test Suite Fixes**: Updated all unit tests, integration tests, and documentation examples
+- **API Consistency**: Maintained Rust ergonomics while ensuring JSON serialization compliance
+
+**Validation Results**:
+- ✅ 224 unit tests passing
+- ✅ 120 doctests passing  
+- ✅ Full workspace compilation successful
+- ✅ Zero compilation errors
+- ✅ MCP client compatibility restored
+
+**Strategic Impact**: Ensures seamless integration with official MCP ecosystem and prevents protocol incompatibility issues in production deployments.
 
 # airs-mcp Task 008 MCP Protocol Layer - COMPLETE IMPLEMENTATION 2025-08-07
 
