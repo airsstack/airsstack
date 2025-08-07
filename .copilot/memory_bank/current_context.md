@@ -2,9 +2,58 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-08-05T23:45:00Z
-**updated_on:** 2025-08-07T23:50:00Z
-**by:** claude_desktop_integration_infrastructure_completed
-**status:** integration_infrastructure_ready_for_testing
+**updated_on:** 2025-08-07T23:55:00Z
+**by:** mcp_schema_compliance_fixes_completed
+**status:** mcp_schema_fully_compliant
+
+# MCP Schema Compliance Fixes - COMPLETE 2025-08-07
+
+## CRITICAL SCHEMA COMPLIANCE ISSUES RESOLVED ✅
+
+**Achievement**: Resolved all MCP protocol schema validation errors by implementing official MCP 2024-11-05 schema compliance.
+
+**Problems Identified & Resolved**:
+
+### 1. Content URI Validation Error ✅ FIXED
+**Issue**: MCP schema requires `TextResourceContents` and `BlobResourceContents` to have mandatory `uri` field
+**Root Cause**: Content enum variants missing required URI fields for resource responses
+**Solution**: Extended Content enum with optional `uri` fields and proper MCP schema mapping:
+- `Text` variant: Added optional `uri` and `mime_type` fields
+- `Image` variant: Added optional `uri` field  
+- Enhanced serialization with proper field renaming (`mimeType`, etc.)
+- Added convenience methods: `text_with_uri()`, `image_with_uri()`, `text_with_uri_and_mime_type()`
+
+### 2. Prompt Arguments Schema Mismatch ✅ FIXED  
+**Issue**: MCP schema expects `Prompt.arguments` as array of `PromptArgument` objects, not generic JSON
+**Root Cause**: Implementation used `serde_json::Value` instead of typed `Vec<PromptArgument>`
+**Solution**: Complete Prompt structure overhaul:
+- Changed `arguments: Value` → `arguments: Vec<PromptArgument>`
+- Updated all helper methods to work with structured arguments
+- Fixed example server to use proper `PromptArgument` objects
+- Enhanced validation and argument processing capabilities
+
+### 3. Resource Templates Support ✅ CONFIRMED WORKING
+**Issue**: "Method not found: resources/templates/list" 
+**Status**: Already implemented and working correctly
+
+### 4. NextCursor Serialization ✅ CONFIRMED WORKING
+**Issue**: "nextCursor expected string received null"
+**Status**: Already fixed with `skip_serializing_if` attributes
+
+**Official Schema Source**: https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2024-11-05/schema.json
+
+**Validation Results**:
+- ✅ MCP Inspector browser UI: No schema validation errors
+- ✅ JSON-RPC responses properly formatted with required fields
+- ✅ Content includes URI fields as per TextResourceContents/BlobResourceContents
+- ✅ Prompt arguments as structured array matching PromptArgument schema
+- ✅ Full protocol compliance with MCP 2024-11-05 specification
+
+**Implementation Impact**: 
+- Server responses now fully compliant with official MCP schema
+- Seamless integration with MCP Inspector and other MCP clients
+- Proper content handling for resource responses with URI tracking
+- Type-safe prompt argument handling with validation
 
 # airs-mcp Claude Desktop Integration Infrastructure - READY 2025-08-07
 
