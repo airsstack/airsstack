@@ -177,7 +177,7 @@ pub struct ListToolsResponse {
     /// List of available tools
     pub tools: Vec<Tool>,
     /// Optional cursor for next page of results
-    #[serde(rename = "nextCursor")]
+    #[serde(rename = "nextCursor", skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
 }
 

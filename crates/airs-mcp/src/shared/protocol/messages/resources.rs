@@ -178,7 +178,7 @@ pub struct ListResourcesResponse {
     /// List of available resources
     pub resources: Vec<Resource>,
     /// Optional cursor for next page of results
-    #[serde(rename = "nextCursor")]
+    #[serde(rename = "nextCursor", skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
 }
 
@@ -213,6 +213,90 @@ impl ListResourcesResponse {
 }
 
 impl JsonRpcMessage for ListResourcesResponse {}
+
+/// Request to list available resource templates
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::shared::protocol::ListResourceTemplatesRequest;
+///
+/// let request = ListResourceTemplatesRequest::new();
+/// let request_with_cursor = ListResourceTemplatesRequest::with_cursor("next_page_token");
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListResourceTemplatesRequest {
+    /// Optional cursor for pagination
+    pub cursor: Option<String>,
+}
+
+impl ListResourceTemplatesRequest {
+    /// Create a new list resource templates request
+    pub fn new() -> Self {
+        Self { cursor: None }
+    }
+
+    /// Create a new list resource templates request with cursor
+    pub fn with_cursor(cursor: impl Into<String>) -> Self {
+        Self {
+            cursor: Some(cursor.into()),
+        }
+    }
+}
+
+impl Default for ListResourceTemplatesRequest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl JsonRpcMessage for ListResourceTemplatesRequest {}
+
+/// Response containing available resource templates
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListResourceTemplatesResponse {
+    /// List of available resource templates
+    #[serde(rename = "resourceTemplates")]
+    pub resource_templates: Vec<ResourceTemplate>,
+    /// Optional cursor for next page of results
+    #[serde(rename = "nextCursor", skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+}
+
+impl ListResourceTemplatesResponse {
+    /// Create a new list resource templates response
+    pub fn new(resource_templates: Vec<ResourceTemplate>) -> Self {
+        Self {
+            resource_templates,
+            next_cursor: None,
+        }
+    }
+
+    /// Create a new list resource templates response with pagination
+    pub fn with_pagination(
+        resource_templates: Vec<ResourceTemplate>,
+        next_cursor: Option<String>,
+    ) -> Self {
+        Self {
+            resource_templates,
+            next_cursor,
+        }
+    }
+
+    /// Check if there are more resource templates available
+    #[must_use]
+    pub fn has_more(&self) -> bool {
+        self.next_cursor.is_some()
+    }
+
+    /// Get the number of resource templates in this response
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.resource_templates.len()
+    }
+}
+
+impl JsonRpcMessage for ListResourceTemplatesResponse {}
 
 /// Request to read a specific resource
 ///

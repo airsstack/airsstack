@@ -4,7 +4,6 @@
 //! prompt template discovery, retrieval, and argument processing.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
 
 use super::super::types::Content;
@@ -18,18 +17,16 @@ use crate::base::jsonrpc::message::JsonRpcMessage;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::shared::protocol::Prompt;
-/// use serde_json::json;
+/// use airs_mcp::shared::protocol::{Prompt, PromptArgument};
 ///
 /// let prompt = Prompt::new(
 ///     "code_review",
 ///     Some("Code Review Assistant"),
 ///     Some("Generate a code review for the given code"),
-///     json!([{
-///         "name": "code",
-///         "description": "The code to review",
-///         "required": true
-///     }])
+///     vec![
+///         PromptArgument::required("code", Some("The code to review")),
+///         PromptArgument::optional("language", Some("Programming language"))
+///     ]
 /// );
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -40,8 +37,8 @@ pub struct Prompt {
     pub title: Option<String>,
     /// Optional description of the prompt's purpose
     pub description: Option<String>,
-    /// Schema describing the prompt's arguments
-    pub arguments: Value,
+    /// Array of arguments this prompt accepts (per MCP schema)
+    pub arguments: Vec<PromptArgument>,
 }
 
 impl Prompt {
@@ -50,25 +47,20 @@ impl Prompt {
     /// # Examples
     ///
     /// ```rust
-    /// use airs_mcp::shared::protocol::Prompt;
-    /// use serde_json::json;
+    /// use airs_mcp::shared::protocol::{Prompt, PromptArgument};
     ///
     /// let prompt = Prompt::new(
     ///     "summarize",
     ///     Some("Text Summarizer"),
     ///     Some("Summarize the provided text"),
-    ///     json!([{
-    ///         "name": "text",
-    ///         "description": "Text to summarize",
-    ///         "required": true
-    ///     }])
+    ///     vec![PromptArgument::required("text", Some("Text to summarize"))]
     /// );
     /// ```
     pub fn new(
         name: impl Into<String>,
         title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
-        arguments: Value,
+        arguments: Vec<PromptArgument>,
     ) -> Self {
         Self {
             name: name.into(),
@@ -86,14 +78,8 @@ impl Prompt {
         argument_name: impl Into<String>,
         argument_description: Option<impl Into<String>>,
     ) -> Self {
-        let arg_desc = argument_description.map(|d| d.into());
-        let arguments = serde_json::json!([{
-            "name": argument_name.into(),
-            "description": arg_desc,
-            "required": true
-        }]);
-
-        Self::new(name, title, description, arguments)
+        let argument = PromptArgument::required(argument_name, argument_description);
+        Self::new(name, title, description, vec![argument])
     }
 
     /// Create a prompt with no arguments
@@ -102,56 +88,69 @@ impl Prompt {
         title: Option<impl Into<String>>,
         description: Option<impl Into<String>>,
     ) -> Self {
-        Self::new(name, title, description, serde_json::json!([]))
+        Self::new(name, title, description, vec![])
+    }
+
+    /// Get required argument names
+    pub fn required_arguments(&self) -> Vec<&str> {
+        self.arguments
+            .iter()
+            .filter(|arg| arg.required)
+            .map(|arg| arg.name.as_str())
+            .collect()
+    }
+
+    /// Get optional argument names
+    pub fn optional_arguments(&self) -> Vec<&str> {
+        self.arguments
+            .iter()
+            .filter(|arg| !arg.required)
+            .map(|arg| arg.name.as_str())
+            .collect()
+    }
+
+    /// Get all argument names
+    pub fn all_arguments(&self) -> Vec<&str> {
+        self.arguments.iter().map(|arg| arg.name.as_str()).collect()
+    }
+
+    /// Check if a specific argument is required
+    pub fn is_argument_required(&self, name: &str) -> bool {
+        self.arguments
+            .iter()
+            .find(|arg| arg.name == name)
+            .map(|arg| arg.required)
+            .unwrap_or(false)
+    }
+
+    /// Get argument by name
+    pub fn get_argument(&self, name: &str) -> Option<&PromptArgument> {
+        self.arguments.iter().find(|arg| arg.name == name)
+    }
+
+    /// Validate provided arguments against prompt requirements
+    pub fn validate_arguments(&self, provided: &HashMap<String, String>) -> Result<(), String> {
+        // Check all required arguments are provided
+        for arg in &self.arguments {
+            if arg.required && !provided.contains_key(&arg.name) {
+                return Err(format!("Missing required argument: {}", arg.name));
+            }
+        }
+
+        // Check no extra arguments are provided
+        for key in provided.keys() {
+            if !self.arguments.iter().any(|arg| arg.name == *key) {
+                return Err(format!("Unknown argument: {key}"));
+            }
+        }
+
+        Ok(())
     }
 
     /// Check if this prompt requires no arguments
     #[must_use]
     pub fn is_parameterless(&self) -> bool {
-        if let Some(array) = self.arguments.as_array() {
-            array.is_empty()
-        } else {
-            false
-        }
-    }
-
-    /// Get the required argument names for this prompt
-    #[must_use]
-    pub fn required_arguments(&self) -> Vec<String> {
-        if let Some(array) = self.arguments.as_array() {
-            array
-                .iter()
-                .filter_map(|arg| {
-                    let obj = arg.as_object()?;
-                    let is_required = obj.get("required")?.as_bool().unwrap_or(false);
-                    if is_required {
-                        obj.get("name")?.as_str().map(|s| s.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        } else {
-            Vec::new()
-        }
-    }
-
-    /// Get all argument names (required and optional)
-    #[must_use]
-    pub fn all_arguments(&self) -> Vec<String> {
-        if let Some(array) = self.arguments.as_array() {
-            array
-                .iter()
-                .filter_map(|arg| {
-                    arg.as_object()?
-                        .get("name")?
-                        .as_str()
-                        .map(|s| s.to_string())
-                })
-                .collect()
-        } else {
-            Vec::new()
-        }
+        self.arguments.is_empty()
     }
 }
 
@@ -236,7 +235,7 @@ pub struct ListPromptsResponse {
     /// List of available prompts
     pub prompts: Vec<Prompt>,
     /// Optional cursor for next page of results
-    #[serde(rename = "nextCursor")]
+    #[serde(rename = "nextCursor", skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,
 }
 
@@ -490,7 +489,6 @@ impl JsonRpcMessage for GetPromptResponse {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_prompt_creation() {
@@ -498,11 +496,7 @@ mod tests {
             "test_prompt",
             Some("Test Prompt"),
             Some("A test prompt"),
-            json!([{
-                "name": "input",
-                "description": "Test input",
-                "required": true
-            }]),
+            vec![PromptArgument::required("input", Some("Test input"))],
         );
 
         assert_eq!(prompt.name, "test_prompt");

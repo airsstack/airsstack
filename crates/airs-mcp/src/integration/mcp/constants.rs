@@ -15,6 +15,7 @@ pub mod methods {
     pub const RESOURCES_READ: &str = "resources/read";
     pub const RESOURCES_SUBSCRIBE: &str = "resources/subscribe";
     pub const RESOURCES_UNSUBSCRIBE: &str = "resources/unsubscribe";
+    pub const RESOURCES_TEMPLATES_LIST: &str = "resources/templates/list";
 
     /// Tool-related methods
     pub const TOOLS_LIST: &str = "tools/list";

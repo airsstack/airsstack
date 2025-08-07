@@ -214,8 +214,8 @@ pub use transport::{
 
 // Re-export protocol types for convenience
 pub use shared::protocol::{
-    Base64Data, ClientInfo, Content, MimeType, ProtocolError, ProtocolResult, ProtocolVersion,
-    ServerInfo, Uri,
+    Base64Data, ClientInfo, Content, ListResourceTemplatesRequest, ListResourceTemplatesResponse,
+    MimeType, ProtocolError, ProtocolResult, ProtocolVersion, ResourceTemplate, ServerInfo, Uri,
 };
 
 // Version information

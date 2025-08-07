@@ -15,11 +15,11 @@ use crate::integration::JsonRpcServer;
 use crate::shared::protocol::{
     CallToolRequest, CallToolResponse, ClientCapabilities, Content, GetPromptRequest,
     GetPromptResponse, InitializeRequest, InitializeResponse, ListPromptsResponse,
-    ListResourcesResponse, ListToolsResponse, LoggingCapabilities, LoggingConfig, Prompt,
-    PromptCapabilities, PromptMessage, ProtocolVersion, ReadResourceRequest, ReadResourceResponse,
-    Resource, ResourceCapabilities, ServerCapabilities, ServerInfo, SetLoggingRequest,
-    SetLoggingResponse, SubscribeResourceRequest, Tool, ToolCapabilities,
-    UnsubscribeResourceRequest,
+    ListResourceTemplatesResponse, ListResourcesResponse, ListToolsResponse, LoggingCapabilities,
+    LoggingConfig, Prompt, PromptCapabilities, PromptMessage, ProtocolVersion, ReadResourceRequest,
+    ReadResourceResponse, Resource, ResourceCapabilities, ResourceTemplate, ServerCapabilities,
+    ServerInfo, SetLoggingRequest, SetLoggingResponse, SubscribeResourceRequest, Tool,
+    ToolCapabilities, UnsubscribeResourceRequest,
 };
 use crate::transport::Transport;
 
@@ -30,6 +30,12 @@ use super::error::{McpError, McpResult};
 pub trait ResourceProvider: Send + Sync {
     /// List all available resources
     async fn list_resources(&self) -> McpResult<Vec<Resource>>;
+
+    /// List all available resource templates
+    async fn list_resource_templates(&self) -> McpResult<Vec<ResourceTemplate>> {
+        // Default implementation returns empty list
+        Ok(vec![])
+    }
 
     /// Read content from a specific resource
     async fn read_resource(&self, uri: &str) -> McpResult<Vec<Content>>;
@@ -324,7 +330,8 @@ impl<T: Transport + 'static> McpServer<T> {
             async move {
                 // Handle MCP notifications (like "initialized")
                 if notification.method == "initialized" {
-                    eprintln!("✅ Client initialized successfully");
+                    // Log to file only, never to stdout/stderr which would contaminate JSON-RPC stream
+                    tracing::info!("✅ Client initialized successfully");
                 }
                 // Other notifications can be handled here in the future
             }
@@ -350,7 +357,8 @@ impl<T: Transport + 'static> McpServer<T> {
         initialized: Arc<RwLock<bool>>,
     ) -> JsonRpcResponse {
         if config.log_operations {
-            eprintln!("MCP Request: {} - {}", request.method, request.id);
+            // Log to file only, never to stdout/stderr which would contaminate JSON-RPC stream
+            tracing::debug!("MCP Request: {} - {}", request.method, request.id);
         }
 
         let result = match request.method.as_str() {
@@ -359,6 +367,9 @@ impl<T: Transport + 'static> McpServer<T> {
                     .await
             }
             methods::RESOURCES_LIST => Self::handle_list_resources(resource_provider).await,
+            methods::RESOURCES_TEMPLATES_LIST => {
+                Self::handle_list_resource_templates(resource_provider).await
+            }
             methods::RESOURCES_READ => {
                 Self::handle_read_resource(request.params, resource_provider).await
             }
@@ -477,6 +488,25 @@ impl<T: Transport + 'static> McpServer<T> {
 
         serde_json::to_value(response)
             .map_err(|e| McpError::internal_error(format!("Failed to serialize response: {e}")))
+    }
+
+    async fn handle_list_resource_templates(
+        resource_provider: Option<Arc<dyn ResourceProvider>>,
+    ) -> McpResult<Value> {
+        let provider =
+            resource_provider.ok_or_else(|| McpError::unsupported_capability("resources"))?;
+
+        let resource_templates = provider.list_resource_templates().await?;
+        let response = ListResourceTemplatesResponse {
+            resource_templates,
+            next_cursor: None,
+        };
+
+        serde_json::to_value(response).map_err(|e| {
+            McpError::internal_error(format!(
+                "Failed to serialize resource templates response: {e}"
+            ))
+        })
     }
 
     async fn handle_read_resource(
