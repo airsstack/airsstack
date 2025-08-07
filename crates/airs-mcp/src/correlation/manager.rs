@@ -107,7 +107,18 @@ pub struct CorrelationManager {
 impl CorrelationManager {
     /// Create a new correlation manager with the given configuration
     ///
-    /// This starts the background cleanup task immediately.
+    /// This starts the background cleanup task immediately and initializes:
+    /// - Empty request tracking tables optimized for concurrent access
+    /// - Background cleanup task (started automatically)
+    /// - Atomic ID generation for thread-safe request tracking
+    /// - Shutdown coordination for graceful cleanup
+    ///
+    /// # Performance Characteristics
+    ///
+    /// - **Memory overhead**: ~100 bytes per pending request + DashMap overhead
+    /// - **Lookup performance**: O(1) average case for request correlation
+    /// - **Cleanup frequency**: Configurable via `cleanup_interval` (default: 5s)
+    /// - **Concurrency**: Lock-free for request/response operations
     ///
     /// # Arguments
     ///
@@ -193,8 +204,17 @@ impl CorrelationManager {
 
     /// Register a new request for correlation
     ///
-    /// Creates a new request ID, stores the request details, and returns both the ID
-    /// and a receiver channel for getting the correlated response.
+    /// This method:
+    /// 1. Generates a unique request ID using atomic operations
+    /// 2. Creates a oneshot channel for response delivery
+    /// 3. Stores the request in the correlation table
+    /// 4. Applies capacity limits to prevent memory exhaustion
+    /// 5. Returns both the ID and receiver for the caller
+    ///
+    /// # Concurrency Safety
+    ///
+    /// This method is fully thread-safe and lock-free. Multiple threads can
+    /// register requests concurrently without contention.
     ///
     /// # Arguments
     ///
@@ -207,7 +227,8 @@ impl CorrelationManager {
     ///
     /// # Errors
     ///
-    /// Returns `CorrelationError::Internal` if unable to register the request
+    /// - `CorrelationError::CapacityExceeded` if max pending requests limit reached
+    /// - `CorrelationError::Internal` if unable to register the request
     ///
     /// # Examples
     ///

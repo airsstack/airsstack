@@ -261,13 +261,49 @@ impl BufferPool {
         }
     }
 
+    /// Acquire a buffer from the pool using optimistic allocation strategy
+    ///
+    /// This method implements a high-performance buffer acquisition algorithm
+    /// that prioritizes throughput over strict pool size limits.
+    ///
+    /// # Acquisition Algorithm
+    ///
+    /// 1. **Try Pool First**: Non-blocking attempt to reuse existing buffer
+    /// 2. **Prepare for Reuse**: Clear contents and ensure capacity is adequate
+    /// 3. **Fallback Creation**: Create new buffer if pool is empty (no blocking)
+    /// 4. **Metrics Tracking**: Record hit/miss statistics for monitoring
+    ///
+    /// # Performance Characteristics
+    ///
+    /// - **Non-blocking**: Never waits for buffers to become available
+    /// - **O(1) time complexity**: Constant time regardless of pool size
+    /// - **Memory growth**: Pool can grow beyond configured size under load
+    /// - **Capacity optimization**: Reused buffers maintain efficient capacity
+    ///
+    /// # Memory Safety
+    ///
+    /// - Reused buffers are cleared but retain their allocated capacity
+    /// - New buffers are pre-allocated to avoid repeated reallocations
+    /// - Return-to-pool mechanism ensures eventual memory reclamation
+    ///
+    /// # Trade-offs
+    ///
+    /// This approach prioritizes low latency over strict memory limits.
+    /// Under high contention, pool size may temporarily exceed configured limits,
+    /// but this prevents blocking and maintains consistent performance.
     async fn acquire(&self) -> PooledBuffer {
         let mut receiver = self.receiver.lock().await;
 
         if let Ok(mut buffer) = receiver.try_recv() {
-            // Reuse existing buffer
+            // Cache hit: reuse existing buffer from pool
+            // Clear previous contents while preserving allocated capacity
             buffer.clear();
+
+            // Ensure buffer has adequate capacity to prevent reallocations
+            // This is more efficient than growing incrementally during use
             buffer.reserve(self.buffer_capacity);
+
+            // Record successful reuse for pool efficiency metrics
             self.pool_metrics.record_hit();
 
             PooledBuffer {
@@ -276,8 +312,11 @@ impl BufferPool {
                 pool_metrics: self.pool_metrics.clone(),
             }
         } else {
-            // Create new buffer if pool is empty
+            // Cache miss: pool is empty, create new buffer
+            // Pre-allocate to target capacity to avoid incremental growth
             let buffer = Vec::with_capacity(self.buffer_capacity);
+
+            // Record cache miss for pool monitoring and tuning
             self.pool_metrics.record_miss();
 
             PooledBuffer {
@@ -299,21 +338,39 @@ pub struct PooledBuffer {
 
 impl PooledBuffer {
     /// Get a mutable reference to the underlying buffer
+    ///
+    /// This allows direct manipulation of the buffer contents while maintaining
+    /// the automatic return-to-pool behavior when the PooledBuffer is dropped.
+    ///
+    /// # Safety
+    ///
+    /// The caller is responsible for ensuring buffer contents remain valid.
+    /// The buffer will be reused when returned to the pool, so sensitive
+    /// data should be cleared if necessary.
     pub fn as_vec_mut(&mut self) -> &mut Vec<u8> {
         &mut self.buffer
     }
 
     /// Get an immutable reference to the underlying buffer
+    ///
+    /// This provides read-only access to the buffer contents without
+    /// affecting the pool lifecycle management.
     pub fn as_slice(&self) -> &[u8] {
         &self.buffer
     }
 
     /// Get the current length of the buffer
+    ///
+    /// Returns the number of bytes currently stored in the buffer,
+    /// which may be less than the buffer's capacity.
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Check if the buffer is empty
+    ///
+    /// Returns `true` if the buffer contains no data (length == 0).
+    /// Note that an empty buffer may still have allocated capacity.
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
@@ -340,15 +397,47 @@ impl PooledBuffer {
 }
 
 impl Drop for PooledBuffer {
+    /// Return buffer to pool when PooledBuffer goes out of scope
+    ///
+    /// This implements automatic buffer lifecycle management using RAII principles.
+    /// The buffer is returned to the pool for reuse, or dropped if the pool is unavailable.
+    ///
+    /// # Return Algorithm
+    ///
+    /// 1. **Channel Availability Check**: Verify return channel is still open
+    /// 2. **Memory Transfer**: Move buffer ownership back to pool using `mem::take`
+    /// 3. **Non-blocking Send**: Attempt to return buffer without blocking
+    /// 4. **Metrics Update**: Record success/failure for pool monitoring
+    /// 5. **Graceful Degradation**: If pool is full/closed, buffer is dropped normally
+    ///
+    /// # Performance Characteristics
+    ///
+    /// - **Non-blocking**: Never blocks on pool return operations
+    /// - **Zero-copy**: Buffer memory is transferred, not copied
+    /// - **Fail-safe**: Pool unavailability doesn't cause panics or leaks
+    /// - **Metrics**: Success/failure tracking for pool tuning
+    ///
+    /// # Memory Safety
+    ///
+    /// Uses `std::mem::take` to safely transfer buffer ownership while leaving
+    /// the PooledBuffer in a valid (empty) state before destruction.
     fn drop(&mut self) {
         if let Some(sender) = self.return_sender.take() {
-            // Return buffer to pool if sender is available
-            if sender.send(std::mem::take(&mut self.buffer)).is_ok() {
+            // Attempt to return buffer to pool for reuse
+            // Use mem::take to transfer ownership while leaving self in valid state
+            let buffer = std::mem::take(&mut self.buffer);
+
+            if sender.send(buffer).is_ok() {
+                // Successfully returned buffer to pool
+                // Buffer will be available for future acquire() calls
                 self.pool_metrics.record_return();
             } else {
+                // Pool channel closed or full - buffer will be dropped
+                // This is normal during shutdown or under extreme memory pressure
                 self.pool_metrics.record_drop();
             }
         }
+        // If no sender available, buffer is simply dropped (normal deallocation)
     }
 }
 

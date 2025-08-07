@@ -185,6 +185,22 @@ impl MessageRouter {
 
     /// Route a request to the appropriate handler and generate response
     ///
+    /// This method implements the core request routing logic with comprehensive
+    /// error handling that always returns a valid JSON-RPC response when possible.
+    ///
+    /// # Routing Algorithm
+    ///
+    /// 1. **Handler Lookup**: O(1) HashMap lookup for registered method handlers
+    /// 2. **Request Processing**: Delegate to handler with context preservation
+    /// 3. **Error Translation**: Convert integration errors to JSON-RPC error responses
+    /// 4. **Response Generation**: Always return valid JSON-RPC response format
+    ///
+    /// # Error Handling Strategy
+    ///
+    /// - **Handler Errors**: Converted to JSON-RPC error responses with code -32603
+    /// - **Missing Handlers**: Configurable behavior (error response vs exception)
+    /// - **ID Preservation**: Request ID always preserved in responses for correlation
+    ///
     /// # Arguments
     ///
     /// * `request` - Request to route
@@ -197,11 +213,17 @@ impl MessageRouter {
         &self,
         request: &JsonRpcRequest,
     ) -> IntegrationResult<JsonRpcResponse> {
+        // Attempt O(1) handler lookup using method name as key
         if let Some(handler) = self.request_handlers.get(&request.method) {
+            // Handler found - delegate processing and handle results
             match handler.handle_request(request).await {
-                Ok(result) => Ok(JsonRpcResponse::success(result, request.id.clone())),
+                Ok(result) => {
+                    // Success case: wrap result in JSON-RPC success response
+                    Ok(JsonRpcResponse::success(result, request.id.clone()))
+                }
                 Err(e) => {
-                    // Convert error to JSON-RPC error response
+                    // Handler error: convert to JSON-RPC error response to maintain protocol compliance
+                    // Using -32603 (Internal error) as per JSON-RPC 2.0 specification
                     let error_value = serde_json::json!({
                         "code": -32603, // Internal error
                         "message": e.to_string()
@@ -213,11 +235,13 @@ impl MessageRouter {
                 }
             }
         } else {
+            // No handler registered for this method - handle according to configuration
             if self.config.log_unhandled {
                 eprintln!("Unhandled request: {}", request.method);
             }
 
             if self.config.error_on_unhandled_requests {
+                // Return JSON-RPC error response (maintains protocol compliance)
                 let error_value = serde_json::json!({
                     "code": self.config.unhandled_error_code,
                     "message": format!("Method '{}' not found", request.method)
@@ -227,6 +251,7 @@ impl MessageRouter {
                     Some(request.id.clone()),
                 ))
             } else {
+                // Alternative: throw integration error (breaks protocol compliance)
                 Err(IntegrationError::routing(format!(
                     "No handler registered for request method '{}'",
                     request.method

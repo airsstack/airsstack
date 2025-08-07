@@ -325,15 +325,20 @@ impl<T: Transport + 'static> McpServer<T> {
             }
         };
 
-        // Set up notification handler
+        // Set up notification handler for MCP lifecycle events
         let notification_handler = move |notification: JsonRpcNotification| {
             async move {
                 // Handle MCP notifications (like "initialized")
                 if notification.method == "initialized" {
                     // Log to file only, never to stdout/stderr which would contaminate JSON-RPC stream
+                    // This notification indicates the client has completed initialization
+                    // and is ready to begin normal MCP operations
                     tracing::info!("✅ Client initialized successfully");
                 }
-                // Other notifications can be handled here in the future
+                // Future notification types can be handled here:
+                // - "cancelled" - for request cancellation
+                // - "progress" - for progress updates
+                // - Custom application-specific notifications
             }
         };
 
@@ -345,6 +350,38 @@ impl<T: Transport + 'static> McpServer<T> {
     }
 
     /// Handle an incoming MCP request
+    ///
+    /// This is the core request routing and processing function that:
+    /// 1. Routes requests to appropriate handler methods based on method name
+    /// 2. Enforces MCP protocol compliance and validation
+    /// 3. Applies consistent error handling and response formatting
+    /// 4. Maintains operation logging when enabled
+    /// 5. Ensures type-safe parameter handling and result serialization
+    ///
+    /// # Request Processing Flow
+    ///
+    /// 1. **Logging**: Optional operation logging (file-only, never stdout/stderr)
+    /// 2. **Routing**: Method name-based dispatch to specific handlers
+    /// 3. **Validation**: Parameter validation and capability checking
+    /// 4. **Execution**: Provider method invocation with error handling
+    /// 5. **Response**: JSON-RPC response formatting with proper error codes
+    ///
+    /// # Error Handling
+    ///
+    /// All errors are mapped to appropriate JSON-RPC error codes:
+    /// - `METHOD_NOT_FOUND`: Unsupported or unknown methods
+    /// - `INVALID_PARAMS`: Parameter validation failures
+    /// - `INTERNAL_ERROR`: Server-side processing errors
+    ///
+    /// # MCP Methods Supported
+    ///
+    /// - **Initialization**: `initialize` - Server capability negotiation
+    /// - **Resources**: `resources/list`, `resources/read`, `resources/subscribe`
+    /// - **Tools**: `tools/list`, `tools/call` - Function execution
+    /// - **Prompts**: `prompts/list`, `prompts/get` - Template management
+    /// - **Logging**: `logging/setLevel` - Log level configuration
+    /// - **Utility**: `ping` - Health check
+    ///
     #[allow(clippy::too_many_arguments)]
     async fn handle_request(
         request: JsonRpcRequest,
