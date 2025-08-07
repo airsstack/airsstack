@@ -37,7 +37,7 @@
 //!
 //! // All validation happens at construction time
 //! assert_eq!(uri.scheme(), Some("file"));
-//! assert_eq!(version.as_str(), "2025-06-18");
+//! assert_eq!(version.as_str(), "2024-11-05");
 //! # Ok(())
 //! # }
 //! ```

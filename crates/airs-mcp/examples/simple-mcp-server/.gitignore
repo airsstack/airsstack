@@ -1,0 +1,16 @@
+# Generated Claude Desktop configuration
+claude_config.json
+
+# Build artifacts
+/target/
+
+# IDE files (example-specific)
+.vscode/settings.json
+.idea/
+
+# Platform-specific files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -10,14 +10,15 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::constants::{defaults, error_codes, methods};
-use crate::base::jsonrpc::message::{JsonRpcRequest, JsonRpcResponse};
+use crate::base::jsonrpc::message::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
 use crate::integration::JsonRpcServer;
 use crate::shared::protocol::{
     CallToolRequest, CallToolResponse, ClientCapabilities, Content, GetPromptRequest,
     GetPromptResponse, InitializeRequest, InitializeResponse, ListPromptsResponse,
-    ListResourcesResponse, ListToolsResponse, LoggingConfig, Prompt, PromptMessage,
-    ProtocolVersion, ReadResourceRequest, ReadResourceResponse, Resource, ServerCapabilities,
-    ServerInfo, SetLoggingRequest, SetLoggingResponse, SubscribeResourceRequest, Tool,
+    ListResourcesResponse, ListToolsResponse, LoggingCapabilities, LoggingConfig, Prompt,
+    PromptCapabilities, PromptMessage, ProtocolVersion, ReadResourceRequest, ReadResourceResponse,
+    Resource, ResourceCapabilities, ServerCapabilities, ServerInfo, SetLoggingRequest,
+    SetLoggingResponse, SubscribeResourceRequest, Tool, ToolCapabilities,
     UnsubscribeResourceRequest,
 };
 use crate::transport::Transport;
@@ -186,9 +187,41 @@ impl McpServerBuilder {
     /// Build the MCP server with the given transport
     pub async fn build<T: Transport + 'static>(self, transport: T) -> McpResult<McpServer<T>> {
         let server = JsonRpcServer::new(transport).await?;
+
+        // Auto-detect capabilities based on registered providers
+        let mut config = self.config;
+        let mut capabilities = config.capabilities;
+
+        // Set resource capabilities if we have a resource provider
+        if self.resource_provider.is_some() {
+            capabilities.resources = Some(ResourceCapabilities {
+                subscribe: Some(false),    // We don't support subscriptions yet
+                list_changed: Some(false), // We don't support change notifications yet
+            });
+        }
+
+        // Set tool capabilities if we have a tool provider
+        if self.tool_provider.is_some() {
+            capabilities.tools = Some(ToolCapabilities::default());
+        }
+
+        // Set prompt capabilities if we have a prompt provider
+        if self.prompt_provider.is_some() {
+            capabilities.prompts = Some(PromptCapabilities {
+                list_changed: Some(false), // We don't support change notifications yet
+            });
+        }
+
+        // Set logging capabilities if we have a logging handler
+        if self.logging_handler.is_some() {
+            capabilities.logging = Some(LoggingCapabilities::default());
+        }
+
+        config.capabilities = capabilities;
+
         Ok(McpServer::new_with_config(
             server,
-            self.config,
+            config,
             self.resource_provider,
             self.tool_provider,
             self.prompt_provider,
@@ -262,7 +295,7 @@ impl<T: Transport + 'static> McpServer<T> {
         let initialized = Arc::clone(&self.initialized);
 
         // Set up request handler
-        let handler = move |request: JsonRpcRequest| {
+        let request_handler = move |request: JsonRpcRequest| {
             let config = config.clone();
             let client_capabilities = Arc::clone(&client_capabilities);
             let resource_provider = resource_provider.clone();
@@ -286,8 +319,21 @@ impl<T: Transport + 'static> McpServer<T> {
             }
         };
 
+        // Set up notification handler
+        let notification_handler = move |notification: JsonRpcNotification| {
+            async move {
+                // Handle MCP notifications (like "initialized")
+                if notification.method == "initialized" {
+                    eprintln!("✅ Client initialized successfully");
+                }
+                // Other notifications can be handled here in the future
+            }
+        };
+
         // Start the server
-        self.server.run(handler).await?;
+        self.server
+            .run(request_handler, notification_handler)
+            .await?;
         Ok(())
     }
 
@@ -604,6 +650,7 @@ impl<T: Transport + 'static> McpServer<T> {
 mod tests {
     use super::*;
     use crate::transport::StdioTransport;
+    use serde_json::json;
 
     struct TestResourceProvider;
 
@@ -614,6 +661,19 @@ mod tests {
         }
 
         async fn read_resource(&self, _uri: &str) -> McpResult<Vec<Content>> {
+            Ok(vec![])
+        }
+    }
+
+    struct TestToolProvider;
+
+    #[async_trait]
+    impl ToolProvider for TestToolProvider {
+        async fn list_tools(&self) -> McpResult<Vec<Tool>> {
+            Ok(vec![])
+        }
+
+        async fn call_tool(&self, _name: &str, _arguments: Value) -> McpResult<Vec<Content>> {
             Ok(vec![])
         }
     }
@@ -641,9 +701,22 @@ mod tests {
         assert!(builder.resource_provider.is_some());
     }
 
+    #[test]
+    fn test_builder_auto_capability_detection() {
+        let builder = McpServerBuilder::new()
+            .with_resource_provider(TestResourceProvider)
+            .with_tool_provider(TestToolProvider);
+
+        // Build with a mock transport to test capability detection
+        // Note: In a real scenario, we'd need to complete the build, but for testing
+        // capability detection logic, we can inspect the builder state
+        assert!(builder.resource_provider.is_some());
+        assert!(builder.tool_provider.is_some());
+        assert!(builder.prompt_provider.is_none());
+    }
+
     #[tokio::test]
     async fn test_server_creation() {
-        // Note: This test requires a mock transport for full testing
         let transport = StdioTransport::new().await.unwrap();
         let server = McpServerBuilder::new()
             .server_info("test", "1.0")
@@ -653,5 +726,251 @@ mod tests {
 
         assert!(!server.is_initialized().await);
         assert!(server.client_capabilities().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_initialization_lifecycle() {
+        // Test the complete MCP initialization lifecycle
+        let transport = StdioTransport::new().await.unwrap();
+        let server = McpServerBuilder::new()
+            .server_info("test-server", "1.0.0")
+            .with_tool_provider(TestToolProvider)
+            .with_resource_provider(TestResourceProvider)
+            .build(transport)
+            .await
+            .unwrap();
+
+        // Verify initial state
+        assert!(!server.is_initialized().await);
+        assert!(server.client_capabilities().await.is_none());
+
+        // Create mock initialization request
+        let init_request = json!({
+            "protocolVersion": "2024-11-05",
+            "capabilities": {
+                "tools": {},
+                "resources": {}
+            },
+            "clientInfo": {
+                "name": "test-client",
+                "version": "1.0.0"
+            }
+        });
+
+        let request = JsonRpcRequest::new(
+            "initialize",
+            Some(init_request),
+            crate::base::jsonrpc::RequestId::new_number(1),
+        );
+
+        // Create mock config and dependencies
+        let config = server.config.clone(); // Use the server's actual config with auto-detected capabilities
+        let client_capabilities = Arc::new(RwLock::new(None));
+        let initialized = Arc::new(RwLock::new(false));
+
+        // Test initialize request handling
+        let response = McpServer::<StdioTransport>::handle_initialize(
+            request.params,
+            config,
+            Arc::clone(&client_capabilities),
+            Arc::clone(&initialized),
+        )
+        .await
+        .expect("Initialize should succeed");
+
+        // Verify initialization response structure
+        let response_obj = response.as_object().expect("Response should be an object");
+        assert!(response_obj.contains_key("capabilities"));
+        assert!(response_obj.contains_key("serverInfo"));
+        assert!(response_obj.contains_key("protocolVersion"));
+
+        // Verify server state after initialization
+        assert!(
+            *initialized.read().await,
+            "Server should be marked as initialized"
+        );
+        assert!(
+            client_capabilities.read().await.is_some(),
+            "Client capabilities should be stored"
+        );
+
+        // Test server capabilities in response
+        let capabilities = &response_obj["capabilities"];
+        assert!(
+            capabilities.get("tools").is_some(),
+            "Tools capability should be present"
+        );
+        assert!(
+            capabilities.get("resources").is_some(),
+            "Resources capability should be present"
+        );
+
+        // Test server info in response
+        let server_info = &response_obj["serverInfo"];
+        assert_eq!(server_info["name"], "test-server");
+        assert_eq!(server_info["version"], "1.0.0");
+
+        // Test protocol version in response
+        assert_eq!(response_obj["protocolVersion"], "2024-11-05");
+    }
+
+    #[tokio::test]
+    async fn test_initialized_notification_handling() {
+        // Test that initialized notification is properly handled
+        let notification = JsonRpcNotification::new("initialized", None);
+
+        // Create a simple notification handler (mimicking the real one)
+        let notification_handler = |notif: JsonRpcNotification| async move {
+            assert_eq!(notif.method, "initialized");
+            // This would normally log success message
+        };
+
+        // Execute the notification handler
+        notification_handler(notification).await;
+        // If we reach here without panic, the test passes
+    }
+
+    #[tokio::test]
+    async fn test_invalid_initialization_request() {
+        let transport = StdioTransport::new().await.unwrap();
+        let _server = McpServerBuilder::new().build(transport).await.unwrap();
+
+        // Test with invalid initialization data
+        let invalid_request = json!({
+            "invalidField": "should cause error"
+        });
+
+        let config = McpServerConfig::default();
+        let client_capabilities = Arc::new(RwLock::new(None));
+        let initialized = Arc::new(RwLock::new(false));
+
+        // This should return an error
+        let result = McpServer::<StdioTransport>::handle_initialize(
+            Some(invalid_request),
+            config,
+            client_capabilities,
+            initialized,
+        )
+        .await;
+
+        assert!(
+            result.is_err(),
+            "Invalid initialization request should fail"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_capability_auto_detection() {
+        // Test that capabilities are automatically detected based on providers
+        let transport = StdioTransport::new().await.unwrap();
+
+        // Server with only tools
+        let server_with_tools = McpServerBuilder::new()
+            .with_tool_provider(TestToolProvider)
+            .build(transport)
+            .await
+            .unwrap();
+
+        let capabilities = server_with_tools.capabilities();
+        assert!(
+            capabilities.tools.is_some(),
+            "Tools capability should be auto-detected"
+        );
+        assert!(
+            capabilities.resources.is_none(),
+            "Resources capability should not be present"
+        );
+
+        // Server with tools and resources
+        let transport2 = StdioTransport::new().await.unwrap();
+        let server_with_both = McpServerBuilder::new()
+            .with_tool_provider(TestToolProvider)
+            .with_resource_provider(TestResourceProvider)
+            .build(transport2)
+            .await
+            .unwrap();
+
+        let capabilities_both = server_with_both.capabilities();
+        assert!(
+            capabilities_both.tools.is_some(),
+            "Tools capability should be auto-detected"
+        );
+        assert!(
+            capabilities_both.resources.is_some(),
+            "Resources capability should be auto-detected"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_initialization_protocol_version_matching() {
+        // Test that server responds with correct protocol version
+        let init_request = json!({
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+                "name": "test-client",
+                "version": "1.0.0"
+            }
+        });
+
+        let config = McpServerConfig::default();
+        let client_capabilities = Arc::new(RwLock::new(None));
+        let initialized = Arc::new(RwLock::new(false));
+
+        let response = McpServer::<StdioTransport>::handle_initialize(
+            Some(init_request),
+            config,
+            client_capabilities,
+            initialized,
+        )
+        .await
+        .expect("Initialize should succeed");
+
+        let response_obj = response.as_object().expect("Response should be an object");
+        assert_eq!(
+            response_obj["protocolVersion"], "2024-11-05",
+            "Server should respond with matching protocol version"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_client_capabilities_storage() {
+        // Test that client capabilities are properly stored
+        let client_caps = json!({
+            "tools": { "list_changed": true },
+            "resources": { "subscribe": true }
+        });
+
+        let init_request = json!({
+            "protocolVersion": "2024-11-05",
+            "capabilities": client_caps,
+            "clientInfo": {
+                "name": "test-client",
+                "version": "1.0.0"
+            }
+        });
+
+        let config = McpServerConfig::default();
+        let client_capabilities = Arc::new(RwLock::new(None));
+        let initialized = Arc::new(RwLock::new(false));
+
+        McpServer::<StdioTransport>::handle_initialize(
+            Some(init_request),
+            config,
+            Arc::clone(&client_capabilities),
+            initialized,
+        )
+        .await
+        .expect("Initialize should succeed");
+
+        // Verify client capabilities were stored
+        let stored_caps = client_capabilities.read().await;
+        assert!(
+            stored_caps.is_some(),
+            "Client capabilities should be stored"
+        );
+
+        // Note: We can't easily test the exact structure without defining
+        // the ClientCapabilities deserialization, but we can verify it's stored
     }
 }

@@ -22,11 +22,11 @@ use crate::shared::protocol::errors::{ProtocolError, ProtocolResult};
 ///
 /// // Create current protocol version
 /// let version = ProtocolVersion::current();
-/// assert_eq!(version.as_str(), "2025-06-18");
+/// assert_eq!(version.as_str(), "2024-11-05");
 ///
 /// // Create custom version with validation
-/// let version = ProtocolVersion::new("2025-06-18")?;
-/// assert_eq!(version.as_str(), "2025-06-18");
+/// let version = ProtocolVersion::new("2024-11-05")?;
+/// assert_eq!(version.as_str(), "2024-11-05");
 ///
 /// // Invalid version format fails
 /// let result = ProtocolVersion::new("invalid");
@@ -37,8 +37,8 @@ use crate::shared::protocol::errors::{ProtocolError, ProtocolResult};
 pub struct ProtocolVersion(String);
 
 impl ProtocolVersion {
-    /// Current MCP protocol version
-    pub const CURRENT: &'static str = "2025-06-18";
+    /// Current supported protocol version
+    pub const CURRENT: &'static str = "2024-11-05";
     
     /// Create a new protocol version with validation
     ///
@@ -392,7 +392,7 @@ mod tests {
     #[test]
     fn test_protocol_version_validation() {
         // Valid versions
-        assert!(ProtocolVersion::new("2025-06-18").is_ok());
+        assert!(ProtocolVersion::new("2024-11-05").is_ok());
         assert!(ProtocolVersion::new("2024-12-31").is_ok());
         
         // Invalid versions
@@ -405,7 +405,7 @@ mod tests {
     #[test]
     fn test_protocol_version_current() {
         let version = ProtocolVersion::current();
-        assert_eq!(version.as_str(), "2025-06-18");
+        assert_eq!(version.as_str(), "2024-11-05");
     }
 
     #[test]

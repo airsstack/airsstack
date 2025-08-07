@@ -7,6 +7,8 @@
 pub mod methods {
     /// Initialization method
     pub const INITIALIZE: &str = "initialize";
+    /// Initialized notification
+    pub const INITIALIZED: &str = "initialized";
 
     /// Resource-related methods
     pub const RESOURCES_LIST: &str = "resources/list";
@@ -51,7 +53,7 @@ pub mod error_codes {
 /// Protocol version constants
 pub mod protocol {
     /// Current MCP protocol version
-    pub const CURRENT_VERSION: &str = "2025-06-18";
+    pub const CURRENT_VERSION: &str = "2024-11-05";
 
     /// JSON-RPC version
     pub const JSONRPC_VERSION: &str = "2.0";

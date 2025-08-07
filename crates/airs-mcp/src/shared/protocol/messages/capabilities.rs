@@ -24,12 +24,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ClientCapabilities {
     /// Experimental capabilities (implementation-specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental: Option<serde_json::Value>,
 
     /// Sampling capabilities (server-initiated AI requests)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sampling: Option<SamplingCapabilities>,
 
     /// Root directory access capabilities
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub roots: Option<RootsCapabilities>,
 }
 
@@ -57,18 +60,23 @@ pub struct ClientCapabilities {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ServerCapabilities {
     /// Experimental capabilities (implementation-specific)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental: Option<serde_json::Value>,
 
     /// Logging capabilities
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub logging: Option<LoggingCapabilities>,
 
     /// Prompt template capabilities
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub prompts: Option<PromptCapabilities>,
 
     /// Resource management capabilities
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub resources: Option<ResourceCapabilities>,
 
     /// Tool execution capabilities
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<ToolCapabilities>,
 }
 
@@ -89,9 +97,11 @@ pub struct ServerCapabilities {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ResourceCapabilities {
     /// Whether resource subscriptions are supported
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subscribe: Option<bool>,
 
     /// Whether resource list change notifications are supported
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub list_changed: Option<bool>,
 }
 
@@ -128,6 +138,7 @@ pub struct ToolCapabilities {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct PromptCapabilities {
     /// Whether prompt list change notifications are supported
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub list_changed: Option<bool>,
 }
 

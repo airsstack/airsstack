@@ -22,13 +22,52 @@ The example implements a fully functional MCP server with three types of provide
 
 ## How to Run
 
+### Development Testing
 ```bash
 # From the example directory
 cd examples/simple-mcp-server
 
-# Run the server
-cargo run --bin simple-mcp-server
+# Run the server for testing
+cargo run
 ```
+
+### Claude Desktop Integration
+
+We provide comprehensive management tools for Claude Desktop integration:
+
+#### 🚀 Quick Setup (Recommended)
+```bash
+# Automated setup - builds and configures everything
+./setup_claude_integration.sh
+```
+
+#### 🔧 Manual Setup
+```bash
+# Build optimized binary and generate configuration
+./build.sh
+
+# Follow the manual integration steps in CLAUDE_INTEGRATION.md
+```
+
+#### 🧪 Testing & Validation
+```bash
+# Test your integration setup
+./test_integration.sh
+```
+
+#### 🛠️ Troubleshooting
+If you encounter issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed diagnostics and solutions.
+
+### Integration Management Features
+
+- **✅ Automated Setup**: Complete build and configuration in one command
+- **✅ Smart Configuration Merging**: Safely merges with existing Claude Desktop config
+- **✅ Cross-Platform Support**: macOS, Linux, and Windows detection
+- **✅ Comprehensive Testing**: Protocol validation and integration verification
+- **✅ Backup & Recovery**: Automatic config backups before changes
+- **✅ Detailed Troubleshooting**: Step-by-step diagnostic guidance
+
+See [CLAUDE_INTEGRATION.md](CLAUDE_INTEGRATION.md) for detailed integration information.
 
 ## How It Works
 

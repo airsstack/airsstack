@@ -7,7 +7,8 @@ use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::base::jsonrpc::message::{JsonRpcRequest, JsonRpcResponse};
+use crate::base::jsonrpc::message::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
+use crate::base::jsonrpc::streaming::{ParsedMessage, StreamingParser};
 use crate::transport::Transport;
 
 use super::error::{IntegrationError, IntegrationResult};
@@ -29,11 +30,17 @@ impl<T: Transport> JsonRpcServer<T> {
         })
     }
 
-    /// Start the server with a request handler
-    pub async fn run<F, Fut>(&self, handler: F) -> IntegrationResult<()>
+    /// Start the server with request and notification handlers
+    pub async fn run<F, Fut, G, GFut>(
+        &self,
+        request_handler: F,
+        notification_handler: G,
+    ) -> IntegrationResult<()>
     where
         F: Fn(JsonRpcRequest) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = JsonRpcResponse> + Send + 'static,
+        G: Fn(JsonRpcNotification) -> GFut + Send + Sync + 'static,
+        GFut: Future<Output = ()> + Send + 'static,
     {
         // Mark as running
         *self.running.write().await = true;
@@ -43,29 +50,39 @@ impl<T: Transport> JsonRpcServer<T> {
         let running = Arc::clone(&self.running);
 
         // Message processing loop
+        let mut parser = StreamingParser::new_default();
         while *running.read().await {
             let mut transport_guard = transport.write().await;
 
             match transport_guard.receive().await {
                 Ok(data) => {
-                    // Parse JSON-RPC request
-                    match serde_json::from_slice::<JsonRpcRequest>(&data) {
-                        Ok(request) => {
-                            // Process request with handler
-                            let response = handler(request).await;
+                    // Try to parse as different message types
+                    if let Ok(parsed) = parser.parse_from_bytes(&data).await {
+                        match parsed {
+                            ParsedMessage::Request(request) => {
+                                // Process request with handler
+                                let response = request_handler(request).await;
 
-                            // Send response
-                            let response_data = serde_json::to_vec(&response).map_err(|e| {
-                                IntegrationError::other(format!("Serialization failed: {e}"))
-                            })?;
+                                // Send response
+                                let response_data = serde_json::to_vec(&response).map_err(|e| {
+                                    IntegrationError::other(format!("Serialization failed: {e}"))
+                                })?;
 
-                            if let Err(e) = transport_guard.send(&response_data).await {
-                                eprintln!("Failed to send response: {e}");
+                                if let Err(e) = transport_guard.send(&response_data).await {
+                                    eprintln!("Failed to send response: {e}");
+                                }
+                            }
+                            ParsedMessage::Notification(notification) => {
+                                // Process notification with handler (no response expected)
+                                notification_handler(notification).await;
+                            }
+                            ParsedMessage::Response(_) => {
+                                // Ignore responses (we're a server, not a client)
+                                eprintln!("Received unexpected response message, ignoring");
                             }
                         }
-                        Err(e) => {
-                            eprintln!("Failed to parse JSON-RPC request: {e}");
-                        }
+                    } else {
+                        eprintln!("Failed to parse JSON-RPC message");
                     }
                 }
                 Err(e) => {

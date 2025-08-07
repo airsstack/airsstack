@@ -80,6 +80,7 @@ pub struct InitializeResponse {
     pub server_info: ServerInfo,
 
     /// Optional instructions for the client
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
 }
 

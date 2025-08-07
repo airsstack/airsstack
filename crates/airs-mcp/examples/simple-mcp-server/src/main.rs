@@ -6,14 +6,69 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use tokio;
 
+// Professional logging imports
+use tracing::{error, info, instrument, warn};
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_subscriber::{
+    fmt::layer, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
+};
+
+/// Initialize internal logging with graceful degradation
+/// - First tries file-based logging for debugging and operations
+/// - Falls back to no-op logging if file system access is denied
+/// - Never outputs to stdout/stderr to avoid JSON-RPC contamination
+fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
+    // Try file-based logging first
+    let file_layer_result = std::panic::catch_unwind(|| {
+        let file_appender =
+            RollingFileAppender::new(Rotation::DAILY, "/tmp/airs-mcp-logs", "airs-mcp-server.log");
+
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+        let file_layer = layer()
+            .with_writer(non_blocking)
+            .with_target(true)
+            .with_thread_ids(true)
+            .with_file(true)
+            .with_line_number(true)
+            .json();
+
+        tracing_subscriber::registry()
+            .with(file_layer.with_filter(EnvFilter::new("debug")))
+            .init();
+
+        // Intentionally leak the guard to keep logging alive for the process lifetime
+        std::mem::forget(_guard);
+    });
+
+    match file_layer_result {
+        Ok(_) => {
+            // File logging successful
+            info!("🚀 AIRS MCP Server starting with file-based logging");
+            Ok(())
+        }
+        Err(_) => {
+            // File logging failed - use no-op logging but continue operation
+            tracing_subscriber::registry()
+                .with(EnvFilter::new("off"))
+                .init();
+
+            // Cannot log the failure since we have no logging, but continue silently
+            Ok(())
+        }
+    }
+}
 /// Simple file system resource provider
 #[derive(Debug)]
 struct SimpleResourceProvider;
 
 #[async_trait]
 impl ResourceProvider for SimpleResourceProvider {
+    #[instrument(level = "debug")]
     async fn list_resources(&self) -> Result<Vec<Resource>, McpError> {
-        Ok(vec![
+        info!("Listing available resources");
+
+        let resources = vec![
             Resource {
                 uri: Uri::new("file:///tmp/example.txt").unwrap(),
                 name: "Example File".to_string(),
@@ -26,17 +81,31 @@ impl ResourceProvider for SimpleResourceProvider {
                 description: Some("Application configuration".to_string()),
                 mime_type: Some(MimeType::new("application/json").unwrap()),
             },
-        ])
+        ];
+
+        info!(
+            resource_count = resources.len(),
+            "Resources listed successfully"
+        );
+        Ok(resources)
     }
 
+    #[instrument(level = "debug", fields(uri = %uri))]
     async fn read_resource(&self, uri: &str) -> Result<Vec<Content>, McpError> {
+        info!(uri = %uri, "Reading resource");
+
         let content_text = match uri {
             "file:///tmp/example.txt" => "Hello from the MCP server!\nThis is example content.",
             "file:///tmp/config.json" => r#"{"app_name": "Simple MCP Server", "version": "1.0.0"}"#,
-            _ => return Err(McpError::resource_not_found(uri)),
+            _ => {
+                warn!(uri = %uri, "Resource not found");
+                return Err(McpError::resource_not_found(uri));
+            }
         };
 
-        Ok(vec![Content::text(content_text)])
+        let content = vec![Content::text(content_text)];
+        info!(uri = %uri, content_size = content_text.len(), "Resource read successfully");
+        Ok(content)
     }
 }
 
@@ -46,11 +115,14 @@ struct SimpleToolProvider;
 
 #[async_trait]
 impl ToolProvider for SimpleToolProvider {
+    #[instrument(level = "debug")]
     async fn list_tools(&self) -> Result<Vec<Tool>, McpError> {
-        Ok(vec![
+        info!("Listing available tools");
+
+        let tools = vec![
             Tool {
                 name: "add".to_string(),
-                display_name: "Add Numbers".to_string(),
+                title: Some("Add Numbers".to_string()),
                 description: Some("Add two numbers together".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -63,7 +135,7 @@ impl ToolProvider for SimpleToolProvider {
             },
             Tool {
                 name: "greet".to_string(),
-                display_name: "Greet User".to_string(),
+                title: Some("Greet User".to_string()),
                 description: Some("Generate a greeting message".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -73,41 +145,51 @@ impl ToolProvider for SimpleToolProvider {
                     "required": ["name"]
                 }),
             },
-        ])
+        ];
+
+        info!(tool_count = tools.len(), "Tools listed successfully");
+        Ok(tools)
     }
 
+    #[instrument(level = "debug", fields(tool_name = %name))]
     async fn call_tool(&self, name: &str, arguments: Value) -> Result<Vec<Content>, McpError> {
-        let result =
-            match name {
-                "add" => {
-                    let a = arguments.get("a").and_then(|v| v.as_f64()).ok_or_else(|| {
-                        McpError::invalid_request("Missing or invalid parameter 'a'")
-                    })?;
+        info!(tool_name = %name, arguments = %arguments, "Executing tool");
 
-                    let b = arguments.get("b").and_then(|v| v.as_f64()).ok_or_else(|| {
-                        McpError::invalid_request("Missing or invalid parameter 'b'")
-                    })?;
+        let result = match name {
+            "add" => {
+                let a = arguments.get("a").and_then(|v| v.as_f64()).ok_or_else(|| {
+                    warn!(tool_name = %name, "Missing or invalid parameter 'a'");
+                    McpError::invalid_request("Missing or invalid parameter 'a'")
+                })?;
 
-                    json!({
-                        "result": a + b,
-                        "operation": "addition"
-                    })
-                }
-                "greet" => {
-                    let name_param =
-                        arguments
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .ok_or_else(|| {
-                                McpError::invalid_request("Missing or invalid parameter 'name'")
-                            })?;
+                let b = arguments.get("b").and_then(|v| v.as_f64()).ok_or_else(|| {
+                    warn!(tool_name = %name, "Missing or invalid parameter 'b'");
+                    McpError::invalid_request("Missing or invalid parameter 'b'")
+                })?;
 
-                    json!({
-                        "greeting": format!("Hello, {}! Welcome to the MCP server!", name_param)
-                    })
-                }
-                _ => return Err(McpError::tool_not_found(name)),
-            };
+                let sum = a + b;
+                info!(tool_name = %name, a = %a, b = %b, result = %sum, "Addition completed");
+
+                json!({
+                    "result": sum,
+                    "operation": "addition"
+                })
+            }
+            "greet" => {
+                let name_param =
+                    arguments
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .ok_or_else(|| {
+                            McpError::invalid_request("Missing or invalid parameter 'name'")
+                        })?;
+
+                json!({
+                    "greeting": format!("Hello, {}! Welcome to the MCP server!", name_param)
+                })
+            }
+            _ => return Err(McpError::tool_not_found(name)),
+        };
 
         Ok(vec![Content::text(
             serde_json::to_string_pretty(&result).unwrap(),
@@ -125,7 +207,7 @@ impl PromptProvider for SimplePromptProvider {
         Ok(vec![
             Prompt {
                 name: "code_review".to_string(),
-                display_name: "Code Review".to_string(),
+                title: Some("Code Review".to_string()),
                 description: Some("Generate a code review prompt".to_string()),
                 arguments: json!({
                     "type": "object",
@@ -144,7 +226,7 @@ impl PromptProvider for SimplePromptProvider {
             },
             Prompt {
                 name: "explain_concept".to_string(),
-                display_name: "Explain Concept".to_string(),
+                title: Some("Explain Concept".to_string()),
                 description: Some("Explain a technical concept".to_string()),
                 arguments: json!({
                     "type": "object",
@@ -219,31 +301,53 @@ impl PromptProvider for SimplePromptProvider {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
-    env_logger::init();
+    // Initialize internal logging with graceful degradation
+    let _ = init_logging();
 
-    eprintln!("🚀 Starting Simple MCP Server...");
+    // Log startup (to file only, not stdout/stderr)
+    info!("🚀 Starting Simple MCP Server with internal logging...");
+    info!(
+        version = env!("CARGO_PKG_VERSION"),
+        "Server initialization starting"
+    );
 
     // Create STDIO transport
-    let transport = airs_mcp::transport::StdioTransport::new().await?;
+    info!("Creating STDIO transport...");
+    let transport = airs_mcp::transport::StdioTransport::new()
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to create STDIO transport");
+            e
+        })?;
+    info!("✅ STDIO transport created successfully");
 
     // Create the MCP server with all providers
+    info!("Building MCP server with providers...");
     let server = McpServerBuilder::new()
         .with_resource_provider(SimpleResourceProvider)
         .with_tool_provider(SimpleToolProvider)
         .with_prompt_provider(SimplePromptProvider)
         .build(transport)
-        .await?;
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to build MCP server");
+            e
+        })?;
 
-    eprintln!("✅ MCP Server initialized successfully!");
-    eprintln!("📋 Available capabilities:");
-    eprintln!("   - Resources: file system examples");
-    eprintln!("   - Tools: add, greet");
-    eprintln!("   - Prompts: code_review, explain_concept");
-    eprintln!("🔗 Server ready for MCP client connections via STDIO");
+    info!("✅ MCP Server initialized successfully!");
+    info!("📋 Available capabilities:");
+    info!("   - Resources: file system examples");
+    info!("   - Tools: add, greet");
+    info!("   - Prompts: code_review, explain_concept");
+    info!("🔗 Server ready for MCP client connections via STDIO");
 
-    // Run the server (this will handle STDIO communication)
-    server.run().await?;
+    // Start the server with error handling
+    info!("Starting MCP server event loop...");
+    if let Err(e) = server.run().await {
+        error!(error = %e, "Server error occurred");
+        return Err(e.into());
+    }
 
+    info!("🛑 MCP Server shutdown completed");
     Ok(())
 }
