@@ -1,7 +1,7 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
-- None - All core MCP functionality is complete
+- [TASK009] Claude Desktop Integration Troubleshooting - Active debugging of integration issues using official MCP methodology
 
 ## Pending
 - [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment  

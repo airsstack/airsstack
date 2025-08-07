@@ -2,22 +2,27 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-08-05T23:45:00Z
-**updated_on:** 2025-08-07T23:30:00Z
-**by:** example_updates_follow_up_mcp_protocol_field_naming_consistency
-**status:** mcp_protocol_compliance_and_examples_fully_updated
+**updated_on:** 2025-08-07T23:45:00Z
+**by:** claude_desktop_integration_troubleshooting_focus
+**status:** integration_debugging_comprehensive_knowledge_compiled
 
-# airs-mcp Critical Protocol Compliance Fix - RESOLVED 2025-08-07
+# airs-mcp Claude Desktop Integration Challenge - ACTIVE 2025-08-07
 
-## CRITICAL COMPATIBILITY FIX: MCP Protocol Field Naming Consistency ✅ RESOLVED
+## CURRENT FOCUS: Claude Desktop Integration Troubleshooting
 
-**Issue Identified**: User discovered potential camelCase/snake_case inconsistencies across MCP protocol operations beyond initialization messages, threatening compatibility with Claude Desktop and other MCP clients.
+**Issue**: simple-mcp-server builds successfully and passes all tests but fails to integrate with Claude Desktop despite multiple attempted configurations.
 
-**Investigation Results**:
-- Official MCP specification analysis confirmed camelCase requirement for compound field names
-- Resources, tools, prompts modules had missing or incorrect field naming mappings
-- Structural inconsistencies with `display_name` vs spec-compliant `title` field
+**Research Completed**: Comprehensive analysis of official MCP documentation revealed critical integration requirements and debugging methodology.
 
-**Resolution Implemented**:
+**Clean Slate Approach**: Removed all existing automation scripts to implement proper integration workflow based on official best practices.
+
+**Critical Findings**:
+- Wrong configuration file name: must be `claude_desktop_config.json` not `config.json`
+- STDIO logging restrictions: no stderr output allowed, file-based logging only
+- Required debugging workflow: MCP Inspector testing before Claude Desktop integration
+- Missing absolute path requirements and environment variable considerations
+
+**Knowledge Compiled**: Created comprehensive `claude_desktop_integration_knowledge.md` with official troubleshooting procedures and best practices.
 - **Resources Module**: Applied `mimeType`, `uriTemplate`, `nextCursor` camelCase mappings
 - **Tools Module**: Applied `inputSchema`, `isError`, `progressToken`, `nextCursor` mappings + `display_name` → `title`
 - **Prompts Module**: Applied `nextCursor` mapping + `display_name` → `title`

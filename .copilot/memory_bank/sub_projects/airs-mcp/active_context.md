@@ -1,34 +1,29 @@
 # Active Context - airs-mcp
 
 ## Current Work Focus
-- **TASK008 MCP PROTOCOL LAYER**: ALL PHASES COMPLETE ✅ - Complete production-ready MCP implementation
-- **MAJOR MILESTONE**: Full MCP client and server library with high-level APIs and enterprise architecture
-- **TECHNICAL EXCELLENCE**: 345 tests passing, zero compilation errors, comprehensive error handling
-- **PRODUCTION READY**: Complete MCP toolkit ready for real-world deployment and development
-- **STRATEGIC ACHIEVEMENT**: Full implementation of MCP protocol from foundation to high-level APIs
+- **CLAUDE DESKTOP INTEGRATION**: Active troubleshooting and debugging Claude Desktop connectivity
+- **PROTOCOL COMPLIANCE**: MCP server builds and passes tests but fails Claude Desktop integration
+- **CLEAN SLATE APPROACH**: Removed all existing shell scripts and documentation to start fresh
+- **COMPREHENSIVE KNOWLEDGE**: Gathered official MCP documentation for proper integration methodology
+- **CRITICAL FOCUS**: Implementing proper debugging workflow using MCP Inspector → Claude Desktop
 
 ## Recent Changes (2025-08-07)
 
-### CRITICAL FIX: MCP Protocol Field Naming Consistency ✅ RESOLVED
-- **Discovery**: User identified camelCase/snake_case inconsistencies across MCP protocol operations
-- **Investigation**: Systematic analysis revealed missing field mappings beyond initialization messages
-- **Resolution**: Applied serde rename attributes for all compound fields per official MCP specification
-- **Impact**: Restored compatibility with Claude Desktop and other MCP clients
-- **Scope**: Resources, tools, prompts modules + comprehensive test fixes
-- **Validation**: 224 unit tests + 120 doctests passing, zero compilation errors
+### CLEAN SLATE RESET: Claude Desktop Integration Focus ✅ COMPLETED
+- **Discovery**: simple-mcp-server builds and passes tests but fails Claude Desktop integration
+- **Research**: Comprehensive analysis of official MCP documentation for troubleshooting
+- **Clean Slate**: Removed all existing shell scripts (7), Python files (2), and documentation (4 .md files)
+- **Knowledge Base**: Created comprehensive `claude_desktop_integration_knowledge.md` with official best practices
+- **Critical Issues Identified**:
+  - Wrong config file path: `config.json` vs required `claude_desktop_config.json`
+  - Potential stderr logging violations for STDIO transport
+  - Missing MCP Inspector testing workflow
+  - Lack of proper debugging methodology
 
-**Field Mappings Applied:**
-- Resources: `mimeType`, `uriTemplate`, `nextCursor`
-- Tools: `inputSchema`, `isError`, `progressToken`, `nextCursor` + `display_name` → `title`
-- Prompts: `nextCursor` + `display_name` → `title`
-- All test cases and documentation updated for new API signatures
-
-### FOLLOW-UP: Example Updates ✅ COMPLETED 2025-08-07
-- **User Initiative**: Identified need to update examples after core API changes
-- **Examples Updated**: `simple-mcp-server` example updated to use new `title` field API
-- **Validation**: Example compiles and builds successfully with updated API
-- **Scope**: Tool and Prompt struct instantiations updated from `display_name` to `title: Some(...)`
-- **Impact**: Ensures examples demonstrate correct current API usage for developers
+### NEXT PHASE: Proper Integration Implementation
+- **Approach**: MCP Inspector testing first, then Claude Desktop configuration
+- **Scripts**: Will create new, properly structured scripts based on official documentation
+- **Focus**: Fix logging issues, correct config paths, implement proper debugging workflow
 
 **TASK008 Phase 3 COMPLETED**: High-level MCP Client/Server APIs fully implemented ✅
 - **High-Level MCP Client**: Builder pattern with caching, initialization, resource/tool/prompt operations
