@@ -671,8 +671,12 @@ impl ContextTemplate {
 
             // Look for architecture or integration sections
             if let Some(arch_start) = content.find("## Architecture") {
-                let arch_section =
-                    &content[arch_start..content.find("##").unwrap_or(content.len())];
+                // Find the next section header after this one
+                let search_start = arch_start + "## Architecture".len();
+                let next_section = content[search_start..]
+                    .find("##")
+                    .map(|pos| search_start + pos);
+                let arch_section = &content[arch_start..next_section.unwrap_or(content.len())];
                 for line in arch_section.lines().skip(1) {
                     let trimmed = line.trim();
                     if trimmed.starts_with("- ") {
@@ -747,8 +751,13 @@ impl ContextTemplate {
 
             // Look for constraints or requirements sections
             if let Some(constraints_start) = content.find("## Constraints") {
+                // Find the next section header after this one
+                let search_start = constraints_start + "## Constraints".len();
+                let next_section = content[search_start..]
+                    .find("##")
+                    .map(|pos| search_start + pos);
                 let constraints_section =
-                    &content[constraints_start..content.find("##").unwrap_or(content.len())];
+                    &content[constraints_start..next_section.unwrap_or(content.len())];
                 for line in constraints_section.lines().skip(1) {
                     let trimmed = line.trim();
                     if trimmed.starts_with("- ") {
@@ -766,7 +775,12 @@ impl ContextTemplate {
 
             // Also look for requirements sections
             if let Some(req_start) = content.find("## Requirements") {
-                let req_section = &content[req_start..content.find("##").unwrap_or(content.len())];
+                // Find the next section header after this one
+                let search_start = req_start + "## Requirements".len();
+                let next_section = content[search_start..]
+                    .find("##")
+                    .map(|pos| search_start + pos);
+                let req_section = &content[req_start..next_section.unwrap_or(content.len())];
                 for line in req_section.lines().skip(1) {
                     let trimmed = line.trim();
                     if trimmed.starts_with("- ") {
