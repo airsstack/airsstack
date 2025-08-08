@@ -238,20 +238,31 @@ Each task file follows this format:
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [Date] | [Any relevant notes] |
-| 1.2 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [Date] | [Any relevant notes] |
-| 1.3 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [Date] | [Any relevant notes] |
+| 1.1 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.2 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.3 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
 
 ## Progress Log
-### [Date]
+### [YYYY-MM-DD]
 - Updated subtask 1.1 status to Complete
 - Started work on subtask 1.2
 - Encountered issue with [specific problem]
 - Made decision to [approach/solution]
 
-### [Date]
+### [YYYY-MM-DD]
 - [Additional updates as work progresses]
 ```
+
+**CRITICAL FORMATTING RULES**: 
+1. **NO EMPTY CELLS**: Every table cell MUST contain content. Use "TBD" or "Ready for implementation" for placeholder content.
+2. **DATE FORMAT**: Always use YYYY-MM-DD format for dates. Never leave Updated column empty.
+3. **NOTES REQUIREMENT**: Notes column must contain meaningful text, never empty. Use descriptive status or next action.
+4. **CONSISTENCY**: All task files must follow this exact format for parsing compatibility.
+5. **STALE TASK DETECTION**: Tasks unchanged for 7+ days MUST be reviewed for status accuracy:
+   - **In Progress** tasks stale for 7+ days: Review if still actively worked on or should be marked as blocked/pending
+   - **Pending** tasks stale for 7+ days: Review priority and dependencies, consider if abandoned or blocked
+   - **Update Required**: When updating stale tasks, provide clear reason for delay and realistic next steps
+   - **Status Change**: If task is no longer viable, mark as abandoned with explanation
 
 **Important**: I must update both the subtask status table AND the progress log when making progress on a task. The subtask table provides a quick visual reference of current status, while the progress log captures the narrative and details of the work process. When providing updates, I should:
 

@@ -8,6 +8,13 @@
 
 ## Completed
 
+- [task_018] ux_smart_filtering - ✅ **COMPLETED** on 2025-08-08 (**UX ENHANCEMENT: SMART FILTERING & STALE DETECTION**)
+  - ✅ **Smart Filtering**: 177-task overwhelming list transformed into focused 15-task actionable view
+  - ✅ **Context-Aware Logic**: Active project prioritization with 15-task intelligent limit
+  - ✅ **Stale Detection**: 7-day threshold with visual indicators (🕒⏰) and priority surfacing
+  - ✅ **Instruction Updates**: Memory bank rules enforce strict stale task review requirements
+  - 🏆 **Engineering Achievement**: Prevents task abandonment through automated stale detection system
+
 - [task_016] documentation_final_polish - ✅ **COMPLETED** on 2025-08-08 (**COMPREHENSIVE DOCUMENTATION & FINAL POLISH**)
   - ✅ **Zero Warnings**: All clippy warnings resolved, clean production build achieved
   - ✅ **Inline Documentation**: All modules and public APIs enhanced with comprehensive examples
@@ -28,7 +35,11 @@
   - ✅ **Production Quality**: Professional status output, proper error handling, consistent CLI interface
   - 🏆 **Major Achievement**: Tool now production-ready with stable real-world integration
 
-- [task_017] cli_output_formatting_gap - ✅ **COMPLETED** on 2025-08-08 (**CRITICAL DATA INTEGRITY ISSUE RESOLVED**)
+# Tasks Index
+
+## In Progress
+
+## Pending
   - ✅ **All Phases Complete**: Layout engine + Template system + Data binding fix + Integration testing
   - ✅ **Data Integrity Restored**: Tool now shows accurate project status instead of hardcoded demo data
   - ✅ **Scalability Achieved**: Content-driven display works for any number of projects without code changes

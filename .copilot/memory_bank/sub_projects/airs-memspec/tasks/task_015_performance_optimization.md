@@ -23,9 +23,9 @@ Performance is critical for usability and adoption. Profiling and optimization e
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 15.1 | Profile CLI | not_started |  |  |
-| 15.2 | Optimize code paths | not_started |  |  |
-| 15.3 | Implement caching | not_started |  |  |
-| 15.4 | Add benchmarks | not_started |  |  |
+| 15.1 | Profile CLI | not_started | 2025-08-08 | Identify performance bottlenecks in command execution |
+| 15.2 | Optimize code paths | not_started | 2025-08-08 | Focus on parsing and file I/O operations |
+| 15.3 | Implement caching | not_started | 2025-08-08 | Cache parsed markdown content for repeated access |
+| 15.4 | Add benchmarks | not_started | 2025-08-08 | Create benchmark suite for performance regression testing |
 
 ## Progress Log
