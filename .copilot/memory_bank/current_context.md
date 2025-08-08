@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs-memspec  
-**switched_on:** 2025-08-08T00:00:00Z
-**updated_on:** 2025-08-08T00:00:00Z
-**by:** user_requested_context_switch
-**status:** switching_to_memspec_development
+**active_sub_project:** airs-mcp  
+**switched_on:** 2025-08-08T12:00:00Z
+**updated_on:** 2025-08-08T12:00:00Z
+**by:** user_requested_context_switch_to_mcp
+**status:** active_mcp_development
 
 # PRODUCTION CLAUDE DESKTOP INTEGRATION SUCCESS - 2025-08-07
 
