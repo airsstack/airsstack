@@ -30,20 +30,20 @@ impl WorkspaceStatusTemplate {
                 title: "AIRS Workspace".to_string(),
                 style: HeaderStyle::Heavy,
             },
-            // Status information to match README
+            // Status information derived from real data
             LayoutElement::FieldRow {
                 label: "Status".to_string(),
-                value: "Active Development - Foundation Phase".to_string(),
+                value: Self::derive_workspace_status(workspace),
                 alignment: Alignment::LeftAligned(15),
             },
             LayoutElement::FieldRow {
                 label: "Focus".to_string(),
-                value: "MCP Protocol Implementation & Tooling".to_string(),
+                value: Self::derive_workspace_focus(workspace),
                 alignment: Alignment::LeftAligned(15),
             },
             LayoutElement::FieldRow {
                 label: "Updated".to_string(),
-                value: "2 hours ago".to_string(),
+                value: Self::format_last_updated(workspace),
                 alignment: Alignment::LeftAligned(15),
             },
             LayoutElement::EmptyLine,
@@ -76,14 +76,8 @@ impl WorkspaceStatusTemplate {
                 crate::parser::context::ProjectHealth::Unknown => "⚪",
             };
 
-            // Create detailed project status like in README
-            let detailed_status = if name == "airs-mcp" {
-                "Week 1/14 - JSON-RPC Foundation"
-            } else if name == "airs-memspec" {
-                "Planning - CLI Development"
-            } else {
-                "Active Development"
-            };
+            // Create detailed project status from real data
+            let detailed_status = Self::derive_project_status(context);
 
             projects.push((name.clone(), format!("{status_icon} {detailed_status}")));
         }
@@ -108,21 +102,171 @@ impl WorkspaceStatusTemplate {
 
         elements.push(LayoutElement::EmptyLine);
 
-        // Next Milestone - match README
+        // Next Milestone - derived from real data
         elements.push(LayoutElement::FieldRow {
             label: "Next Milestone".to_string(),
-            value: "JSON-RPC 2.0 Core Complete (3 days)".to_string(),
+            value: Self::derive_next_milestone(workspace),
             alignment: Alignment::LeftAligned(15),
         });
 
-        // Blockers - match README
+        // Blockers - derived from real data
         elements.push(LayoutElement::FieldRow {
             label: "Blockers".to_string(),
-            value: "None".to_string(),
+            value: Self::derive_blockers(workspace),
             alignment: Alignment::LeftAligned(15),
         });
 
         elements
+    }
+
+    /// Derive dynamic workspace status from project data
+    fn derive_workspace_status(workspace: &WorkspaceContext) -> String {
+        let total_completion: f64 = workspace
+            .sub_project_contexts
+            .values()
+            .map(|ctx| ctx.task_summary.completion_percentage)
+            .sum::<f64>()
+            / workspace.sub_project_contexts.len() as f64;
+
+        match total_completion {
+            90.0..=100.0 => "Production Ready - Ecosystem Complete".to_string(),
+            75.0..=89.9 => "Active Development - Nearing Completion".to_string(),
+            50.0..=74.9 => "Active Development - Foundation Phase".to_string(),
+            25.0..=49.9 => "Early Development - Foundation Building".to_string(),
+            _ => "Planning Phase - Architecture Design".to_string(),
+        }
+    }
+
+    /// Derive current workspace focus from active contexts
+    fn derive_workspace_focus(workspace: &WorkspaceContext) -> String {
+        // Extract focus from workspace progress or current context
+        if let Some(workspace_progress) = &workspace.workspace_content.workspace_progress {
+            // Look for focus in sections
+            if let Some(focus_section) = workspace_progress.sections.get("Strategic Objectives") {
+                if let Some(first_line) = focus_section.lines().nth(0) {
+                    return first_line.trim_start_matches("- ").trim().to_string();
+                }
+            }
+        }
+
+        // Fallback: derive from most active project
+        let most_active_project = workspace.sub_project_contexts.values().max_by(|a, b| {
+            a.task_summary
+                .completion_percentage
+                .partial_cmp(&b.task_summary.completion_percentage)
+                .unwrap()
+        });
+
+        if let Some(project) = most_active_project {
+            format!(
+                "{} Development & Implementation",
+                project.name.replace("airs-", "").to_uppercase()
+            )
+        } else {
+            "Multi-Project Development".to_string()
+        }
+    }
+
+    /// Format last updated timestamp from workspace data
+    fn format_last_updated(workspace: &WorkspaceContext) -> String {
+        let now = chrono::Utc::now();
+        let duration = now.signed_duration_since(workspace.last_updated);
+
+        if duration.num_hours() < 1 {
+            format!("{} minutes ago", duration.num_minutes())
+        } else if duration.num_hours() < 24 {
+            format!("{} hours ago", duration.num_hours())
+        } else {
+            format!("{} days ago", duration.num_days())
+        }
+    }
+    /// Derive project status from completion and health data
+    fn derive_project_status(context: &SubProjectContext) -> String {
+        let completion = context.task_summary.completion_percentage;
+        let health = &context.derived_status.health;
+
+        match (completion, health) {
+            (95.0..=100.0, _) => "Production Ready ✅".to_string(),
+            (90.0..=94.9, _) => format!("Nearing Completion ({:.0}%)", completion),
+            (75.0..=89.9, crate::parser::context::ProjectHealth::Healthy) => {
+                format!("Active Development ({:.0}%)", completion)
+            }
+            (75.0..=89.9, _) => format!("Development with Issues ({:.0}%)", completion),
+            (50.0..=74.9, _) => format!("Mid Development ({:.0}%)", completion),
+            (25.0..=49.9, _) => format!("Early Development ({:.0}%)", completion),
+            (0.0..=24.9, _) => "Planning Phase".to_string(),
+            _ => format!("Development ({:.0}%)", completion),
+        }
+    }
+
+    /// Derive next milestone from pending tasks
+    fn derive_next_milestone(workspace: &WorkspaceContext) -> String {
+        // Find the project with the highest priority pending tasks
+        let mut next_milestones = Vec::new();
+
+        for context in workspace.sub_project_contexts.values() {
+            if let Some(pending_tasks) = context
+                .task_summary
+                .tasks_by_status
+                .get(&crate::parser::markdown::TaskStatus::NotStarted)
+            {
+                if !pending_tasks.is_empty() {
+                    let completion = context.task_summary.completion_percentage;
+                    if completion >= 90.0 {
+                        next_milestones.push(format!(
+                            "{} Production Release",
+                            context.name.replace("airs-", "")
+                        ));
+                    } else if completion >= 75.0 {
+                        next_milestones.push(format!(
+                            "{} Feature Complete",
+                            context.name.replace("airs-", "")
+                        ));
+                    } else {
+                        next_milestones.push(format!(
+                            "{} Core Implementation",
+                            context.name.replace("airs-", "")
+                        ));
+                    }
+                }
+            }
+        }
+
+        if next_milestones.is_empty() {
+            "All Major Milestones Complete".to_string()
+        } else {
+            format!("{} (Next)", next_milestones[0])
+        }
+    }
+
+    /// Derive current blockers from project health
+    fn derive_blockers(workspace: &WorkspaceContext) -> String {
+        let mut blockers = Vec::new();
+
+        for context in workspace.sub_project_contexts.values() {
+            if context.derived_status.health == crate::parser::context::ProjectHealth::Critical {
+                blockers.push(format!("{} critical issues", context.name));
+            }
+            if let Some(blocked_tasks) = context
+                .task_summary
+                .tasks_by_status
+                .get(&crate::parser::markdown::TaskStatus::Blocked)
+            {
+                if !blocked_tasks.is_empty() {
+                    blockers.push(format!(
+                        "{} blocked tasks in {}",
+                        blocked_tasks.len(),
+                        context.name
+                    ));
+                }
+            }
+        }
+
+        if blockers.is_empty() {
+            "None".to_string()
+        } else {
+            blockers.join(", ")
+        }
     }
 }
 
