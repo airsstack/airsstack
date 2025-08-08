@@ -120,35 +120,6 @@ impl StreamingParser {
 
     /// Parse a JSON-RPC message from bytes
     ///
-    /// This method attempts to parse a complete JSON-RPC message from the provided
-    /// bytes. It supports all JSON-RPC message types (request, response, notification).
-    ///
-    /// # Arguments
-    ///
-    /// * `data` - Byte slice containing JSON data
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ParsedMessage)` - Successfully parsed message
-    /// * `Err(StreamingError)` - Parsing failed
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use airs_mcp::base::jsonrpc::streaming::{StreamingParser, ParsedMessage};
-    ///
-    /// # tokio_test::block_on(async {
-    /// let mut parser = StreamingParser::new_default();
-    /// let json = br#"{"jsonrpc":"2.0","method":"heartbeat"}"#;
-    ///
-    /// let message = parser.parse_from_bytes(json).await.unwrap();
-    /// match message {
-    ///     ParsedMessage::Notification(notification) => {
-    ///         assert_eq!(notification.method, "heartbeat");
-    ///     }
-    ///     _ => panic!("Expected notification"),
-    /// Parse a JSON-RPC message from bytes
-    ///
     /// This method implements a two-phase parsing approach:
     /// 1. **Message Type Detection**: Fast field presence check to determine message type
     /// 2. **Typed Deserialization**: Full deserialization using appropriate concrete type
@@ -181,12 +152,19 @@ impl StreamingParser {
     /// # Examples
     ///
     /// ```rust
-    /// use airs_mcp::base::jsonrpc::streaming::StreamingParser;
+    /// use airs_mcp::base::jsonrpc::streaming::{StreamingParser, ParsedMessage};
     ///
     /// # tokio_test::block_on(async {
     /// let mut parser = StreamingParser::new_default();
-    /// let request_data = br#"{"jsonrpc":"2.0","method":"ping","id":"test"}"#;
-    /// let message = parser.parse_from_bytes(request_data).await.unwrap();
+    /// let json = br#"{"jsonrpc":"2.0","method":"heartbeat"}"#;
+    ///
+    /// let message = parser.parse_from_bytes(json).await.unwrap();
+    /// match message {
+    ///     ParsedMessage::Notification(notification) => {
+    ///         assert_eq!(notification.method, "heartbeat");
+    ///     }
+    ///     _ => panic!("Expected notification"),
+    /// }
     /// # });
     /// ```
     pub async fn parse_from_bytes(&mut self, data: &[u8]) -> Result<ParsedMessage, StreamingError> {
