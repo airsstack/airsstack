@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-/// AI-focused memory bank management tool
+/// AI-focused memory bank management tool (read-only)
 #[derive(Parser, Debug)]
 #[command(name = "airs-memspec")]
 #[command(version, about, long_about = None)]
@@ -98,9 +98,9 @@ pub enum Commands {
         project: Option<String>,
     },
 
-    /// Handle task management and tracking operations
+    /// Handle task tracking and viewing operations (read-only)
     #[command(name = "tasks")]
-    #[command(about = "Manage tasks and track progress")]
+    #[command(about = "View tasks and track progress (read-only access)")]
     Tasks {
         /// Action to perform
         #[command(subcommand)]
@@ -108,7 +108,7 @@ pub enum Commands {
     },
 }
 
-/// Task management actions
+/// Task tracking actions (read-only)
 #[derive(Subcommand, Debug)]
 pub enum TaskAction {
     /// List tasks with optional filtering
@@ -135,45 +135,6 @@ pub enum TaskAction {
         #[arg(long = "completed")]
         #[arg(help = "Include completed tasks in results")]
         include_completed: bool,
-    },
-
-    /// Add a new task
-    #[command(name = "add")]
-    #[command(about = "Add a new task")]
-    Add {
-        /// Task title
-        #[arg(help = "Task title")]
-        title: String,
-
-        /// Sub-project for the task
-        #[arg(long = "project")]
-        #[arg(help = "Sub-project for this task")]
-        project: Option<String>,
-
-        /// Task description
-        #[arg(short = 'd', long = "description")]
-        #[arg(help = "Detailed task description")]
-        description: Option<String>,
-    },
-
-    /// Update an existing task
-    #[command(name = "update")]
-    #[command(about = "Update an existing task")]
-    Update {
-        /// Task ID to update
-        #[arg(help = "Task ID (e.g., task_001)")]
-        task_id: String,
-
-        /// New status for the task
-        #[arg(short = 's', long = "status")]
-        #[arg(help = "Update task status")]
-        #[arg(value_parser = ["pending", "in_progress", "completed", "blocked"])]
-        status: Option<String>,
-
-        /// Progress note
-        #[arg(short = 'n', long = "note")]
-        #[arg(help = "Add a progress note")]
-        note: Option<String>,
     },
 
     /// Show detailed task information

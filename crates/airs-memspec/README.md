@@ -166,18 +166,28 @@ airs-memspec context --path /path/to/workspace
 **When to use**: Understanding current work focus, context switching, architectural review.
 
 #### `airs-memspec tasks`
-Comprehensive task management and progress tracking.
+Task viewing and progress tracking (read-only).
 
 ```bash
-# List all tasks
+# List all tasks with smart filtering (default: 15 most relevant)
 airs-memspec tasks list
 
-# Filter by status
-airs-memspec tasks list --status in_progress
-airs-memspec tasks list --status pending
+# Show all tasks (disable smart filtering)
+airs-memspec tasks list --all
 
-# Filter by priority
-airs-memspec tasks list --priority high
+# Filter by status
+airs-memspec tasks list --status active
+airs-memspec tasks list --status pending
+airs-memspec tasks list --status completed
+
+# Filter by project
+airs-memspec tasks list --project backend-api
+
+# Include completed tasks in smart view
+airs-memspec tasks list --completed
+
+# Show detailed task information
+airs-memspec tasks show task_001
 
 # Show recently updated tasks
 airs-memspec tasks list --filter recent

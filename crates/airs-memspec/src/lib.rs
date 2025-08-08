@@ -9,7 +9,7 @@
 //! - **Memory Bank Installation**: Deploy standardized memory bank structures
 //! - **Context Analysis**: Analyze and display workspace context across multiple projects
 //! - **Project Status**: Monitor progress and health across sub-projects
-//! - **Task Management**: Track and manage development tasks with detailed progress logging
+//! - **Task Tracking**: View and track development tasks with detailed progress logging (read-only)
 //! - **AI Integration**: Embed GitHub Copilot instruction templates for consistent AI guidance
 //!
 //! ## Architecture Overview
@@ -81,7 +81,7 @@
 pub mod cli;
 /// Embedded instruction templates and static content
 pub mod embedded;
-/// Domain models for workspace, projects, and task management
+/// Domain models for workspace, projects, and task tracking
 pub mod models;
 /// Content parsing and context correlation engines
 pub mod parser;

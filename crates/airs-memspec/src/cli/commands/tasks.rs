@@ -1,8 +1,10 @@
 // Tasks command implementation
-// Handles task management and tracking operations
+// Handles task viewing and tracking operations (read-only)
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+use chrono::{NaiveDate, Utc};
 
 use crate::cli::{GlobalArgs, TaskAction};
 use crate::parser::context::ContextCorrelator;
@@ -10,7 +12,6 @@ use crate::parser::markdown::{TaskItem, TaskStatus};
 use crate::parser::navigation::MemoryBankNavigator;
 use crate::utils::fs::FsError;
 use crate::utils::output::{OutputConfig, OutputFormatter};
-use chrono::{NaiveDate, Utc};
 
 /// Run the tasks command
 pub fn run(global: &GlobalArgs, action: TaskAction) -> Result<(), Box<dyn std::error::Error>> {
@@ -31,16 +32,6 @@ pub fn run(global: &GlobalArgs, action: TaskAction) -> Result<(), Box<dyn std::e
             show_all,
             include_completed,
         ),
-        TaskAction::Add {
-            title,
-            project,
-            description,
-        } => add_task(global, &formatter, title, project, description),
-        TaskAction::Update {
-            task_id,
-            status,
-            note,
-        } => update_task(global, &formatter, task_id, status, note),
         TaskAction::Show { task_id } => show_task(global, &formatter, task_id),
     }
 }
@@ -66,7 +57,7 @@ fn list_tasks(
     let mut correlator = ContextCorrelator::new();
     let workspace_context = correlator.discover_and_correlate(&structure.root_path)?;
 
-    formatter.header("Task Management");
+    formatter.header("Task Tracking (Read-Only)");
 
     // Apply project filter
     let projects_to_show = if let Some(ref project_name) = project_filter {
@@ -307,52 +298,6 @@ fn list_tasks(
     Ok(())
 }
 
-/// Add a new task (placeholder implementation)
-fn add_task(
-    _global: &GlobalArgs,
-    formatter: &OutputFormatter,
-    title: String,
-    project: Option<String>,
-    description: Option<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    formatter.info("Task creation functionality");
-    formatter.info(&format!("Title: {title}"));
-
-    if let Some(proj) = project {
-        formatter.info(&format!("Project: {proj}"));
-    }
-
-    if let Some(desc) = description {
-        formatter.info(&format!("Description: {desc}"));
-    }
-
-    formatter.warning("Task creation not yet implemented - requires file writing capabilities");
-    Ok(())
-}
-
-/// Update an existing task (placeholder implementation)
-fn update_task(
-    _global: &GlobalArgs,
-    formatter: &OutputFormatter,
-    task_id: String,
-    status: Option<String>,
-    note: Option<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    formatter.info("Task update functionality");
-    formatter.info(&format!("Task ID: {task_id}"));
-
-    if let Some(stat) = status {
-        formatter.info(&format!("New Status: {stat}"));
-    }
-
-    if let Some(note_text) = note {
-        formatter.info(&format!("Note: {note_text}"));
-    }
-
-    formatter.warning("Task updates not yet implemented - requires file writing capabilities");
-    Ok(())
-}
-
 /// Show detailed task information
 fn show_task(
     global: &GlobalArgs,
@@ -423,7 +368,7 @@ fn show_task(
                 ));
             }
 
-            formatter.verbose("💡 Use the tasks update command to modify this task");
+            formatter.verbose("💡 Use 'tasks list' to filter and view tasks")
         }
         None => {
             formatter.error(&format!("Task '{task_id}' not found"));

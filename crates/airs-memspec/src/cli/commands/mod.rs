@@ -10,7 +10,7 @@
 //! - **Install**: Memory bank structure installation and setup
 //! - **Progress Analyzer**: Progress tracking and analysis functionality
 //! - **Status**: Workspace and project status overview
-//! - **Tasks**: Task management and tracking operations
+//! - **Tasks**: Task tracking and viewing operations (read-only)
 
 /// Context command implementation
 pub mod context;
