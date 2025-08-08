@@ -841,6 +841,270 @@ impl ContextTemplate {
     }
 }
 
+/// Template for individual project status display  
+///
+/// Renders project status information including progress, health metrics,
+/// task summaries, and completion status in a professional format.
+pub struct ProjectStatusTemplate;
+
+impl ProjectStatusTemplate {
+    /// Render project status from context data
+    pub fn render(context: &SubProjectContext) -> Vec<LayoutElement> {
+        let mut elements = vec![
+            // Project header
+            LayoutElement::Header {
+                icon: "🎯".to_string(),
+                title: format!("{} Project Status", context.name),
+                style: HeaderStyle::Heavy,
+            },
+            // Status information
+            LayoutElement::FieldRow {
+                label: "Status".to_string(),
+                value: Self::derive_project_status(context),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::FieldRow {
+                label: "Progress".to_string(),
+                value: format!(
+                    "{:.1}% complete",
+                    context.task_summary.completion_percentage
+                ),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::FieldRow {
+                label: "Health".to_string(),
+                value: Self::format_health_status(&context.derived_status.health),
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::FieldRow {
+                label: "Updated".to_string(),
+                value: "0 minutes ago".to_string(), // TODO: Calculate from actual data
+                alignment: Alignment::LeftAligned(15),
+            },
+            LayoutElement::EmptyLine,
+        ];
+
+        // Task Summary section
+        elements.push(LayoutElement::Section {
+            title: "Task Summary".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: Self::derive_task_summary(context),
+            }],
+        });
+
+        // Current Focus section if available
+        if let Some(active_context) = &context.content.active_context {
+            let focus_items = Self::extract_current_focus(&active_context.content);
+            if !focus_items.is_empty() {
+                elements.push(LayoutElement::Section {
+                    title: "Current Focus".to_string(),
+                    children: vec![LayoutElement::IndentedList { items: focus_items }],
+                });
+            }
+        }
+
+        // Next Actions section
+        elements.push(LayoutElement::Section {
+            title: "Next Actions".to_string(),
+            children: vec![LayoutElement::IndentedList {
+                items: Self::derive_next_actions(context),
+            }],
+        });
+
+        elements
+    }
+
+    /// Derive project status from completion and health data
+    fn derive_project_status(context: &SubProjectContext) -> String {
+        let completion = context.task_summary.completion_percentage;
+        let health = &context.derived_status.health;
+
+        match (completion, health) {
+            (95.0..=100.0, _) => "🟢 Production Ready".to_string(),
+            (90.0..=94.9, _) => "🟢 Nearing Completion".to_string(),
+            (75.0..=89.9, crate::parser::context::ProjectHealth::Healthy) => {
+                "🟢 Active Development".to_string()
+            }
+            (75.0..=89.9, _) => "🟡 Development with Issues".to_string(),
+            (50.0..=74.9, _) => "🟡 Mid Development".to_string(),
+            (25.0..=49.9, _) => "🟠 Early Development".to_string(),
+            (0.0..=24.9, _) => "🔵 Planning Phase".to_string(),
+            _ => "🟡 In Development".to_string(),
+        }
+    }
+
+    /// Format health status with appropriate indicators
+    fn format_health_status(health: &crate::parser::context::ProjectHealth) -> String {
+        match health {
+            crate::parser::context::ProjectHealth::Healthy => "🟢 Healthy".to_string(),
+            crate::parser::context::ProjectHealth::Warning => "🟡 Warning".to_string(),
+            crate::parser::context::ProjectHealth::Critical => "🔴 Critical".to_string(),
+            crate::parser::context::ProjectHealth::Unknown => "❓ Unknown".to_string(),
+        }
+    }
+
+    /// Create task summary breakdown
+    fn derive_task_summary(context: &SubProjectContext) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+        let tasks = &context.task_summary.tasks_by_status;
+
+        // In Progress tasks
+        if let Some(in_progress) = tasks.get(&TaskStatus::InProgress) {
+            if !in_progress.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "🚀".to_string(),
+                    text: format!("{} tasks in progress", in_progress.len()),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        // Pending tasks
+        if let Some(not_started) = tasks.get(&TaskStatus::NotStarted) {
+            if !not_started.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "📋".to_string(),
+                    text: format!("{} tasks not started", not_started.len()),
+                    indent_level: 0,
+                });
+            }
+        } // Completed tasks
+        if let Some(completed) = tasks.get(&TaskStatus::Completed) {
+            if !completed.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "✅".to_string(),
+                    text: format!("{} tasks completed", completed.len()),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        // Blocked tasks
+        if let Some(blocked) = tasks.get(&TaskStatus::Blocked) {
+            if !blocked.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "🚫".to_string(),
+                    text: format!("{} tasks blocked", blocked.len()),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        items
+    }
+
+    /// Extract current focus from active context content
+    fn extract_current_focus(content: &str) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+
+        // Look for current focus section
+        if let Some(focus_start) = content.find("**Current Work Focus") {
+            let focus_section = &content[focus_start..];
+            for line in focus_section.lines().take(5) {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ") {
+                    let focus_item = trimmed.trim_start_matches("- ").trim();
+                    if focus_item.len() > 5 {
+                        items.push(IndentedItem {
+                            bullet: "🎯".to_string(),
+                            text: focus_item.to_string(),
+                            indent_level: 0,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Fallback to immediate actions if no focus found
+        if items.is_empty() {
+            if let Some(actions_start) = content.find("**Immediate Actions Required") {
+                let actions_section = &content[actions_start..];
+                for line in actions_section.lines().take(3) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") {
+                        let action_item = trimmed.trim_start_matches("- ").trim();
+                        if action_item.len() > 5 {
+                            items.push(IndentedItem {
+                                bullet: "🎯".to_string(),
+                                text: action_item.to_string(),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        items
+    }
+
+    /// Derive next actions based on task status and project state
+    fn derive_next_actions(context: &SubProjectContext) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+        let tasks = &context.task_summary.tasks_by_status;
+
+        // Suggest actions based on project state
+        if let Some(in_progress) = tasks.get(&TaskStatus::InProgress) {
+            if !in_progress.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "📌".to_string(),
+                    text: format!(
+                        "Complete {} active task{}",
+                        in_progress.len(),
+                        if in_progress.len() == 1 { "" } else { "s" }
+                    ),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        if let Some(blocked) = tasks.get(&TaskStatus::Blocked) {
+            if !blocked.is_empty() {
+                items.push(IndentedItem {
+                    bullet: "🔧".to_string(),
+                    text: format!(
+                        "Resolve {} blocked task{}",
+                        blocked.len(),
+                        if blocked.len() == 1 { "" } else { "s" }
+                    ),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        if let Some(not_started) = tasks.get(&TaskStatus::NotStarted) {
+            if !not_started.is_empty() && not_started.len() <= 3 {
+                items.push(IndentedItem {
+                    bullet: "▶️".to_string(),
+                    text: "Start next priority task".to_string(),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        // Health-based suggestions
+        match context.derived_status.health {
+            crate::parser::context::ProjectHealth::Critical => {
+                items.push(IndentedItem {
+                    bullet: "🚨".to_string(),
+                    text: "Address critical issues immediately".to_string(),
+                    indent_level: 0,
+                });
+            }
+            crate::parser::context::ProjectHealth::Warning => {
+                items.push(IndentedItem {
+                    bullet: "⚠️".to_string(),
+                    text: "Review and address warnings".to_string(),
+                    indent_level: 0,
+                });
+            }
+            _ => {}
+        }
+
+        items
+    }
+}
+
 /// Template for task breakdown and progress display
 pub struct TaskBreakdownTemplate;
 

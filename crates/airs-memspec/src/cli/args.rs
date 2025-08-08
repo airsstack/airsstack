@@ -77,10 +77,10 @@ pub enum Commands {
         #[arg(help = "Show detailed status information")]
         detailed: bool,
 
-        /// Check specific sub-project
-        #[arg(short = 's', long = "sub-project")]
-        #[arg(help = "Check status of specific sub-project")]
-        sub_project: Option<String>,
+        /// Check specific project
+        #[arg(long = "project")]
+        #[arg(help = "Check status of specific project")]
+        project: Option<String>,
     },
 
     /// Display current project context and active development focus

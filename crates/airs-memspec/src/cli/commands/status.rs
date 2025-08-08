@@ -11,31 +11,31 @@ use crate::cli::GlobalArgs;
 use crate::parser::context::{ContextCorrelator, WorkspaceContext};
 use crate::utils::fs::FsResult;
 use crate::utils::output::{OutputConfig, OutputFormatter};
-use crate::utils::templates::{ContextTemplate, WorkspaceStatusTemplate};
+use crate::utils::templates::{ProjectStatusTemplate, WorkspaceStatusTemplate};
 
 /// Run the status command with comprehensive workspace and project analysis
 ///
 /// This function orchestrates the complete status analysis workflow:
 /// 1. Initialize output formatting based on user preferences
 /// 2. Discover and analyze workspace context using ContextCorrelator
-/// 3. Generate appropriate status display (workspace or sub-project specific)
+/// 3. Generate appropriate status display (workspace or project specific)
 /// 4. Present formatted results with visual enhancements
 ///
 /// # Arguments
 ///
 /// * `global` - Global CLI arguments including path and verbosity settings
 /// * `detailed` - Whether to show detailed status information
-/// * `sub_project` - Optional sub-project name for focused analysis
+/// * `project` - Optional project name for focused analysis
 ///
 /// # Output Modes
 ///
-/// - **Workspace Mode** (default): Overview of all sub-projects and workspace health
-/// - **Sub-Project Mode**: Detailed view of specific sub-project when name provided
+/// - **Workspace Mode** (default): Overview of all projects and workspace health
+/// - **Project Mode**: Detailed view of specific project when name provided
 /// - **Detailed Mode**: Enhanced information when --detailed flag is used
 pub fn run(
     global: &GlobalArgs,
     detailed: bool,
-    sub_project: Option<String>,
+    project: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Initialize output formatter with user preferences
     let output_config = OutputConfig::new(global.no_color, global.verbose, global.quiet);
@@ -59,9 +59,9 @@ pub fn run(
     let progress_analyzer = ProgressAnalyzer::new();
 
     // Generate status display based on requested mode
-    match sub_project {
+    match project {
         Some(project_name) => {
-            show_sub_project_status(
+            show_project_status(
                 &formatter,
                 workspace_context,
                 &project_name,
@@ -120,29 +120,36 @@ fn show_workspace_status(
     Ok(())
 }
 
-/// Display detailed sub-project status
+/// Display detailed project status
 ///
-/// Provides comprehensive analysis of a specific sub-project including task breakdown,
-/// progress tracking, current context, and actionable insights.
-fn show_sub_project_status(
+/// Provides comprehensive analysis of a specific project including task breakdown,
+/// progress tracking, current status, and actionable insights.
+fn show_project_status(
     formatter: &OutputFormatter,
     workspace_context: &WorkspaceContext,
     project_name: &str,
     detailed: bool,
     progress_analyzer: &ProgressAnalyzer,
 ) -> FsResult<()> {
-    // Find the requested sub-project
+    // Find the requested project
     let project_context = workspace_context
         .sub_project_contexts
         .get(project_name)
         .ok_or_else(|| {
             crate::utils::fs::FsError::ParseError(format!(
-                "Sub-project '{project_name}' not found in workspace"
+                "Sub-project '{project_name}' not found. Available projects: {}",
+                workspace_context
+                    .sub_project_contexts
+                    .keys()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ))
         })?;
 
-    // Use professional template system for project context display
-    let elements = ContextTemplate::render(project_context);
+    // Use proper ProjectStatusTemplate instead of ContextTemplate
+    // This shows status information (progress, health, tasks) instead of context information
+    let elements = ProjectStatusTemplate::render(project_context);
     formatter.render_layout(&elements);
 
     // If detailed mode is requested, add additional analytics

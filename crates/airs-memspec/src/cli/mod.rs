@@ -24,8 +24,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         } => commands::install::run(&cli.global, target, force, template),
         Commands::Status {
             detailed,
-            sub_project,
-        } => commands::status::run(&cli.global, detailed, sub_project),
+            project,
+        } => commands::status::run(&cli.global, detailed, project),
         Commands::Context { workspace, project } => {
             commands::context::run(&cli.global, workspace, project)
         }
