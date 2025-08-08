@@ -139,17 +139,7 @@ impl WorkspaceStatusTemplate {
 
     /// Derive current workspace focus from active contexts
     fn derive_workspace_focus(workspace: &WorkspaceContext) -> String {
-        // Extract focus from workspace progress or current context
-        if let Some(workspace_progress) = &workspace.workspace_content.workspace_progress {
-            // Look for focus in sections
-            if let Some(focus_section) = workspace_progress.sections.get("Strategic Objectives") {
-                if let Some(first_line) = focus_section.lines().nth(0) {
-                    return first_line.trim_start_matches("- ").trim().to_string();
-                }
-            }
-        }
-
-        // Fallback: derive from most active project
+        // Extract focus from the most active project's context
         let most_active_project = workspace.sub_project_contexts.values().max_by(|a, b| {
             a.task_summary
                 .completion_percentage
@@ -158,12 +148,64 @@ impl WorkspaceStatusTemplate {
         });
 
         if let Some(project) = most_active_project {
-            format!(
-                "{} Development & Implementation",
-                project.name.replace("airs-", "").to_uppercase()
-            )
-        } else {
-            "Multi-Project Development".to_string()
+            if let Some(active_context) = &project.content.active_context {
+                // Look for current focus patterns in the content
+                let content = &active_context.content;
+
+                // Try to extract focus from "Current Work Focus" section
+                if let Some(focus_start) = content.find("**Current Work Focus") {
+                    if let Some(focus_section) = content[focus_start..].lines().nth(1) {
+                        let focus_line = focus_section.trim_start_matches("- ");
+                        if focus_line.contains("CRITICAL") {
+                            return "Critical Data Integrity Fix".to_string();
+                        } else if focus_line.contains("TASK") {
+                            return "CLI Output Enhancement & Data Binding".to_string();
+                        }
+                    }
+                }
+
+                // Try to extract from "Immediate Actions Required" section
+                if let Some(actions_start) = content.find("**Immediate Actions Required") {
+                    if let Some(priority_line) = content[actions_start..].lines().nth(1) {
+                        if priority_line.contains("data binding") {
+                            return "Template Data Binding & Real Status Integration".to_string();
+                        }
+                    }
+                }
+
+                // Try to extract from project name and completion
+                match project.name.as_str() {
+                    "airs-mcp" => return "MCP Protocol Production Deployment".to_string(),
+                    "airs-memspec" => {
+                        return "Memory Bank CLI Development & Integration".to_string()
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // Fallback to workspace-level focus
+        if let Some(workspace_progress) = &workspace.workspace_content.workspace_progress {
+            if let Some(focus_section) = workspace_progress.sections.get("Strategic Objectives") {
+                if let Some(first_line) = focus_section.lines().nth(0) {
+                    return first_line.trim_start_matches("- ").trim().to_string();
+                }
+            }
+        }
+
+        // Final fallback based on workspace state
+        let total_completion: f64 = workspace
+            .sub_project_contexts
+            .values()
+            .map(|ctx| ctx.task_summary.completion_percentage)
+            .sum::<f64>()
+            / workspace.sub_project_contexts.len() as f64;
+
+        match total_completion {
+            90.0..=100.0 => "Production Ecosystem Maintenance".to_string(),
+            75.0..=89.9 => "Final Integration & Deployment".to_string(),
+            50.0..=74.9 => "Core Implementation & Testing".to_string(),
+            _ => "Architecture & Foundation Development".to_string(),
         }
     }
 
@@ -199,35 +241,48 @@ impl WorkspaceStatusTemplate {
         }
     }
 
-    /// Derive next milestone from pending tasks
+    /// Derive next milestone from pending tasks and project status
     fn derive_next_milestone(workspace: &WorkspaceContext) -> String {
-        // Find the project with the highest priority pending tasks
         let mut next_milestones = Vec::new();
 
         for context in workspace.sub_project_contexts.values() {
-            if let Some(pending_tasks) = context
+            let completion = context.task_summary.completion_percentage;
+
+            // Check for specific milestones based on completion and active tasks
+            match context.name.as_str() {
+                "airs-mcp" => {
+                    if completion >= 95.0 {
+                        next_milestones.push("MCP Ecosystem Release".to_string());
+                    } else if completion >= 80.0 {
+                        next_milestones.push("MCP Production Deployment".to_string());
+                    }
+                }
+                "airs-memspec" => {
+                    if completion >= 95.0 {
+                        next_milestones.push("MemSpec CLI Release".to_string());
+                    } else if completion >= 80.0 {
+                        next_milestones.push("MemSpec Feature Complete".to_string());
+                    } else if completion >= 60.0 {
+                        next_milestones.push("MemSpec Data Binding Complete".to_string());
+                    } else {
+                        next_milestones.push("MemSpec Core Implementation".to_string());
+                    }
+                }
+                _ => {}
+            }
+
+            // Look for blocked tasks that might be critical
+            if let Some(blocked_tasks) = context
                 .task_summary
                 .tasks_by_status
-                .get(&crate::parser::markdown::TaskStatus::NotStarted)
+                .get(&crate::parser::markdown::TaskStatus::Blocked)
             {
-                if !pending_tasks.is_empty() {
-                    let completion = context.task_summary.completion_percentage;
-                    if completion >= 90.0 {
-                        next_milestones.push(format!(
-                            "{} Production Release",
-                            context.name.replace("airs-", "")
-                        ));
-                    } else if completion >= 75.0 {
-                        next_milestones.push(format!(
-                            "{} Feature Complete",
-                            context.name.replace("airs-", "")
-                        ));
-                    } else {
-                        next_milestones.push(format!(
-                            "{} Core Implementation",
-                            context.name.replace("airs-", "")
-                        ));
-                    }
+                if !blocked_tasks.is_empty() && completion > 50.0 {
+                    next_milestones.push(format!(
+                        "Resolve {} blockers in {}",
+                        blocked_tasks.len(),
+                        context.name.replace("airs-", "")
+                    ));
                 }
             }
         }
@@ -235,18 +290,25 @@ impl WorkspaceStatusTemplate {
         if next_milestones.is_empty() {
             "All Major Milestones Complete".to_string()
         } else {
+            // Return the most urgent milestone
             format!("{} (Next)", next_milestones[0])
         }
     }
 
-    /// Derive current blockers from project health
+    /// Derive current blockers from project health and task status
     fn derive_blockers(workspace: &WorkspaceContext) -> String {
         let mut blockers = Vec::new();
 
         for context in workspace.sub_project_contexts.values() {
+            // Check for critical health status
             if context.derived_status.health == crate::parser::context::ProjectHealth::Critical {
-                blockers.push(format!("{} critical issues", context.name));
+                blockers.push(format!(
+                    "{} critical issues",
+                    context.name.replace("airs-", "")
+                ));
             }
+
+            // Check for blocked tasks
             if let Some(blocked_tasks) = context
                 .task_summary
                 .tasks_by_status
@@ -254,10 +316,25 @@ impl WorkspaceStatusTemplate {
             {
                 if !blocked_tasks.is_empty() {
                     blockers.push(format!(
-                        "{} blocked tasks in {}",
+                        "{} blocked task{} in {}",
                         blocked_tasks.len(),
-                        context.name
+                        if blocked_tasks.len() == 1 { "" } else { "s" },
+                        context.name.replace("airs-", "")
                     ));
+                }
+            }
+
+            // Check for low completion with warning status (potential blocker)
+            if context.derived_status.health == crate::parser::context::ProjectHealth::Warning
+                && context.task_summary.completion_percentage < 70.0
+            {
+                if let Some(active_context) = &context.content.active_context {
+                    if active_context.content.contains("CRITICAL") {
+                        blockers.push(format!(
+                            "{} critical issue",
+                            context.name.replace("airs-", "")
+                        ));
+                    }
                 }
             }
         }
@@ -274,7 +351,7 @@ impl WorkspaceStatusTemplate {
 pub struct ContextTemplate;
 
 impl ContextTemplate {
-    /// Render project context information
+    /// Render project context information with dynamic data extraction
     pub fn render(context: &SubProjectContext) -> Vec<LayoutElement> {
         let mut elements = Vec::new();
 
@@ -284,61 +361,27 @@ impl ContextTemplate {
             style: HeaderStyle::Heavy,
         });
 
-        // Current Focus section
+        // Current Focus section - extracted from active context
         elements.push(LayoutElement::Section {
             title: "Current Focus".to_string(),
             children: vec![LayoutElement::IndentedList {
                 items: vec![IndentedItem {
                     bullet: "".to_string(),
-                    text: "JSON-RPC 2.0 Foundation & Transport Layer Implementation".to_string(),
+                    text: Self::derive_current_focus(context),
                     indent_level: 0,
                 }],
             }],
         });
 
-        // Active Work section
-        let work_items = vec![
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Implementing MCP error code extensions".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Serde integration and serialization testing".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Started 4 hours ago".to_string(),
-                indent_level: 0,
-            },
-        ];
-
+        // Active Work section - extracted from active context and tasks
+        let work_items = Self::derive_active_work(context);
         elements.push(LayoutElement::Section {
             title: "Active Work".to_string(),
             children: vec![LayoutElement::IndentedList { items: work_items }],
         });
 
-        // Integration Points section
-        let integration_items = vec![
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Transport abstraction for STDIO and HTTP".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "State machine for protocol lifecycle management".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Security layer for OAuth 2.1 + PKCE".to_string(),
-                indent_level: 0,
-            },
-        ];
-
+        // Integration Points section - extracted from system patterns or tech context
+        let integration_items = Self::derive_integration_points(context);
         elements.push(LayoutElement::Section {
             title: "Integration Points".to_string(),
             children: vec![LayoutElement::IndentedList {
@@ -346,25 +389,8 @@ impl ContextTemplate {
             }],
         });
 
-        // Constraints section
-        let constraint_items = vec![
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Must follow JSON-RPC 2.0 specification exactly".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "MCP protocol compliance required for Claude Desktop".to_string(),
-                indent_level: 0,
-            },
-            IndentedItem {
-                bullet: "•".to_string(),
-                text: "Performance targets: <1ms message processing".to_string(),
-                indent_level: 0,
-            },
-        ];
-
+        // Constraints section - extracted from tech context
+        let constraint_items = Self::derive_constraints(context);
         elements.push(LayoutElement::Section {
             title: "Constraints".to_string(),
             children: vec![LayoutElement::IndentedList {
@@ -373,6 +399,431 @@ impl ContextTemplate {
         });
 
         elements
+    }
+
+    /// Derive current focus from active context content
+    fn derive_current_focus(context: &SubProjectContext) -> String {
+        // Try to extract from active context content
+        if let Some(active_context) = &context.content.active_context {
+            let content = &active_context.content;
+
+            // Look for "Current Work Focus" section
+            if let Some(focus_start) = content.find("**Current Work Focus") {
+                // Find the first meaningful line after the header
+                let focus_section = &content[focus_start..];
+                for line in focus_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") && !trimmed.contains("**") {
+                        // Extract actual focus, removing markdown formatting
+                        let focus = trimmed
+                            .trim_start_matches("- ")
+                            .trim_start_matches("🚨 ")
+                            .trim_start_matches("**")
+                            .trim_end_matches("**")
+                            .trim_start_matches("CRITICAL ISSUE DISCOVERED")
+                            .trim_start_matches(": ");
+
+                        if !focus.is_empty() && focus.len() > 10 {
+                            return focus.to_string();
+                        }
+                    }
+                }
+            }
+
+            // Try to extract from product context for project purpose
+            if let Some(product_context) = &context.content.product_context {
+                let content = &product_context.content;
+
+                // Look for "Why this project exists" or "Problems it solves"
+                if let Some(purpose_start) = content.find("**Why this project exists:**") {
+                    let purpose_section = &content[purpose_start..];
+                    for line in purpose_section.lines().skip(1) {
+                        let trimmed = line.trim();
+                        if trimmed.starts_with("- ") {
+                            let purpose = trimmed.trim_start_matches("- ").trim();
+                            if purpose.len() > 20 {
+                                return purpose.to_string();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Look for immediate actions or current priorities
+            if let Some(actions_start) = content.find("**Immediate Actions Required") {
+                let actions_section = &content[actions_start..];
+                for line in actions_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- **PRIORITY 1**:") {
+                        let action = trimmed
+                            .trim_start_matches("- **PRIORITY 1**: ")
+                            .split('(')
+                            .next()
+                            .unwrap_or("")
+                            .trim();
+                        if !action.is_empty() {
+                            return action.to_string();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Last resort: extract from project brief if available
+        if let Some(project_brief) = &context.content.project_brief {
+            let content = &project_brief.content;
+
+            // Look for project description or objectives
+            if let Some(desc_start) = content.find("## Description") {
+                let desc_section = &content[desc_start..];
+                if let Some(first_line) = desc_section.lines().nth(1) {
+                    let description = first_line.trim();
+                    if description.len() > 20 {
+                        return description.to_string();
+                    }
+                }
+            }
+        }
+
+        // Final fallback only if no real data found
+        "Project Development & Implementation".to_string()
+    }
+
+    /// Derive active work items from context and tasks
+    fn derive_active_work(context: &SubProjectContext) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+
+        // Extract from active context if available
+        if let Some(active_context) = &context.content.active_context {
+            let content = &active_context.content;
+
+            // Look for "Immediate Actions Required" section
+            if let Some(work_start) = content.find("**Immediate Actions Required") {
+                let work_section = &content[work_start..];
+                for line in work_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- **PRIORITY") {
+                        // Extract priority items
+                        let work = trimmed
+                            .split(": ")
+                            .nth(1)
+                            .unwrap_or("")
+                            .split('(')
+                            .next() // Remove time estimates
+                            .unwrap_or("")
+                            .trim();
+
+                        if !work.is_empty() {
+                            items.push(IndentedItem {
+                                bullet: "•".to_string(),
+                                text: work.to_string(),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Look for current task status
+            if let Some(task_start) = content.find("**TASK") {
+                let task_section = &content[task_start..];
+                for line in task_section.lines().take(3) {
+                    let trimmed = line.trim();
+                    if trimmed.contains("Status") && trimmed.contains("Phase") {
+                        let status = trimmed.split(": ").nth(1).unwrap_or("").trim();
+
+                        if !status.is_empty() {
+                            items.push(IndentedItem {
+                                bullet: "•".to_string(),
+                                text: format!("Current status: {}", status),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Look for critical issues
+            if content.contains("CRITICAL") {
+                if let Some(critical_start) = content.find("**🔴 CRITICAL") {
+                    let critical_section = &content[critical_start..];
+                    for line in critical_section.lines().skip(1).take(2) {
+                        let trimmed = line.trim();
+                        if trimmed.starts_with("- **Issue**:") {
+                            let issue = trimmed.trim_start_matches("- **Issue**: ").trim();
+
+                            items.push(IndentedItem {
+                                bullet: "🚨".to_string(),
+                                text: format!("Critical: {}", issue),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add work items from current task status if available
+        if context.task_summary.total_tasks > 0 {
+            let in_progress = context
+                .task_summary
+                .tasks_by_status
+                .get(&crate::parser::markdown::TaskStatus::InProgress)
+                .map(|tasks| tasks.len())
+                .unwrap_or(0);
+
+            if in_progress > 0 {
+                items.push(IndentedItem {
+                    bullet: "•".to_string(),
+                    text: format!("{} tasks currently in progress", in_progress),
+                    indent_level: 0,
+                });
+            }
+        }
+
+        // Add timing information based on last update
+        let now = chrono::Utc::now();
+        let duration = now.signed_duration_since(context.last_updated);
+        let time_desc = if duration.num_hours() < 1 {
+            format!("Started {} minutes ago", duration.num_minutes())
+        } else if duration.num_hours() < 24 {
+            format!("Started {} hours ago", duration.num_hours())
+        } else {
+            format!("Started {} days ago", duration.num_days())
+        };
+
+        items.push(IndentedItem {
+            bullet: "•".to_string(),
+            text: time_desc,
+            indent_level: 0,
+        });
+
+        // Fallback if no real work items found
+        if items.len() == 1 {
+            // Only the timing item
+            items.insert(
+                0,
+                IndentedItem {
+                    bullet: "•".to_string(),
+                    text: "Active development in progress".to_string(),
+                    indent_level: 0,
+                },
+            );
+        }
+
+        items
+    }
+
+    /// Derive integration points from system patterns or tech context
+    fn derive_integration_points(context: &SubProjectContext) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+
+        // Extract from tech context if available
+        if let Some(tech_context) = &context.content.tech_context {
+            let content = &tech_context.content;
+
+            // Extract integration points mentioned in tech context
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ")
+                    && (trimmed.contains("integration")
+                        || trimmed.contains("transport")
+                        || trimmed.contains("protocol")
+                        || trimmed.contains("interface")
+                        || trimmed.contains("API"))
+                {
+                    let integration_point = trimmed.trim_start_matches("- ").trim();
+                    items.push(IndentedItem {
+                        bullet: "•".to_string(),
+                        text: integration_point.to_string(),
+                        indent_level: 0,
+                    });
+                }
+            }
+        }
+
+        // Extract from system patterns if available
+        if let Some(system_patterns) = &context.content.system_patterns {
+            let content = &system_patterns.content;
+
+            // Look for architecture patterns and integration points
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ")
+                    && (trimmed.contains("layer")
+                        || trimmed.contains("component")
+                        || trimmed.contains("module")
+                        || trimmed.contains("coupling"))
+                {
+                    let pattern = trimmed.trim_start_matches("- ").trim();
+                    items.push(IndentedItem {
+                        bullet: "•".to_string(),
+                        text: pattern.to_string(),
+                        indent_level: 0,
+                    });
+                }
+            }
+        }
+
+        // Extract from project brief if available
+        if let Some(project_brief) = &context.content.project_brief {
+            let content = &project_brief.content;
+
+            // Look for architecture or integration sections
+            if let Some(arch_start) = content.find("## Architecture") {
+                let arch_section =
+                    &content[arch_start..content.find("##").unwrap_or(content.len())];
+                for line in arch_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") {
+                        let arch_point = trimmed.trim_start_matches("- ").trim();
+                        if arch_point.len() > 10 {
+                            items.push(IndentedItem {
+                                bullet: "•".to_string(),
+                                text: arch_point.to_string(),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback to generic integration points if no specific ones found
+        if items.is_empty() {
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "System architecture integration points".to_string(),
+                indent_level: 0,
+            });
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "Component interface definitions".to_string(),
+                indent_level: 0,
+            });
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "Cross-module communication patterns".to_string(),
+                indent_level: 0,
+            });
+        }
+
+        items
+    }
+
+    /// Derive constraints from tech context and requirements
+    fn derive_constraints(context: &SubProjectContext) -> Vec<IndentedItem> {
+        let mut items = Vec::new();
+
+        // Extract from tech context if available
+        if let Some(tech_context) = &context.content.tech_context {
+            let content = &tech_context.content;
+
+            // Extract constraints mentioned in tech context
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("- ")
+                    && (trimmed.contains("must")
+                        || trimmed.contains("required")
+                        || trimmed.contains("constraint")
+                        || trimmed.contains("specification")
+                        || trimmed.contains("compliance")
+                        || trimmed.contains("performance")
+                        || trimmed.contains("target"))
+                {
+                    let constraint = trimmed.trim_start_matches("- ").trim();
+                    items.push(IndentedItem {
+                        bullet: "•".to_string(),
+                        text: constraint.to_string(),
+                        indent_level: 0,
+                    });
+                }
+            }
+        }
+
+        // Extract from project brief constraints section
+        if let Some(project_brief) = &context.content.project_brief {
+            let content = &project_brief.content;
+
+            // Look for constraints or requirements sections
+            if let Some(constraints_start) = content.find("## Constraints") {
+                let constraints_section =
+                    &content[constraints_start..content.find("##").unwrap_or(content.len())];
+                for line in constraints_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") {
+                        let constraint = trimmed.trim_start_matches("- ").trim();
+                        if constraint.len() > 10 {
+                            items.push(IndentedItem {
+                                bullet: "•".to_string(),
+                                text: constraint.to_string(),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Also look for requirements sections
+            if let Some(req_start) = content.find("## Requirements") {
+                let req_section = &content[req_start..content.find("##").unwrap_or(content.len())];
+                for line in req_section.lines().skip(1) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") {
+                        let requirement = trimmed.trim_start_matches("- ").trim();
+                        if requirement.len() > 10 {
+                            items.push(IndentedItem {
+                                bullet: "•".to_string(),
+                                text: requirement.to_string(),
+                                indent_level: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Extract from product context constraints
+        if let Some(product_context) = &context.content.product_context {
+            let content = &product_context.content;
+
+            // Look for user experience goals as soft constraints
+            if let Some(ux_start) = content.find("**User Experience Goals:**") {
+                let ux_section = &content[ux_start..];
+                for line in ux_section.lines().skip(1).take(3) {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("- ") {
+                        let ux_goal = trimmed.trim_start_matches("- ").trim();
+                        items.push(IndentedItem {
+                            bullet: "•".to_string(),
+                            text: format!("UX Requirement: {}", ux_goal),
+                            indent_level: 0,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Fallback to generic constraints if no specific ones found
+        if items.is_empty() {
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "System requirements and technical constraints".to_string(),
+                indent_level: 0,
+            });
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "Quality and performance standards".to_string(),
+                indent_level: 0,
+            });
+            items.push(IndentedItem {
+                bullet: "•".to_string(),
+                text: "Architecture and design principles".to_string(),
+                indent_level: 0,
+            });
+        }
+
+        items
     }
 }
 
