@@ -43,7 +43,7 @@ tracing-subscriber.workspace = true
 
 # Benchmark dependencies
 chrono.workspace = true
-num_cpus = "1.16"
+num_cpus.workspace = true
 
 [[bench]]
 name = "message_processing"

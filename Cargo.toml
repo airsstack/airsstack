@@ -77,6 +77,8 @@ proptest = { version = "1.4" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Performance benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
+# CPU count detection for benchmarks
+num_cpus = { version = "1.16" }
 
 # Testing utilities (latest stable)
 tempfile = { version = "3.20" }
