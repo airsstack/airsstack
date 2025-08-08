@@ -29,7 +29,7 @@ use crate::utils::templates::{ContextTemplate, WorkspaceContextTemplate};
 ///
 /// - **Default Mode**: Shows current active sub-project context
 /// - **Workspace Mode** (--workspace): Shows workspace-level integration and architecture
-/// - **Sub-Project Mode** (--project <name>): Shows specific sub-project context
+/// - **Sub-Project Mode** (--project `<name>`): Shows specific sub-project context
 ///
 /// # Examples
 ///
