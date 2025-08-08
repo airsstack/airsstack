@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         workspace_context.sub_project_contexts.len()
     );
     for (name, context) in &workspace_context.sub_project_contexts {
-        println!("\n🔸 Project: {}", name);
+        println!("\n🔸 Project: {name}");
         println!("  • Health: {:?}", context.derived_status.health);
         println!("  • Total Tasks: {}", context.task_summary.total_tasks);
         println!(
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if let Some(active_context) = &context.content.active_context {
             if let Some(title) = &active_context.metadata.title {
-                println!("  • Active Context Title: {}", title);
+                println!("  • Active Context Title: {title}");
             }
             println!(
                 "  • Active Context Content: {} chars",
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if let Some(progress) = &context.content.progress {
             if let Some(title) = &progress.metadata.title {
-                println!("  • Progress Title: {}", title);
+                println!("  • Progress Title: {title}");
             }
             println!("  • Progress Content: {} chars", progress.content.len());
         }
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(workspace_progress) = &workspace_context.workspace_content.workspace_progress {
         println!("\n🏢 Workspace Progress Data:");
         if let Some(title) = &workspace_progress.metadata.title {
-            println!("  • Title: {}", title);
+            println!("  • Title: {title}");
         }
         println!(
             "  • Content length: {} chars",

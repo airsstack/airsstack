@@ -292,19 +292,17 @@ pub fn generate_recovery_suggestions(error: &FsError, workspace_path: Option<&Pa
                     "Project Not Found:\n\
                     1. List available projects: 'airs-memspec status'\n\
                     2. Check project name spelling\n\
-                    3. {}\n\
+                    3. {workspace_info}\n\
                     4. If project should exist, check .copilot/memory_bank/sub_projects/ directory\n\
-                    5. Create new project structure if needed",
-                    workspace_info
+                    5. Create new project structure if needed"
                 )
             } else {
                 format!(
                     "Parsing Error:\n\
                     1. Check file syntax and format\n\
-                    2. Problem: {}\n\
+                    2. Problem: {message}\n\
                     3. Validate against expected format\n\
-                    4. Restore from backup if needed",
-                    message
+                    4. Restore from backup if needed"
                 )
             }
         }
@@ -326,10 +324,9 @@ pub fn generate_recovery_suggestions(error: &FsError, workspace_path: Option<&Pa
                 "System Error:\n\
                 1. Check available disk space: df -h\n\
                 2. Verify file system is writable\n\
-                3. System error: {}\n\
+                3. System error: {io_error}\n\
                 4. Try again in a few moments\n\
-                5. Check system logs for more details",
-                io_error
+                5. Check system logs for more details"
             )
         }
     }

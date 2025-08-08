@@ -229,15 +229,15 @@ impl WorkspaceStatusTemplate {
 
         match (completion, health) {
             (95.0..=100.0, _) => "Production Ready ✅".to_string(),
-            (90.0..=94.9, _) => format!("Nearing Completion ({:.0}%)", completion),
+            (90.0..=94.9, _) => format!("Nearing Completion ({completion:.0}%)"),
             (75.0..=89.9, crate::parser::context::ProjectHealth::Healthy) => {
-                format!("Active Development ({:.0}%)", completion)
+                format!("Active Development ({completion:.0}%)")
             }
-            (75.0..=89.9, _) => format!("Development with Issues ({:.0}%)", completion),
-            (50.0..=74.9, _) => format!("Mid Development ({:.0}%)", completion),
-            (25.0..=49.9, _) => format!("Early Development ({:.0}%)", completion),
+            (75.0..=89.9, _) => format!("Development with Issues ({completion:.0}%)"),
+            (50.0..=74.9, _) => format!("Mid Development ({completion:.0}%)"),
+            (25.0..=49.9, _) => format!("Early Development ({completion:.0}%)"),
             (0.0..=24.9, _) => "Planning Phase".to_string(),
-            _ => format!("Development ({:.0}%)", completion),
+            _ => format!("Development ({completion:.0}%)"),
         }
     }
 
@@ -535,7 +535,7 @@ impl ContextTemplate {
                         if !status.is_empty() {
                             items.push(IndentedItem {
                                 bullet: "•".to_string(),
-                                text: format!("Current status: {}", status),
+                                text: format!("Current status: {status}"),
                                 indent_level: 0,
                             });
                         }
@@ -554,7 +554,7 @@ impl ContextTemplate {
 
                             items.push(IndentedItem {
                                 bullet: "🚨".to_string(),
-                                text: format!("Critical: {}", issue),
+                                text: format!("Critical: {issue}"),
                                 indent_level: 0,
                             });
                         }
@@ -575,7 +575,7 @@ impl ContextTemplate {
             if in_progress > 0 {
                 items.push(IndentedItem {
                     bullet: "•".to_string(),
-                    text: format!("{} tasks currently in progress", in_progress),
+                    text: format!("{in_progress} tasks currently in progress"),
                     indent_level: 0,
                 });
             }
@@ -810,7 +810,7 @@ impl ContextTemplate {
                         let ux_goal = trimmed.trim_start_matches("- ").trim();
                         items.push(IndentedItem {
                             bullet: "•".to_string(),
-                            text: format!("UX Requirement: {}", ux_goal),
+                            text: format!("UX Requirement: {ux_goal}"),
                             indent_level: 0,
                         });
                     }
