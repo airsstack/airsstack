@@ -1,11 +1,11 @@
-# [task_017] - CLI Output Formatting Gap (High Priority Technical Debt)
+# [task_017] - CLI Output Formatting Gap (CRITICAL Technical Debt)
 
-**Status:** in_progress - Phase 2 Completed, Phase 3 Ready  
+**Status:** in_progress - Phase 2 Completed, **CRITICAL ISSUE DISCOVERED**  
 **Added:** 2025-08-04  
-**Updated:** 2025-08-05
-**Priority:** HIGH
-**Type:** technical_debt
-**Category:** user_experience
+**Updated:** 2025-08-08
+**Priority:** CRITICAL 🚨
+**Type:** critical_bug + technical_debt
+**Category:** user_experience + data_integrity
 
 ## Original Issue
 Critical gap between documented CLI output formatting (shown in README.md) and actual implementation. The README promises sophisticated, professional output formatting with structured layouts, but the current implementation delivers basic console messages.
@@ -118,10 +118,87 @@ Constraints
 **Issue**: 118 clippy warnings violating workspace Zero-Warning Policy
 - **Warning Types**: format string modernization, needless borrows, type annotations
 - **Impact**: Cannot proceed with Phase 2 development until resolved
+
+## 🚨 CRITICAL DISCOVERY - 2025-08-08: HARDCODED DATA ISSUE
+
+### **Data Integrity Violation Discovered**
+**Severity**: CRITICAL 🔴  
+**Impact**: Tool produces **completely false information**
+
+**Problem Analysis:**
+- Template system uses **hardcoded static strings** instead of reading memory bank data
+- Status command shows outdated/incorrect project status
+- Tool appears functional but provides misleading information
+
+**Evidence:**
+```rust
+// File: src/utils/templates.rs lines 78-86
+let detailed_status = if name == "airs-mcp" {
+    "Week 1/14 - JSON-RPC Foundation"  // ❌ HARDCODED - Actually PRODUCTION READY
+} else if name == "airs-memspec" {
+    "Planning - CLI Development"        // ❌ HARDCODED - Actually 95% COMPLETE
+} else {
+    "Active Development"
+};
+```
+
+**Reality vs Output Comparison:**
+| Project | **Actual Status** | **Output Shows** | **Severity** |
+|---------|-------------------|------------------|--------------|
+| airs-mcp | ✅ PRODUCTION READY - Full Claude Desktop integration | Week 1/14 - JSON-RPC Foundation | CRITICAL |
+| airs-memspec | ✅ 95% Complete - 43 passing tests | Planning - CLI Development | CRITICAL |
+
+**User Trust Impact:**
+- Tool cannot be trusted for project insight
+- Status command is completely unreliable
+- Undermines entire value proposition of the tool
+
+### **Solution Plan: Data Binding Fix**
+
+**Phase 3A: Critical Data Binding (IMMEDIATE - 6-8 hours)**
+1. **Remove All Hardcoded Values**
+   - Eliminate static strings in WorkspaceStatusTemplate
+   - Remove hardcoded project statuses
+   - Remove hardcoded milestones and dates
+
+2. **Implement Real Data Reading**
+   - Read from active_context.md for current focus
+   - Read from progress.md for completion status
+   - Read from current_context.md for last updated
+   - Calculate real project health from task completion
+
+3. **Dynamic Status Generation**
+   - Generate project status from task completion percentage
+   - Calculate milestones from pending tasks
+   - Derive health indicators from actual progress
+   - Compute real timestamps from file modifications
+
+4. **Data Flow Validation**
+   - Ensure templates receive real WorkspaceContext data
+   - Validate context correlation is working properly
+   - Test with actual memory bank files
+
+**Phase 3B: Template Integration (ORIGINAL SCOPE - 2-4 hours)**
+- Connect fixed templates to CLI commands
+- Implement OutputFormatter integration
+- Professional output rendering
+
+**New Total Effort**: 8-12 hours (was 2-4 hours)
+**Priority**: CRITICAL - Must fix data integrity before any other features
 - **Effort**: 2-3 hours of systematic fixes across codebase modules
 - **Priority**: Must resolve before continuing feature development
 
 ## Progress Log
+### 2025-08-08
+- 🚨 **CRITICAL DISCOVERY**: Hardcoded data issue discovered in template system
+- 📊 **Analysis Completed**: Status command produces completely false information
+- 🔍 **Root Cause**: WorkspaceStatusTemplate uses static strings instead of memory bank data
+- 📋 **Impact Assessment**: Tool shows "Week 1/14" for PRODUCTION READY project
+- 💡 **Solution Designed**: Data binding fix plan with real memory bank integration
+- 🎯 **Priority Escalated**: From HIGH to CRITICAL due to data integrity violation
+- 📝 **Task Updated**: Expanded scope to include data binding fix (Phase 3A)
+- ⏰ **Effort Revised**: 8-12 hours (was 2-4 hours) due to critical data issues
+
 ### 2025-08-05
 - ✅ **Phase 1 Core Layout Engine COMPLETED**: Successfully implemented composable layout system
 - ✅ **Layout Architecture**: LayoutEngine with LayoutElement enum (7 variants)
@@ -139,7 +216,7 @@ Constraints
 - ✅ **Decision Made**: Chose professional composable approach over quick fix
 - 📝 **Documentation**: Created task_017_professional_implementation_plan.md
 
-**Overall Status:** not_started - 0% completion
+**Overall Status:** blocked - 60% completion (Phase 1 & 2 complete, Phase 3A critical blocker)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
