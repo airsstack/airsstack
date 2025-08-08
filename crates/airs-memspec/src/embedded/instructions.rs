@@ -1,7 +1,12 @@
 // Multi-Project Memory Bank Instructions
 // Static embedded content for installation
 
-/// The complete Multi-Project Memory Bank instructions
+/// The complete Multi-Project Memory Bank instructions template
+///
+/// This constant contains the full instruction content for Multi-Project Memory Bank
+/// management, designed for deployment to `.copilot/instructions/` directories.
+/// The template provides comprehensive guidance for AI-assisted development with
+/// workspace-aware context management.
 pub const MULTI_PROJECT_MEMORY_BANK: &str = r#"---
 applyTo: '**'
 ---
@@ -443,6 +448,25 @@ impl InstructionTemplate {
 }
 
 /// Get all available instruction templates
+///
+/// Returns a vector containing all supported instruction templates that can be
+/// deployed to GitHub Copilot instruction directories. Currently includes the
+/// Multi-Project Memory Bank template.
+///
+/// # Returns
+///
+/// A vector of [`InstructionTemplate`] variants representing all available templates.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_memspec::embedded::instructions::available_templates;
+///
+/// let templates = available_templates();
+/// for template in templates {
+///     println!("Available: {}", template.description());
+/// }
+/// ```
 pub fn available_templates() -> Vec<InstructionTemplate> {
     vec![InstructionTemplate::MultiProjectMemoryBank]
 }

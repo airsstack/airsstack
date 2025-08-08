@@ -9,25 +9,44 @@ use crate::utils::fs::FsResult;
 use crate::utils::output::{OutputConfig, OutputFormatter};
 use crate::utils::templates::{ContextTemplate, WorkspaceContextTemplate};
 
-/// Run the context command to display current development context
+/// Execute the context command with comprehensive workspace analysis
 ///
-/// This function provides read-only access to current project context, showing:
-/// - Active development focus and recent changes
-/// - Architectural decisions and technical patterns
-/// - Integration points and constraints
-/// - Current work phase and next steps
+/// Analyzes and displays Multi-Project Memory Bank context information including
+/// workspace structure, active sub-project status, and context correlation across
+/// the memory bank hierarchy. Supports multiple output modes for different use cases.
 ///
 /// # Arguments
 ///
-/// * `global` - Global CLI arguments including path and output preferences
-/// * `workspace` - Whether to show workspace-level context and integration points
-/// * `project` - Optional sub-project name for focused context display
+/// * `global` - Global CLI arguments including path, verbosity, and output options
+/// * `workspace` - When true, displays workspace-level context and architecture  
+/// * `project` - Optional sub-project name to display specific project context
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful execution, or an error if workspace analysis fails.
 ///
 /// # Output Modes
 ///
 /// - **Default Mode**: Shows current active sub-project context
 /// - **Workspace Mode** (--workspace): Shows workspace-level integration and architecture
 /// - **Sub-Project Mode** (--project <name>): Shows specific sub-project context
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use airs_memspec::cli::{args::GlobalArgs, commands::context};
+///
+/// let global_args = GlobalArgs::default();
+///
+/// // Show default context
+/// context::run(&global_args, false, None)?;
+///
+/// // Show workspace-level context  
+/// context::run(&global_args, true, None)?;
+///
+/// // Show specific sub-project context
+/// context::run(&global_args, false, Some("my-project".to_string()))?;
+/// ```
 pub fn run(
     global: &GlobalArgs,
     workspace: bool,
@@ -122,4 +141,3 @@ fn show_active_context(
     // Delegate to sub-project context display
     show_sub_project_context(formatter, workspace_context, active_project)
 }
-
