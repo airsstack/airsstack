@@ -28,26 +28,388 @@ cargo build --release --bin airs-memspec
 cargo install --path crates/airs-memspec
 ```
 
-## Quick Start
+## Comprehensive Usage Guide
 
-### 1. Install Custom Instructions
+### Installation & Setup
+
+#### Option 1: From Cargo (Recommended)
 ```bash
-# Install custom instructions to .copilot directory
-airs-memspec install --path .copilot
+# Install from crates.io (when published)
+cargo install airs-memspec
 
-# Install to custom path
-airs-memspec install --path /path/to/your/copilot/config
+# Verify installation
+airs-memspec --version
 ```
 
-### 2. Check Memory Bank Status
+#### Option 2: From Source
 ```bash
-# Show workspace overview
+# Clone the AIRS workspace
+git clone https://github.com/rstlix0x0/airs.git
+cd airs
+
+# Build and install
+cargo build --release --bin airs-memspec
+cargo install --path crates/airs-memspec
+
+# Verify installation
+airs-memspec --help
+```
+
+### Essential Workflows
+
+#### 🚀 New Project Setup
+```bash
+# 1. Navigate to your workspace root
+cd /path/to/your/workspace
+
+# 2. Install GitHub Copilot instructions
+airs-memspec install --path .copilot --force
+
+# 3. Verify installation
+airs-memspec status
+
+# 4. Expected output if no memory bank exists yet:
+# ❌ No memory bank structure found
+# 💡 Use GitHub Copilot with custom instructions to create it
+```
+
+#### 📊 Daily Development Workflow
+```bash
+# Morning routine - check current state
 airs-memspec status --workspace
 
-# Show specific sub-project status
-airs-memspec status --project airs-mcp
+# Check what you were working on
+airs-memspec context
 
-# Show all sub-projects
+# Review active tasks
+airs-memspec tasks --filter active
+
+# After making progress - refresh context
+airs-memspec context --project your-project
+```
+
+#### 🔄 Multi-Project Context Switching
+```bash
+# Check all projects
+airs-memspec status
+
+# Switch focus to specific project
+airs-memspec context --project backend-api
+
+# Check progress across all projects
+airs-memspec status --workspace
+
+# View specific project tasks
+airs-memspec tasks --project frontend-app --filter pending
+```
+
+### Command Reference with Examples
+
+#### `airs-memspec install`
+Deploy GitHub Copilot custom instructions to enable AI-assisted memory bank management.
+
+```bash
+# Basic installation to .copilot directory
+airs-memspec install
+
+# Install to custom path
+airs-memspec install --path /path/to/copilot/config
+
+# Force overwrite existing files
+airs-memspec install --force
+
+# Install specific template
+airs-memspec install --template multi-project
+```
+
+**When to use**: First-time setup, updating instruction templates, or setting up new workspaces.
+
+#### `airs-memspec status`
+Display comprehensive workspace and project status overview.
+
+```bash
+# Default: current active project status
+airs-memspec status
+
+# Workspace-wide overview
+airs-memspec status --workspace
+
+# Specific project status
+airs-memspec status --project backend-api
+
+# Quiet mode (essential info only)
+airs-memspec status --quiet
+
+# Verbose mode (detailed analysis)
+airs-memspec status --verbose
+```
+
+**When to use**: Daily development start, progress reviews, project health checks.
+
+#### `airs-memspec context`
+Analyze and display current development context across projects.
+
+```bash
+# Show current active context
+airs-memspec context
+
+# Workspace-level context and integration
+airs-memspec context --workspace
+
+# Specific project context
+airs-memspec context --project frontend-app
+
+# Context with custom workspace path
+airs-memspec context --path /path/to/workspace
+```
+
+**When to use**: Understanding current work focus, context switching, architectural review.
+
+#### `airs-memspec tasks`
+Comprehensive task management and progress tracking.
+
+```bash
+# List all tasks
+airs-memspec tasks list
+
+# Filter by status
+airs-memspec tasks list --status in_progress
+airs-memspec tasks list --status pending
+
+# Filter by priority
+airs-memspec tasks list --priority high
+
+# Show recently updated tasks
+airs-memspec tasks list --filter recent
+
+# Project-specific tasks
+airs-memspec tasks list --project backend-api --status active
+```
+
+**When to use**: Sprint planning, progress tracking, task prioritization, team coordination.
+
+### Integration Patterns
+
+#### 🤖 GitHub Copilot Workflow Integration
+
+**Step 1: Install Instructions**
+```bash
+# Setup instructions for Copilot
+airs-memspec install --path .copilot
+```
+
+**Step 2: Configure GitHub Copilot**
+1. Open VS Code settings
+2. Navigate to GitHub Copilot settings
+3. Set custom instructions path to `.copilot/instructions/`
+4. Restart VS Code to apply changes
+
+**Step 3: Create Memory Bank Structure**
+```bash
+# Chat with Copilot to create memory bank
+# Use commands like: "create memory bank structure"
+# Copilot will use the installed instructions automatically
+```
+
+**Step 4: Monitor and Analyze**
+```bash
+# Regular status checks
+airs-memspec status --workspace
+
+# Context analysis before major changes
+airs-memspec context --project your-project
+
+# Task progress monitoring
+airs-memspec tasks list --filter active
+```
+
+#### 🏗️ VS Code Workspace Setup
+
+**1. Workspace Configuration**
+```json
+// .vscode/settings.json
+{
+  "github.copilot.chat.localeOverride": "en",
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": true,
+    "markdown": true
+  }
+}
+```
+
+**2. Integrated Terminal Workflow**
+```bash
+# Add to your shell profile (.bashrc, .zshrc)
+alias mbs="airs-memspec status"
+alias mbc="airs-memspec context"
+alias mbt="airs-memspec tasks list --filter active"
+
+# Quick status in terminal
+mbs && mbc
+```
+
+**3. Development Task Integration**
+```json
+// .vscode/tasks.json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Memory Bank Status",
+      "type": "shell",
+      "command": "airs-memspec",
+      "args": ["status", "--workspace"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    }
+  ]
+}
+```
+
+#### 🔄 Multi-Project Development Patterns
+
+**Pattern 1: Shared Library + Multiple Consumers**
+```bash
+# Monitor shared library changes impact
+airs-memspec status --workspace
+
+# Check integration points
+airs-memspec context --workspace
+
+# Track dependent project tasks
+airs-memspec tasks list --filter blocked
+```
+
+**Pattern 2: Microservices Architecture**
+```bash
+# Service-by-service status
+for service in auth user payment notification; do
+  echo "=== $service ==="
+  airs-memspec context --project $service
+done
+
+# Cross-service dependency tracking
+airs-memspec tasks list --filter active
+```
+
+**Pattern 3: Frontend + Backend Development**
+```bash
+# Full-stack development workflow
+airs-memspec context --project backend-api
+airs-memspec context --project frontend-app
+airs-memspec tasks list --project backend-api --status in_progress
+airs-memspec tasks list --project frontend-app --status pending
+```
+
+### Advanced Usage Scenarios
+
+#### 🔍 Project Health Monitoring
+```bash
+# Daily health check script
+#!/bin/bash
+echo "=== Daily Workspace Health Check ==="
+airs-memspec status --workspace --verbose
+
+echo -e "\n=== Active Development Focus ==="
+airs-memspec context
+
+echo -e "\n=== Blocked or High Priority Tasks ==="
+airs-memspec tasks list --priority high
+airs-memspec tasks list --filter blocked
+
+echo -e "\n=== Recent Progress ==="
+airs-memspec tasks list --filter recent
+```
+
+#### 📈 Progress Reporting
+```bash
+# Weekly progress report
+#!/bin/bash
+echo "=== Weekly Progress Report ==="
+echo "Date: $(date)"
+echo ""
+
+for project in $(airs-memspec status --workspace --quiet | grep "📁" | cut -d' ' -f2); do
+  echo "=== $project ==="
+  airs-memspec tasks list --project $project --status completed --filter recent
+  airs-memspec tasks list --project $project --status in_progress
+  echo ""
+done
+```
+
+#### 🧹 Workspace Maintenance
+```bash
+# Workspace cleanup and validation
+#!/bin/bash
+echo "=== Workspace Maintenance ==="
+
+# Check for orphaned tasks
+airs-memspec tasks list --filter stale
+
+# Validate memory bank structure integrity
+airs-memspec status --workspace --verbose
+
+# Check for missing documentation
+airs-memspec context --workspace | grep "⚠️"
+```
+
+### Best Practices
+
+#### 📋 Development Workflow Best Practices
+
+1. **Start Each Day with Status Check**
+   ```bash
+   airs-memspec status --workspace && airs-memspec context
+   ```
+
+2. **Use Context Switching for Focus**
+   ```bash
+   # Before starting work on a different project
+   airs-memspec context --project new-project-focus
+   ```
+
+3. **Regular Task Progress Updates**
+   ```bash
+   # Check active tasks before standups
+   airs-memspec tasks list --filter active
+   ```
+
+4. **Monitor Cross-Project Dependencies**
+   ```bash
+   # Weekly dependency review
+   airs-memspec status --workspace --verbose
+   ```
+
+#### 🎯 AI-Assisted Development Best Practices
+
+1. **Keep Instructions Updated**
+   ```bash
+   # Periodically update Copilot instructions
+   airs-memspec install --force
+   ```
+
+2. **Use Context for Better AI Responses**
+   - Always run `airs-memspec context` before asking complex questions to Copilot
+   - Reference current project state in AI conversations
+   - Use task status to inform AI about current priorities
+
+3. **Leverage Memory Bank Structure**
+   - Organize work according to memory bank patterns
+   - Use standardized task tracking for consistency
+   - Maintain context documentation for AI understanding
+
+4. **Regular Memory Bank Validation**
+   ```bash
+   # Ensure memory bank structure is healthy
+   airs-memspec status --workspace --verbose
+   ```
 airs-memspec status
 ```
 
