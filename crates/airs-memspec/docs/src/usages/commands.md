@@ -385,24 +385,30 @@ airs-memspec tasks <SUBCOMMAND> [OPTIONS]
 #### Basic Task Listing
 
 ```bash
-# List all active tasks
+# Smart default: shows 15 most relevant tasks
 airs-memspec tasks list
 
-# List all tasks
-airs-memspec tasks list --filter all
+# List all tasks (disable smart filtering)
+airs-memspec tasks list --all
 
-# Example output:
+# Include completed tasks in smart view
+airs-memspec tasks list --completed
+
+# Example smart output:
 # 📋 Task Overview
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 
-# Active Tasks (3)
-# ├─ [TASK013] Integration testing framework      🟢 In Progress  85%
-# ├─ [TASK014] Error handling improvements        🟡 In Progress  60%
-# └─ [TASK016] Documentation & final polish       🔵 In Progress  40%
+# Active Tasks (2) - Always shown
+# ├─ [PROJECT] TASK001 Current work item         � In Progress  85%
+# └─ [PROJECT] TASK002 Another active item       � In Progress  60%
 # 
-# Pending Tasks (2)
-# ├─ [TASK017] Performance optimization           ⚪ Pending      0%
-# └─ [TASK018] Release preparation                ⚪ Pending      0%
+# Pending Tasks (13) - From active project only
+# ├─ [active-project] TASK003 Next priority      ⚪ Pending      0%
+# └─ [active-project] TASK004 Following task     ⚪ Pending      0%
+#
+# 🧠 Smart filtering active: showing 15 most relevant tasks
+# 📋 Focusing on active project: active-project
+# 💡 Use --all to see all tasks or --status/--project for custom filtering
 ```
 
 #### Status-Based Filtering

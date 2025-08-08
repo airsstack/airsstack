@@ -113,7 +113,7 @@ pub enum Commands {
 pub enum TaskAction {
     /// List tasks with optional filtering
     #[command(name = "list")]
-    #[command(about = "List tasks with optional filtering")]
+    #[command(about = "List tasks with smart filtering (15 most relevant) or custom filters")]
     List {
         /// Filter tasks by status
         #[arg(short = 's', long = "status")]
@@ -125,6 +125,16 @@ pub enum TaskAction {
         #[arg(long = "project")]
         #[arg(help = "Filter by sub-project")]
         project: Option<String>,
+
+        /// Show all tasks (disable smart filtering)
+        #[arg(long = "all")]
+        #[arg(help = "Show all tasks (disable smart default filtering)")]
+        show_all: bool,
+
+        /// Include completed tasks in smart view
+        #[arg(long = "completed")]
+        #[arg(help = "Include completed tasks in results")]
+        include_completed: bool,
     },
 
     /// Add a new task
