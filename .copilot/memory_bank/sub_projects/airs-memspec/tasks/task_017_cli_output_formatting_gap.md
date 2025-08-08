@@ -185,6 +185,141 @@ let detailed_status = if name == "airs-mcp" {
 
 **New Total Effort**: 8-12 hours (was 2-4 hours)
 **Priority**: CRITICAL - Must fix data integrity before any other features
+
+## 📋 DETAILED IMPLEMENTATION PLAN - Phase 3A Critical Data Binding Fix
+
+### **Strategic Analysis & Reasoning**
+
+#### **Root Cause Assessment**
+The core issue is a **fundamental architectural flaw** where the template system bypasses the entire data correlation pipeline. Instead of using the sophisticated `ContextCorrelator` → `WorkspaceContext` → `SubProjectContext` data flow that was already implemented, the templates contain hardcoded strings that make the correlation system irrelevant.
+
+#### **Why This Happened**
+Looking at the codebase evolution, this occurred because:
+1. **Template system was built for demo purposes** - to match README examples exactly
+2. **Data binding was deferred** - templates were created first, data integration planned later
+3. **Integration testing was incomplete** - tests validated layout, not data accuracy
+4. **No end-to-end validation** - no tests that verified real memory bank data flow
+
+### **Implementation Strategy**
+
+#### **Step 1: Data Flow Analysis (1 hour)**
+- **Audit existing data structures**: Examine `WorkspaceContext`, `SubProjectContext`, and `TaskSummary`
+- **Validate correlation pipeline**: Ensure `ContextCorrelator` properly reads memory bank files
+- **Identify data gaps**: Determine what data is missing for dynamic status generation
+- **Map template requirements**: Document what data each template actually needs
+
+**Reasoning**: Before fixing anything, need to understand exactly what data is available and what's missing.
+
+#### **Step 2: Remove Hardcoded Values (1-2 hours)**
+- **File**: `src/utils/templates.rs`
+- **Target sections**:
+  ```rust
+  // Lines ~30-40: Hardcoded workspace status
+  "Active Development - Foundation Phase"
+  "MCP Protocol Implementation & Tooling"
+  "2 hours ago"
+  
+  // Lines ~78-86: Hardcoded project status
+  if name == "airs-mcp" {
+      "Week 1/14 - JSON-RPC Foundation"
+  } else if name == "airs-memspec" {
+      "Planning - CLI Development"
+  }
+  
+  // Lines ~105: Hardcoded milestones
+  "JSON-RPC 2.0 Core Complete (3 days)"
+  ```
+- **Replace with**: Placeholder functions that accept data parameters
+
+#### **Step 3: Enhance Data Reading (2-3 hours)**
+
+**3a. Workspace-Level Data Enhancement**
+- **Read from**: `workspace/workspace_progress.md`, `current_context.md`
+- **Extract**: Current focus, last updated timestamp, strategic status
+- **Method**: Extend `ContextCorrelator` with workspace-level file parsing
+
+**3b. Project Status Calculation**
+- **Algorithm**: 
+  ```
+  completion_percentage = completed_tasks / total_tasks * 100
+  if completion_percentage >= 95% -> "Production Ready"
+  elif completion_percentage >= 80% -> "Nearing Completion"
+  elif completion_percentage >= 60% -> "Active Development"
+  elif completion_percentage >= 20% -> "Early Development"
+  else -> "Planning Phase"
+  ```
+- **Health indicators**: Based on blocker count, stale tasks, error patterns
+
+**3c. Dynamic Milestone Generation**
+- **Read from**: Pending tasks in `tasks/_index.md`
+- **Calculate**: Next major milestone based on task priorities and estimates
+- **Timeline**: Estimate completion based on task complexity and velocity
+
+#### **Step 4: Template Data Binding (1-2 hours)**
+
+**4a. WorkspaceStatusTemplate Refactoring**
+```rust
+impl WorkspaceStatusTemplate {
+    pub fn render(workspace: &WorkspaceContext) -> Vec<LayoutElement> {
+        // Calculate dynamic values from workspace data
+        let focus = Self::derive_workspace_focus(workspace);
+        let updated = Self::calculate_last_updated(workspace);
+        let status = Self::derive_workspace_status(workspace);
+        
+        // Build elements with real data
+    }
+    
+    fn derive_workspace_focus(workspace: &WorkspaceContext) -> String {
+        // Logic to extract current focus from active contexts
+    }
+}
+```
+
+**4b. Project Status Enhancement**
+```rust
+fn derive_project_status(context: &SubProjectContext) -> String {
+    let completion = context.task_summary.completion_percentage();
+    let health = &context.derived_status.health;
+    
+    match (completion, health) {
+        (95.0..=100.0, ProjectHealth::Healthy) => "Production Ready".to_string(),
+        (80.0..=94.9, _) => format!("Nearing Completion ({}%)", completion as u8),
+        // ... more patterns
+    }
+}
+```
+
+#### **Step 5: Integration Testing (1 hour)**
+- **Real workspace testing**: Run against actual AIRS workspace
+- **Data accuracy validation**: Verify status matches memory bank content
+- **Cross-project testing**: Test with both airs-mcp and airs-memspec
+- **Edge case testing**: Empty projects, missing files, corrupted data
+
+### **Risk Assessment & Mitigation**
+
+#### **High Risks**
+1. **Data availability**: Memory bank files might not contain all needed data
+   - **Mitigation**: Audit existing files first, enhance parsing if needed
+
+2. **Performance impact**: Real-time file reading might slow CLI
+   - **Mitigation**: Implement caching for frequently accessed data
+
+3. **Breaking existing tests**: Template changes might break layout tests
+   - **Mitigation**: Update tests to validate data accuracy, not just layout
+
+### **Success Criteria**
+- [ ] Zero hardcoded strings in template system
+- [ ] Status command shows accurate project completion percentages
+- [ ] Workspace status reflects actual current focus from memory bank
+- [ ] Project health indicators match real task status
+- [ ] Timestamps show actual last updated times
+- [ ] All existing visual formatting preserved
+
+### **Validation Tests**
+1. **airs-mcp status**: Should show "Production Ready" not "Week 1/14"
+2. **airs-memspec status**: Should show "95% Complete" not "Planning"
+3. **Workspace focus**: Should show actual current work, not generic text
+4. **Last updated**: Should show real timestamps from file modifications
 - **Effort**: 2-3 hours of systematic fixes across codebase modules
 - **Priority**: Must resolve before continuing feature development
 
@@ -198,6 +333,9 @@ let detailed_status = if name == "airs-mcp" {
 - 🎯 **Priority Escalated**: From HIGH to CRITICAL due to data integrity violation
 - 📝 **Task Updated**: Expanded scope to include data binding fix (Phase 3A)
 - ⏰ **Effort Revised**: 8-12 hours (was 2-4 hours) due to critical data issues
+- 📋 **Implementation Plan Complete**: Comprehensive 5-phase strategy documented
+- 📄 **Documentation Created**: `implementation_plan_data_binding_fix.md` with detailed execution plan
+- ✅ **Ready for Implementation**: All phases planned with risk mitigation strategies
 
 ### 2025-08-05
 - ✅ **Phase 1 Core Layout Engine COMPLETED**: Successfully implemented composable layout system
