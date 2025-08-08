@@ -317,9 +317,10 @@ impl ContextCorrelator {
     /// * `Err(FsError)` - File update or validation errors
     pub fn switch_context(&mut self, sub_project_name: &str, switched_by: &str) -> FsResult<()> {
         let workspace_context = self.workspace_context.as_mut().ok_or_else(|| {
-            FsError::ParseError(
-                "Workspace context not initialized. Call discover_and_correlate first.".to_string(),
-            )
+            FsError::ParseError {
+                message: "Workspace context not initialized. Call discover_and_correlate first.".to_string(),
+                suggestion: "Make sure you're in a directory with a memory bank structure.".to_string(),
+            }
         })?;
 
         // Validate that the sub-project exists
@@ -327,9 +328,11 @@ impl ContextCorrelator {
             .sub_project_contexts
             .contains_key(sub_project_name)
         {
-            return Err(FsError::ParseError(format!(
-                "Sub-project '{sub_project_name}' not found in workspace"
-            )));
+            let available_projects: Vec<String> = workspace_context.sub_project_contexts.keys().cloned().collect();
+            return Err(FsError::ParseError {
+                message: format!("Sub-project '{sub_project_name}' not found. Available projects: {}", available_projects.join(", ")),
+                suggestion: "Check available projects with 'airs-memspec status' or verify the project name.".to_string(),
+            });
         }
 
         // Update current context

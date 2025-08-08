@@ -136,15 +136,18 @@ fn show_project_status(
         .sub_project_contexts
         .get(project_name)
         .ok_or_else(|| {
-            crate::utils::fs::FsError::ParseError(format!(
-                "Sub-project '{project_name}' not found. Available projects: {}",
-                workspace_context
-                    .sub_project_contexts
-                    .keys()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))
+            crate::utils::fs::FsError::ParseError {
+                message: format!(
+                    "Sub-project '{project_name}' not found. Available projects: {}",
+                    workspace_context
+                        .sub_project_contexts
+                        .keys()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                suggestion: "Use 'airs-memspec status' to see all available projects, or check the project name spelling.".to_string(),
+            }
         })?;
 
     // Use proper ProjectStatusTemplate instead of ContextTemplate

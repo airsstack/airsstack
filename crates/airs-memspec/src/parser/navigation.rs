@@ -149,6 +149,14 @@ impl MemoryBankNavigator {
     /// ```
     pub fn discover_structure(start_path: &Path) -> FsResult<MemoryBankStructure> {
         let memory_bank_path = Self::find_memory_bank_root(start_path)?;
+        
+        // Validate memory bank structure before analyzing
+        crate::utils::fs::validate_memory_bank_structure(
+            memory_bank_path.parent()
+                .and_then(|p| p.parent())
+                .unwrap_or(start_path)
+        )?;
+        
         Self::analyze_structure(&memory_bank_path)
     }
 

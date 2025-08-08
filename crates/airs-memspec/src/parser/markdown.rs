@@ -235,9 +235,10 @@ impl MarkdownParser {
         // Parse YAML frontmatter
         let frontmatter: HashMap<String, YamlValue> = serde_yml::from_str(&frontmatter_yaml)
             .map_err(|e| {
-                crate::utils::fs::FsError::ParseError(format!(
-                    "YAML frontmatter parsing failed: {e}"
-                ))
+                crate::utils::fs::FsError::ParseError {
+                    message: format!("YAML frontmatter parsing failed: {e}"),
+                    suggestion: "Check the YAML syntax in the frontmatter. Common issues: incorrect indentation, missing quotes, or invalid YAML structure.".to_string(),
+                }
             })?;
 
         // Return remaining content
