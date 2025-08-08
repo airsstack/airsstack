@@ -158,68 +158,89 @@ fn list_tasks(
                 })
             });
 
+            // Compact status header
             let status_header = match status {
-                TaskStatus::InProgress => "🚀 In Progress",
-                TaskStatus::Blocked => "🚫 Blocked",
-                TaskStatus::NotStarted => "📋 Pending",
-                TaskStatus::Completed => "✅ Completed",
-                TaskStatus::Abandoned => "❌ Abandoned",
-                TaskStatus::Unknown(_) => "❓ Unknown",
+                TaskStatus::InProgress => "� IN PROGRESS",
+                TaskStatus::Blocked => "🚫 BLOCKED",
+                TaskStatus::NotStarted => "📋 PENDING",
+                TaskStatus::Completed => "✅ COMPLETED",
+                TaskStatus::Abandoned => "❌ ABANDONED",
+                TaskStatus::Unknown(_) => "❓ UNKNOWN",
             };
 
-            formatter.section_divider(Some(&format!(
-                "{} ({} tasks)",
-                status_header,
-                sorted_tasks.len()
-            )));
-            eprintln!(); // Add spacing
+            println!("{}", status_header);
 
             for (project_name, task) in &sorted_tasks {
-                let project_prefix = if project_filter.is_none() {
-                    format!("[{project_name}] ")
-                } else {
-                    String::new()
+                let task_id = task.id.as_deref().unwrap_or("---");
+                
+                // Status icon
+                let status_icon = match task.status {
+                    TaskStatus::InProgress => {
+                        if is_task_stale(task, 7) { "🕒" } else { "⏳" }
+                    },
+                    TaskStatus::Blocked => "⚠️",
+                    TaskStatus::NotStarted => "📋",
+                    TaskStatus::Completed => "✅",
+                    TaskStatus::Abandoned => "❌",
+                    TaskStatus::Unknown(_) => "❓",
                 };
 
-                let task_id = task.id.as_deref().unwrap_or("no-id");
+                // Calculate progress percentage
+                let progress = match task.status {
+                    TaskStatus::Completed => "100%".to_string(),
+                    TaskStatus::InProgress => "WIP".to_string(),
+                    TaskStatus::NotStarted => "0%".to_string(),
+                    TaskStatus::Blocked => "⏸".to_string(),
+                    TaskStatus::Abandoned => "❌".to_string(),
+                    TaskStatus::Unknown(_) => "?".to_string(),
+                };
 
-                // Add stale indicator for tasks that haven't been updated recently
-                let stale_indicator = if is_task_stale(task, 7) {
-                    match task.status {
-                        TaskStatus::InProgress => " 🕒", // Clock for stale in-progress
-                        TaskStatus::NotStarted => " ⏰", // Alarm for stale pending
-                        _ => "",
+                // Calculate age in days
+                let age = if let Some(ref updated_str) = task.updated {
+                    if let Ok(updated_date) = chrono::NaiveDate::parse_from_str(updated_str, "%Y-%m-%d") {
+                        let updated_utc = updated_date
+                            .and_hms_opt(0, 0, 0)
+                            .map(|dt| dt.and_utc())
+                            .unwrap_or_else(|| chrono::Utc::now());
+                        let days = (chrono::Utc::now() - updated_utc).num_days();
+                        format!("{}d", days)
+                    } else {
+                        "?d".to_string()
                     }
+                } else {
+                    "?d".to_string()
+                };
+
+                // Add stale indicator
+                let stale_indicator = if is_task_stale(task, 7) && 
+                    (task.status == TaskStatus::InProgress || task.status == TaskStatus::NotStarted) {
+                    " stale"
+                } else if task.status == TaskStatus::Blocked {
+                    " blocked"
                 } else {
                     ""
                 };
 
-                formatter.bullet_point(
-                    "▶",
-                    &format!(
-                        "{}{} - {}{}",
-                        project_prefix, task_id, task.title, stale_indicator
-                    ),
-                    0,
+                // Format: ID ICON task_name    project    progress  age  alert
+                let project_display = if project_filter.is_none() {
+                    format!("{:<12}", project_name)
+                } else {
+                    String::new()
+                };
+
+                println!(
+                    "{:<4} {} {:<30} {}{:<5} {:<5}{}",
+                    task_id,
+                    status_icon,
+                    truncate_string(&task.title, 30),
+                    project_display,
+                    progress,
+                    age,
+                    stale_indicator
                 );
-
-                if let Some(ref details) = task.details {
-                    formatter.bullet_point("📝", details, 1);
-                }
-
-                // Show latest update if available, with stale warning
-                if let Some(ref updated) = task.updated {
-                    let update_info = if is_task_stale(task, 7) {
-                        format!("Updated: {updated} (STALE - over 7 days ago)")
-                    } else {
-                        format!("Updated: {updated}")
-                    };
-                    formatter.bullet_point("🕒", &update_info, 1);
-                }
-
-                eprintln!(); // Add spacing between tasks
             }
 
+            println!(); // Add spacing between status groups
             total_tasks += sorted_tasks.len();
         }
     }
@@ -535,4 +556,13 @@ fn is_task_stale(task: &TaskItem, days_threshold: i64) -> bool {
 
     // If no valid date or parsing fails, consider it stale to be safe
     true
+}
+
+/// Truncate string to specified length, adding ellipsis if needed
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
 }
