@@ -37,6 +37,7 @@
     - [Basic Examples](./usages/basic_examples.md)
     - [Advanced Patterns](./usages/advanced_patterns.md)
     - [Claude Desktop Integration](./usages/claude_integration.md)
+    - [Automation Scripts](./usages/automation_scripts.md)
     - [Custom Transports](./usages/custom_transports.md)
     - [Performance Optimization](./usages/performance_optimization.md)
     - [Troubleshooting](./usages/troubleshooting.md)

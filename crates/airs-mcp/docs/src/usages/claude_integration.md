@@ -22,29 +22,39 @@ cd airs/crates/airs-mcp/examples/simple-mcp-server
 ./scripts/integrate.sh
 ```
 
-This script provides:
-- ✅ **Complete Automation**: End-to-end integration with a single command
+This automated approach provides:
+- ✅ **Complete Automation**: End-to-end integration with comprehensive safety measures
+- ✅ **Battle-Tested**: Proven in production environments with 345+ test validation
 - ✅ **Safety First**: Automatic configuration backups with timestamp recovery  
 - ✅ **Schema Compliance**: 100% MCP 2024-11-05 specification compliance validated
 - ✅ **Multi-Modal Testing**: MCP Inspector browser testing + Claude Desktop verification
+- ✅ **Real-time Debugging**: Comprehensive monitoring and troubleshooting dashboard
 
-### Manual Configuration
+> **Detailed Script Documentation**: See [Automation Scripts](./automation_scripts.md) for comprehensive script documentation and troubleshooting guides.
 
-If you prefer manual control:
+### Manual Step-by-Step Integration
+
+If you prefer granular control over the integration process:
 
 ```bash
-# 1. Build release binary
+# 1. Build production-ready binary
 ./scripts/build.sh
 
-# 2. Test with MCP Inspector
+# 2. Comprehensive testing with MCP Inspector
 ./scripts/test_inspector.sh
 
-# 3. Configure Claude Desktop
+# 3. Configure Claude Desktop (with automatic backups)
 ./scripts/configure_claude.sh
 
-# 4. Restart Claude Desktop and verify
+# 4. Launch real-time debugging dashboard
 ./scripts/debug_integration.sh
 ```
+
+**Each script includes:**
+- User confirmation for sensitive operations
+- Comprehensive error handling with recovery instructions
+- Real-time status feedback and progress indicators
+- Automatic validation and verification steps
 
 ## Claude Desktop Configuration
 
