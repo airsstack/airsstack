@@ -11,7 +11,7 @@ edition = "2021"
 authors = ["rstlix0x0 <rstlix.dev@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/rstlix0x0/airs"
-rust-version = "1.70"
+rust-version = "1.88"
 
 [workspace.dependencies]
 # Core async runtime
