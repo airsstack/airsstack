@@ -2,6 +2,8 @@
 
 ## In Progress
 
+- [task_020] instruction_consistency_update - Critical instruction format standardization based on validation analysis
+
 ## Pending
 
 - [task_015] performance_optimization - Profiling, caching, benchmarks (Day 4.3)
