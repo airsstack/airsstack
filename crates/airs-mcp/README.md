@@ -19,17 +19,24 @@
 
 ### 🚀 **Real-World Integration Success**
 
-This library powers a **fully functional MCP server** that integrates seamlessly with Claude Desktop:
+This library powers **both server and client MCP implementations** with verified real-world integrations:
 
+**🖥️ MCP Server (Claude Desktop Integration)**
 - **✅ Tools**: Mathematical operations, greeting functions - real-time execution confirmed
-- **✅ Resources**: File system access, configuration reading - attachment interface integration
+- **✅ Resources**: File system access, configuration reading - attachment interface integration  
 - **✅ Prompts**: Code review templates, concept explanations - prompt template system integration
 
-[**See the working example →**](examples/simple-mcp-server/)
+**🔧 MCP Client (AIRS Library Integration)**
+- **✅ High-Level API**: Type-safe client operations with automatic subprocess management
+- **✅ Custom Transports**: Extensible transport layer with SubprocessTransport example
+- **✅ Production Patterns**: Error handling, state management, and resource lifecycle
+
+[**See the server example →**](examples/simple-mcp-server/)  
+[**See the client example →**](examples/simple-mcp-client/)
 
 ### 🏗️ **Enterprise Architecture**
 
-Built with production-grade patterns and comprehensive safety measures:
+Built with production-grade patterns for both server and client implementations:
 
 ```rust
 // High-level MCP Server API
@@ -40,6 +47,18 @@ let server = McpServerBuilder::new()
     .with_prompt_provider(MyPromptProvider)
     .build(transport)
     .await?;
+
+// High-level MCP Client API  
+let client = McpClientBuilder::new()
+    .client_info("my-client", "1.0.0")
+    .timeout(Duration::from_secs(30))
+    .auto_retry(true, 3)
+    .build(transport)
+    .await?;
+
+// Use the client
+let resources = client.list_resources().await?;
+let result = client.call_tool("add", Some(args)).await?;
 ```
 
 ### 🔬 **Technical Excellence**
@@ -54,40 +73,54 @@ let server = McpServerBuilder::new()
 
 ### 🔌 **Complete MCP Protocol Support**
 
-**Three-Tier MCP Capability Implementation:**
+**Three-Tier MCP Capability Implementation (Server & Client):**
 
 ```rust
-// 1. TOOLS - Execute functions and operations
+// SERVER SIDE - Provide capabilities
 async fn execute_greeting_tool(&self, args: ToolCallArgs) -> Result<ToolResult, Error> {
     let name = args.get("name").unwrap_or("World");
     Ok(ToolResult::text(format!("Hello, {}!", name)))
 }
 
-// 2. RESOURCES - Provide data and content
 async fn get_config_resource(&self, uri: &str) -> Result<ResourceContents, Error> {
     let content = read_config_file(uri).await?;
     Ok(ResourceContents::text(content))
 }
 
-// 3. PROMPTS - Offer template-based interactions  
 async fn provide_code_review_prompt(&self, args: PromptArgs) -> Result<PromptResult, Error> {
     let template = CodeReviewTemplate::new(args)?;
     Ok(PromptResult::from_template(template))
 }
+
+// CLIENT SIDE - Consume capabilities
+let resources = client.list_resources().await?;           // Discovery
+let content = client.read_resource(resource_uri).await?;   // Access  
+let result = client.call_tool("greet", Some(args)).await?; // Execution
+let messages = client.get_prompt("review", args).await?;   // Templates
 ```
 
 ### 🚀 **Production-Ready Transport Layer**
 
-**High-Performance STDIO Transport:**
+**High-Performance Transport System for Server & Client:**
 
 ```rust
-// Zero-copy message processing with advanced buffering
+// Server-side STDIO transport for Claude Desktop integration
 let transport = StdioTransport::builder()
     .with_buffer_size(8192)      // Optimized for JSON-RPC payload sizes
     .with_batch_processing()     // Concurrent message handling
     .with_connection_pooling()   // Efficient resource management
     .build()
     .await?;
+
+// Client-side custom transports (e.g., subprocess management)
+impl Transport for SubprocessTransport {
+    async fn send(&mut self, data: &[u8]) -> Result<(), Self::Error>;
+    async fn receive(&mut self) -> Result<Vec<u8>, Self::Error>;
+    async fn close(&mut self) -> Result<(), Self::Error>;
+}
+
+let subprocess_transport = SubprocessTransport::spawn_server(server_path).await?;
+let client = McpClientBuilder::new().build(subprocess_transport).await?;
 ```
 
 ### 🧠 **Enterprise Message Correlation**
@@ -123,6 +156,42 @@ pub enum McpError {
     ResourceNotFound { uri: String },
 }
 ```
+
+## Examples
+
+### 🖥️ **MCP Server Example** - [Claude Desktop Integration](examples/simple-mcp-server/)
+
+**Production-ready server with verified Claude Desktop integration:**
+
+```bash
+cd examples/simple-mcp-server
+cargo build --release
+
+# Test with Claude Desktop - full UI integration verified!
+# Add to Claude Desktop config and see resources, tools, prompts working
+```
+
+**Features demonstrated:**
+- ✅ Complete MCP server implementation
+- ✅ Claude Desktop integration (resources appear in attachment menu)
+- ✅ All three capability types: Resources, Tools, Prompts  
+- ✅ Production-grade error handling and logging
+
+### 🔧 **MCP Client Example** - [AIRS Library Usage](examples/simple-mcp-client/)
+
+**High-level client API with automatic server management:**
+
+```bash
+cd examples/simple-mcp-client
+cargo run  # Automatically spawns and connects to server!
+```
+
+**Features demonstrated:**
+- ✅ Custom `SubprocessTransport` implementing `Transport` trait
+- ✅ High-level `McpClient` API hiding JSON-RPC complexity
+- ✅ Automatic server process lifecycle management
+- ✅ Real client ↔ server communication patterns
+- ✅ Production error handling and state management
 
 ## Usage
 
