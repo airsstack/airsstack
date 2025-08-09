@@ -1,48 +1,79 @@
 # Basic Examples
 
-*Common integration patterns and usage examples*
+*Production-ready integration patterns using actual AIRS MCP APIs*
 
-## JSON-RPC Request/Response Patterns
+## MCP Client Patterns
 
-### Simple Method Calls
+### Simple MCP Operations
 
 ```rust
-use airs_mcp::{JsonRpcClient, StdioTransport};
+use airs_mcp::integration::mcp::{McpClientBuilder, McpError};
+use airs_mcp::transport::stdio::StdioTransport;
 use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let transport = StdioTransport::new().await?;
-    let mut client = JsonRpcClient::new(transport).await?;
+    // Create transport and MCP client
+    let transport = StdioTransport::spawn_server("./my-mcp-server").await?;
+    let mut client = McpClientBuilder::new()
+        .client_info("example-client", "1.0.0")
+        .build(transport)
+        .await?;
     
-    // Simple method call
-    let result = client.call("math/add", Some(json!({
-        "a": 5,
-        "b": 3
-    }))).await?;
+    // Initialize MCP connection
+    client.initialize().await?;
     
-    println!("Addition result: {}", result);
+    // List and call a tool
+    let tools = client.list_tools().await?;
+    if let Some(tool) = tools.first() {
+        let result = client.call_tool(&tool.name, json!({
+            "input": "test data"
+        })).await?;
+        println!("Tool result: {:?}", result);
+    }
+    
+    // List and read a resource
+    let resources = client.list_resources().await?;
+    if let Some(resource) = resources.first() {
+        let content = client.read_resource(&resource.uri).await?;
+        println!("Resource content: {:?}", content);
+    }
+    
+    // Clean shutdown
+    client.shutdown().await?;
     Ok(())
 }
 ```
 
-### Batch Processing
+### Error Handling with MCP Client
 
 ```rust
-use airs_mcp::base::jsonrpc::message::RequestBatch;
-use serde_json::json;
+use airs_mcp::integration::mcp::{McpError, McpClientBuilder};
 
-// Create batch of requests
-let mut batch = RequestBatch::new();
-batch.add_request("method1", Some(json!({"param": "value1"})));
-batch.add_request("method2", Some(json!({"param": "value2"})));
-batch.add_request("method3", Some(json!({"param": "value3"})));
-
-// Send batch and get responses
-let responses = client.call_batch(batch).await?;
-
-for response in responses {
-    println!("Response: {:?}", response);
+async fn robust_mcp_client() -> Result<(), Box<dyn std::error::Error>> {
+    let transport = StdioTransport::spawn_server("./mcp-server").await?;
+    let mut client = McpClientBuilder::new()
+        .client_info("robust-client", "1.0.0")
+        .default_timeout(std::time::Duration::from_secs(30))
+        .auto_retry(true)
+        .build(transport)
+        .await?;
+    
+    match client.initialize().await {
+        Ok(_) => println!("MCP client initialized successfully"),
+        Err(McpError::Transport { source }) => {
+            eprintln!("Transport error: {}", source);
+            return Err(source.into());
+        }
+        Err(McpError::ProtocolError { message, .. }) => {
+            eprintln!("Protocol error: {}", message);
+        }
+        Err(e) => {
+            eprintln!("Unexpected error: {}", e);
+        }
+    }
+    
+    Ok(())
 }
 ```
 
