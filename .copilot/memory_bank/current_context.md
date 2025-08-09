@@ -2,13 +2,25 @@
 
 **active_sub_project:** airs-memspec  
 **switched_on:** 2025-08-09T18:00:00Z
-**updated_on:** 2025-08-09T18:15:00Z
-**by:** memory_bank_update_complete_task020_created
-**status:** ready_for_instruction_consistency_updates
+**updated_on:** 2025-08-09T19:24:00Z
+**by:** embedded_instruction_consistency_complete
+**status:** instruction_template_synchronized
 
-# CRITICAL INSTRUCTION ANALYSIS COMPLETE - 2025-08-09
+# EMBEDDED INSTRUCTION TEMPLATE CONSISTENCY COMPLETE - 2025-08-09
 
-## 🔍 MAJOR DISCOVERY: VALIDATION IMPLEMENTATION EXCELLENCE
+## 🎯 CRITICAL ACHIEVEMENT: INSTRUCTION TEMPLATE SYNCHRONIZATION
+
+### EMBEDDED TEMPLATE UPDATED TO MATCH EXTERNAL INSTRUCTIONS ✅
+**Critical Success: Embedded template in `src/embedded/instructions.rs` now perfectly consistent with external instruction files**
+
+**Template Synchronization Complete:**
+- **Status Format Consistency**: Changed `completed` → `complete` in embedded template
+- **Validation Documentation**: Added complete MANDATORY VALIDATION SYSTEM section
+- **CLI Mapping**: Documented user-friendly status names (`active`, `completed`) mapping to internal format
+- **Stale Detection**: Added comprehensive 7+ day stale task detection procedures
+- **Format Rules**: Enhanced CRITICAL FORMATTING RULES with stale task review requirements
+
+### 🔍 MAJOR DISCOVERY: VALIDATION IMPLEMENTATION EXCELLENCE (CONFIRMED)
 
 ### AIRS-MEMSPEC VALIDATION CAPABILITIES EXCEED RECOMMENDATIONS ✅
 **Critical Finding: Tool already implements sophisticated validation features that surpass initial recommendations**

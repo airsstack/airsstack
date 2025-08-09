@@ -50,27 +50,6 @@ flowchart TD
    - Why this sub-project exists
    - Problems it solves
    - User experience goals
-3. `active_context.md`
-   - Current work focus
-   - Recent changes
-   - Next steps
-4. `system_patterns.md`
-   - System architecture
-   - Key technical decisions
-   - Design patterns in use
-5. `tech_context.md`
-   - Technologies used
-   - Development setup
-   - Technical constraints
-6. `progress.md`
-   - What works
-   - What's left to build
-   - Current status
-   - Known issues
-7. `tasks/` folder
-   - Contains individual markdown files for each task
-   - Each task file: `task_[id]_[name].md`
-   - Task index file: `_index.md` listing all tasks and statuses
 
 3. `active_context.md`
    - Current work focus
@@ -232,7 +211,7 @@ Each sub-project's `tasks/` folder contains:
 ```markdown
 # [Task ID] - [Task Name]
 
-**Status:** [pending/in_progress/completed/abandoned]  
+**Status:** [pending/in_progress/complete/blocked/abandoned]  
 **Added:** [date_added]  
 **Updated:** [date_last_updated]
 
@@ -249,7 +228,7 @@ Each sub-project's `tasks/` folder contains:
 
 ## Progress Tracking
 
-**Overall Status:** [not_started/in_progress/blocked/completed] - [completion_percentage]
+**Overall Status:** [not_started/in_progress/blocked/complete] - [completion_percentage]
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -291,6 +270,36 @@ Each sub-project's `tasks/` folder contains:
 - **show_tasks [sub_project] [filter]**:  
   Display filtered tasks for the selected sub-project.
 
+## MANDATORY VALIDATION SYSTEM
+
+The Multi-Project Memory Bank system includes comprehensive validation features that automatically enforce format consistency and detect issues:
+
+### **Status Format Validation (Automated)**
+- **Fuzzy Parsing**: Tool automatically handles format variations (`"in-progress"`, `"In Progress"`, `"in_progress"`)
+- **Standard Output**: All status values normalized to lowercase format (`pending`, `in_progress`, `complete`, `blocked`, `abandoned`)
+- **CLI Mapping**: User-friendly CLI commands use mapped status names (`active` → `in_progress`, `completed` → `complete`)
+- **Format Tolerance**: Instructions may use variations, but tool enforces consistent internal format
+- **Cross-Project Consistency**: Status parsing works identically across all sub-projects
+
+### **Structure Validation (Automated)**
+- **Memory Bank Structure**: Validates required files (`current_context.md`, workspace/, sub_projects/)
+- **Content Integrity**: Checks file existence, proper format, and cross-references
+- **Task Consistency**: Validates task files against `_index.md` automatically
+- **Error Recovery**: Provides context-aware suggestions for structure issues
+
+### **Automated Issue Detection**
+- **Stale Task Detection**: Built-in >7 day threshold with visual indicators
+- **Format Compliance**: Handles instruction format variations without breaking
+- **Health Metrics**: Calculates accurate completion percentages and project health
+- **Professional Error Messages**: Context-aware recovery suggestions for all error scenarios
+
+### **Validation Enforcement Rules**
+1. **Status consistency** is automatically maintained regardless of input format variations
+2. **Stale task detection** surfaces tasks requiring attention via automated alerts
+3. **Cross-project validation** ensures workspace-wide consistency
+4. **Memory bank structure** is validated on every operation with detailed diagnostics
+
+**Note**: These validation features are already implemented and operational - no additional setup required.
 
 ## Multi-Project & Workspace Rules
 

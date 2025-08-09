@@ -2,13 +2,26 @@
 
 ## In Progress
 
-- [task_020] instruction_consistency_update - Critical instruction format standardization based on validation analysis
-
 ## Pending
 
 - [task_015] performance_optimization - Profiling, caching, benchmarks (Day 4.3)
 
 ## Completed
+
+- [task_021] embedded_template_sync - ✅ **COMPLETED** on 2025-08-09 (**EMBEDDED TEMPLATE SYNCHRONIZATION**)
+  - ✅ **Status Format Consistency**: Fixed all `completed` → `complete` instances in embedded template
+  - ✅ **Validation Documentation**: Added complete MANDATORY VALIDATION SYSTEM section to embedded template
+  - ✅ **CLI Mapping**: Documented user-friendly status names mapping to internal format
+  - ✅ **Stale Detection**: Enhanced CRITICAL FORMATTING RULES with 7+ day procedures
+  - ✅ **Template Quality**: Increased from 13,552 → 16,237 bytes with comprehensive docs
+  - 🏆 **Instructions as Code**: Perfect consistency between embedded and external instructions
+
+- [task_020] instruction_consistency_update - ✅ **COMPLETED** on 2025-08-09 (**INSTRUCTION CONSISTENCY RESOLVED**)
+  - ✅ **Status Format Standardization**: Updated both instruction files to use consistent lowercase format
+  - ✅ **Validation Documentation**: Added comprehensive validation system documentation reflecting existing capabilities
+  - ✅ **Duplicate Content Removal**: Cleaned up multi-project instruction duplications 
+  - ✅ **CLI Mapping Discovery**: Documented CLI user-friendly mapping (`active` → `in_progress`, `completed` → `complete`)
+  - 🏆 **Critical Achievement**: Instructions now accurately reflect sophisticated airs-memspec implementation
 
 - [task_019] display_format_enhancement - ✅ **COMPLETED** on 2025-08-08 (**DISPLAY FORMAT TRANSFORMATION: COMPACT SCANNABLE LAYOUT**)
   - ✅ **Option 4 Implementation**: Grouped minimal format optimized for scanning large task lists

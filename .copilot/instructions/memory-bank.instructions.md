@@ -216,7 +216,7 @@ Each task file follows this format:
 ```markdown
 # [Task ID] - [Task Name]
 
-**Status:** [Pending/In Progress/Completed/Abandoned]  
+**Status:** [pending/in_progress/complete/blocked/abandoned]  
 **Added:** [Date Added]  
 **Updated:** [Date Last Updated]
 
@@ -233,18 +233,18 @@ Each task file follows this format:
 
 ## Progress Tracking
 
-**Overall Status:** [Not Started/In Progress/Blocked/Completed] - [Completion Percentage]
+**Overall Status:** [not_started/in_progress/blocked/complete] - [Completion Percentage]
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
-| 1.2 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
-| 1.3 | [Subtask description] | [Complete/In Progress/Not Started/Blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.1 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.2 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.3 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
 
 ## Progress Log
 ### [YYYY-MM-DD]
-- Updated subtask 1.1 status to Complete
+- Updated subtask 1.1 status to complete
 - Started work on subtask 1.2
 - Encountered issue with [specific problem]
 - Made decision to [approach/solution]
@@ -259,8 +259,8 @@ Each task file follows this format:
 3. **NOTES REQUIREMENT**: Notes column must contain meaningful text, never empty. Use descriptive status or next action.
 4. **CONSISTENCY**: All task files must follow this exact format for parsing compatibility.
 5. **STALE TASK DETECTION**: Tasks unchanged for 7+ days MUST be reviewed for status accuracy:
-   - **In Progress** tasks stale for 7+ days: Review if still actively worked on or should be marked as blocked/pending
-   - **Pending** tasks stale for 7+ days: Review priority and dependencies, consider if abandoned or blocked
+   - **in_progress** tasks stale for 7+ days: Review if still actively worked on or should be marked as blocked/pending
+   - **pending** tasks stale for 7+ days: Review priority and dependencies, consider if abandoned or blocked
    - **Update Required**: When updating stale tasks, provide clear reason for delay and realistic next steps
    - **Status Change**: If task is no longer viable, mark as abandoned with explanation
 
@@ -272,6 +272,37 @@ Each task file follows this format:
 4. Update the task status in the _index.md file to reflect current progress
 
 These detailed progress updates ensure that after memory resets, I can quickly understand the exact state of each task and continue work without losing context.
+
+## MANDATORY VALIDATION SYSTEM
+
+The Memory Bank system includes comprehensive validation features that automatically enforce format consistency and detect issues:
+
+### **Status Format Validation (Automated)**
+- **Fuzzy Parsing**: Tool automatically handles format variations (`"in-progress"`, `"In Progress"`, `"in_progress"`)
+- **Standard Output**: All status values normalized to lowercase format (`pending`, `in_progress`, `complete`, `blocked`, `abandoned`)
+- **CLI Mapping**: User-friendly CLI commands use mapped status names (`active` → `in_progress`, `completed` → `complete`)
+- **Format Tolerance**: Instructions may use variations, but tool enforces consistent internal format
+- **Cross-Project Consistency**: Status parsing works identically across all sub-projects
+
+### **Structure Validation (Automated)**
+- **Memory Bank Structure**: Validates required files (`current_context.md`, workspace/, sub_projects/)
+- **Content Integrity**: Checks file existence, proper format, and cross-references
+- **Task Consistency**: Validates task files against `_index.md` automatically
+- **Error Recovery**: Provides context-aware suggestions for structure issues
+
+### **Automated Issue Detection**
+- **Stale Task Detection**: Built-in >7 day threshold with visual indicators
+- **Format Compliance**: Handles instruction format variations without breaking
+- **Health Metrics**: Calculates accurate completion percentages and project health
+- **Professional Error Messages**: Context-aware recovery suggestions for all error scenarios
+
+### **Validation Enforcement Rules**
+1. **Status consistency** is automatically maintained regardless of input format variations
+2. **Stale task detection** surfaces tasks requiring attention via automated alerts
+3. **Cross-project validation** ensures workspace-wide consistency
+4. **Memory bank structure** is validated on every operation with detailed diagnostics
+
+**Note**: These validation features are already implemented and operational - no additional setup required.
 
 ### Task Commands
 
@@ -293,11 +324,13 @@ To view tasks, the command **show tasks [filter]** will:
 1. Display a filtered list of tasks based on the specified criteria
 2. Valid filters include:
    - **all** - Show all tasks regardless of status
-   - **active** - Show only tasks with "In Progress" status
-   - **pending** - Show only tasks with "Pending" status
-   - **completed** - Show only tasks with "Completed" status
-   - **blocked** - Show only tasks with "Blocked" status
+   - **active** - Show only tasks with "in_progress" status (CLI maps "active" → "in_progress")
+   - **pending** - Show only tasks with "pending" status
+   - **completed** - Show only tasks with "complete" status (CLI maps "completed" → "complete")  
+   - **blocked** - Show only tasks with "blocked" status
    - **recent** - Show tasks updated in the last week
+
+**Note**: CLI uses user-friendly status names (`active`, `completed`) that map to internal format (`in_progress`, `complete`).
    - **tag:[tagname]** - Show tasks with a specific tag
    - **priority:[level]** - Show tasks with specified priority level
 3. The output will include:
