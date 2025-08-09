@@ -6,7 +6,7 @@ This directory contains example implementations demonstrating how to use the `ai
 
 ### [simple-mcp-server](./simple-mcp-server/)
 
-A comprehensive example demonstrating the core features of the MCP (Model Context Protocol) implementation:
+A comprehensive example demonstrating the core features of the MCP (Model Context Protocol) server implementation:
 
 - **Resources**: File system resource provider
 - **Tools**: Calculator and greeting tools  
@@ -23,6 +23,43 @@ cargo run
 ```bash
 cd examples/simple-mcp-server
 ./test_simple.sh
+```
+
+### [simple-mcp-client](./simple-mcp-client/) ✨ **NEW** - Interactive Protocol Demo
+
+A comprehensive example demonstrating **real client ↔ server communication** that spawns an MCP server and shows the complete JSON-RPC message exchange:
+
+- **📡 Real Server Interaction**: Spawns and communicates with actual MCP server processes
+- **📋 Complete Protocol Demo**: Shows every step of MCP initialization, resources, tools, and prompts
+- **📤📥 Message Logging**: See actual JSON-RPC requests and responses being exchanged  
+- **🔄 Process Management**: Proper server spawning, communication, and cleanup
+- **🎯 Educational Value**: Perfect for understanding how MCP works under the hood
+
+**To see real client ↔ server interactions:**
+```bash
+# Build both examples
+cd examples/simple-mcp-server && cargo build
+cd examples/simple-mcp-client && cargo build
+
+# Run the interactive demo (automatically spawns server)
+cd examples/simple-mcp-client
+cargo run
+```
+
+**Sample output shows real protocol messages:**
+```
+📤 Sending: {"id":"init-1","jsonrpc":"2.0","method":"initialize",...}
+📥 Received: {"jsonrpc":"2.0","result":{"capabilities":{"prompts":...}
+✅ Initialization successful! Server responded with capabilities.
+
+📤 Sending: {"id":"call-tool-1","jsonrpc":"2.0","method":"tools/call",...}
+📥 Received: {"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"result\": 42.0\n}"...}
+🎯 Tool result: { "operation": "addition", "result": 42.0 }
+```
+
+**Use with any MCP server:**
+```bash
+cargo run -- --server-path /path/to/your/mcp-server
 ```
 
 ## Creating New Examples

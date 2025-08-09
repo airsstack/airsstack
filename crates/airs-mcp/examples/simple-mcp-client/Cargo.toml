@@ -1,0 +1,13 @@
+[package]
+name = "simple-mcp-client"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+airs-mcp = { path = "../.." }
+tokio = { version = "1.35", features = ["full"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
