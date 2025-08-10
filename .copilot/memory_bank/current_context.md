@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs-memspec  
-**switched_on:** 2025-08-09T18:00:00Z
-**updated_on:** 2025-08-09T19:24:00Z
-**by:** embedded_instruction_consistency_complete
-**status:** instruction_template_synchronized
+**active_sub_project:** airs  
+**switched_on:** 2025-08-11T12:00:00Z
+**updated_on:** 2025-08-11T12:00:00Z
+**by:** root_documentation_project_setup
+**status:** memory_bank_established_action_plan_documented
 
 # EMBEDDED INSTRUCTION TEMPLATE CONSISTENCY COMPLETE - 2025-08-09
 
