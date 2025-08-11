@@ -19,6 +19,7 @@
 - [Protocol](./protocol.md)
     - [Architecture](./protocol/architecture.md)
     - [Server](./protocol/server.md)
+        - [Remote Server](./protocol/server_remote.md)
     - [Client](./protocol/client.md)
     - [Extension](./protocol/extension.md)
     - [Implementation](./protocol/implementation.md)
