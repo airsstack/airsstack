@@ -438,8 +438,29 @@ pub struct OpenAIProvider {
 #[async_trait]
 impl AIProvider for OpenAIProvider {
     async fn generate_completion(&self, prompt: &str) -> Result<String, AIError> {
-        // Implementation specific to OpenAI API
-        todo!()
+        let request_body = serde_json::json!({
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 1000
+        });
+
+        let response = self.client
+            .post("https://api.openai.com/v1/chat/completions")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&request_body)
+            .send()
+            .await
+            .map_err(|e| AIError::NetworkError(e.to_string()))?;
+
+        let response_json: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AIError::ParseError(e.to_string()))?;
+
+        response_json["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| AIError::ParseError("Invalid response format".to_string()))
     }
 }
 
@@ -451,8 +472,30 @@ pub struct AnthropicProvider {
 #[async_trait]
 impl AIProvider for AnthropicProvider {
     async fn generate_completion(&self, prompt: &str) -> Result<String, AIError> {
-        // Implementation specific to Anthropic API
-        todo!()
+        let request_body = serde_json::json!({
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": 1000,
+            "messages": [{"role": "user", "content": prompt}]
+        });
+
+        let response = self.client
+            .post("https://api.anthropic.com/v1/messages")
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .json(&request_body)
+            .send()
+            .await
+            .map_err(|e| AIError::NetworkError(e.to_string()))?;
+
+        let response_json: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| AIError::ParseError(e.to_string()))?;
+
+        response_json["content"][0]["text"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| AIError::ParseError("Invalid response format".to_string()))
     }
 }
 ```

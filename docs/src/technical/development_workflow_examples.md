@@ -10,12 +10,12 @@ These examples are drawn from actual AIRS development tasks and show authentic i
 
 ## Example 1: Task-Driven Development with Memory Bank Integration
 
-**Scenario**: Implementing file system navigation functionality for airs-memspec while maintaining complete context across AI collaboration sessions.
+**Scenario**: Implementing file system navigation functionality for AIRS-MemSpec while maintaining complete context across AI collaboration sessions.
 
 **Memory Bank Structure Applied**:
 ```
 .copilot/memory_bank/
-├── current_context.md              # Active sub-project: airs-memspec
+├── current_context.md              # Active sub-project: AIRS-MemSpec
 ├── workspace/
 │   ├── project_brief.md            # AIRS ecosystem vision and standards
 │   ├── shared_patterns.md          # Cross-project implementation patterns
@@ -66,7 +66,7 @@ These examples are drawn from actual AIRS development tasks and show authentic i
 
 **Phase 3: IMPLEMENT (Memory-Driven Development)**
 ```rust
-// Real implementation excerpt from airs-memspec
+// Real implementation excerpt from AIRS-MemSpec
 impl MemoryBankNavigator {
     /// Discover memory bank structure from any starting path
     pub fn discover_structure(start_path: &Path) -> FsResult<MemoryBankStructure> {
@@ -96,8 +96,8 @@ impl MemoryBankNavigator {
 ```bash
 # Real validation from AIRS development
 ✅ Successfully discovered workspace with 4 core files
-✅ Identified active sub-project: `airs-memspec`  
-✅ Found 2 sub-projects: `airs-memspec` (17 tasks), `airs-mcp` (7 tasks)
+✅ Identified active sub-project: `AIRS-MemSpec`  
+✅ Found 2 sub-projects: `AIRS-MemSpec` (17 tasks), `AIRS-MCP` (7 tasks)
 ✅ Complete structure validation with no warnings
 ✅ Perfect integration with existing memory bank layout
 ```
@@ -113,7 +113,7 @@ impl MemoryBankNavigator {
 
 ### Pattern Recognition:
 - **Memory Bank Discovery**: Standard pattern for all memory bank tools
-- **Validation Framework**: Reusable across all airs-memspec functionality
+- **Validation Framework**: Reusable across all AIRS-MemSpec functionality
 - **Error Handling**: Consistent approach enables reliable automation
 
 ### Memory Bank Updates:
@@ -210,7 +210,7 @@ impl MemoryBankNavigator {
 
 ## Example 3: Multi-Project Context Switching
 
-**Scenario**: Seamlessly transitioning between airs-memspec implementation and root documentation creation while maintaining complete context.
+**Scenario**: Seamlessly transitioning between AIRS-MemSpec implementation and root documentation creation while maintaining complete context.
 
 **Context Switching Protocol**:
 
@@ -231,8 +231,8 @@ $ echo "# Current Context
 **Last Updated:** 2025-08-11
 
 ## Context Switch
-Switched from airs-memspec development to root documentation.
-airs-memspec ready for Task 007 (markdown parsing).
+Switched from AIRS-MemSpec development to root documentation.
+AIRS-MemSpec ready for Task 007 (markdown parsing).
 " > .copilot/memory_bank/current_context.md
 ```
 
@@ -251,7 +251,7 @@ airs-memspec ready for Task 007 (markdown parsing).
 - tasks/task_008_create_technical_knowledge_base.md: Current focus
 
 ### Historical Context:
-- Previous sub-project: airs-memspec (file system navigation completed)
+- Previous sub-project: AIRS-MemSpec (file system navigation completed)
 - Cross-project learnings: Memory bank methodology validation
 - Shared patterns: Documentation structure and quality standards
 ```
@@ -269,7 +269,7 @@ airs-memspec ready for Task 007 (markdown parsing).
 **Historical Patterns Applied**:
 - Strategic synthesis approach from project overviews (Task 007)
 - Comprehensive content development patterns from previous tasks
-- Cross-project validation using airs-memspec implementation insights
+- Cross-project validation using AIRS-MemSpec implementation insights
 ```
 
 ## Example 4: AI-Human Collaboration Decision Making
@@ -318,7 +318,7 @@ airs-memspec ready for Task 007 (markdown parsing).
 ## Examples Section Implementation
 
 ### Content Strategy:
-1. **Task-Driven Development**: Real airs-memspec file system navigation implementation
+1. **Task-Driven Development**: Real AIRS-MemSpec file system navigation implementation
 2. **Confidence Adaptation**: Technical documentation scope correction example
 3. **Context Switching**: Multi-project memory bank management demonstration
 4. **AI-Human Collaboration**: This very decision-making process as example
@@ -336,7 +336,7 @@ airs-memspec ready for Task 007 (markdown parsing).
 
 **Pattern Library Evolution**:
 
-**Initial Pattern Discovery** (airs-memspec development):
+**Initial Pattern Discovery** (AIRS-MemSpec development):
 ```markdown
 ## Memory Bank File Discovery Pattern
 
