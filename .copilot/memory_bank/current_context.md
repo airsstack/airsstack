@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs  
-**switched_on:** 2025-08-11T12:00:00Z
-**updated_on:** 2025-08-11T12:00:00Z
-**by:** root_documentation_project_setup
-**status:** memory_bank_established_action_plan_documented
+**active_sub_project:** airs-mcp  
+**switched_on:** 2025-08-11T15:30:00Z
+**updated_on:** 2025-08-11T15:30:00Z
+**by:** user_context_switch_request
+**status:** context_switched_to_airs_mcp
 
 # EMBEDDED INSTRUCTION TEMPLATE CONSISTENCY COMPLETE - 2025-08-09
 
