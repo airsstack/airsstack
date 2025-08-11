@@ -22,12 +22,12 @@
 
 ### Problem Identified 🚨 **ARCHITECTURAL LIMITATION**
 **Issue**: mdbook instances cannot reliably cross-link to each other
-- **URL Namespace Conflicts**: Each mdbook controls its own URL structure
+- **URL Namespace Conflicts**: Each mdbook controls its own URL namespace
 - **Deployment Fragility**: Links like `../../crates/airs-mcp/docs/book/usages/quick_start.html` fail in deployment
 - **Maintenance Complexity**: Cross-references require constant coordination between independent systems
 
 ### Root Cause Analysis
-**Technical Limitation**: mdbook generates static sites with isolated URL namespaces
+**Technical Limitation**: mdbook generates static sites with isolated URL structures
 - Each mdbook instance expects to control its own URL structure
 - Relative links between different mdbook builds break in deployment scenarios  
 - No built-in support for coordinated multi-book documentation systems
@@ -39,6 +39,46 @@
 - **Root Documentation**: Comprehensive strategic content providing 80%+ user value
 - **Sub-Project Documentation**: Complete implementation details maintained independently
 - **Navigation**: Clear instructions for accessing detailed documentation via `mdbook serve`
+
+## Critical Conceptual Discovery: Documentation Methodology vs Implementation
+
+### Problem Identified 🚨 **CONCEPTUAL SCOPE ERROR**
+**Issue**: Technical documentation conflated methodological frameworks with software implementation
+- **Memory Bank**: Treated as software architecture rather than knowledge management methodology
+- **Development Workflow**: Focused on Rust code rather than AI-human collaboration processes
+- **Scope Misalignment**: Applied implementation thinking to conceptual frameworks
+
+### Root Cause Analysis
+**Conceptual Error**: Confused AIRS ecosystem context (Rust-based) with concept documentation scope
+- Memory Bank Architecture is actually a documentation and context management methodology
+- Development Workflow is a process methodology for AI-assisted development  
+- These are organizational/cognitive frameworks, not software systems requiring implementation
+- Reference: multi_project_memory_bank.instructions.md defines actual Memory Bank concept
+
+### Corrected Understanding ✅ **METHODOLOGICAL FRAMEWORKS**
+
+#### Memory Bank Architecture (Methodology)
+**True Nature**: Knowledge management and context persistence methodology for AI development
+- **Information Architecture**: Hierarchical organization of project knowledge and context
+- **Context Management**: Strategies for maintaining continuity across AI development sessions
+- **Knowledge Persistence**: Structured documentation patterns for capturing decisions and progress
+- **Quality Systems**: Validation approaches for maintaining documentation integrity
+- **AI Memory Solutions**: Frameworks for solving AI session amnesia through structured context
+
+#### Development Workflow (Methodology)  
+**True Nature**: AI-human collaboration and process methodology
+- **Context-Driven Processes**: Development approaches that adapt based on available context
+- **Memory Persistence**: Strategies for maintaining development continuity across sessions
+- **Adaptive Workflows**: Process patterns that adjust based on context completeness and confidence
+- **Decision Documentation**: Methodologies for capturing rationale and thought processes
+- **Quality Gates**: Knowledge capture and validation approaches for development workflows
+
+### Implementation Impact
+**Documentation Approach**: Focus on conceptual frameworks and methodologies rather than software implementation
+- Explain organizational and cognitive patterns
+- Document process methodologies and workflow strategies
+- Capture knowledge management approaches and context persistence techniques
+- Avoid language-specific implementation details for concepts that transcend programming languages
 
 #### Current Architecture
 ```
