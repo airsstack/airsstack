@@ -17,11 +17,19 @@
 - Session management with `Mcp-Session-Id` headers and reconnection support
 - OAuth 2.1 integration requirements added
 
-**TASK014 (OAuth 2.1 Authentication)**: **NEW HIGH PRIORITY TASK** ✅
-- **Standalone OAuth Implementation**: Dedicated task for mandatory MCP security requirements
-- **Enterprise Authentication**: Protected Resource Metadata, Dynamic Client Registration, PKCE
-- **Transport Integration**: OAuth layer supporting HTTP Streamable and future transports
-- **Security Compliance**: Full RFC compliance for enterprise deployment readiness
+### ENHANCED OAUTH KNOWLEDGE INTEGRATION - 2025-08-11 ✅
+**COMPREHENSIVE RESEARCH ANALYSIS**: OAuth 2.1 implementation details from MCP Protocol Revision 2025-06-18
+- **Universal PKCE Mandate**: PKCE mandatory for ALL clients, including confidential clients
+- **Resource Indicators Requirement**: RFC 8707 mandatory to prevent confused deputy attacks
+- **Official SDK Patterns**: TypeScript StreamableHTTPClientTransport and Python FastMCP integration
+- **Enterprise IdP Integration**: External authorization server patterns (AWS Cognito, Azure AD)
+- **Security Monitoring**: Comprehensive logging, rate limiting, and abuse detection requirements
+
+**TASK014 ENHANCEMENT**: OAuth implementation scope significantly expanded
+- **12 detailed subtasks** covering universal PKCE, resource indicators, enterprise IdP integration
+- **Production security patterns** including multi-tenant isolation and context-based authentication
+- **Official SDK alignment** with TypeScript OAuthClientProvider and Python TokenVerifier protocols
+- **Enterprise deployment** patterns for AWS, Azure, and Auth0 integration
 
 **TASK013 (HTTP SSE)**: **REPOSITIONED TO LEGACY COMPATIBILITY**
 - Priority reduced due to official deprecation status

@@ -20,7 +20,10 @@
 - **Single Endpoint**: `/mcp` endpoint with dynamic response modes
 - **Session Management**: `Mcp-Session-Id` headers with reconnection support
 - **Legacy SSE**: Deprecated but supported for backward compatibility
-- **OAuth 2.1 Mandatory**: Protected Resource Metadata, Dynamic Client Registration, PKCE
+- **OAuth 2.1 Mandatory**: MCP Protocol Revision 2025-06-18 enhanced security requirements
+- **Universal PKCE**: Mandatory for ALL clients including confidential clients
+- **Resource Indicators**: RFC 8707 mandatory for token binding and phishing protection
+- **Protected Resource Metadata**: RFC 9728 for authorization server discovery
 
 ## Development Setup
 - Built as part of AIRS workspace
