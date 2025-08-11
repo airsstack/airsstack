@@ -1,4 +1,13 @@
-# AIRS - AI & Rust Technology Stack
+# AIRS - AI ### 🚀 **Real-World Success**
+- **MCP Server**: Successfully integrated with Claude Desktop - resources, tools, and prompts working in production
+- **MCP Client**: High-level Rust API with automatic subprocess management and real protocol interactions  
+- **Type Safety**: Full Rust type safety throughout MCP protocol implementation
+- **Examples**: Working client/server examples with comprehensive documentation
+
+📖 **[Complete Documentation Available](docs/book/)** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
+
+[**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
+[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**echnology Stack
 
 A personal AI technology stack built entirely in Rust, designed as a foundational framework for AI engineering tools and software. AIRS emphasizes type safety, performance, and clean architecture for building AI-powered applications with human-designed architecture and AI-assisted implementation.
 
@@ -7,7 +16,8 @@ A personal AI technology stack built entirely in Rust, designed as a foundationa
 **✅ Claude Desktop Integration Verified**  
 **✅ Complete MCP Server/Client Implementation**  
 **✅ 100% Schema Compliance (MCP 2024-11-05)**  
-**✅ Production-Grade Examples & Documentation**
+**✅ Production-Grade Examples & Documentation**  
+**✅ Comprehensive Documentation Ecosystem**
 
 ### 🚀 **Real-World Success**
 - **MCP Server**: Successfully integrated with Claude Desktop - resources, tools, and prompts working in production
@@ -16,7 +26,8 @@ A personal AI technology stack built entirely in Rust, designed as a foundationa
 - **Examples**: Working client/server examples with comprehensive documentation
 
 [**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
-[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)
+[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)  
+[**📖 Read Complete Documentation →**](docs/)
 
 ## Technology Stack
 
@@ -46,7 +57,13 @@ airs/
 │   ├── chatmodes/         # Custom chat interaction modes
 │   ├── instructions.md    # Development guidelines
 │   └── prompts/           # Reusable AI prompts
-└── docs/                  # Project documentation
+├── docs/                  # Comprehensive project documentation
+│   ├── src/               # Documentation source files  
+│   │   ├── technical/     # Technical guides and methodologies
+│   │   ├── projects/      # Individual project overviews
+│   │   └── resources/     # Getting started and contribution guides
+│   └── book/              # Generated documentation site
+└── target/                # Build artifacts
 ```
 
 
@@ -81,6 +98,31 @@ This project leverages a robust memory-bank management system to ensure resilien
 
 For more details, see `.copilot/memory_bank/` and the documentation in `docs/`.
 
+## 📖 Documentation Ecosystem
+
+AIRS provides comprehensive documentation covering philosophy, technical implementation, and practical usage:
+
+### 📚 **Complete Documentation**
+- **[Philosophy & Principles](docs/src/philosophy_principles.md)**: Core design philosophy and AI-human collaboration principles
+- **[Technical Knowledge](docs/src/technical/)**: In-depth guides on development workflow, memory bank architecture, and AI-Rust integration
+- **[Project Overviews](docs/src/projects/)**: Detailed coverage of AIRS-MCP and AIRS-MemSpec implementations
+- **[Getting Started](docs/src/resources/getting_started.md)**: Comprehensive onboarding with multiple user paths
+- **[Contributing Guide](docs/src/resources/contributing.md)**: Complete framework for community participation
+
+### 🚀 **Quick Access**
+```bash
+# Serve documentation locally
+cd docs && mdbook serve --open
+# Access at: http://localhost:3000
+```
+
+### 📋 **Documentation Features**
+- **Multiple User Paths**: Tailored guidance for AI-enhanced teams, Rust+AI projects, and documentation teams
+- **Real-World Examples**: Authentic examples from actual AIRS development
+- **Professional Quality**: Enterprise-grade documentation with comprehensive quality validation
+- **Interactive Navigation**: Clear progression from concepts to implementation
+- **Community Ready**: Complete contribution guidelines and getting started resources
+
 ## Getting Started
 
 ### Prerequisites
@@ -88,6 +130,8 @@ For more details, see `.copilot/memory_bank/` and the documentation in `docs/`.
 - **Rust**: 1.88.0 or later (we track the latest stable release)
 - **Cargo**: Included with Rust installation
 - **Git**: For version control and development workflow
+
+**📖 For detailed setup instructions, see our [Getting Started Guide](docs/src/resources/getting_started.md)**
 
 ### Installation
 
@@ -141,6 +185,8 @@ cd crates/airs-mcp/examples/simple-mcp-client
 cargo run  # Automatically spawns server and demonstrates all MCP operations
 ```
 
+**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](docs/)**
+
 ## Project Structure
 
 ### Workspace Organization
@@ -159,7 +205,12 @@ airs/
 │   ├── chatmodes/               # Custom interaction modes
 │   ├── instructions.md          # Development practices
 │   └── prompts/                 # Reusable AI prompts
-├── docs/                        # Additional documentation
+├── docs/                        # Comprehensive documentation ecosystem
+│   ├── src/                     # Documentation source files
+│   │   ├── technical/           # Development workflow, memory bank, AI-Rust integration
+│   │   ├── projects/            # AIRS-MCP and AIRS-MemSpec overviews
+│   │   └── resources/           # Getting started, contributing, documentation guides
+│   └── book/                    # Generated documentation site (mdBook)
 ├── LICENSE-APACHE               # Apache 2.0 license
 ├── LICENSE-MIT                  # MIT license
 └── README.md                    # This file
