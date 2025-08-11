@@ -4,9 +4,10 @@
 (None)
 
 ## Pending
-- [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment
-- [TASK012] HTTP Streamable Implementation - HTTP streaming transport for bidirectional MCP communication
-- [TASK013] HTTP SSE Implementation - Server-Sent Events transport for server-to-client streaming
+- [TASK012] HTTP Streamable Implementation - **HIGH PRIORITY** - Official MCP 2025 transport specification
+- [TASK014] OAuth 2.1 Enterprise Authentication - **HIGH PRIORITY** - Mandatory MCP security specification
+- [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment  
+- [TASK013] HTTP SSE Implementation - **LOW PRIORITY** - Legacy compatibility for ecosystem transition
 
 ## Completed
 - [TASK009] Claude Desktop Integration Infrastructure - COMPLETE - Completed on 2025-08-09

@@ -1,31 +1,31 @@
-# [TASK013] - HTTP SSE (Server-Sent Events) Implementation
+# [TASK013] - HTTP SSE Implementation (LEGACY COMPATIBILITY)
 
 **Status:** pending  
 **Added:** 2025-08-11  
-**Updated:** 2025-08-11
+**Updated:** 2025-08-11  
+**Priority:** LOW - Legacy compatibility for ecosystem transition
 
 ## Original Request
-Implement HTTP SSE (Server-Sent Events) transport for the airs-mcp MCP implementation to enable server-to-client streaming communication using the SSE protocol.
+Implement HTTP SSE (Server-Sent Events) transport - **repositioned as legacy compatibility** after research reveals official deprecation in favor of HTTP Streamable.
 
-## Thought Process
-HTTP SSE transport will provide a unidirectional streaming solution optimized for server-to-client communication patterns. This implementation should:
+## Thought Process - UPDATED WITH RESEARCH FINDINGS
+**CRITICAL UPDATE**: Research reveals that HTTP+SSE dual-endpoint approach has been **officially superseded** by HTTP Streamable transport in March 2025 MCP specification. This task is now repositioned for backward compatibility during ecosystem transition.
 
-1. **SSE Protocol Compliance**: Implement full Server-Sent Events specification (RFC 6202) for reliable event streaming
-2. **MCP Integration**: Adapt SSE for MCP protocol needs, potentially using SSE for notifications and responses
-3. **Bidirectional Workaround**: Consider HTTP POST + SSE combination for full bidirectional MCP communication
-4. **Transport Trait Integration**: Follow established Transport trait patterns while accommodating SSE's unidirectional nature
-5. **Connection Management**: Handle SSE connection lifecycle, reconnection, and error recovery
+**Legacy Implementation Issues**:
+1. **Resource Exhaustion**: Separate `/sse` and `/messages` endpoints cause persistent connection problems
+2. **Infrastructure Incompatibility**: Poor load balancer support, deployment complexity
+3. **Performance Overhead**: 60-80% higher resource usage compared to HTTP Streamable
+4. **Connection Management**: Complex reconnection and error recovery patterns
 
-The implementation will focus on use cases where server-initiated communication is primary, such as real-time notifications, progress updates, and streaming responses.
+**Repositioned Scope**: Implement legacy SSE support for clients that haven't migrated to HTTP Streamable, with clear deprecation notices and migration guidance.
 
-## Implementation Plan
-1. **SSE Protocol Research**: Deep dive into Server-Sent Events specification and best practices
-2. **MCP Protocol Adaptation**: Design how MCP JSON-RPC maps to SSE event streams
-3. **Transport Architecture**: Create HttpSseTransport with appropriate abstractions for SSE patterns
-4. **Bidirectional Strategy**: Implement HTTP POST + SSE combination for full MCP compatibility
-5. **Connection Management**: Add robust connection handling, reconnection, and error recovery
-6. **Client Library**: Create SSE client implementation for consuming MCP over SSE
-7. **Testing and Examples**: Comprehensive testing with real-world usage examples
+## Implementation Plan - REVISED FOR LEGACY SUPPORT
+1. **Legacy SSE Research**: Analysis of deprecated HTTP+SSE dual-endpoint patterns
+2. **Compatibility Architecture**: Minimal SSE implementation for backward compatibility
+3. **Migration Guidance**: Clear documentation encouraging HTTP Streamable adoption
+4. **Deprecation Notices**: Proper deprecation warnings and timeline communication
+5. **Limited Feature Set**: Basic SSE functionality without advanced optimizations
+6. **Transition Documentation**: Migration path from SSE to HTTP Streamable
 
 ## Progress Tracking
 

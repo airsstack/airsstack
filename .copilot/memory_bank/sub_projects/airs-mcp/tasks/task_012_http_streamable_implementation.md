@@ -1,31 +1,35 @@
-# [TASK012] - HTTP Streamable Implementation
+# [TASK012] - HTTP Streamable Implementation (OFFICIAL MCP 2025 TRANSPORT)
 
 **Status:** pending  
 **Added:** 2025-08-11  
-**Updated:** 2025-08-11
+**Updated:** 2025-08-11  
+**Priority:** HIGH - Official MCP specification replacement for HTTP+SSE
 
 ## Original Request
-Implement HTTP Streamable transport for the airs-mcp MCP implementation to enable streaming HTTP-based communication between MCP clients and servers.
+Implement HTTP Streamable transport for the airs-mcp MCP implementation - the **official replacement for HTTP+SSE** introduced in March 2025 MCP specification.
 
-## Thought Process
-HTTP Streamable transport will extend the current transport architecture to support streaming HTTP connections. This implementation should:
+## Thought Process - UPDATED WITH RESEARCH FINDINGS
+**CRITICAL UPDATE**: Research reveals HTTP Streamable is the **official replacement** for the legacy HTTP+SSE dual-endpoint approach, not just an alternative implementation. This fundamentally changes the implementation priority and scope.
 
-1. **Extend Transport Trait**: Build upon the existing Transport trait architecture already proven with STDIO and subprocess transports
-2. **HTTP Streaming Protocol**: Implement bidirectional streaming over HTTP using chunked transfer encoding or HTTP/2 streams
-3. **MCP Protocol Compatibility**: Maintain full compatibility with JSON-RPC 2.0 and MCP protocol specifications
-4. **Integration with Existing APIs**: Work seamlessly with McpClient and McpServer builders without breaking changes
-5. **Performance Considerations**: Leverage Rust's async ecosystem for high-performance streaming
+**Key Implementation Requirements**:
+1. **Single `/mcp` Endpoint**: Unified endpoint supporting both POST and GET methods
+2. **Dynamic Response Modes**: Server dynamically selects standard HTTP JSON or SSE stream upgrade
+3. **Session Management**: `Mcp-Session-Id` headers with `Last-Event-ID` reconnection support
+4. **Resource Efficiency**: 60-80% resource overhead reduction compared to legacy SSE
+5. **Infrastructure Compatibility**: Proper load balancer support for cloud deployments
+6. **OAuth 2.1 Integration**: Mandatory OAuth 2.1 implementation with Protected Resource Metadata
 
-The approach will follow the established patterns from SubprocessTransport and StdioTransport, ensuring consistency with the existing codebase architecture.
+The approach follows the **official MCP 2025-03-26 specification** and proven patterns from TypeScript/Python SDK implementations.
 
-## Implementation Plan
-1. **Research HTTP Streaming Patterns**: Analyze HTTP/1.1 chunked encoding and HTTP/2 streaming for MCP use cases
-2. **Design Transport Architecture**: Create HttpStreamTransport implementing the Transport trait
-3. **HTTP Client/Server Foundation**: Implement basic HTTP transport layer using tokio and hyper
-4. **Streaming Protocol Layer**: Add bidirectional streaming capabilities for JSON-RPC messages
-5. **Integration Layer**: Ensure compatibility with existing McpClient/McpServer APIs
-6. **Testing Strategy**: Create comprehensive tests including integration with existing examples
-7. **Documentation**: Add usage examples and integrate with existing documentation
+## Implementation Plan - REVISED
+1. **Study Official Specification**: Deep analysis of MCP 2025-03-26 HTTP Streamable spec
+2. **Architecture Design**: Single endpoint with dynamic response mode selection
+3. **Session Management**: `Mcp-Session-Id` header handling and reconnection logic
+4. **HTTP Foundation**: hyper/axum-based server with `/mcp` endpoint
+5. **Stream Upgrade Logic**: Dynamic switching between HTTP JSON and SSE streaming
+6. **OAuth 2.1 Integration**: Protected Resource Metadata and enterprise authentication
+7. **Performance Optimization**: Multi-runtime tokio with connection pooling
+8. **Production Testing**: 50,000+ concurrent connections, sub-millisecond latency
 
 ## Progress Tracking
 

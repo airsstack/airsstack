@@ -1,6 +1,46 @@
 # Active Context - airs-mcp
 
-## Current Work Focus - 2025-08-09
+## CURRENT FOCUS: MCP REMOTE SERVER RESEARCH INTEGRATION - 2025-08-11
+
+### CRITICAL KNOWLEDGE UPDATE: HTTP STREAMABLE OFFICIAL SPECIFICATION ✅
+**MAJOR DISCOVERY**: Research analysis reveals fundamental shift in MCP transport priorities
+- **HTTP Streamable Transport**: Official replacement for HTTP+SSE (March 2025 specification)
+- **Protocol Evolution**: Single `/mcp` endpoint supersedes dual-endpoint legacy approach
+- **Performance Impact**: 60-80% resource overhead reduction with proper load balancer support
+- **OAuth 2.1 Mandatory**: Enterprise security requirements now specification-mandated
+- **Production Targets**: 50,000+ concurrent connections, sub-millisecond latency benchmarks
+
+### TASK PRIORITY REVISION ⚠️
+**TASK012 (HTTP Streamable)**: **ELEVATED TO HIGH PRIORITY**
+- Scope updated to official MCP 2025-03-26 specification compliance
+- Focus on single `/mcp` endpoint with dynamic response modes
+- Session management with `Mcp-Session-Id` headers and reconnection support
+- OAuth 2.1 integration requirements added
+
+**TASK014 (OAuth 2.1 Authentication)**: **NEW HIGH PRIORITY TASK** ✅
+- **Standalone OAuth Implementation**: Dedicated task for mandatory MCP security requirements
+- **Enterprise Authentication**: Protected Resource Metadata, Dynamic Client Registration, PKCE
+- **Transport Integration**: OAuth layer supporting HTTP Streamable and future transports
+- **Security Compliance**: Full RFC compliance for enterprise deployment readiness
+
+**TASK013 (HTTP SSE)**: **REPOSITIONED TO LEGACY COMPATIBILITY**
+- Priority reduced due to official deprecation status
+- Scope revised for backward compatibility during ecosystem transition
+- Implementation focus on migration guidance and deprecation notices
+
+### TECHNOLOGY STACK IMPLICATIONS
+**New Dependencies Required**:
+- **hyper/axum**: HTTP Streamable server implementation
+- **oauth2 crate**: OAuth 2.1 Protected Resource Metadata compliance
+- **deadpool**: Production-grade connection pooling
+- **crossbeam-queue**: Lock-free patterns for performance optimization
+
+### COMPETITIVE POSITIONING INSIGHT
+- **Rust Advantage**: Existing implementations show 45% performance improvements
+- **Enterprise Readiness**: OAuth 2.1 compliance enables enterprise adoption
+- **Specification Compliance**: 2025-03-26 spec alignment for ecosystem leadership
+
+## PREVIOUS ACHIEVEMENT MAINTAINED
 - **MCP CLIENT EXAMPLE IMPLEMENTATION COMPLETE**: Production-ready client example demonstrating AIRS MCP library usage
 - **TECHNICAL INNOVATION ACHIEVED**: Custom SubprocessTransport implementing Transport trait for server lifecycle management
 - **REAL PROTOCOL INTERACTIONS VERIFIED**: Actual client ↔ server communication through high-level McpClient API
