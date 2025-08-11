@@ -1,13 +1,4 @@
-# AIRS - AI ### 🚀 **Real-World Success**
-- **MCP Server**: Successfully integrated with Claude Desktop - resources, tools, and prompts working in production
-- **MCP Client**: High-level Rust API with automatic subprocess management and real protocol interactions  
-- **Type Safety**: Full Rust type safety throughout MCP protocol implementation
-- **Examples**: Working client/server examples with comprehensive documentation
-
-📖 **[Complete Documentation Available](docs/book/)** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
-
-[**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
-[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**echnology Stack
+# AIRS - AI & Rust Technology Stack
 
 A personal AI technology stack built entirely in Rust, designed as a foundational framework for AI engineering tools and software. AIRS emphasizes type safety, performance, and clean architecture for building AI-powered applications with human-designed architecture and AI-assisted implementation.
 
@@ -25,9 +16,11 @@ A personal AI technology stack built entirely in Rust, designed as a foundationa
 - **Type Safety**: Full Rust type safety throughout MCP protocol implementation
 - **Examples**: Working client/server examples with comprehensive documentation
 
+📖 **[Complete Documentation Available](docs/src/)** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
+
 [**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
-[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)  
-[**📖 Read Complete Documentation →**](docs/)
+[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**  
+[**📖 Read Complete Documentation →**](docs/src/)
 
 ## Technology Stack
 
@@ -111,7 +104,10 @@ AIRS provides comprehensive documentation covering philosophy, technical impleme
 
 ### 🚀 **Quick Access**
 ```bash
-# Serve documentation locally
+# Read documentation directly in markdown
+open docs/src/
+
+# Or serve as interactive website
 cd docs && mdbook serve --open
 # Access at: http://localhost:3000
 ```
@@ -185,7 +181,7 @@ cd crates/airs-mcp/examples/simple-mcp-client
 cargo run  # Automatically spawns server and demonstrates all MCP operations
 ```
 
-**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](docs/)**
+**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](docs/src/)**
 
 ## Project Structure
 
