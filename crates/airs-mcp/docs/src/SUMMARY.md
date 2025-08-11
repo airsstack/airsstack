@@ -20,6 +20,7 @@
     - [Architecture](./protocol/architecture.md)
     - [Server](./protocol/server.md)
         - [Remote Server](./protocol/server_remote.md)
+        - [OAuth](./protocol/oauth.md)
     - [Client](./protocol/client.md)
     - [Extension](./protocol/extension.md)
     - [Implementation](./protocol/implementation.md)
