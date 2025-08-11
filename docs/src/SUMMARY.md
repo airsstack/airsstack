@@ -14,5 +14,7 @@
 - [Development Workflow](./technical/development_workflow.md)
 
 # Resources
-- [Getting Started](./resources/getting_started.md)
-- [Contribution Guide](./resources/contributing.md)
+- [Resources](./resources/README.md)
+    - [Documentation Guide](./resources/documentation_guide.md)
+    - [Getting Started](./resources/getting_started.md)
+    - [Contributing](./resources/contributing.md)
