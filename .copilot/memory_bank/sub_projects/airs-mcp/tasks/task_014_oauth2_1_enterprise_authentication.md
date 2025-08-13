@@ -8,46 +8,71 @@
 ## Original Request
 Implement comprehensive OAuth 2.1 authentication system for airs-mcp to meet the mandatory security requirements of the MCP 2025-03-26 specification and enable enterprise deployment.
 
-## Thought Process - UPDATED WITH COMPREHENSIVE RESEARCH
-**CRITICAL UPDATE**: OAuth 2.1 research reveals detailed implementation requirements from MCP Protocol Revision 2025-06-18 with enhanced security mandates beyond standard OAuth 2.0.
+## Thought Process - MIDDLEWARE ARCHITECTURE REFINEMENT (2025-08-13)
+**ARCHITECTURAL BREAKTHROUGH**: Refined OAuth 2.1 implementation using Axum middleware architecture that integrates seamlessly with HTTP Streamable transport, providing clean separation of concerns and reusable security components.
 
-**Key Implementation Requirements**:
-1. **Universal PKCE Mandate**: PKCE mandatory for ALL clients, including confidential clients
-2. **Resource Indicators (RFC 8707)**: Mandatory `resource` parameter prevents confused deputy attacks
-3. **Protected Resource Metadata (RFC 9728)**: Authorization server discovery with MCP-specific metadata
-4. **Audience Validation**: Critical `aud` claim validation for token binding
-5. **Dynamic Client Registration (RFC 7591)**: Enterprise onboarding automation
-6. **Multi-Tenant Architecture**: Strict tenant isolation with context-aware authentication
+**Core Innovation - Middleware Stack Design**:
+- **OAuth Middleware Layer**: Token validation and scope checking as composable middleware
+- **Session Middleware Layer**: Enhanced session management with OAuth context integration
+- **Clean Separation**: OAuth security completely separate from transport logic
+- **Reusable Components**: Same OAuth middleware works across different transport types
+- **Performance Optimization**: Middleware short-circuits on auth failures (no transport processing)
 
-**Official SDK Patterns**:
-- **TypeScript SDK**: StreamableHTTPClientTransport with OAuthClientProvider interface
-- **Python SDK**: FastMCP with TokenVerifier protocol and context-based authentication
-- **Enterprise Integration**: External IdP patterns (AWS Cognito, Azure AD) as authorization servers
-- **Security Monitoring**: Comprehensive logging, rate limiting, and abuse detection
+**Technical Architecture**:
+```rust
+// Complete middleware stack integration
+Router::new()
+    .route("/mcp", post(handle_mcp_post))
+    .route("/mcp", get(handle_mcp_get))
+    .layer(oauth_middleware_layer(oauth))         // OAuth authentication
+    .layer(session_middleware_layer(transport))   // Session management
+    .layer(rate_limiting_middleware())            // Request limiting
+```
 
-## Implementation Plan - ENHANCED WITH OFFICIAL PATTERNS
-1. **MCP OAuth 2.1 Specification Deep Dive**: MCP Protocol Revision 2025-06-18 analysis with security mandates
-2. **Protected Resource Metadata Implementation**: MCP-specific metadata with authorization server discovery
-3. **Universal PKCE Implementation**: Mandatory PKCE for all clients with S256 code challenge method
-4. **Resource Indicators Integration**: RFC 8707 implementation with `resource` parameter validation
-5. **JWT Token Validation**: Audience and issuer validation with external IdP integration
-6. **Dynamic Client Registration**: RFC 7591 automated enterprise client onboarding
-7. **Transport Layer Integration**: OAuth provider interface for HTTP Streamable and other transports
-8. **Context-Based Authentication**: FastMCP-style authenticated context propagation
-9. **Multi-Tenant Security**: Tenant-aware token validation and isolation
-10. **Enterprise IdP Integration**: AWS Cognito, Azure AD, Auth0 patterns
-11. **Security Monitoring**: Comprehensive logging, rate limiting, and abuse detection
-12. **Production Testing**: Enterprise deployment patterns and security validation
+**Key Implementation Benefits**:
+1. **Zero Transport Changes**: HTTP Streamable transport unchanged, OAuth as wrapper
+2. **Composable Security**: Add/remove OAuth without affecting core transport
+3. **Standards Compliance**: RFC 6750, RFC 8707, RFC 9728 compliant responses
+4. **Enterprise Ready**: External IdP integration, human-in-the-loop approval
+5. **Production Performance**: <5ms OAuth validation, >95% cache hit rate
+
+## Implementation Plan - MIDDLEWARE-BASED ARCHITECTURE (2025-08-13)
+
+### **Phase 1: OAuth Foundation & Token Validation (Week 1)**
+1. **JWT Token Validator**: JWKS client with caching, RS256 validation
+2. **OAuth Middleware**: Axum middleware for token validation and scope checking
+3. **Protected Resource Metadata**: RFC 9728 compliant metadata endpoint
+4. **Error Handling**: RFC 6750 compliant error responses with WWW-Authenticate headers
+
+### **Phase 2: Session Integration & Scope Management (Week 2)**
+1. **Enhanced Session Middleware**: OAuth context integration with session management
+2. **Scope Validation System**: Operation-specific scope checking (mcp:tools:execute, etc.)
+3. **Authentication Context**: AuthContext propagation through middleware chain
+4. **Audit Logging**: Comprehensive security event tracking
+
+### **Phase 3: Human-in-the-Loop & Enterprise Features (Week 3)**
+1. **Approval Workflow System**: Web-based approval for sensitive operations
+2. **Enterprise IdP Integration**: AWS Cognito, Azure AD, Auth0 patterns
+3. **Token Management**: Refresh handling, secure caching, lifecycle management
+4. **Production Hardening**: Rate limiting, abuse detection, security monitoring
 
 ## Progress Tracking
 
 **Overall Status:** pending - 0%
 
-### Subtasks
+### Subtasks - MIDDLEWARE ARCHITECTURE IMPLEMENTATION
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 14.1 | MCP OAuth 2.1 specification analysis (2025-06-18 revision) | not_started | 2025-08-11 | Enhanced security mandates and official patterns |
-| 14.2 | Protected Resource Metadata with MCP-specific extensions | not_started | 2025-08-11 | Authorization server discovery and metadata |
+| 14.1 | JWT Token Validator with JWKS client | not_started | 2025-08-13 | RS256 validation, token caching, <5ms latency |
+| 14.2 | OAuth Middleware Layer implementation | not_started | 2025-08-13 | Axum middleware for token validation and scope checking |
+| 14.3 | Protected Resource Metadata endpoint | not_started | 2025-08-13 | RFC 9728 compliant /.well-known/oauth-protected-resource |
+| 14.4 | Enhanced Session Middleware integration | not_started | 2025-08-13 | OAuth context integration with session management |
+| 14.5 | Operation-specific scope validation | not_started | 2025-08-13 | MCP method to scope mapping (mcp:tools:execute, etc.) |
+| 14.6 | AuthContext propagation system | not_started | 2025-08-13 | Middleware chain context passing |
+| 14.7 | Human-in-the-loop approval workflow | not_started | 2025-08-13 | Web-based approval for sensitive operations |
+| 14.8 | Enterprise IdP integration patterns | not_started | 2025-08-13 | AWS Cognito, Azure AD, Auth0 integration examples |
+| 14.9 | Security audit logging system | not_started | 2025-08-13 | Comprehensive authentication event tracking |
+| 14.10 | Production testing and validation | not_started | 2025-08-13 | Performance, security, and enterprise deployment testing |
 | 14.3 | Universal PKCE implementation (mandatory for all clients) | not_started | 2025-08-11 | S256 code challenge method requirement |
 | 14.4 | Resource Indicators implementation (RFC 8707) | not_started | 2025-08-11 | Prevent confused deputy attacks |
 | 14.5 | JWT token validation with audience verification | not_started | 2025-08-11 | Critical audience and issuer validation |
