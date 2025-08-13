@@ -4,10 +4,25 @@
 (None)
 
 ## Pending
-- [TASK012] HTTP Streamable Implementation - **HIGH PRIORITY** - Official MCP 2025 transport specification
-- [TASK014] OAuth 2.1 Enterprise Authentication - **HIGH PRIORITY** - Mandatory MCP security specification
+- [TASK012] HTTP Streamable Implementation - **CRITICAL FOUNDATION** - Phase 1 (Weeks 1-3) of remote server development plan
+  - **Implementation Plan**: Complete 8-week systematic development plan documented in `docs/src/plans/remote_server.md`
+  - **Technical Architecture**: `StreamableHttpTransport` with single `/mcp` endpoint and dynamic response modes
+  - **Core Features**: Session management with `Mcp-Session-Id` headers, connection recovery via `Last-Event-ID`
+  - **Success Criteria**: 100% MCP March 2025 specification compliance, <100ms response times
+  - **Dependencies**: hyper/axum, tokio async ecosystem, session management infrastructure
+  - **Deliverables**: Complete transport implementation with >90% test coverage and protocol validation
+- [TASK014] OAuth 2.1 Enterprise Authentication - **SECURITY IMPERATIVE** - Phase 2 (Weeks 4-6) of remote server development plan
+  - **Implementation Plan**: OAuth 2.1 + PKCE security integration with comprehensive development roadmap
+  - **Technical Architecture**: `OAuth2Security` with universal PKCE support and human-in-the-loop approval workflows
+  - **Core Features**: Enterprise IdP integration, token lifecycle management, security audit logging
+  - **Success Criteria**: Zero critical security vulnerabilities, Claude Desktop compatibility validation
+  - **Dependencies**: oauth2 crate, secure token storage, authorization server integration
+  - **Deliverables**: Complete security layer with enterprise features and comprehensive audit capabilities
 - [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment  
-- [TASK013] HTTP SSE Implementation - **LOW PRIORITY** - Legacy compatibility for ecosystem transition
+- [TASK013] HTTP SSE Implementation - **LEGACY COMPATIBILITY** - Optional Phase 4 for backward compatibility
+  - **Strategic Repositioning**: Reduced priority due to official deprecation in favor of HTTP Streamable
+  - **Limited Scope**: Backward compatibility during ecosystem transition, migration guidance
+  - **Implementation**: Only if specific client compatibility requirements are identified
 
 ## Completed
 - [TASK009] Claude Desktop Integration Infrastructure - COMPLETE - Completed on 2025-08-09

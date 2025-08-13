@@ -1,19 +1,42 @@
 # tech_context.md
 
 ## Technologies Used
-- Rust
-- AIRS workspace
+- Rust 1.88.0+ (MSRV with async/await support)
+- AIRS workspace architecture
 - Model Context Protocol (MCP) - **2025-03-26 specification compliance**
-- Tokio (async runtime) - **Multi-runtime architecture patterns**
-- Serde/Serde JSON (serialization)
-- DashMap (concurrent hashmap)
-- Bytes (zero-copy buffer management) ✅ NEW
-- BytesMut (mutable buffer operations) ✅ NEW
-- Thiserror (structured error handling)
-- **HTTP Streamable Transport**: hyper/axum for single-endpoint architecture ✅ PRIORITY
-- **OAuth 2.1 Security**: oauth2 crate for enterprise authentication ✅ REQUIRED
-- **Connection Pooling**: deadpool for production resource management ✅ PERFORMANCE
-- Optional: OAuth2, Rustls (feature-gated)
+- **Current Implementation Stack**:
+  - Tokio (async runtime) - **Multi-runtime architecture patterns**
+  - Serde/Serde JSON (serialization)
+  - DashMap (concurrent hashmap)
+  - Bytes (zero-copy buffer management) ✅ IMPLEMENTED
+  - BytesMut (mutable buffer operations) ✅ IMPLEMENTED
+  - Thiserror (structured error handling)
+- **Remote Server Dependencies (PLANNED)**:
+  - **hyper/axum**: HTTP Streamable server implementation with async/await support
+  - **oauth2 crate**: OAuth 2.1 Protected Resource Metadata compliance  
+  - **deadpool**: Production-grade connection pooling for session management
+  - **crossbeam-queue**: Lock-free patterns for performance optimization
+  - **tokio**: Enhanced async runtime for all transport operations
+  - **serde**: JSON serialization for MCP protocol messages
+
+## Remote Server Technology Stack (8-Week Implementation Plan)
+**Phase 1 Technologies (Weeks 1-3)**:
+- **hyper**: HTTP/1.1 and HTTP/2 server foundation
+- **axum**: Web framework for `/mcp` endpoint implementation
+- **tokio**: Async runtime for session management and request handling
+- **serde_json**: Dynamic JSON response mode selection
+
+**Phase 2 Technologies (Weeks 4-6)**:
+- **oauth2**: OAuth 2.1 + PKCE implementation with S256 challenge method
+- **jsonwebtoken**: JWT token validation and parsing
+- **ring**: Cryptographic operations for secure token handling
+- **deadpool**: Connection pooling for authorization server communication
+
+**Phase 3 Technologies (Weeks 7-8)**:
+- **metrics**: Performance monitoring and metrics collection
+- **tracing**: Structured logging for production observability
+- **tower**: Middleware for rate limiting and request processing
+- **crossbeam**: Lock-free data structures for high-performance operation
 
 ## MCP Protocol Evolution - CRITICAL UPDATE
 - **HTTP Streamable Transport**: Official replacement for HTTP+SSE (March 2025)

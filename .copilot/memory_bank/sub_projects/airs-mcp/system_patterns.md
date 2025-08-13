@@ -54,10 +54,72 @@
 - **Configuration**: CorrelationConfig with timeout, capacity, interval, tracing controls
 - **API Design**: 9 public methods covering all correlation scenarios with comprehensive documentation
 
-## Transport Abstraction
+## Transport Abstraction & Remote Server Architecture
+
+### Current Transport Implementation ✅
 - Transport trait for async send/receive/close operations
 - STDIO transport: newline-delimited JSON, streaming parser, buffer management
-- Future transports: HTTP, WebSocket, TCP
+- SubprocessTransport: Custom transport for client-server lifecycle management
+
+### Remote Server Transport Architecture (PLANNED)
+**HTTP Streamable Transport** - Critical Foundation:
+```rust
+#[async_trait]
+pub trait McpTransport: Send + Sync {
+    async fn start(&mut self) -> Result<(), TransportError>;
+    async fn send(&self, message: JsonRpcMessage) -> Result<(), TransportError>;
+    async fn receive(&self) -> Result<JsonRpcMessage, TransportError>;
+    async fn close(&mut self) -> Result<(), TransportError>;
+}
+
+// Streamable HTTP implementation
+pub struct StreamableHttpTransport {
+    config: HttpTransportConfig,
+    server: Arc<HttpServer>,
+    sessions: Arc<RwLock<SessionManager>>,
+    metrics: MetricsCollector,
+}
+```
+
+**Session Management Architecture**:
+```rust
+// Session lifecycle management
+pub struct SessionManager {
+    sessions: HashMap<SessionId, Session>,
+    cleanup_scheduler: CleanupScheduler,
+    recovery_manager: RecoveryManager,
+}
+
+pub struct Session {
+    id: SessionId,
+    transport_context: TransportContext,
+    security_context: Option<SecurityContext>,
+    protocol_state: ProtocolState,
+    capabilities: NegotiatedCapabilities,
+    activity_tracker: ActivityTracker,
+}
+```
+
+**OAuth 2.1 Security Architecture**:
+```rust
+// OAuth 2.1 + PKCE implementation
+pub struct OAuth2Security {
+    config: OAuth2Config,
+    authorization_server: AuthorizationServerClient,
+    token_manager: TokenManager,
+    approval_workflow: ApprovalWorkflow,
+}
+
+// Human-in-the-loop approval
+#[async_trait]
+pub trait ApprovalHandler: Send + Sync {
+    async fn request_approval(
+        &self,
+        operation: Operation,
+        context: SecurityContext,
+    ) -> Result<ApprovalDecision, ApprovalError>;
+}
+```
 
 ## Integration Architecture
 - High-level JsonRpcClient interface: correlation manager, transport, message handler

@@ -1,6 +1,30 @@
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: MCP REMOTE SERVER RESEARCH INTEGRATION - 2025-08-11
+## CURRENT FOCUS: REMOTE SERVER DEVELOPMENT PLAN INTEGRATION - 2025-08-13
+
+### 🎯 COMPREHENSIVE DEVELOPMENT PLAN ADDED ✅
+**MAJOR MILESTONE**: Complete 8-week implementation plan for remote server capabilities documented
+- **Document**: `docs/src/plans/remote_server.md` - 773-line comprehensive development plan
+- **Scope**: HTTP Streamable, OAuth 2.1 + PKCE, Legacy HTTP SSE transport implementations  
+- **Timeline**: 8-week systematic implementation cycle with 3 phases + optional legacy support
+- **Architecture**: Complete technical specifications with Rust code examples
+- **Testing Strategy**: >90% coverage with protocol compliance, security, and performance validation
+
+### IMPLEMENTATION STRATEGY DEFINED ✅
+**PHASE-BASED APPROACH**: Systematic progression from foundation to production
+- **Phase 1 (Weeks 1-3)**: HTTP Streamable Transport Foundation
+  - Core HTTP server with single `/mcp` endpoint
+  - Session management with `Mcp-Session-Id` headers  
+  - Dynamic response mode selection (JSON vs SSE upgrade)
+  - Connection recovery via `Last-Event-ID` mechanisms
+- **Phase 2 (Weeks 4-6)**: OAuth 2.1 + PKCE Security Integration
+  - Complete OAuth 2.1 flows with universal PKCE support
+  - Human-in-the-loop approval workflows for sensitive operations
+  - Enterprise security features (token lifecycle, audit logging)
+- **Phase 3 (Weeks 7-8)**: Production Hardening
+  - Performance optimization (<100ms response times)
+  - Comprehensive monitoring and metrics
+  - Claude Desktop compatibility validation
 
 ### CRITICAL KNOWLEDGE UPDATE: HTTP STREAMABLE OFFICIAL SPECIFICATION ✅
 **MAJOR DISCOVERY**: Research analysis reveals fundamental shift in MCP transport priorities
@@ -10,14 +34,40 @@
 - **OAuth 2.1 Mandatory**: Enterprise security requirements now specification-mandated
 - **Production Targets**: 50,000+ concurrent connections, sub-millisecond latency benchmarks
 
-### TASK PRIORITY REVISION ⚠️
-**TASK012 (HTTP Streamable)**: **ELEVATED TO HIGH PRIORITY**
-- Scope updated to official MCP 2025-03-26 specification compliance
-- Focus on single `/mcp` endpoint with dynamic response modes
-- Session management with `Mcp-Session-Id` headers and reconnection support
-- OAuth 2.1 integration requirements added
+### TASK PRIORITY REVISION WITH CONCRETE IMPLEMENTATION ROADMAP ⚠️
+**TASK012 (HTTP Streamable)**: **CRITICAL FOUNDATION** - Week 1-3 Implementation
+- **Technical Architecture**: `StreamableHttpTransport` with dynamic response mode selection
+- **Core Features**: Single `/mcp` endpoint, session management, connection recovery
+- **Success Criteria**: 100% MCP March 2025 specification compliance
+- **Dependencies**: hyper/axum, tokio async ecosystem
+- **Deliverables**: Complete transport with unit/integration tests
 
-### ENHANCED OAUTH KNOWLEDGE INTEGRATION - 2025-08-11 ✅
+**TASK014 (OAuth 2.1 + PKCE)**: **SECURITY IMPERATIVE** - Week 4-6 Implementation  
+- **Technical Architecture**: `OAuth2Security` with universal PKCE support
+- **Core Features**: Human-in-the-loop approval, enterprise IdP integration, token lifecycle
+- **Success Criteria**: Zero critical security vulnerabilities, Claude Desktop compatibility
+- **Dependencies**: oauth2 crate, secure token storage
+- **Deliverables**: Complete security layer with audit logging
+
+**TASK013 (HTTP SSE)**: **LEGACY COMPATIBILITY** - Optional Phase 4
+- **Strategic Repositioning**: Backward compatibility for ecosystem transition
+- **Limited Scope**: Migration guidance and deprecation notices
+- **Implementation**: Only if specific client compatibility requirements identified
+
+### PRODUCTION READINESS CRITERIA ESTABLISHED ✅
+**PERFORMANCE TARGETS**:
+- **Response Time**: <100ms for 95% of requests under normal load
+- **Throughput**: Support 1000+ concurrent sessions  
+- **Memory Usage**: <50MB base memory footprint
+- **CPU Efficiency**: <5% CPU usage under normal load
+
+**QUALITY STANDARDS**:
+- **Test Coverage**: >90% line coverage with critical path coverage >95%
+- **Security**: Zero critical vulnerabilities in security audits
+- **Documentation**: 100% public API documentation with implementation examples
+- **Protocol Compliance**: 100% MCP specification compliance validation
+
+### ENHANCED OAUTH KNOWLEDGE INTEGRATION WITH IMPLEMENTATION SPECIFICATIONS ✅
 **COMPREHENSIVE RESEARCH ANALYSIS**: OAuth 2.1 implementation details from MCP Protocol Revision 2025-06-18
 - **Universal PKCE Mandate**: PKCE mandatory for ALL clients, including confidential clients
 - **Resource Indicators Requirement**: RFC 8707 mandatory to prevent confused deputy attacks
@@ -25,23 +75,72 @@
 - **Enterprise IdP Integration**: External authorization server patterns (AWS Cognito, Azure AD)
 - **Security Monitoring**: Comprehensive logging, rate limiting, and abuse detection requirements
 
-**TASK014 ENHANCEMENT**: OAuth implementation scope significantly expanded
+**TASK014 IMPLEMENTATION ARCHITECTURE**: 
+```rust
+// OAuth 2.1 + PKCE implementation
+pub struct OAuth2Security {
+    config: OAuth2Config,
+    authorization_server: AuthorizationServerClient,
+    token_manager: TokenManager,
+    approval_workflow: ApprovalWorkflow,
+}
+
+// Human-in-the-loop approval
+#[async_trait]
+pub trait ApprovalHandler: Send + Sync {
+    async fn request_approval(
+        &self,
+        operation: Operation,
+        context: SecurityContext,
+    ) -> Result<ApprovalDecision, ApprovalError>;
+}
+```
+
+**SECURITY IMPLEMENTATION DETAILS**:
 - **12 detailed subtasks** covering universal PKCE, resource indicators, enterprise IdP integration
 - **Production security patterns** including multi-tenant isolation and context-based authentication
 - **Official SDK alignment** with TypeScript OAuthClientProvider and Python TokenVerifier protocols
 - **Enterprise deployment** patterns for AWS, Azure, and Auth0 integration
 
-**TASK013 (HTTP SSE)**: **REPOSITIONED TO LEGACY COMPATIBILITY**
-- Priority reduced due to official deprecation status
-- Scope revised for backward compatibility during ecosystem transition
-- Implementation focus on migration guidance and deprecation notices
-
-### TECHNOLOGY STACK IMPLICATIONS
-**New Dependencies Required**:
-- **hyper/axum**: HTTP Streamable server implementation
+### TECHNOLOGY STACK IMPLICATIONS WITH CONCRETE DEPENDENCIES
+**New Dependencies Required for Remote Server Implementation**:
+- **hyper/axum**: HTTP Streamable server implementation with async/await support
 - **oauth2 crate**: OAuth 2.1 Protected Resource Metadata compliance
-- **deadpool**: Production-grade connection pooling
+- **deadpool**: Production-grade connection pooling for session management
 - **crossbeam-queue**: Lock-free patterns for performance optimization
+- **tokio**: Async runtime foundation for all transport operations
+- **serde**: JSON serialization for MCP protocol messages
+
+**TECHNICAL ARCHITECTURE SPECIFICATIONS**:
+```rust
+// Core transport trait implementation
+#[async_trait]
+pub trait McpTransport: Send + Sync {
+    async fn start(&mut self) -> Result<(), TransportError>;
+    async fn send(&self, message: JsonRpcMessage) -> Result<(), TransportError>;
+    async fn receive(&self) -> Result<JsonRpcMessage, TransportError>;
+    async fn close(&mut self) -> Result<(), TransportError>;
+}
+
+// Session management architecture
+pub struct SessionManager {
+    sessions: HashMap<SessionId, Session>,
+    cleanup_scheduler: CleanupScheduler,
+    recovery_manager: RecoveryManager,
+}
+```
+
+### RISK MANAGEMENT & MITIGATION STRATEGY DEFINED ✅
+**HIGH-PRIORITY RISKS IDENTIFIED**:
+1. **Protocol Specification Changes** - Mitigation: Flexible protocol validation layer
+2. **OAuth 2.1 Complexity** - Mitigation: Proven OAuth libraries and comprehensive testing
+3. **Performance Requirements** - Mitigation: Early performance prototyping and monitoring
+4. **Security Vulnerabilities** - Mitigation: Security-first development with regular audits
+
+**CONTINGENCY PLANS ESTABLISHED**:
+- Protocol compliance issues: Reference implementation comparison environment
+- Performance shortfalls: Caching strategies and async optimization
+- Security concerns: Defense-in-depth strategies and patch deployment procedures
 
 ### COMPETITIVE POSITIONING INSIGHT
 - **Rust Advantage**: Existing implementations show 45% performance improvements
