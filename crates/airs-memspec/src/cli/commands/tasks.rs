@@ -2,7 +2,7 @@
 // Handles task viewing and tracking operations (read-only)
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{NaiveDate, Utc};
 
@@ -168,16 +168,20 @@ fn list_tasks(
                 TaskStatus::Unknown(_) => "❓ UNKNOWN",
             };
 
-            println!("{}", status_header);
+            println!("{status_header}");
 
             for (project_name, task) in &sorted_tasks {
                 let task_id = task.id.as_deref().unwrap_or("---");
-                
+
                 // Status icon
                 let status_icon = match task.status {
                     TaskStatus::InProgress => {
-                        if is_task_stale(task, 7) { "🕒" } else { "⏳" }
-                    },
+                        if is_task_stale(task, 7) {
+                            "🕒"
+                        } else {
+                            "⏳"
+                        }
+                    }
                     TaskStatus::Blocked => "⚠️",
                     TaskStatus::NotStarted => "📋",
                     TaskStatus::Completed => "✅",
@@ -197,13 +201,15 @@ fn list_tasks(
 
                 // Calculate age in days
                 let age = if let Some(ref updated_str) = task.updated {
-                    if let Ok(updated_date) = chrono::NaiveDate::parse_from_str(updated_str, "%Y-%m-%d") {
+                    if let Ok(updated_date) =
+                        chrono::NaiveDate::parse_from_str(updated_str, "%Y-%m-%d")
+                    {
                         let updated_utc = updated_date
                             .and_hms_opt(0, 0, 0)
                             .map(|dt| dt.and_utc())
-                            .unwrap_or_else(|| chrono::Utc::now());
+                            .unwrap_or_else(chrono::Utc::now);
                         let days = (chrono::Utc::now() - updated_utc).num_days();
-                        format!("{}d", days)
+                        format!("{days}d")
                     } else {
                         "?d".to_string()
                     }
@@ -212,8 +218,10 @@ fn list_tasks(
                 };
 
                 // Add stale indicator
-                let stale_indicator = if is_task_stale(task, 7) && 
-                    (task.status == TaskStatus::InProgress || task.status == TaskStatus::NotStarted) {
+                let stale_indicator = if is_task_stale(task, 7)
+                    && (task.status == TaskStatus::InProgress
+                        || task.status == TaskStatus::NotStarted)
+                {
                     " stale"
                 } else if task.status == TaskStatus::Blocked {
                     " blocked"
@@ -223,7 +231,7 @@ fn list_tasks(
 
                 // Format: ID ICON task_name    project    progress  age  alert
                 let project_display = if project_filter.is_none() {
-                    format!("{:<12}", project_name)
+                    format!("{project_name:<12}")
                 } else {
                     String::new()
                 };
@@ -404,7 +412,7 @@ fn show_task(
 }
 
 /// Get the active project from current_context.md
-fn get_active_project_from_context(root_path: &PathBuf) -> Option<String> {
+fn get_active_project_from_context(root_path: &Path) -> Option<String> {
     use std::fs;
 
     let context_file = root_path.join("current_context.md");
@@ -444,7 +452,7 @@ fn apply_smart_filter(
         // Show pending tasks only from active project (or all if no active project)
         // Also show stale pending tasks as they may need attention
         TaskStatus::NotStarted => {
-            is_stale || active_project.map_or(true, |active| project_name == active)
+            is_stale || active_project.is_none_or(|active| project_name == active)
         }
 
         // Show completed tasks only if explicitly requested
@@ -547,7 +555,7 @@ fn is_task_stale(task: &TaskItem, days_threshold: i64) -> bool {
             let updated_utc = updated_date
                 .and_hms_opt(0, 0, 0)
                 .map(|dt| dt.and_utc())
-                .unwrap_or_else(|| Utc::now());
+                .unwrap_or_else(Utc::now);
 
             let days_since_update = (Utc::now() - updated_utc).num_days();
             return days_since_update >= days_threshold;

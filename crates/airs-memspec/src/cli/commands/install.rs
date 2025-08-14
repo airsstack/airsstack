@@ -111,9 +111,8 @@ pub fn run(
     })?;
 
     // Select instruction template with fallback to default
-    let instruction_template = select_template(template.as_deref()).map_err(|e| {
+    let instruction_template = select_template(template.as_deref()).inspect_err(|e| {
         formatter.error(&e.to_string());
-        e
     })?;
 
     // Perform conflict detection and handle existing files
