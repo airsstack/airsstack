@@ -197,8 +197,7 @@ impl SessionManager {
             Ok(())
         } else {
             Err(TransportError::session_error(format!(
-                "Session {} not found",
-                session_id
+                "Session {session_id} not found"
             )))
         }
     }

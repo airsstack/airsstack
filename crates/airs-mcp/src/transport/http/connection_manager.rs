@@ -174,8 +174,7 @@ impl HttpConnectionManager {
             Ok(())
         } else {
             Err(TransportError::InvalidConnection(format!(
-                "Connection {} not found",
-                connection_id
+                "Connection {connection_id} not found"
             )))
         }
     }

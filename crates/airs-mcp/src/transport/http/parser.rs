@@ -30,7 +30,8 @@ use crate::transport::http::config::{OptimizationStrategy, ParserConfig};
 ///
 /// ```rust
 /// # tokio_test::block_on(async {
-/// use airs_mcp::transport::http::{RequestParser, ParserConfig};
+/// use airs_mcp::transport::http::RequestParser;
+/// use airs_mcp::transport::http::config::ParserConfig;
 ///
 /// let config = ParserConfig::new();
 /// let parser = RequestParser::new(config);

@@ -23,7 +23,8 @@ use crate::transport::http::config::BufferPoolConfig;
 /// # Usage
 ///
 /// ```rust
-/// use airs_mcp::transport::http::{BufferPool, BufferPoolConfig};
+/// use airs_mcp::transport::http::BufferPool;
+/// use airs_mcp::transport::http::config::BufferPoolConfig;
 ///
 /// let config = BufferPoolConfig::new().max_buffers(100);
 /// let pool = BufferPool::new(config);

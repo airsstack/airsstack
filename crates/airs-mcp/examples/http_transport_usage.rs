@@ -3,6 +3,7 @@
 //! This example demonstrates how to use the HTTP Client Transport
 //! for JSON-RPC communication over HTTP.
 
+use airs_mcp::transport::http::config::OptimizationStrategy;
 use airs_mcp::transport::http::{HttpClientTransport, HttpTransportConfig};
 use airs_mcp::transport::Transport;
 use reqwest::Url;
@@ -28,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "   Buffer Pool Enabled: {}",
         matches!(
             config.parser.optimization_strategy,
-            airs_mcp::transport::http::OptimizationStrategy::BufferPool(_)
+            OptimizationStrategy::BufferPool(_)
         )
     );
 
