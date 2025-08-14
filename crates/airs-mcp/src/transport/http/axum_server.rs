@@ -2,10 +2,19 @@
 //!
 //! This module provides a complete HTTP server implementation using Axum framework
 //! for handling MCP JSON-RPC requests. It integrates with the connection manager,
-//! session manager, and existing JSON-RPC processing infrastructure.
+//! session manager, and MCP server infrastructure for full protocol support.
 
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
+use crate::integration::mcp::server::McpServerConfig;
+use crate::integration::mcp::{LoggingHandler, PromptProvider, ResourceProvider, ToolProvider};
+use crate::shared::protocol::messages::{
+    initialization::InitializeRequest,
+    logging::SetLoggingRequest,
+    prompts::GetPromptRequest,
+    resources::{ReadResourceRequest, SubscribeResourceRequest, UnsubscribeResourceRequest},
+    tools::CallToolRequest,
+};
 use crate::transport::error::TransportError;
 use crate::transport::http::config::HttpTransportConfig;
 use crate::transport::http::connection_manager::HttpConnectionManager;
@@ -35,8 +44,24 @@ pub struct ServerState {
     pub session_manager: Arc<SessionManager>,
     /// JSON-RPC processor for handling requests
     pub jsonrpc_processor: Arc<ConcurrentProcessor>,
+    /// MCP server for processing MCP protocol requests
+    pub mcp_handlers: Arc<McpHandlers>,
     /// Server configuration
     pub config: HttpTransportConfig,
+}
+
+/// MCP handlers container for different provider types
+pub struct McpHandlers {
+    /// Resource provider for handling resource-related MCP requests
+    pub resource_provider: Option<Arc<dyn ResourceProvider>>,
+    /// Tool provider for handling tool-related MCP requests  
+    pub tool_provider: Option<Arc<dyn ToolProvider>>,
+    /// Prompt provider for handling prompt-related MCP requests
+    pub prompt_provider: Option<Arc<dyn PromptProvider>>,
+    /// Logging handler for MCP logging operations
+    pub logging_handler: Option<Arc<dyn LoggingHandler>>,
+    /// MCP server configuration
+    pub config: McpServerConfig,
 }
 
 /// HTTP server implementation using Axum framework
@@ -48,17 +73,19 @@ pub struct AxumHttpServer {
 }
 
 impl AxumHttpServer {
-    /// Create a new Axum HTTP server with the specified configuration
+    /// Create a new Axum HTTP server with the specified configuration and handlers
     pub async fn new(
         connection_manager: Arc<HttpConnectionManager>,
         session_manager: Arc<SessionManager>,
         jsonrpc_processor: Arc<ConcurrentProcessor>,
+        mcp_handlers: Arc<McpHandlers>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         let state = ServerState {
             connection_manager,
             session_manager,
             jsonrpc_processor,
+            mcp_handlers,
             config: config.clone(),
         };
 
@@ -66,6 +93,51 @@ impl AxumHttpServer {
             state,
             listener: None,
         })
+    }
+
+    /// Create a new Axum HTTP server with empty MCP handlers (for testing/development)
+    pub async fn new_with_empty_handlers(
+        connection_manager: Arc<HttpConnectionManager>,
+        session_manager: Arc<SessionManager>,
+        jsonrpc_processor: Arc<ConcurrentProcessor>,
+        config: HttpTransportConfig,
+    ) -> Result<Self, TransportError> {
+        let mcp_handlers = Arc::new(McpHandlers {
+            resource_provider: None,
+            tool_provider: None,
+            prompt_provider: None,
+            logging_handler: None,
+            config: McpServerConfig::default(),
+        });
+
+        Self::new(
+            connection_manager,
+            session_manager,
+            jsonrpc_processor,
+            mcp_handlers,
+            config,
+        )
+        .await
+    }
+
+    /// Create a new Axum HTTP server using a handlers builder
+    pub async fn with_handlers(
+        connection_manager: Arc<HttpConnectionManager>,
+        session_manager: Arc<SessionManager>,
+        jsonrpc_processor: Arc<ConcurrentProcessor>,
+        handlers_builder: McpHandlersBuilder,
+        config: HttpTransportConfig,
+    ) -> Result<Self, TransportError> {
+        let mcp_handlers = Arc::new(handlers_builder.build());
+
+        Self::new(
+            connection_manager,
+            session_manager,
+            jsonrpc_processor,
+            mcp_handlers,
+            config,
+        )
+        .await
     }
 
     /// Bind the server to the specified address
@@ -118,6 +190,75 @@ impl AxumHttpServer {
                     .layer(TraceLayer::new_for_http())
                     .layer(CorsLayer::permissive()),
             )
+    }
+}
+
+/// Builder for MCP handlers to enable fluent configuration
+pub struct McpHandlersBuilder {
+    resource_provider: Option<Arc<dyn ResourceProvider>>,
+    tool_provider: Option<Arc<dyn ToolProvider>>,
+    prompt_provider: Option<Arc<dyn PromptProvider>>,
+    logging_handler: Option<Arc<dyn LoggingHandler>>,
+    config: McpServerConfig,
+}
+
+impl McpHandlersBuilder {
+    /// Create a new MCP handlers builder with default configuration
+    pub fn new() -> Self {
+        Self {
+            resource_provider: None,
+            tool_provider: None,
+            prompt_provider: None,
+            logging_handler: None,
+            config: McpServerConfig::default(),
+        }
+    }
+
+    /// Set the resource provider
+    pub fn with_resource_provider(mut self, provider: Arc<dyn ResourceProvider>) -> Self {
+        self.resource_provider = Some(provider);
+        self
+    }
+
+    /// Set the tool provider
+    pub fn with_tool_provider(mut self, provider: Arc<dyn ToolProvider>) -> Self {
+        self.tool_provider = Some(provider);
+        self
+    }
+
+    /// Set the prompt provider
+    pub fn with_prompt_provider(mut self, provider: Arc<dyn PromptProvider>) -> Self {
+        self.prompt_provider = Some(provider);
+        self
+    }
+
+    /// Set the logging handler
+    pub fn with_logging_handler(mut self, handler: Arc<dyn LoggingHandler>) -> Self {
+        self.logging_handler = Some(handler);
+        self
+    }
+
+    /// Set the MCP server configuration
+    pub fn with_config(mut self, config: McpServerConfig) -> Self {
+        self.config = config;
+        self
+    }
+
+    /// Build the MCP handlers
+    pub fn build(self) -> McpHandlers {
+        McpHandlers {
+            resource_provider: self.resource_provider,
+            tool_provider: self.tool_provider,
+            prompt_provider: self.prompt_provider,
+            logging_handler: self.logging_handler,
+            config: self.config,
+        }
+    }
+}
+
+impl Default for McpHandlersBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -236,25 +377,58 @@ async fn extract_or_create_session(
     state.session_manager.create_session(client_info)
 }
 
-/// Process JSON-RPC request (simplified for initial implementation)
+/// Process JSON-RPC request with MCP protocol support
 async fn process_jsonrpc_request(
-    _state: &ServerState,
-    _session_id: SessionId,
+    state: &ServerState,
+    session_id: SessionId,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
-    // For now, return a simple echo response
-    // In Phase 3C, we'll integrate with the actual MCP handlers
-    let response = serde_json::json!({
-        "jsonrpc": "2.0",
-        "id": request.id,
-        "result": {
-            "method": request.method,
-            "echo": "Request received and processed",
-            "timestamp": chrono::Utc::now().to_rfc3339()
+    // Route MCP requests to appropriate handlers based on method
+    match request.method.as_str() {
+        // MCP Initialization
+        "initialize" => process_mcp_initialize(state, session_id, request).await,
+        "initialized" => {
+            // Notification - no response needed, but this shouldn't be called for requests
+            Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": null
+            }))
         }
-    });
 
-    Ok(response)
+        // Resource Methods
+        "resources/list" => process_mcp_list_resources(state, session_id, request).await,
+        "resources/templates/list" => {
+            process_mcp_list_resource_templates(state, session_id, request).await
+        }
+        "resources/read" => process_mcp_read_resource(state, session_id, request).await,
+        "resources/subscribe" => process_mcp_subscribe_resource(state, session_id, request).await,
+        "resources/unsubscribe" => {
+            process_mcp_unsubscribe_resource(state, session_id, request).await
+        }
+
+        // Tool Methods
+        "tools/list" => process_mcp_list_tools(state, session_id, request).await,
+        "tools/call" => process_mcp_call_tool(state, session_id, request).await,
+
+        // Prompt Methods
+        "prompts/list" => process_mcp_list_prompts(state, session_id, request).await,
+        "prompts/get" => process_mcp_get_prompt(state, session_id, request).await,
+
+        // Logging Methods
+        "logging/setLevel" => process_mcp_set_logging(state, session_id, request).await,
+
+        // Unknown method - return method not found error
+        _ => Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": format!("Unknown method: {}", request.method)
+            }
+        })),
+    }
 }
 
 /// Process JSON-RPC notification (no response expected)
@@ -267,6 +441,467 @@ async fn process_jsonrpc_notification(
     // In Phase 3C, we'll integrate with the actual MCP handlers
     tracing::info!("Processed notification: {}", _notification.method);
     Ok(())
+}
+
+/// Process MCP initialize request
+async fn process_mcp_initialize(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    use crate::shared::protocol::types::common::ProtocolVersion;
+
+    // Parse InitializeRequest from request.params
+    let _init_request: InitializeRequest =
+        serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+            TransportError::parse_error(format!("Invalid initialization request: {e}"))
+        })?;
+
+    // In a full implementation, we would store client capabilities and validate protocol version
+    // For now, return initialize response with protocol negotiation
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": request.id,
+        "result": {
+            "protocolVersion": ProtocolVersion::current(),
+            "capabilities": state.mcp_handlers.config.capabilities,
+            "serverInfo": state.mcp_handlers.config.server_info,
+            "instructions": null
+        }
+    });
+
+    Ok(response)
+}
+
+/// Process MCP list resources request
+async fn process_mcp_list_resources(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.resource_provider {
+        match provider.list_resources().await {
+            Ok(resources) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "resources": resources
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Resource provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No resource provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP list resource templates request
+async fn process_mcp_list_resource_templates(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.resource_provider {
+        match provider.list_resource_templates().await {
+            Ok(templates) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "resourceTemplates": templates
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Resource provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No resource provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP read resource request
+async fn process_mcp_read_resource(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.resource_provider {
+        // Parse ReadResourceRequest from request.params
+        let read_request: ReadResourceRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid read resource request: {e}"))
+            })?;
+
+        match provider.read_resource(read_request.uri.as_str()).await {
+            Ok(contents) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "contents": contents
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Resource provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No resource provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP subscribe resource request
+async fn process_mcp_subscribe_resource(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.resource_provider {
+        // Parse SubscribeResourceRequest from request.params
+        let subscribe_request: SubscribeResourceRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid subscribe resource request: {e}"))
+            })?;
+
+        match provider
+            .subscribe_to_resource(subscribe_request.uri.as_str())
+            .await
+        {
+            Ok(()) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {}
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Resource provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No resource provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP unsubscribe resource request
+async fn process_mcp_unsubscribe_resource(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.resource_provider {
+        // Parse UnsubscribeResourceRequest from request.params
+        let unsubscribe_request: UnsubscribeResourceRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid unsubscribe resource request: {e}"))
+            })?;
+
+        match provider
+            .unsubscribe_from_resource(unsubscribe_request.uri.as_str())
+            .await
+        {
+            Ok(()) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {}
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Resource provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No resource provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP list tools request
+async fn process_mcp_list_tools(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.tool_provider {
+        match provider.list_tools().await {
+            Ok(tools) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "tools": tools
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Tool provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No tool provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP call tool request
+async fn process_mcp_call_tool(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.tool_provider {
+        // Parse CallToolRequest from request.params
+        let call_request: CallToolRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid call tool request: {e}"))
+            })?;
+
+        match provider
+            .call_tool(&call_request.name, call_request.arguments)
+            .await
+        {
+            Ok(content) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "content": content,
+                    "isError": false
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "content": [],
+                    "isError": true,
+                    "errorMessage": e.to_string()
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No tool provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP list prompts request
+async fn process_mcp_list_prompts(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.prompt_provider {
+        match provider.list_prompts().await {
+            Ok(prompts) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "prompts": prompts
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Prompt provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No prompt provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP get prompt request
+async fn process_mcp_get_prompt(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(provider) = &state.mcp_handlers.prompt_provider {
+        // Parse GetPromptRequest from request.params
+        let prompt_request: GetPromptRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid get prompt request: {e}"))
+            })?;
+
+        match provider
+            .get_prompt(&prompt_request.name, prompt_request.arguments)
+            .await
+        {
+            Ok((description, messages)) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "description": description,
+                    "messages": messages
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Prompt provider error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No prompt provider configured"
+            }
+        }))
+    }
+}
+
+/// Process MCP set logging request
+async fn process_mcp_set_logging(
+    state: &ServerState,
+    _session_id: SessionId,
+    request: JsonRpcRequest,
+) -> Result<Value, TransportError> {
+    if let Some(handler) = &state.mcp_handlers.logging_handler {
+        // Parse SetLoggingRequest from request.params
+        let logging_request: SetLoggingRequest =
+            serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                TransportError::parse_error(format!("Invalid set logging request: {e}"))
+            })?;
+
+        match handler.set_logging(logging_request.config).await {
+            Ok(success) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "result": {
+                    "success": success,
+                    "message": if success {
+                        "Logging configuration updated"
+                    } else {
+                        "Failed to update logging configuration"
+                    }
+                }
+            })),
+            Err(e) => Ok(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {
+                    "code": -32000,
+                    "message": "Internal error",
+                    "data": format!("Logging handler error: {}", e)
+                }
+            })),
+        }
+    } else {
+        Ok(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": request.id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": "No logging handler configured"
+            }
+        }))
+    }
 }
 
 /// Handle server status requests
@@ -383,7 +1018,7 @@ mod tests {
         let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
         let config = HttpTransportConfig::new();
 
-        AxumHttpServer::new(
+        AxumHttpServer::new_with_empty_handlers(
             connection_manager,
             session_manager,
             jsonrpc_processor,
@@ -447,6 +1082,13 @@ mod tests {
             connection_manager,
             session_manager,
             jsonrpc_processor,
+            mcp_handlers: Arc::new(McpHandlers {
+                resource_provider: None,
+                tool_provider: None,
+                prompt_provider: None,
+                logging_handler: None,
+                config: McpServerConfig::default(),
+            }),
             config,
         };
 
@@ -470,12 +1112,23 @@ mod tests {
     #[tokio::test]
     async fn test_process_jsonrpc_request() {
         use crate::base::jsonrpc::message::RequestId;
+        use crate::shared::protocol::types::common::ProtocolVersion;
 
-        let request = JsonRpcRequest::new(
-            "test",
-            Some(serde_json::json!({})),
-            RequestId::new_number(1),
-        );
+        // Test initialize method with valid MCP InitializeRequest
+        let init_params = serde_json::json!({
+            "protocolVersion": ProtocolVersion::current(),
+            "capabilities": {
+                "roots": {"listChanged": false},
+                "sampling": {}
+            },
+            "clientInfo": {
+                "name": "test-client",
+                "version": "1.0.0"
+            }
+        });
+
+        let request =
+            JsonRpcRequest::new("initialize", Some(init_params), RequestId::new_number(1));
         let session_id = Uuid::new_v4();
 
         // Create minimal state for testing
@@ -506,6 +1159,13 @@ mod tests {
             connection_manager,
             session_manager,
             jsonrpc_processor,
+            mcp_handlers: Arc::new(McpHandlers {
+                resource_provider: None,
+                tool_provider: None,
+                prompt_provider: None,
+                logging_handler: None,
+                config: McpServerConfig::default(),
+            }),
             config,
         };
 
@@ -513,9 +1173,12 @@ mod tests {
             .await
             .unwrap();
 
-        // Should return an echo response
+        // Should return initialize response with MCP protocol info
         assert_eq!(result["jsonrpc"], "2.0");
         assert_eq!(result["id"], 1);
         assert!(result["result"].is_object());
+        assert!(result["result"]["protocolVersion"].is_string());
+        assert!(result["result"]["capabilities"].is_object());
+        assert!(result["result"]["serverInfo"].is_object());
     }
 }

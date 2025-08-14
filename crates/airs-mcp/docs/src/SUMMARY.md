@@ -32,6 +32,7 @@
     - [Core](./architecture/core.md)
     - [Data Flow](./architecture/data_flow.md)
     - [Component Interactions](./architecture/component_interaction.md)
+    - [Handler Configuration](./architecture/handler_configuration.md)
     - [Performance](./architecture/performance.md)
     - [Scalability](./architecture/scalability.md)
 - [Implementation Plans](./plans.md)

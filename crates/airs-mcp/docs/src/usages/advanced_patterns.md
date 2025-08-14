@@ -650,6 +650,175 @@ fn benchmark_buffer_operations(c: &mut Criterion) {
 }
 ```
 
+## MCP Handler Configuration Patterns
+
+### Production-Ready Handler Setup
+
+AIRS MCP provides sophisticated handler configuration patterns for production deployments. See [Handler Configuration Architecture](../architecture/handler_configuration.md) for detailed architectural information.
+
+```rust
+use airs_mcp::transport::http::axum_server::{AxumHttpServer, McpHandlersBuilder};
+use airs_mcp::integration::mcp::{ResourceProvider, ToolProvider, PromptProvider, LoggingHandler};
+use std::sync::Arc;
+
+async fn production_server_setup() -> Result<(), Box<dyn std::error::Error>> {
+    // Create infrastructure components
+    let (connection_manager, session_manager, jsonrpc_processor, config) = 
+        create_infrastructure_components().await;
+
+    // Use builder pattern for clean configuration
+    let handlers_builder = McpHandlersBuilder::new()
+        .with_resource_provider(Arc::new(FileSystemResourceProvider::new("/data")))
+        .with_tool_provider(Arc::new(DatabaseToolProvider::new(db_config)))
+        .with_prompt_provider(Arc::new(TemplatePromptProvider::new("./prompts")))
+        .with_logging_handler(Arc::new(StructuredLoggingHandler::new()))
+        .with_config(production_mcp_config());
+
+    let server = AxumHttpServer::with_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        handlers_builder,
+        config,
+    ).await?;
+
+    // Bind and serve
+    server.bind("0.0.0.0:8080".parse()?).await?;
+    server.serve().await?;
+
+    Ok(())
+}
+```
+
+### Development and Testing Patterns
+
+```rust
+// Pattern 1: Empty handlers for infrastructure testing
+async fn create_test_server() -> Result<AxumHttpServer, TransportError> {
+    let (connection_manager, session_manager, jsonrpc_processor, config) = 
+        create_test_infrastructure().await;
+
+    AxumHttpServer::new_with_empty_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        config,
+    ).await
+}
+
+// Pattern 2: Partial configuration for incremental development
+async fn create_development_server() -> Result<AxumHttpServer, TransportError> {
+    let (connection_manager, session_manager, jsonrpc_processor, config) = 
+        create_dev_infrastructure().await;
+
+    let handlers_builder = McpHandlersBuilder::new()
+        .with_resource_provider(Arc::new(MockResourceProvider::new()))
+        // Note: Only resources configured for development
+        .with_config(development_mcp_config());
+
+    AxumHttpServer::with_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        handlers_builder,
+        config,
+    ).await
+}
+```
+
+### Environment-Specific Configuration
+
+```rust
+// Pattern 3: Environment-aware handler composition
+async fn create_environment_server(env: Environment) -> Result<AxumHttpServer, TransportError> {
+    let handlers_builder = match env {
+        Environment::Development => {
+            McpHandlersBuilder::new()
+                .with_resource_provider(Arc::new(MockResourceProvider::new()))
+                .with_tool_provider(Arc::new(DebugToolProvider::new()))
+                .with_config(development_config())
+        },
+        Environment::Production => {
+            McpHandlersBuilder::new()
+                .with_resource_provider(Arc::new(HighPerformanceResourceProvider::new()))
+                .with_tool_provider(Arc::new(SecureToolProvider::new()))
+                .with_prompt_provider(Arc::new(OptimizedPromptProvider::new()))
+                .with_logging_handler(Arc::new(ProductionLoggingHandler::new()))
+                .with_config(production_config())
+        }
+    };
+
+    let (connection_manager, session_manager, jsonrpc_processor, config) = 
+        create_infrastructure_for_env(env).await;
+
+    AxumHttpServer::with_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        handlers_builder,
+        config,
+    ).await
+}
+```
+
+### Resilient Handler Patterns
+
+```rust
+// Pattern 4: Fallback providers for graceful degradation
+struct FallbackResourceProvider {
+    primary: Arc<dyn ResourceProvider>,
+    fallback: Arc<dyn ResourceProvider>,
+}
+
+#[async_trait]
+impl ResourceProvider for FallbackResourceProvider {
+    async fn list_resources(&self) -> McpResult<Vec<Resource>> {
+        match self.primary.list_resources().await {
+            Ok(resources) => Ok(resources),
+            Err(error) => {
+                tracing::warn!("Primary provider failed, using fallback: {}", error);
+                self.fallback.list_resources().await
+            }
+        }
+    }
+
+    async fn read_resource(&self, uri: &str) -> McpResult<Vec<Content>> {
+        match self.primary.read_resource(uri).await {
+            Ok(content) => Ok(content),
+            Err(error) => {
+                tracing::warn!("Primary read failed for {}, falling back: {}", uri, error);
+                self.fallback.read_resource(uri).await
+            }
+        }
+    }
+}
+
+async fn create_resilient_server() -> Result<AxumHttpServer, TransportError> {
+    let resilient_provider = Arc::new(FallbackResourceProvider {
+        primary: Arc::new(DatabaseResourceProvider::new()),
+        fallback: Arc::new(CacheResourceProvider::new()),
+    });
+
+    let handlers_builder = McpHandlersBuilder::new()
+        .with_resource_provider(resilient_provider)
+        .with_tool_provider(Arc::new(CircuitBreakerToolProvider::new()))
+        .with_config(resilient_config());
+
+    let (connection_manager, session_manager, jsonrpc_processor, config) = 
+        create_resilient_infrastructure().await;
+
+    AxumHttpServer::with_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        handlers_builder,
+        config,
+    ).await
+}
+```
+
+For complete implementation examples, see the [Handler Configuration Example](../../examples/axum_server_with_handlers.rs).
+
 ---
 
 *Next: [Performance Optimization](./performance_optimization.md) | Return to [Usages Overview](../usages.md)*
