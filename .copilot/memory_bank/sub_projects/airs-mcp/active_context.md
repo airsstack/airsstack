@@ -1,6 +1,16 @@
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: SINGLE RESPONSIBILITY PRINCIPLE IMPLEMENTATION COMPLETE - 2025-08-14
+## CURRENT FOCUS: DEPRECATED ALIAS CLEANUP COMPLETE - 2025-08-15
+
+### ✅ LEGACY CODE CLEANUP: HTTPSTREAMABLETRANSPORT ALIAS REMOVED 🧹
+**CODE HYGIENE EXCELLENCE**: Successfully removed deprecated `HttpStreamableTransport` type alias, achieving cleaner architecture with zero backward compatibility baggage.
+
+**Cleanup Operations Completed**:
+- ✅ **transport/http/mod.rs**: Removed deprecated type alias and deprecation notice
+- ✅ **transport/mod.rs**: Cleaned up backward compatibility exports  
+- ✅ **transport/http/client.rs**: Updated test names and removed legacy references
+- ✅ **Validation**: All 259 tests still passing after cleanup
+- ✅ **Documentation**: Updated references to focus on `HttpClientTransport`
 
 ### ✅ TECHNICAL STANDARD ESTABLISHED: SINGLE RESPONSIBILITY PRINCIPLE ENFORCED 🎯
 **ENGINEERING EXCELLENCE**: Successfully established Single Responsibility Principle as mandatory technical standard across all modules, with HTTP transport serving as exemplary implementation.
