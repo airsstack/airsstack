@@ -59,42 +59,146 @@ pub use buffer_pool::{BufferHandle, BufferPool, BufferPoolStats, BufferStrategy,
 pub use parser::{ParseMetrics, RequestParser};
 
 // Import necessary dependencies for future phases
-use crate::transport::Transport;
+use crate::transport::{error::TransportError, Transport};
+use reqwest::{Client, Url};
+use std::{collections::VecDeque, sync::Arc};
+use tokio::sync::Mutex;
 
-/// HTTP Streamable Transport implementation
+/// HTTP Client Transport implementation
 ///
-/// This is the main transport struct that will be implemented in Phase 2.
-/// Currently provides configuration and buffer management foundation.
+/// This transport implements the client side of HTTP communication, where it
+/// sends requests to a remote server and receives responses. It properly models
+/// the HTTP request-response pattern within the Transport trait semantics.
 ///
-/// # Future Implementation (Phase 2)
+/// # Usage
+///
+/// ```rust
+/// use airs_mcp::transport::http::{HttpTransportConfig, HttpClientTransport};
+/// use reqwest::Url;
+///
+/// let config = HttpTransportConfig::new();
+/// let mut client = HttpClientTransport::new(config);
+/// client.set_target("http://localhost:3000/mcp".parse().unwrap());
+/// ```
+pub struct HttpClientTransport {
+    config: HttpTransportConfig,
+    request_parser: RequestParser,
+    // HTTP client for sending requests to remote server
+    client: Client,
+    // Target server URL where requests are sent
+    target_url: Option<Url>,
+    // Queue for responses received from the server
+    message_queue: Arc<Mutex<VecDeque<Vec<u8>>>>,
+    // Session ID for correlation with server
+    session_id: Option<String>,
+}
+
+/// HTTP Server Transport implementation (Foundation for Phase 3)
+///
+/// This transport implements the server side of HTTP communication, where it
+/// listens for incoming requests and sends responses. This provides the proper
+/// server-side semantics for the Transport trait.
+///
+/// # Future Implementation (Phase 3)
 ///
 /// ```rust,ignore
-/// pub struct HttpStreamableTransport {
+/// pub struct HttpServerTransport {
 ///     config: HttpTransportConfig,
+///     listener: TcpListener,
 ///     connection_pool: Pool<HttpConnectionManager>,
 ///     session_manager: Arc<SessionManager>,
 ///     request_processor: Arc<RequestProcessor>,
-///     request_parser: RequestParser,
 ///     connection_limiter: Arc<Semaphore>,
 ///     request_limiter: Arc<Semaphore>,
-///     buffer_manager: Arc<BufferManager>,
 /// }
 /// ```
-pub struct HttpStreamableTransport {
+#[allow(dead_code)]
+pub struct HttpServerTransport {
     config: HttpTransportConfig,
     request_parser: RequestParser,
-    // Additional fields will be added in Phase 2
+    // Server components (Phase 3 implementation)
+    bind_address: std::net::SocketAddr,
+    // Future: listener, connection pool, session manager
 }
 
-impl HttpStreamableTransport {
-    /// Create a new HTTP transport with the given configuration
+/// Convenience type alias for backward compatibility
+///
+/// This allows existing code using `HttpStreamableTransport` to continue working
+/// while we transition to the more semantically correct role-specific types.
+#[deprecated(
+    since = "0.1.1",
+    note = "Use HttpClientTransport or HttpServerTransport for clearer semantics"
+)]
+pub type HttpStreamableTransport = HttpClientTransport;
+
+impl HttpClientTransport {
+    /// Create a new HTTP client transport with the given configuration
     ///
-    /// This is a placeholder implementation for Phase 1.
-    /// Full implementation will be completed in Phase 2.
+    /// This creates a new HTTP client transport instance ready to send requests
+    /// to a remote MCP server and receive responses. The transport properly models
+    /// the client side of HTTP request-response communication.
+    pub fn new(config: HttpTransportConfig) -> Self {
+        let request_parser = RequestParser::new(config.parser.clone());
+
+        // Create HTTP client with timeout configuration
+        let client = Client::builder()
+            .timeout(config.request_timeout)
+            .build()
+            .expect("Failed to create HTTP client");
+
+        Self {
+            config,
+            request_parser,
+            client,
+            target_url: None,
+            message_queue: Arc::new(Mutex::new(VecDeque::new())),
+            session_id: None,
+        }
+    }
+
+    /// Set the target URL for HTTP requests
+    ///
+    /// This must be called before sending any messages. The URL should point
+    /// to the MCP server endpoint (typically `/mcp`).
+    pub fn set_target(&mut self, url: Url) {
+        self.target_url = Some(url);
+    }
+
+    /// Set the session ID for this transport
+    ///
+    /// Session IDs are used for correlation and connection recovery in HTTP
+    /// scenarios where maintaining state across requests is important.
+    pub fn set_session_id(&mut self, session_id: String) {
+        self.session_id = Some(session_id);
+    }
+
+    /// Get the transport configuration
+    pub fn config(&self) -> &HttpTransportConfig {
+        &self.config
+    }
+
+    /// Get the request parser
+    pub fn parser(&self) -> &RequestParser {
+        &self.request_parser
+    }
+
+    /// Get buffer pool statistics (if using buffer pool)
+    pub fn buffer_stats(&self) -> Option<BufferPoolStats> {
+        self.request_parser.buffer_stats()
+    }
+}
+
+impl HttpServerTransport {
+    /// Create a new HTTP server transport with the given configuration
+    ///
+    /// This creates the foundation for a server-side HTTP transport that will
+    /// listen for incoming requests and send responses. Full implementation
+    /// will be completed in Phase 3.
     pub fn new(config: HttpTransportConfig) -> Self {
         let request_parser = RequestParser::new(config.parser.clone());
 
         Self {
+            bind_address: config.bind_address,
             config,
             request_parser,
         }
@@ -116,24 +220,122 @@ impl HttpStreamableTransport {
     }
 }
 
-// Placeholder Transport implementation for Phase 1
-// Full implementation will be completed in Phase 2
-impl Transport for HttpStreamableTransport {
-    type Error = crate::transport::error::TransportError;
+// Implementation of Transport trait for HTTP Client Transport
+impl Transport for HttpClientTransport {
+    type Error = TransportError;
 
-    async fn send(&mut self, _message: &[u8]) -> Result<(), Self::Error> {
-        // Placeholder - will implement HTTP POST/GET handling in Phase 2
-        todo!("HTTP transport send implementation in Phase 2")
+    async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> {
+        // Validate that target URL is set
+        let target_url = self
+            .target_url
+            .as_ref()
+            .ok_or_else(|| TransportError::Other {
+                details: "Target URL not set. Call set_target() before sending messages."
+                    .to_string(),
+            })?;
+
+        // Validate message size
+        if message.len() > self.config.parser.max_message_size {
+            return Err(TransportError::MessageTooLarge {
+                size: message.len(),
+                max_size: self.config.parser.max_message_size,
+            });
+        }
+
+        // Build HTTP request
+        let mut request_builder = self
+            .client
+            .post(target_url.clone())
+            .header("Content-Type", "application/json")
+            .body(message.to_vec());
+
+        // Add session ID header if available
+        if let Some(session_id) = &self.session_id {
+            request_builder = request_builder.header("Mcp-Session-Id", session_id);
+        }
+
+        // Send request
+        let response = request_builder
+            .send()
+            .await
+            .map_err(|e| TransportError::Other {
+                details: format!("HTTP request failed: {e}"),
+            })?;
+
+        // Check response status
+        if !response.status().is_success() {
+            return Err(TransportError::Other {
+                details: format!("HTTP request failed with status: {}", response.status()),
+            });
+        }
+
+        // Read response body
+        let response_bytes = response.bytes().await.map_err(|e| TransportError::Other {
+            details: format!("Failed to read response body: {e}"),
+        })?;
+
+        // Queue response for receive() method
+        {
+            let mut queue = self.message_queue.lock().await;
+            queue.push_back(response_bytes.to_vec());
+        }
+
+        Ok(())
     }
 
     async fn receive(&mut self) -> Result<Vec<u8>, Self::Error> {
-        // Placeholder - will implement HTTP request/response handling in Phase 2
-        todo!("HTTP transport receive implementation in Phase 2")
+        // Try to get message from queue first
+        {
+            let mut queue = self.message_queue.lock().await;
+            if let Some(message) = queue.pop_front() {
+                return Ok(message);
+            }
+        }
+
+        // If no messages in queue, return an error indicating no data available
+        // In HTTP client context, receive() returns responses to previous send() calls
+        Err(TransportError::Other {
+            details: "No response available. Call send() first to generate a response to receive."
+                .to_string(),
+        })
     }
 
     async fn close(&mut self) -> Result<(), Self::Error> {
-        // Placeholder - will implement connection cleanup in Phase 2
-        todo!("HTTP transport close implementation in Phase 2")
+        // Clear message queue
+        {
+            let mut queue = self.message_queue.lock().await;
+            queue.clear();
+        }
+
+        // Reset session state
+        self.session_id = None;
+
+        Ok(())
+    }
+}
+
+// Implementation of Transport trait for HTTP Server Transport (Phase 3)
+impl Transport for HttpServerTransport {
+    type Error = TransportError;
+
+    async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> {
+        // Phase 3: Send response to queued client request
+        let _ = message; // Suppress warning
+        Err(TransportError::Other {
+            details: "HttpServerTransport::send() - Phase 3 implementation pending".to_string(),
+        })
+    }
+
+    async fn receive(&mut self) -> Result<Vec<u8>, Self::Error> {
+        // Phase 3: Receive incoming request from client
+        Err(TransportError::Other {
+            details: "HttpServerTransport::receive() - Phase 3 implementation pending".to_string(),
+        })
+    }
+
+    async fn close(&mut self) -> Result<(), Self::Error> {
+        // Phase 3: Close server listener and cleanup connections
+        Ok(())
     }
 }
 
@@ -143,13 +345,13 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_transport_creation() {
+    fn test_client_transport_creation() {
         let config = HttpTransportConfig::new()
             .bind_address("127.0.0.1:8080".parse().unwrap())
             .max_connections(1000)
             .enable_buffer_pool();
 
-        let transport = HttpStreamableTransport::new(config);
+        let transport = HttpClientTransport::new(config);
 
         assert_eq!(
             transport.config().bind_address.to_string(),
@@ -157,6 +359,37 @@ mod tests {
         );
         assert_eq!(transport.config().max_connections, 1000);
         assert!(transport.buffer_stats().is_some());
+    }
+
+    #[test]
+    fn test_server_transport_creation() {
+        let config = HttpTransportConfig::new()
+            .bind_address("127.0.0.1:3000".parse().unwrap())
+            .max_connections(2000);
+
+        let transport = HttpServerTransport::new(config);
+
+        assert_eq!(
+            transport.config().bind_address.to_string(),
+            "127.0.0.1:3000"
+        );
+        assert_eq!(transport.config().max_connections, 2000);
+    }
+
+    #[test]
+    fn test_backward_compatibility_alias() {
+        let config = HttpTransportConfig::new();
+
+        // HttpStreamableTransport should still work (as HttpClientTransport)
+        #[allow(deprecated)]
+        let transport = HttpStreamableTransport::new(config);
+
+        // Should have the same functionality as HttpClientTransport
+        assert!(transport
+            .config()
+            .bind_address
+            .to_string()
+            .contains("127.0.0.1"));
     }
 
     #[test]

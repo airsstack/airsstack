@@ -92,6 +92,10 @@ pub use zero_copy::*;
 
 // HTTP transport re-exports (specific to avoid ambiguity)
 pub use http::{
-    BufferPool, BufferPoolConfig, BufferPoolStats, HttpStreamableTransport, HttpTransportConfig,
-    OptimizationStrategy, ParseMetrics, ParserConfig, RequestParser,
+    BufferPool, BufferPoolConfig, BufferPoolStats, HttpClientTransport, HttpServerTransport,
+    HttpTransportConfig, OptimizationStrategy, ParseMetrics, ParserConfig, RequestParser,
 };
+
+// Backward compatibility (deprecated)
+#[allow(deprecated)]
+pub use http::HttpStreamableTransport;
