@@ -95,7 +95,3 @@ pub use http::{
     BufferPool, BufferPoolConfig, BufferPoolStats, HttpClientTransport, HttpServerTransport,
     HttpTransportConfig, OptimizationStrategy, ParseMetrics, ParserConfig, RequestParser,
 };
-
-// Backward compatibility (deprecated)
-#[allow(deprecated)]
-pub use http::HttpStreamableTransport;

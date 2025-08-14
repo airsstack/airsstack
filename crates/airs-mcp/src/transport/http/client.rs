@@ -212,14 +212,13 @@ mod tests {
     }
 
     #[test]
-    fn test_backward_compatibility_alias() {
+    fn test_client_transport_creation_variations() {
         let config = HttpTransportConfig::new();
 
-        // HttpStreamableTransport should still work (as HttpClientTransport)
-        #[allow(deprecated)]
+        // Test that HttpClientTransport works correctly
         let transport = HttpClientTransport::new(config);
 
-        // Should have the same functionality as HttpClientTransport
+        // Should have the same functionality as expected
         assert!(transport
             .config()
             .bind_address

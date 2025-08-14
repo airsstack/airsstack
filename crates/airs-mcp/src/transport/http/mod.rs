@@ -75,13 +75,3 @@ pub use parser::{ParseMetrics, RequestParser};
 // Re-export transport implementations
 pub use client::HttpClientTransport;
 pub use server::HttpServerTransport;
-
-/// Convenience type alias for backward compatibility
-///
-/// This allows existing code using `HttpStreamableTransport` to continue working
-/// while we transition to the more semantically correct role-specific types.
-#[deprecated(
-    since = "0.1.1",
-    note = "Use HttpClientTransport or HttpServerTransport for clearer semantics"
-)]
-pub type HttpStreamableTransport = HttpClientTransport;
