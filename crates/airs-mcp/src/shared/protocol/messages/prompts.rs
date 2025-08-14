@@ -3,8 +3,9 @@
 //! This module provides message types for MCP prompt operations including
 //! prompt template discovery, retrieval, and argument processing.
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 
 use super::super::types::Content;
 use crate::base::jsonrpc::message::JsonRpcMessage;

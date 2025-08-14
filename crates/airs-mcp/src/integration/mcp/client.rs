@@ -3,10 +3,11 @@
 //! This module provides a high-level, type-safe MCP client that simplifies
 //! interaction with MCP servers through intuitive method calls.
 
-use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+
+use serde_json::Value;
 use tokio::sync::RwLock;
 
 use crate::base::jsonrpc::message::RequestId;
@@ -327,7 +328,9 @@ impl<T: Transport + 'static> McpClient<T> {
         }
 
         let request = SubscribeResourceRequest::new(uri.clone())?;
-        let _response = self.call_mcp(methods::RESOURCES_SUBSCRIBE, &request).await?;
+        let _response = self
+            .call_mcp(methods::RESOURCES_SUBSCRIBE, &request)
+            .await?;
 
         Ok(())
     }
@@ -346,9 +349,8 @@ impl<T: Transport + 'static> McpClient<T> {
         let request = ListToolsRequest::new();
         let response = self.call_mcp(methods::TOOLS_LIST, &request).await?;
 
-        let list_response: ListToolsResponse = serde_json::from_value(response).map_err(|e| {
-            McpError::invalid_response(format!("Invalid list tools response: {e}"))
-        })?;
+        let list_response: ListToolsResponse = serde_json::from_value(response)
+            .map_err(|e| McpError::invalid_response(format!("Invalid list tools response: {e}")))?;
 
         // Update cache
         {
@@ -373,9 +375,8 @@ impl<T: Transport + 'static> McpClient<T> {
         let request = CallToolRequest::new(name.clone(), arguments.unwrap_or(Value::Null));
         let response = self.call_mcp(methods::TOOLS_CALL, &request).await?;
 
-        let call_response: CallToolResponse = serde_json::from_value(response).map_err(|e| {
-            McpError::invalid_response(format!("Invalid call tool response: {e}"))
-        })?;
+        let call_response: CallToolResponse = serde_json::from_value(response)
+            .map_err(|e| McpError::invalid_response(format!("Invalid call tool response: {e}")))?;
 
         if call_response.is_error {
             if let Some(error_content) = call_response.content.first() {
@@ -436,9 +437,8 @@ impl<T: Transport + 'static> McpClient<T> {
         let request = GetPromptRequest::new(name.clone(), arguments);
         let response = self.call_mcp(methods::PROMPTS_GET, &request).await?;
 
-        let prompt_response: GetPromptResponse = serde_json::from_value(response).map_err(|e| {
-            McpError::invalid_response(format!("Invalid get prompt response: {e}"))
-        })?;
+        let prompt_response: GetPromptResponse = serde_json::from_value(response)
+            .map_err(|e| McpError::invalid_response(format!("Invalid get prompt response: {e}")))?;
 
         Ok(prompt_response.messages)
     }
@@ -496,9 +496,8 @@ impl<T: Transport + 'static> McpClient<T> {
         let mut transport = self.transport.write().await;
 
         // Serialize and send request
-        let request_data = serde_json::to_vec(request).map_err(|e| {
-            McpError::invalid_request(format!("Failed to serialize request: {e}"))
-        })?;
+        let request_data = serde_json::to_vec(request)
+            .map_err(|e| McpError::invalid_request(format!("Failed to serialize request: {e}")))?;
 
         transport
             .send(&request_data)
@@ -522,9 +521,8 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Internal helper to make MCP method calls
     async fn call_mcp<P: serde::Serialize>(&self, method: &str, params: &P) -> McpResult<Value> {
-        let params_value = serde_json::to_value(params).map_err(|e| {
-            McpError::invalid_response(format!("Failed to serialize request: {e}"))
-        })?;
+        let params_value = serde_json::to_value(params)
+            .map_err(|e| McpError::invalid_response(format!("Failed to serialize request: {e}")))?;
 
         let request = crate::base::jsonrpc::message::JsonRpcRequest {
             jsonrpc: "2.0".to_string(),

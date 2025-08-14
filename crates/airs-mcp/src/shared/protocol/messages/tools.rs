@@ -112,7 +112,7 @@ impl Tool {
     #[must_use]
     pub fn is_parameterless(&self) -> bool {
         if let Some(properties) = self.input_schema.get("properties") {
-            properties.as_object().map_or(true, |obj| obj.is_empty())
+            properties.as_object().is_none_or(|obj| obj.is_empty())
         } else {
             true
         }

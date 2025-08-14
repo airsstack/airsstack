@@ -3,10 +3,11 @@
 //! This module provides a high-level, trait-based MCP server that allows
 //! easy implementation of MCP server functionality with automatic request routing.
 
-use async_trait::async_trait;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use async_trait::async_trait;
+use serde_json::Value;
 use tokio::sync::RwLock;
 
 use super::constants::{defaults, error_codes, methods};

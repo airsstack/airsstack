@@ -62,6 +62,7 @@
 //!
 //! Currently implemented transports:
 //! - **STDIO**: Standard input/output for MCP communication (primary)
+//! - **HTTP**: HTTP Streamable Transport for MCP remote servers (Phase 1 complete)
 //!
 //! # Error Handling
 //!
@@ -75,6 +76,7 @@
 // Export main transport components
 pub mod buffer;
 pub mod error;
+pub mod http;
 pub mod stdio;
 pub mod streaming;
 pub mod traits;
@@ -87,3 +89,9 @@ pub use stdio::*;
 pub use streaming::*;
 pub use traits::*;
 pub use zero_copy::*;
+
+// HTTP transport re-exports (specific to avoid ambiguity)
+pub use http::{
+    BufferPool, BufferPoolConfig, BufferPoolStats, HttpStreamableTransport, HttpTransportConfig,
+    OptimizationStrategy, ParseMetrics, ParserConfig, RequestParser,
+};

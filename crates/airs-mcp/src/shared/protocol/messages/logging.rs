@@ -4,9 +4,10 @@
 //! enabling comprehensive debugging and monitoring of MCP interactions.
 
 use std::collections::HashMap;
+
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use chrono::{DateTime, Utc};
 
 use crate::base::jsonrpc::message::JsonRpcMessage;
 
@@ -174,11 +175,7 @@ pub struct LogEntry {
 
 impl LogEntry {
     /// Create a new log entry
-    pub fn new(
-        level: LogLevel,
-        message: impl Into<String>,
-        context: LogContext,
-    ) -> Self {
+    pub fn new(level: LogLevel, message: impl Into<String>, context: LogContext) -> Self {
         Self {
             timestamp: Utc::now(),
             level,
@@ -648,8 +645,8 @@ mod tests {
 
     #[test]
     fn test_logging_config_should_log() {
-        let config = LoggingConfig::new(LogLevel::Warning)
-            .include_components(vec!["auth".to_string()]);
+        let config =
+            LoggingConfig::new(LogLevel::Warning).include_components(vec!["auth".to_string()]);
 
         // Test level filtering
         let debug_context = LogContext::new("auth");
@@ -668,8 +665,8 @@ mod tests {
 
     #[test]
     fn test_logging_config_exclusion() {
-        let config = LoggingConfig::new(LogLevel::Debug)
-            .exclude_components(vec!["noisy".to_string()]);
+        let config =
+            LoggingConfig::new(LogLevel::Debug).exclude_components(vec!["noisy".to_string()]);
 
         let allowed_context = LogContext::new("api");
         let allowed_entry = LogEntry::info("Info message", allowed_context);
@@ -698,7 +695,10 @@ mod tests {
 
         let success_with_msg = SetLoggingResponse::success_with_message("Logging enabled");
         assert!(success_with_msg.success);
-        assert_eq!(success_with_msg.message, Some("Logging enabled".to_string()));
+        assert_eq!(
+            success_with_msg.message,
+            Some("Logging enabled".to_string())
+        );
 
         let failure = SetLoggingResponse::failure("Invalid configuration");
         assert!(!failure.success);

@@ -29,6 +29,22 @@ pub enum TransportError {
     #[error("Buffer overflow: {details}")]
     BufferOverflow { details: String },
 
+    /// Message size exceeds maximum allowed
+    #[error("Message too large: {size} bytes (max: {max_size} bytes)")]
+    MessageTooLarge { size: usize, max_size: usize },
+
+    /// Incomplete message received
+    #[error("Incomplete message received")]
+    IncompleteMessage,
+
+    /// JSON parsing error
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    /// JSON serialization error
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
+
     /// Transport-specific error
     #[error("Transport error: {details}")]
     Other { details: String },
@@ -52,6 +68,26 @@ impl TransportError {
         Self::BufferOverflow {
             details: details.into(),
         }
+    }
+
+    /// Create a message too large error
+    pub fn message_too_large(size: usize, max_size: usize) -> Self {
+        Self::MessageTooLarge { size, max_size }
+    }
+
+    /// Create an incomplete message error
+    pub fn incomplete_message() -> Self {
+        Self::IncompleteMessage
+    }
+
+    /// Create a parse error
+    pub fn parse_error(error: impl Into<String>) -> Self {
+        Self::ParseError(error.into())
+    }
+
+    /// Create a serialization error
+    pub fn serialization_error(error: impl Into<String>) -> Self {
+        Self::SerializationError(error.into())
     }
 
     /// Create a transport-specific error with details
