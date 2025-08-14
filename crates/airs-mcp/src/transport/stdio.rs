@@ -674,7 +674,7 @@ impl ZeroCopyTransport for StdioTransport {
             .map_err(TransportError::from)?;
 
         if bytes_read == 0 {
-            return Err(TransportError::connection_closed());
+            return Err(TransportError::closed());
         }
 
         // Validate message size
@@ -767,7 +767,7 @@ impl StdioTransport {
                 .map_err(TransportError::from)?;
 
             if bytes_read == 0 {
-                return Err(TransportError::connection_closed());
+                return Err(TransportError::closed());
             }
 
             // Add data to streaming buffer

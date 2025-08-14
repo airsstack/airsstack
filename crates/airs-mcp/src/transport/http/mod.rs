@@ -60,8 +60,10 @@
 pub mod buffer_pool;
 pub mod client;
 pub mod config;
+pub mod connection_manager;
 pub mod parser;
 pub mod server;
+pub mod session;
 
 // Re-export public configuration API
 pub use config::{BufferPoolConfig, HttpTransportConfig, OptimizationStrategy, ParserConfig};
@@ -75,3 +77,15 @@ pub use parser::{ParseMetrics, RequestParser};
 // Re-export transport implementations
 pub use client::HttpClientTransport;
 pub use server::HttpServerTransport;
+
+// Re-export connection management API
+pub use connection_manager::{
+    ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStatsSnapshot, HealthCheckConfig,
+    HealthCheckResult, HttpConnectionManager,
+};
+
+// Re-export session management API
+pub use session::{
+    extract_last_event_id, extract_session_id, ClientInfo, SessionConfig, SessionContext,
+    SessionId, SessionManager, SessionMetadata, SessionStatsSnapshot,
+};

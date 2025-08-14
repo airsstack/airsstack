@@ -17,6 +17,18 @@ pub enum TransportError {
     #[error("Transport connection is closed")]
     Closed,
 
+    /// Connection limit exceeded
+    #[error("Connection limit exceeded: {0}")]
+    ConnectionLimit(String),
+
+    /// Invalid connection reference
+    #[error("Invalid connection: {0}")]
+    InvalidConnection(String),
+
+    /// Session management error
+    #[error("Session error: {0}")]
+    SessionError(String),
+
     /// Message formatting or framing error
     #[error("Message format error: {message}")]
     Format { message: String },
@@ -98,8 +110,23 @@ impl TransportError {
     }
 
     /// Create a connection closed error
-    pub fn connection_closed() -> Self {
+    pub fn closed() -> Self {
         Self::Closed
+    }
+
+    /// Create a connection limit error
+    pub fn connection_limit(message: impl Into<String>) -> Self {
+        Self::ConnectionLimit(message.into())
+    }
+
+    /// Create an invalid connection error
+    pub fn invalid_connection(message: impl Into<String>) -> Self {
+        Self::InvalidConnection(message.into())
+    }
+
+    /// Create a session error
+    pub fn session_error(message: impl Into<String>) -> Self {
+        Self::SessionError(message.into())
     }
 }
 
