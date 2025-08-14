@@ -2,9 +2,9 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-08-11T15:30:00Z
-**updated_on:** 2025-08-14T15:30:00Z
-**by:** phase_1_http_transport_completion
-**status:** http_transport_phase_1_complete
+**updated_on:** 2025-08-14T15:45:00Z
+**by:** http_transport_architectural_analysis
+**status:** phase_2_complete_architectural_decision_required
 
 # EMBEDDED INSTRUCTION TEMPLATE CONSISTENCY COMPLETE - 2025-08-09
 

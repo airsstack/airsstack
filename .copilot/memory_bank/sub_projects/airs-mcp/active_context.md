@@ -1,6 +1,48 @@
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: HTTP STREAMABLE TRANSPORT PHASE 1 COMPLETE - 2025-08-14
+## CURRENT FOCUS: HTTP TRANSPORT ARCHITECTURAL DECISION REQUIRED - 2025-08-14
+
+### 🚨 CRITICAL: TRANSPORT TRAIT ARCHITECTURAL MISMATCH IDENTIFIED ⚠️
+**DECISION REQUIRED**: Phase 2 HTTP implementation reveals fundamental design tension between symmetric Transport trait and asymmetric HTTP protocol.
+
+**Core Issue**: Current `HttpStreamableTransport` with `client` + `target_url` design forces HTTP into inappropriate symmetric interface:
+- ❌ **Semantic Violation**: `receive()` only returns responses to previous `send()` calls (not true peer messaging)
+- ❌ **Role Confusion**: Client-side design in what should be server-side transport  
+- ❌ **Scalability Limits**: Single-session design incompatible with production HTTP scenarios
+
+**Architectural Options Requiring Decision**:
+1. **Option A** (Recommended): Separate `HttpClientTransport` + `HttpServerTransport` implementations
+2. **Option B**: Mode-based unified transport with client/server modes
+3. **Option C**: Abandon Transport trait for HTTP, create dedicated HTTP APIs
+
+**Impact**: HIGH - Affects all future HTTP functionality and Phase 3 server implementation strategy
+
+**Status**: Phase 2 functionally complete but architecturally questionable. Decision needed before Phase 3.
+
+### 🎯 HTTP TRANSPORT PHASE 2 IMPLEMENTATION COMPLETE (WITH CONCERNS) ✅
+**FUNCTIONAL MILESTONE**: Complete Phase 2 implementation of HTTP core transport methods (send/receive/close) with reqwest integration.
+
+**Phase 2 Implementation Delivered**:
+- **HTTP Client Integration**: reqwest 0.12.23 with timeout configuration and JSON handling
+- **Complete Transport Trait**: All send/receive/close methods implemented and tested
+- **Session Management**: Mcp-Session-Id header handling and session state management
+- **Message Queuing**: Response queuing system for receive() method implementation
+- **Comprehensive Testing**: 6/6 integration tests passing, example code working
+
+**Technical Implementation**:
+```rust
+impl Transport for HttpStreamableTransport {
+    async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> {
+        // HTTP POST with session headers and response queuing
+    }
+    async fn receive(&mut self) -> Result<Vec<u8>, Self::Error> {
+        // Returns queued responses from previous sends
+    }
+    async fn close(&mut self) -> Result<(), Self::Error> {
+        // Cleanup session state and message queue
+    }
+}
+```
 
 ### 🎯 HTTP TRANSPORT PHASE 1 FOUNDATION SUCCESSFULLY IMPLEMENTED ✅
 **ARCHITECTURAL MILESTONE**: Complete Phase 1 implementation of HTTP Streamable Transport foundation with all core components built, tested, and validated.

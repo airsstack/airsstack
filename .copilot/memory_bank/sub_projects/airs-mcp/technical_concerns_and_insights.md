@@ -208,6 +208,123 @@ pub struct Tool {
 - **Authentication:** Identity and access management
 - **Audit Logging:** Security event tracking
 
+## CRITICAL: HTTP Transport Architecture Analysis - Transport Trait Mismatch
+
+**Discovered:** 2025-08-14T15:30:00Z
+**Context:** HTTP Phase 2 Implementation Review - Architectural Design Issues
+
+### Issue: Fundamental Mismatch Between Transport Trait and HTTP Protocol
+
+**Problem Statement:**
+The current `HttpStreamableTransport` implementation reveals a fundamental architectural tension between the symmetric `Transport` trait design and HTTP's asymmetric request-response nature.
+
+**Root Cause Analysis:**
+
+#### Transport Trait Assumptions (Symmetric, Bidirectional)
+```rust
+pub trait Transport: Send + Sync {
+    async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error>;
+    async fn receive(&mut self) -> Result<Vec<u8>, Self::Error>;
+    async fn close(&mut self) -> Result<(), Self::Error>;
+}
+```
+- **Perfect for STDIO**: Bidirectional pipe communication (stdin/stdout)
+- **Problematic for HTTP**: Request-response paradigm doesn't map to symmetric send/receive
+
+#### Current Implementation Issues
+
+**1. Role Confusion:**
+```rust
+pub struct HttpStreamableTransport {
+    client: Client,           // Makes it HTTP client
+    target_url: Option<Url>,  // Client-side concept
+    message_queue: Arc<Mutex<VecDeque<Vec<u8>>>>, // Artificial receive() support
+    session_id: Option<String>,
+}
+```
+
+**2. Semantic Violations:**
+- `receive()` doesn't truly receive from peer, only returns responses to previous `send()` calls
+- Forces client-side perspective on what should be server-side transport
+- Session management complexity due to stateful HTTP simulation
+
+**3. Limited Scalability:**
+- Cannot handle multiple concurrent sessions properly
+- No true streaming capability despite "Streamable" name
+- Artificial message queuing defeats HTTP's stateless nature
+
+### Technical Debt Assessment
+
+**High Priority Issues:**
+
+1. **Protocol Impedance Mismatch**: HTTP request-response forced into symmetric interface
+2. **Semantic Violations**: `receive()` method doesn't follow Transport trait contract
+3. **Server Implementation Gap**: No clear path for HTTP server transport
+4. **Concurrency Limitations**: Single-session design limits scalability
+
+### Recommended Solutions
+
+#### Option A: Role-Specific Transports (Recommended)
+```rust
+pub struct HttpClientTransport {
+    client: Client,
+    target_url: Url,
+    session_id: Option<String>,
+}
+
+pub struct HttpServerTransport {
+    listener: TcpListener,
+    connection_pool: Pool<ConnectionManager>,
+    session_manager: SessionManager,
+}
+```
+
+#### Option B: Unified Transport with Mode
+```rust
+pub enum HttpTransportMode {
+    Client { target_url: Url },
+    Server { bind_address: SocketAddr },
+}
+
+pub struct HttpStreamableTransport {
+    mode: HttpTransportMode,
+    // ... shared components
+}
+```
+
+#### Option C: Separate Client/Server APIs (Most Principled)
+```rust
+// Don't force HTTP into symmetric Transport trait
+pub struct HttpClient { /* POST-based communication */ }
+pub struct HttpServer { /* SSE + endpoint handling */ }
+```
+
+### Impact Analysis
+
+**Current State Consequences:**
+- ✅ **Functional**: Works for simple client scenarios
+- ❌ **Semantic**: Violates Transport trait expectations
+- ❌ **Scalable**: Cannot handle production HTTP scenarios
+- ❌ **Maintainable**: Conceptual confusion for future developers
+
+**Resolution Priority**: **HIGH** - Affects architectural foundation for all HTTP functionality
+
+### Decision Required
+
+**Question**: Should we proceed with current client-only implementation for Phase 2 completion, or refactor to address architectural concerns?
+
+**Considerations**:
+- **Ship vs. Perfect**: Current implementation works but violates principles
+- **Future Cost**: Technical debt will compound in Phase 3 (server implementation)
+- **API Stability**: Early refactoring cheaper than breaking changes later
+
+### Documentation Notes
+
+- Current `client` + `target_url` design documented as Phase 2 technical debt
+- Server implementation needs architectural decisions before Phase 3
+- Transport trait may need evolution for protocol-specific requirements
+- HTTP-specific features (SSE, session management) need dedicated APIs
+
 ## Conclusion
 
 The airs-mcp crate has achieved exceptional technical excellence with:
@@ -217,4 +334,4 @@ The airs-mcp crate has achieved exceptional technical excellence with:
 - **Production Quality:** Complete test coverage, professional standards
 - **Architectural Excellence:** Clean layered design with proper abstractions
 
-Technical concerns have been professionally addressed through strategic solutions rather than rushed fixes, demonstrating mature engineering practices. The foundation is ready for production deployment with confidence.
+**Note**: HTTP Transport architectural concerns represent the first significant design challenge requiring strategic architectural decisions. Technical concerns have been professionally addressed through strategic solutions rather than rushed fixes, demonstrating mature engineering practices. The foundation is ready for production deployment with confidence.
