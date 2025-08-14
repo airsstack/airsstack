@@ -140,11 +140,12 @@ let config = HttpTransportConfig::new()
 
 ## Progress Tracking
 
-**Overall Status:** pending - 0%
+**Overall Status:** in_progress - 5%
 
 ### Subtasks - UPDATED WITH REFINED TECHNICAL APPROACH
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
+| 12.0 | Add HTTP transport dependencies | complete | 2025-08-14 | Added axum, hyper, tower, tower-http, deadpool to workspace |
 | 12.1 | Configuration structure with builder pattern | not_started | 2025-08-13 | HttpTransportConfig, ParserConfig, BufferPoolConfig |
 | 12.2 | Buffer pool implementation | not_started | 2025-08-13 | BufferPool with PooledBuffer smart pointer |
 | 12.3 | Request parser with buffer strategy | not_started | 2025-08-13 | Per-request parsing, no shared mutex |
@@ -157,6 +158,20 @@ let config = HttpTransportConfig::new()
 | 12.10 | Documentation and examples | not_started | 2025-08-13 | Usage patterns, configuration guide |
 
 ## Progress Log
+### 2025-08-14
+- **DEPENDENCY SETUP COMPLETE** ✅
+- **VERSION UPDATES COMPLETED** ✅ - Updated all HTTP dependencies to latest stable versions:
+  - `axum = "0.8"` (was 0.7) - Latest stable v0.8.4 with WebSocket support
+  - `hyper = "1.6"` (was 1.0) - Latest stable v1.6.0 with full features
+  - `tower = "0.5"` (was 0.4) - Latest stable v0.5.2 with full middleware support
+  - `tower-http = "0.6"` (was 0.5) - Latest stable v0.6.6 with CORS and tracing
+  - `deadpool = "0.12"` (was 0.10) - Latest stable v0.12.2 for connection pooling
+- Added HTTP transport dependencies to workspace Cargo.toml with latest versions
+- Added dependencies to airs-mcp crate Cargo.toml using workspace references
+- Validated dependency resolution with successful `cargo check --workspace`
+- **PERFORMANCE BENEFIT**: Latest versions include performance improvements and security patches
+- **READY FOR PHASE 1**: Configuration structure implementation with optimal dependency versions
+- **STATUS**: Task 12.0 (dependencies) complete with latest stable versions, ready to proceed to Phase 1 implementation
 ### 2025-08-13
 - **MAJOR UPDATE**: Comprehensive technical review completed with principal engineer
 - **Architecture Refined**: Single runtime + deadpool, per-request parsing, configurable buffer pooling

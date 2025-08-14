@@ -1,16 +1,14 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
-(None)
+- [TASK012] HTTP Streamable Implementation - **CRITICAL FOUNDATION** - Phase 1 (Weeks 1-3) of remote server development plan
+  - **Implementation Status**: Dependencies added (5% complete), ready for Phase 1 configuration structure
+  - **Dependencies**: ✅ axum, hyper, tower, tower-http, deadpool successfully added and validated
+  - **Next**: Phase 1 configuration structure (HttpTransportConfig, ParserConfig, BufferPoolConfig)
+  - **Technical Architecture**: `StreamableHttpTransport` with single `/mcp` endpoint and dynamic response modes
+  - **Success Criteria**: 100% MCP March 2025 specification compliance, <100ms response times
 
 ## Pending
-- [TASK012] HTTP Streamable Implementation - **CRITICAL FOUNDATION** - Phase 1 (Weeks 1-3) of remote server development plan
-  - **Implementation Plan**: Complete 8-week systematic development plan documented in `docs/src/plans/remote_server.md`
-  - **Technical Architecture**: `StreamableHttpTransport` with single `/mcp` endpoint and dynamic response modes
-  - **Core Features**: Session management with `Mcp-Session-Id` headers, connection recovery via `Last-Event-ID`
-  - **Success Criteria**: 100% MCP March 2025 specification compliance, <100ms response times
-  - **Dependencies**: hyper/axum, tokio async ecosystem, session management infrastructure
-  - **Deliverables**: Complete transport implementation with >90% test coverage and protocol validation
 - [TASK014] OAuth 2.1 Enterprise Authentication - **SECURITY IMPERATIVE** - Phase 2 (Weeks 4-6) of remote server development plan
   - **Implementation Plan**: OAuth 2.1 + PKCE security integration with comprehensive development roadmap
   - **Technical Architecture**: `OAuth2Security` with universal PKCE support and human-in-the-loop approval workflows
