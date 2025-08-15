@@ -113,6 +113,43 @@ serde = { version = "1.0", features = ["derive"] }
 
 **Benefits:** Centralized version control, consistent dependency versions, easier maintenance.
 
+#### Centralized Dependency Governance (Mandatory)
+
+**All Dependencies MUST:**
+1. **Be Defined in Workspace Root**: All dependencies used by any sub-project MUST be declared in `/Cargo.toml` under `[workspace.dependencies]`
+2. **Use Latest Stable Versions**: All versions MUST be the latest stable release available on crates.io
+3. **Inherit from Workspace**: Sub-project `Cargo.toml` files MUST use `dependency.workspace = true` syntax
+4. **No Direct Versions**: Sub-projects are FORBIDDEN from declaring version numbers directly
+
+**Version Update Policy:**
+- **Monthly Review**: Dependency versions MUST be reviewed monthly for updates
+- **Security Updates**: Security patches MUST be applied within 48 hours of discovery
+- **Major Version Updates**: Require impact assessment and testing before adoption
+- **Deprecated Dependencies**: MUST be replaced immediately upon deprecation notice
+
+**Violation Consequences:**
+- Build failures in CI/CD pipeline
+- Blocked pull request merges
+- Technical debt tracking and remediation requirements
+
+**Example Compliance:**
+```toml
+# ✅ CORRECT: Workspace root Cargo.toml
+[workspace.dependencies]
+tokio = { version = "1.47", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+
+# ✅ CORRECT: Sub-project Cargo.toml
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+
+# ❌ FORBIDDEN: Direct versions in sub-project
+[dependencies]
+tokio = "1.35"  # VIOLATION: Must inherit from workspace
+serde = "1.0"   # VIOLATION: Must inherit from workspace
+```
+
 ## Documentation Standards
 
 ### Module Documentation
