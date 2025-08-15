@@ -187,3 +187,16 @@ pub trait ApprovalHandler: Send + Sync {
 - Security audit framework: static/dynamic analysis, compliance checking, vulnerability scanning
 - Extensible analyzers and reporting
 - Robust security practices and auditability
+
+## Architectural Decision Records
+
+### Core Design Decisions
+- **[SOLID Principles Standard](decision_single_responsibility_principle_standard.md)** - Mandatory SRP implementation standard (2025-08-14)
+- **[HTTP Transport Architecture](decision_http_transport_architecture.md)** - Role-specific transport layer design
+- **[MCP Protocol Field Naming](decision_mcp_protocol_field_naming_compliance.md)** - camelCase JSON compliance standard
+
+### Module Architecture Decisions  
+- **[Axum Modular Architecture Refactor](decision_axum_modular_architecture_refactor.md)** - Strategic aliasing & facade elimination (2025-08-15)
+
+### Implementation Decisions
+- **[MCP Protocol Architecture](technical_decision_mcp_protocol_architecture.md)** - Protocol-first design approach
