@@ -39,6 +39,10 @@ tower-http.workspace = true
 deadpool.workspace = true
 reqwest.workspace = true
 
+# Provider implementation dependencies (inherited from workspace)
+regex.workspace = true
+serde_yml.workspace = true
+
 [dev-dependencies]
 # Async testing utilities for correlation manager testing
 tokio-test.workspace = true
@@ -51,6 +55,9 @@ criterion.workspace = true
 
 # Test logging and debugging for async flows
 tracing-subscriber.workspace = true
+
+# Temporary file/directory creation for tests (inherited from workspace)
+tempfile.workspace = true
 
 # Benchmark dependencies
 chrono.workspace = true

@@ -8,9 +8,10 @@
 //! The AIRS MCP implementation is organized in layers:
 //!
 //! - **Base Layer** (`base`): Foundational components including JSON-RPC 2.0 message types
-//! - **Protocol Layer** (future): MCP-specific protocol implementation
-//! - **Transport Layer** (future): Communication transport abstractions
-//! - **Client Layer** (future): High-level MCP client interface
+//! - **Shared Layer** (`shared`): MCP protocol types and message structures
+//! - **Transport Layer** (`transport`): Communication transport abstractions and implementations
+//! - **Integration Layer** (`integration`): High-level MCP client and server interfaces
+//! - **Providers Layer** (`providers`): Production-ready MCP provider implementations
 //!
 //! # Core Features
 //!
@@ -184,6 +185,9 @@ pub mod correlation;
 
 // Integration layer modules
 pub mod integration;
+
+// Providers layer modules
+pub mod providers;
 
 // Shared components modules
 pub mod shared;

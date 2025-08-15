@@ -15,7 +15,7 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 # Core async runtime
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.47", features = ["full"] }
 futures = { version = "0.3" }
 
 # JSON serialization for JSON-RPC messages
@@ -38,14 +38,17 @@ tracing = { version = "0.1" }
 async-trait = { version = "0.1.88" }
 
 # HTTP server and middleware (for HTTP Streamable Transport)
-axum = { version = "0.8", features = ["ws"] }
-hyper = { version = "1.6", features = ["full"] }
+axum = { version = "0.8.4", features = ["ws"] }
+hyper = { version = "1.6.0", features = ["full"] }
 tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 reqwest = { version = "0.12", features = ["json"] }
 
 # Connection pooling (for HTTP transport)
 deadpool = { version = "0.12" }
+
+# Provider implementation dependencies (latest stable)
+regex = { version = "1.11.1" }
 
 # CLI framework (latest stable)
 clap = { version = "4.5", features = ["derive", "help", "usage", "error-context"] }
@@ -91,6 +94,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 num_cpus = { version = "1.16" }
 
 # Testing utilities (latest stable)
-tempfile = { version = "3.20" }
+tempfile = { version = "3.20.0" }
 assert_cmd = { version = "2.0.17" }
 predicates = { version = "3.1" }
