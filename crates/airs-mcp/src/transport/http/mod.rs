@@ -3,7 +3,7 @@
 //! This module provides HTTP-based transport for JSON-RPC communication,
 //! including both client and server implementations.
 
-pub mod axum_server;
+pub mod axum;
 pub mod buffer_pool;
 pub mod client;
 pub mod config;
@@ -12,7 +12,7 @@ pub mod parser;
 pub mod server;
 pub mod session;
 
-pub use axum_server::{AxumHttpServer, ServerState};
+pub use axum::{AxumHttpServer, ServerState};
 pub use buffer_pool::{BufferPool, BufferPoolStats, BufferStrategy, PooledBuffer};
 pub use client::HttpClientTransport;
 pub use config::HttpTransportConfig;

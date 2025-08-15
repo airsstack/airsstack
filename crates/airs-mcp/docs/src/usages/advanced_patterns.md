@@ -2,37 +2,34 @@
 
 *High-performance implementations and sophisticated usage patterns*
 
+# Advanced Patterns
+
+*High-performance implementations and sophisticated usage patterns*
+
 ## Buffer Pooling and Performance Optimization
 
-### Advanced Buffer Management
+### HTTP Buffer Pool Implementation
 
-AIRS MCP provides enterprise-grade buffer pooling that achieves **60-80% reduction in allocation overhead**:
+AIRS MCP provides a production-ready HTTP buffer pool that reduces allocation overhead:
 
 ```rust
-use airs_mcp::transport::buffer::{BufferManager, BufferConfig};
-use std::time::Duration;
+use airs_mcp::transport::http::{BufferPool, BufferPoolConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Configure high-performance buffer management
-    let config = BufferConfig {
-        max_message_size: 10 * 1024 * 1024,  // 10MB max messages
-        read_buffer_capacity: 128 * 1024,    // 128KB buffers
-        write_buffer_capacity: 128 * 1024,   // 128KB buffers
-        buffer_pool_size: 200,               // Pool 200 buffers
-        pool_timeout: Duration::from_secs(30),
-        enable_zero_copy: true,              // Enable zero-copy optimizations
-        backpressure_threshold: 1024 * 1024, // 1MB backpressure threshold
-    };
+    // Configure HTTP buffer pool
+    let config = BufferPoolConfig::new()
+        .max_buffers(100)              // Pool up to 100 buffers
+        .buffer_size(8 * 1024)         // 8KB buffers
+        .adaptive_sizing(true);        // Enable adaptive sizing
     
-    let buffer_manager = BufferManager::new(config);
+    let pool = BufferPool::new(config);
     
-    // Acquire buffers with automatic pooling
-    let read_buffer = buffer_manager.acquire_read_buffer().await?;
-    let write_buffer = buffer_manager.acquire_write_buffer().await?;
+    // Get buffers with automatic pooling
+    let mut buffer = pool.get_buffer();
+    buffer.extend_from_slice(b"Hello, World!");
     
-    // Buffers automatically return to pool when dropped
-    // Zero-copy operations where possible
+    // Buffer automatically returns to pool when dropped
     
     Ok(())
 }
@@ -41,31 +38,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Buffer Pool Metrics and Monitoring
 
 ```rust
-use airs_mcp::transport::buffer::BufferManager;
+use airs_mcp::transport::http::BufferPool;
 
-async fn monitor_buffer_performance(manager: &BufferManager) {
-    let metrics = manager.metrics();
+async fn monitor_buffer_performance(pool: &BufferPool) {
+    let stats = pool.stats();
     
-    println!("Buffer Pool Performance:");
-    println!("  Success Rate: {:.2}%", metrics.acquisition_success_rate() * 100.0);
-    println!("  Bytes Processed: {}", metrics.total_bytes_processed());
-    
-    // Zero-copy specific metrics
-    let zero_copy_metrics = manager.get_zero_copy_metrics();
-    println!("  Buffer Hit Ratio: {:.2}%", zero_copy_metrics.buffer_pool_hit_ratio() * 100.0);
-    println!("  Pool Utilization: {:.2}%", zero_copy_metrics.pool_utilization());
-    println!("  Zero-Copy Sends: {}", zero_copy_metrics.zero_copy_sends);
-    println!("  Zero-Copy Receives: {}", zero_copy_metrics.zero_copy_receives);
+    println!("HTTP Buffer Pool Performance:");
+    println!("  Available Buffers: {}", stats.available_buffers);
+    println!("  Total Buffers: {}", stats.total_buffers);
+    println!("  Max Buffers: {}", stats.max_buffers);
 }
 ```
 
 ## Streaming JSON Parsing
 
-### Memory-Efficient Incremental Parsing
+### Memory-Efficient JSON Parsing
+
+AIRS MCP provides a streaming JSON parser for processing large messages efficiently:
 
 ```rust
 use airs_mcp::base::jsonrpc::streaming::{StreamingParser, StreamingConfig};
-use bytes::Bytes;
 
 async fn streaming_parser_example() -> Result<(), Box<dyn std::error::Error>> {
     // Configure streaming parser for large messages
@@ -78,8 +70,8 @@ async fn streaming_parser_example() -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = StreamingParser::new(config);
     
     // Parse from streaming source (e.g., network connection)
-    let large_json_data = get_large_json_data().await;
-    let message = parser.parse_from_bytes(&large_json_data).await?;
+    let json_data = br#"{"jsonrpc":"2.0","method":"large_data_operation","params":{"data":"..."},"id":1}"#;
+    let message = parser.parse_from_bytes(json_data).await?;
     
     println!("Parsed message: {:?}", message);
     
@@ -89,20 +81,6 @@ async fn streaming_parser_example() -> Result<(), Box<dyn std::error::Error>> {
     
     Ok(())
 }
-
-async fn get_large_json_data() -> Vec<u8> {
-    // Simulated large JSON data
-    let large_message = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": "process_large_dataset",
-        "params": {
-            "data": vec![0u8; 1024 * 1024], // 1MB of data
-        },
-        "id": 1
-    });
-    
-    serde_json::to_vec(&large_message).unwrap()
-}
 ```
 
 ### Multi-Message Batch Processing
@@ -111,20 +89,16 @@ async fn get_large_json_data() -> Vec<u8> {
 use airs_mcp::base::jsonrpc::streaming::StreamingParser;
 
 async fn batch_processing_example() -> Result<(), Box<dyn std::error::Error>> {
-    let mut parser = StreamingParser::default();
+    let mut parser = StreamingParser::new_default();
     
     // Process multiple JSON-RPC messages from a single buffer
-    let batch_data = br#"
-        {"jsonrpc":"2.0","method":"ping","id":1}
-        {"jsonrpc":"2.0","method":"status","id":2}
-        {"jsonrpc":"2.0","method":"info","id":3}
-    "#;
+    let batch_data = br#"{"jsonrpc":"2.0","method":"ping","id":1}{"jsonrpc":"2.0","method":"status","id":2}{"jsonrpc":"2.0","method":"info","id":3}"#;
     
     let messages = parser.parse_multiple_from_bytes(batch_data).await?;
     
     println!("Processed {} messages in batch", messages.len());
     for (i, message) in messages.iter().enumerate() {
-        println!("  Message {}: {:?}", i + 1, message);
+        println!("  Message {}: {:?}", i + 1, message.message_type());
     }
     
     Ok(())
@@ -137,16 +111,16 @@ async fn batch_processing_example() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use airs_mcp::transport::{ZeroCopyTransport, StdioTransport};
-use airs_mcp::base::jsonrpc::JsonRpcMessage;
+use airs_mcp::base::jsonrpc::{JsonRpcMessage, JsonRpcRequest};
 use bytes::BytesMut;
 
 async fn zero_copy_example() -> Result<(), Box<dyn std::error::Error>> {
     let transport = StdioTransport::new().await?;
     
     // Zero-copy serialization directly to buffer
-    let message = JsonRpcMessage::request(1, "ping", None);
+    let request = JsonRpcRequest::new(1, "ping".to_string(), None);
     let mut buffer = BytesMut::with_capacity(1024);
-    message.serialize_to_buffer(&mut buffer)?;
+    request.serialize_to_buffer(&mut buffer)?;
     
     // Zero-copy send operation
     transport.send_bytes(&buffer).await?;
@@ -165,13 +139,14 @@ async fn zero_copy_example() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Correlation Management
 
-### Advanced Request Correlation
+### Request Correlation Implementation
+
+AIRS MCP provides correlation management for tracking request-response pairs:
 
 ```rust
 use airs_mcp::correlation::{CorrelationManager, CorrelationConfig};
-use airs_mcp::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
+use airs_mcp::base::jsonrpc::{JsonRpcRequest, RequestId};
 use std::time::Duration;
-use tokio::time::timeout;
 
 async fn correlation_management_example() -> Result<(), Box<dyn std::error::Error>> {
     // Configure correlation tracking with timeouts
@@ -181,29 +156,23 @@ async fn correlation_management_example() -> Result<(), Box<dyn std::error::Erro
         cleanup_interval: Duration::from_secs(60),
     };
     
-    let correlation_manager = CorrelationManager::new(config);
+    let correlation_manager = CorrelationManager::new(config).await?;
     
     // Register outbound request
-    let request = JsonRpcRequest::new(42, "long_operation".to_string(), None);
+    let request = JsonRpcRequest::new(
+        RequestId::Number(42), 
+        "long_operation".to_string(), 
+        None
+    );
     let request_future = correlation_manager.register_request(request.clone()).await?;
     
-    // Send request through transport
-    send_request_somewhere(request).await?;
+    // Send request through transport (implementation specific)
+    // transport.send(&request.to_json()?).await?;
     
     // Wait for correlated response with timeout
-    let response = timeout(Duration::from_secs(10), request_future).await??;
+    let response = tokio::time::timeout(Duration::from_secs(10), request_future).await??;
     println!("Received correlated response: {:?}", response);
     
-    // Get correlation statistics
-    let stats = correlation_manager.statistics().await;
-    println!("Pending requests: {}", stats.pending_count);
-    println!("Success rate: {:.2}%", stats.success_rate * 100.0);
-    
-    Ok(())
-}
-
-async fn send_request_somewhere(_request: JsonRpcRequest) -> Result<(), Box<dyn std::error::Error>> {
-    // Implementation depends on your transport
     Ok(())
 }
 ```
@@ -244,8 +213,8 @@ async fn correlation_monitoring_task(manager: CorrelationManager) {
 ### Production-Ready Concurrent Processor
 
 ```rust
-use airs_mcp::base::jsonrpc::concurrent::{ConcurrentJsonRpcProcessor, ProcessorConfig};
-use airs_mcp::integration::handler::RequestHandler;
+use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig, MessageHandler};
+use airs_mcp::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification, streaming::ParsedMessage};
 use std::time::Duration;
 use async_trait::async_trait;
 
@@ -253,20 +222,30 @@ use async_trait::async_trait;
 struct HighPerformanceHandler;
 
 #[async_trait]
-impl RequestHandler for HighPerformanceHandler {
+impl MessageHandler for HighPerformanceHandler {
     async fn handle_request(
         &self,
-        method: &str,
-        params: Option<serde_json::Value>,
-    ) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
+        request: &JsonRpcRequest,
+    ) -> Result<JsonRpcResponse, String> {
         // Simulate CPU-intensive work
         tokio::task::yield_now().await;
         
-        Ok(serde_json::json!({
-            "method": method,
-            "processed": true,
-            "timestamp": chrono::Utc::now().to_rfc3339()
-        }))
+        Ok(JsonRpcResponse::success(
+            request.id.clone(),
+            serde_json::json!({
+                "method": request.method,
+                "processed": true,
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            })
+        ))
+    }
+
+    async fn handle_notification(
+        &self,
+        _notification: &JsonRpcNotification,
+    ) -> Result<(), String> {
+        // Handle notification
+        Ok(())
     }
 }
 
@@ -275,31 +254,32 @@ async fn concurrent_processing_example() -> Result<(), Box<dyn std::error::Error
     let config = ProcessorConfig {
         worker_count: 8,                              // 8 worker threads
         queue_capacity: 1000,                         // Buffer 1000 requests
-        request_timeout: Duration::from_secs(30),
-        shutdown_timeout: Duration::from_secs(5),
-        backpressure_threshold: 800,                  // Apply backpressure at 80% capacity
+        processing_timeout: chrono::Duration::seconds(30),
+        enable_ordering: false,
+        enable_backpressure: true,
+        max_batch_size: 50,
     };
     
-    let processor = ConcurrentJsonRpcProcessor::new(
-        config,
-        Box::new(HighPerformanceHandler),
-    ).await?;
+    let mut processor = ConcurrentProcessor::new(config);
+    processor.start().await?;
+    processor.register_handler(HighPerformanceHandler).await?;
     
     // Process requests concurrently
-    let request = JsonRpcRequest::new(1, "compute_intensive".to_string(), None);
-    let response_future = processor.process_request(request).await?;
+    let request = JsonRpcRequest::new(
+        airs_mcp::base::jsonrpc::RequestId::Number(1), 
+        "compute_intensive".to_string(), 
+        None
+    );
+    let message = ParsedMessage::Request(request);
+    let result = processor.submit_message(message).await?;
     
     // Get processing statistics
-    let stats = processor.statistics().await;
+    let stats = processor.stats();
     println!("Worker Pool Statistics:");
-    println!("  Active Workers: {}", stats.active_workers);
-    println!("  Queue Depth: {}", stats.queue_depth);
-    println!("  Processed Count: {}", stats.total_processed);
-    println!("  Average Processing Time: {:?}", stats.avg_processing_time);
+    println!("  Successful Operations: {}", stats.successful_operations);
+    println!("  Failed Operations: {}", stats.failed_operations);
     
-    // Wait for response
-    let response = response_future.await?;
-    println!("Response: {:?}", response);
+    println!("Response: {:?}", result);
     
     // Graceful shutdown
     processor.shutdown().await?;
@@ -358,12 +338,14 @@ async fn load_balancing_example() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Custom Handler Implementations
 
-### Sophisticated Request Router
+### Real MessageRouter Implementation
 
 ```rust
-use airs_mcp::integration::router::{RequestRouter, RoutePattern};
-use airs_mcp::integration::handler::RequestHandler;
+use airs_mcp::integration::router::{MessageRouter, RouteConfig};
+use airs_mcp::integration::handler::{RequestHandler, NotificationHandler};
+use airs_mcp::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification, RequestId};
 use std::collections::HashMap;
+use std::sync::Arc;
 use async_trait::async_trait;
 
 #[derive(Debug)]
@@ -375,29 +357,45 @@ struct DatabaseHandler {
 impl RequestHandler for DatabaseHandler {
     async fn handle_request(
         &self,
-        method: &str,
-        params: Option<serde_json::Value>,
-    ) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
-        match method {
-            "db/query" => self.handle_query(params).await,
-            "db/transaction" => self.handle_transaction(params).await,
-            "db/migrate" => self.handle_migration(params).await,
-            _ => Err(airs_mcp::integration::error::IntegrationError::MethodNotFound {
-                method: method.to_string(),
-            })
+        request: &JsonRpcRequest,
+    ) -> Result<serde_json::Value, crate::integration::error::IntegrationError> {
+        match request.method.as_str() {
+            "db/query" => self.handle_query(&request.params).await,
+            "db/transaction" => self.handle_transaction(&request.params).await,
+            "db/migrate" => self.handle_migration(&request.params).await,
+            _ => Err(crate::integration::error::IntegrationError::routing(format!(
+                "Method '{}' not supported by DatabaseHandler", request.method
+            )))
+        }
+    }
+}
+
+#[async_trait]
+impl NotificationHandler for DatabaseHandler {
+    async fn handle_notification(
+        &self,
+        notification: &JsonRpcNotification,
+    ) -> Result<(), crate::integration::error::IntegrationError> {
+        match notification.method.as_str() {
+            "db/status" => {
+                println!("Database status update: {:?}", notification.params);
+                Ok(())
+            }
+            _ => Ok(()) // Ignore unknown notifications
         }
     }
 }
 
 impl DatabaseHandler {
-    async fn handle_query(&self, params: Option<serde_json::Value>) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
+    async fn handle_query(&self, params: &Option<serde_json::Value>) -> Result<serde_json::Value, crate::integration::error::IntegrationError> {
         // Complex query processing with connection pooling
         let query = params
+            .as_ref()
             .and_then(|p| p.get("query"))
             .and_then(|q| q.as_str())
-            .ok_or_else(|| airs_mcp::integration::error::IntegrationError::InvalidParams {
-                message: "Query parameter required".to_string(),
-            })?;
+            .ok_or_else(|| crate::integration::error::IntegrationError::invalid_params(
+                "Query parameter required".to_string(),
+            ))?;
         
         // Execute query with proper connection management
         Ok(serde_json::json!({
@@ -407,7 +405,7 @@ impl DatabaseHandler {
         }))
     }
     
-    async fn handle_transaction(&self, _params: Option<serde_json::Value>) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
+    async fn handle_transaction(&self, _params: &Option<serde_json::Value>) -> Result<serde_json::Value, crate::integration::error::IntegrationError> {
         // Transaction handling with ACID guarantees
         Ok(serde_json::json!({
             "transaction_id": "txn_123456",
@@ -415,7 +413,7 @@ impl DatabaseHandler {
         }))
     }
     
-    async fn handle_migration(&self, _params: Option<serde_json::Value>) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
+    async fn handle_migration(&self, _params: &Option<serde_json::Value>) -> Result<serde_json::Value, crate::integration::error::IntegrationError> {
         // Database migration with rollback support
         Ok(serde_json::json!({
             "migration": "v1.0_to_v1.1",
@@ -428,124 +426,117 @@ impl DatabaseHandler {
 // Placeholder for database connection
 struct DatabaseConnection;
 
-async fn advanced_routing_example() -> Result<(), Box<dyn std::error::Error>> {
-    let mut router = RequestRouter::new();
+async fn message_routing_example() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RouteConfig::default();
+    let mut router = MessageRouter::new(config);
     
-    // Register sophisticated handlers with pattern matching
-    router.register_handler(
-        RoutePattern::exact("db/*"),
-        Box::new(DatabaseHandler {
-            connections: tokio::sync::RwLock::new(HashMap::new()),
-        })
+    // Register database handler for specific methods
+    let db_handler = Arc::new(DatabaseHandler {
+        connections: tokio::sync::RwLock::new(HashMap::new()),
+    });
+    
+    router.register_request_handler("db/query", db_handler.clone())?;
+    router.register_request_handler("db/transaction", db_handler.clone())?;
+    router.register_request_handler("db/migrate", db_handler.clone())?;
+    router.register_notification_handler("db/status", db_handler)?;
+    
+    // Route a request
+    let request = JsonRpcRequest::new(
+        "db/query",
+        Some(serde_json::json!({
+            "query": "SELECT * FROM users WHERE active = true"
+        })),
+        RequestId::new_number(1)
     );
-    
-    router.register_handler(
-        RoutePattern::prefix("auth/"),
-        Box::new(AuthHandler::new())
-    );
-    
-    router.register_handler(
-        RoutePattern::regex(r"^api/v\d+/.*$"),
-        Box::new(VersionedApiHandler::new())
-    );
-    
-    // Route requests efficiently
-    let request = JsonRpcRequest::new(1, "db/query".to_string(), Some(serde_json::json!({
-        "query": "SELECT * FROM users WHERE active = true"
-    })));
     
     let response = router.route_request(&request).await?;
     println!("Routed response: {:?}", response);
     
+    // Route a notification
+    let notification = JsonRpcNotification::new(
+        "db/status",
+        Some(serde_json::json!({"status": "healthy"}))
+    );
+    
+    router.route_notification(&notification).await?;
+    
     Ok(())
-}
-
-// Placeholder handlers
-#[derive(Debug)]
-struct AuthHandler;
-
-impl AuthHandler {
-    fn new() -> Self {
-        Self
-    }
-}
-
-#[async_trait]
-impl RequestHandler for AuthHandler {
-    async fn handle_request(&self, _method: &str, _params: Option<serde_json::Value>) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
-        Ok(serde_json::json!({"auth": "handled"}))
-    }
-}
-
-#[derive(Debug)]
-struct VersionedApiHandler;
-
-impl VersionedApiHandler {
-    fn new() -> Self {
-        Self
-    }
-}
-
-#[async_trait]
-impl RequestHandler for VersionedApiHandler {
-    async fn handle_request(&self, _method: &str, _params: Option<serde_json::Value>) -> Result<serde_json::Value, airs_mcp::integration::error::IntegrationError> {
-        Ok(serde_json::json!({"api": "handled"}))
-    }
 }
 ```
 
 ## Streaming Transport Integration
 
-### High-Performance Transport Wrapper
+### Real Streaming Transport Implementation
 
 ```rust
-use airs_mcp::transport::streaming::{StreamingTransport, StreamingStats};
+use airs_mcp::transport::streaming::StreamingTransport;
 use airs_mcp::transport::stdio::StdioTransport;
-use airs_mcp::base::jsonrpc::streaming::StreamingConfig;
+use airs_mcp::base::jsonrpc::streaming::{StreamingConfig, ParsedMessage};
+use airs_mcp::base::jsonrpc::{JsonRpcRequest, RequestId};
 
 async fn streaming_transport_example() -> Result<(), Box<dyn std::error::Error>> {
     // Create base transport
     let base_transport = StdioTransport::new().await?;
     
-    // Wrap with streaming capabilities
+    // Configure streaming capabilities
     let streaming_config = StreamingConfig {
         max_message_size: 32 * 1024 * 1024,  // 32MB messages
         read_buffer_size: 256 * 1024,        // 256KB streaming buffer
         strict_validation: true,
     };
     
+    // Create streaming transport wrapper
     let streaming_transport = StreamingTransport::new(base_transport, streaming_config);
     
-    // Send and receive with streaming optimizations
-    let large_request = create_large_request();
-    streaming_transport.send_parsed(&large_request).await?;
+    // Parse JSON message from bytes using streaming parser
+    let json_data = br#"{"jsonrpc":"2.0","method":"test","id":"stream-1"}"#;
+    let parsed_message = streaming_transport.parse_message(json_data).await?;
     
-    let response = streaming_transport.receive_parsed().await?;
-    println!("Received streaming response: {:?}", response);
+    match parsed_message {
+        ParsedMessage::Request(request) => {
+            println!("Parsed request: method={}, id={:?}", request.method, request.id);
+        }
+        ParsedMessage::Response(response) => {
+            println!("Parsed response: id={:?}", response.id);
+        }
+        ParsedMessage::Notification(notification) => {
+            println!("Parsed notification: method={}", notification.method);
+        }
+    }
     
-    // Monitor streaming performance
-    let stats = streaming_transport.buffer_stats().await;
-    println!("Streaming Buffer Stats:");
-    println!("  Capacity: {} bytes", stats.capacity);
-    println!("  Used: {} bytes", stats.used);
-    println!("  Utilization: {:.2}%", stats.utilization() * 100.0);
+    // Parse multiple messages from a single buffer
+    let multi_json = br#"{"jsonrpc":"2.0","method":"ping","id":1}{"jsonrpc":"2.0","method":"pong","id":2}"#;
+    let messages = streaming_transport.parse_multiple_messages(multi_json).await?;
+    
+    println!("Parsed {} messages from buffer", messages.len());
+    for (i, message) in messages.iter().enumerate() {
+        if let Some(method) = message.method() {
+            println!("  Message {}: {}", i + 1, method);
+        }
+    }
+    
+    // Use streaming receive with automatic parsing
+    println!("Waiting for streaming message...");
+    let received_message = streaming_transport.receive_parsed().await?;
+    println!("Received and parsed: {:?}", received_message);
     
     Ok(())
 }
 
-fn create_large_request() -> airs_mcp::base::jsonrpc::streaming::ParsedMessage {
-    // Create a large request for testing streaming
-    use airs_mcp::base::jsonrpc::JsonRpcRequest;
-    use airs_mcp::base::jsonrpc::streaming::ParsedMessage;
+// Create a large request demonstrating streaming capabilities
+fn create_large_request() -> ParsedMessage {
+    let large_payload = serde_json::json!({
+        "data": vec![0u8; 1024 * 1024], // 1MB payload
+        "metadata": {
+            "size": 1048576,
+            "encoding": "binary"
+        }
+    });
     
-    let large_data = vec![0u8; 5 * 1024 * 1024]; // 5MB payload
     let request = JsonRpcRequest::new(
-        1,
-        "process_large_data".to_string(),
-        Some(serde_json::json!({
-            "data": large_data,
-            "compression": "none"
-        }))
+        "process_large_data",
+        Some(large_payload),
+        RequestId::new_string("large-req-1")
     );
     
     ParsedMessage::Request(request)
@@ -562,8 +553,8 @@ use airs_mcp::correlation::CorrelationManager;
 use tokio::time::{interval, Duration};
 
 async fn performance_monitoring_dashboard(
-    buffer_manager: BufferManager,
-    correlation_manager: CorrelationManager,
+    buffer_manager: &BufferManager,
+    correlation_manager: &CorrelationManager,
 ) {
     let mut interval = interval(Duration::from_secs(5));
     
@@ -572,7 +563,6 @@ async fn performance_monitoring_dashboard(
         
         // Buffer performance metrics
         let buffer_metrics = buffer_manager.metrics();
-        let zero_copy_metrics = buffer_manager.get_zero_copy_metrics();
         
         // Correlation performance metrics
         let correlation_stats = correlation_manager.statistics().await;
@@ -581,31 +571,36 @@ async fn performance_monitoring_dashboard(
         
         // Buffer Pool Health
         println!("Buffer Pool:");
-        println!("  Hit Ratio: {:.2}%", zero_copy_metrics.buffer_pool_hit_ratio() * 100.0);
-        println!("  Utilization: {:.2}%", zero_copy_metrics.pool_utilization());
-        println!("  Bytes Processed: {:.2} MB", 
-                 zero_copy_metrics.total_bytes_processed as f64 / (1024.0 * 1024.0));
-        println!("  Zero-Copy Operations: {} sends, {} receives",
-                 zero_copy_metrics.zero_copy_sends,
-                 zero_copy_metrics.zero_copy_receives);
+        println!("  Buffer Hits: {}", 
+                 buffer_metrics.buffer_hits.load(std::sync::atomic::Ordering::Relaxed));
+        println!("  Buffer Misses: {}", 
+                 buffer_metrics.buffer_misses.load(std::sync::atomic::Ordering::Relaxed));
+        println!("  Pool Size: {}", 
+                 buffer_metrics.pool_size.load(std::sync::atomic::Ordering::Relaxed));
         
-        // Correlation Health
+        // Correlation Health  
         println!("Request Correlation:");
-        println!("  Pending Requests: {}", correlation_stats.pending_count);
-        println!("  Success Rate: {:.2}%", correlation_stats.success_rate * 100.0);
-        println!("  Average Response Time: {:?}", correlation_stats.avg_response_time);
+        println!("  Active Requests: {}", correlation_stats.active_requests);
+        println!("  Completed Requests: {}", correlation_stats.completed_requests);
+        println!("  Failed Requests: {}", correlation_stats.failed_requests);
+        println!("  Average Response Time: {:?}", correlation_stats.average_response_time);
         
         // Performance alerts
-        if zero_copy_metrics.buffer_pool_hit_ratio() < 0.8 {
-            eprintln!("⚠️  WARNING: Low buffer pool hit ratio!");
+        let total_ops = buffer_metrics.buffer_hits.load(std::sync::atomic::Ordering::Relaxed) +
+                        buffer_metrics.buffer_misses.load(std::sync::atomic::Ordering::Relaxed);
+        if total_ops > 0 {
+            let hit_ratio = buffer_metrics.buffer_hits.load(std::sync::atomic::Ordering::Relaxed) as f64 / total_ops as f64;
+            if hit_ratio < 0.8 {
+                eprintln!("⚠️  WARNING: Low buffer pool hit ratio: {:.2}%", hit_ratio * 100.0);
+            }
         }
         
-        if correlation_stats.success_rate < 0.95 {
-            eprintln!("⚠️  WARNING: Low correlation success rate!");
+        if correlation_stats.failed_requests > correlation_stats.completed_requests / 20 {
+            eprintln!("⚠️  WARNING: High failure rate in request correlation!");
         }
         
-        if correlation_stats.pending_count > 1000 {
-            eprintln!("⚠️  WARNING: High number of pending requests!");
+        if correlation_stats.active_requests > 1000 {
+            eprintln!("⚠️  WARNING: High number of pending requests: {}", correlation_stats.active_requests);
         }
     }
 }
@@ -613,40 +608,117 @@ async fn performance_monitoring_dashboard(
 
 ### Benchmarking Integration
 
-```rust
-use criterion::{black_box, Criterion};
-use airs_mcp::transport::buffer::{BufferManager, BufferConfig};
+### Axum Handler Configuration Patterns
 
-fn benchmark_buffer_operations(c: &mut Criterion) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    
-    c.bench_function("buffer_acquisition", |b| {
-        b.iter(|| {
-            rt.block_on(async {
-                let config = BufferConfig::default();
-                let manager = BufferManager::new(config);
-                
-                let buffer = manager.acquire_read_buffer().await.unwrap();
-                black_box(buffer);
-            });
-        });
+#### Real AxumHttpServer Implementation
+
+```rust
+use airs_mcp::transport::http::axum::{AxumHttpServer, McpHandlers, McpHandlersBuilder};
+use airs_mcp::integration::mcp::server::McpServerConfig;
+use airs_mcp::transport::error::TransportError;
+use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
+use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
+use airs_mcp::transport::http::config::HttpTransportConfig;
+use airs_mcp::transport::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+use airs_mcp::transport::http::session::{SessionConfig, SessionManager};
+use std::sync::Arc;
+
+/// Create shared infrastructure components
+async fn create_infrastructure() -> (
+    Arc<HttpConnectionManager>,
+    Arc<SessionManager>, 
+    Arc<ConcurrentProcessor>,
+    HttpTransportConfig,
+) {
+    let connection_manager = Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
+    let correlation_manager = Arc::new(
+        CorrelationManager::new(CorrelationConfig::default())
+            .await
+            .unwrap(),
+    );
+    let session_manager = Arc::new(SessionManager::new(
+        correlation_manager,
+        SessionConfig::default(),
+    ));
+    let processor_config = ProcessorConfig {
+        worker_count: 4,
+        queue_capacity: 1000,
+        max_batch_size: 50,
+        processing_timeout: chrono::Duration::seconds(30),
+        enable_ordering: false,
+        enable_backpressure: true,
+    };
+    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
+    let config = HttpTransportConfig::new();
+
+    (
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        config,
+    )
+}
+
+/// Approach 1: Direct handler configuration
+async fn create_server_with_direct_handlers() -> Result<AxumHttpServer, TransportError> {
+    let (connection_manager, session_manager, jsonrpc_processor, config) =
+        create_infrastructure().await;
+
+    // Create MCP handlers directly
+    let mcp_handlers = Arc::new(McpHandlers {
+        resource_provider: None, // Would be Some(Arc::new(MyResourceProvider)) in real usage
+        tool_provider: None,     // Would be Some(Arc::new(MyToolProvider)) in real usage  
+        prompt_provider: None,   // Would be Some(Arc::new(MyPromptProvider)) in real usage
+        logging_handler: None,   // Would be Some(Arc::new(MyLoggingHandler)) in real usage
+        config: McpServerConfig::default(),
     });
-    
-    c.bench_function("zero_copy_serialization", |b| {
-        b.iter(|| {
-            rt.block_on(async {
-                let message = airs_mcp::base::jsonrpc::JsonRpcRequest::new(
-                    1,
-                    "benchmark".to_string(),
-                    None
-                );
-                
-                let mut buffer = bytes::BytesMut::with_capacity(1024);
-                message.serialize_to_buffer(&mut buffer).unwrap();
-                black_box(buffer);
-            });
-        });
-    });
+
+    AxumHttpServer::new(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        mcp_handlers,
+        config,
+    )
+    .await
+}
+
+/// Approach 2: Builder pattern (recommended)
+async fn create_server_with_builder() -> Result<AxumHttpServer, TransportError> {
+    let (connection_manager, session_manager, jsonrpc_processor, config) =
+        create_infrastructure().await;
+
+    // Use builder pattern for clean, fluent configuration
+    let handlers_builder = McpHandlersBuilder::new()
+        // .with_resource_provider(Arc::new(MyResourceProvider))
+        // .with_tool_provider(Arc::new(MyToolProvider))
+        // .with_prompt_provider(Arc::new(MyPromptProvider))
+        // .with_logging_handler(Arc::new(MyLoggingHandler))
+        .with_config(McpServerConfig::default());
+
+    AxumHttpServer::with_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        handlers_builder,
+        config,
+    )
+    .await
+}
+
+/// Approach 3: Empty handlers for testing/development
+async fn create_server_for_testing() -> Result<AxumHttpServer, TransportError> {
+    let (connection_manager, session_manager, jsonrpc_processor, config) =
+        create_infrastructure().await;
+
+    // Create server with empty handlers (returns method not found errors for MCP requests)
+    AxumHttpServer::new_with_empty_handlers(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        config,
+    )
+    .await
 }
 ```
 
@@ -657,7 +729,7 @@ fn benchmark_buffer_operations(c: &mut Criterion) {
 AIRS MCP provides sophisticated handler configuration patterns for production deployments. See [Handler Configuration Architecture](../architecture/handler_configuration.md) for detailed architectural information.
 
 ```rust
-use airs_mcp::transport::http::axum_server::{AxumHttpServer, McpHandlersBuilder};
+use airs_mcp::transport::http::axum::{AxumHttpServer, McpHandlersBuilder};
 use airs_mcp::integration::mcp::{ResourceProvider, ToolProvider, PromptProvider, LoggingHandler};
 use std::sync::Arc;
 
@@ -817,10 +889,11 @@ async fn create_resilient_server() -> Result<AxumHttpServer, TransportError> {
 }
 ```
 
-For complete implementation examples, see the [Handler Configuration Example](../../examples/axum_server_with_handlers.rs).
+For complete implementation examples and more advanced patterns, see:
+- [AxumHttpServer Handler Configuration Example](../../examples/axum_server_with_handlers.rs)
+- [Performance Optimization Guide](./performance_optimization.md)
+- [Basic Examples](./basic_examples.md)
 
 ---
 
 *Next: [Performance Optimization](./performance_optimization.md) | Return to [Usages Overview](../usages.md)*
-
-Check back soon for advanced implementation strategies.
