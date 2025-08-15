@@ -78,3 +78,7 @@ harness = false
 [[bench]]
 name = "transport_performance"
 harness = false
+
+[[bench]]
+name = "http_server_focused"
+harness = false
