@@ -75,6 +75,27 @@ All sub-projects must maintain:
 - **Documentation Tests**: All examples must compile and run (or be explicitly ignored)
 - **Property Tests**: For complex algorithms (where applicable)
 
+## Standards Compliance (Protocol & Security)
+
+### Protocol Standards Documentation
+All sub-projects implementing external protocols MUST maintain comprehensive standards compliance documentation:
+
+**Documentation Requirements:**
+- **Complete Protocol Specifications**: Official protocol documents with implementation guides
+- **Security Standards**: RFC compliance documentation for security-critical protocols
+- **Integration Patterns**: Convergence documentation for multiple standard implementations
+- **Reference Architecture**: Implementation patterns that maintain standards compliance
+
+**airs-mcp Standards References:**
+- **OAuth 2.1 Compliance**: `sub_projects/airs-mcp/oauth2_rfc_specifications.md`
+- **MCP Protocol Compliance**: `sub_projects/airs-mcp/mcp_official_specification.md`  
+- **Security Integration**: Complete OAuth 2.1 + MCP 2025-06-18 convergence patterns
+
+**Compliance Validation:**
+- **100% Standards Adherence**: All protocol implementations must follow documented specifications
+- **Security First**: Security-critical protocols require complete RFC compliance documentation
+- **Interoperability**: Standards compliance ensures ecosystem compatibility and future-proofing
+
 ## Code Organization Standards
 
 ### Import Order Pattern (Mandatory)

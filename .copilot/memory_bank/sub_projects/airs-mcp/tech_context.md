@@ -48,6 +48,20 @@
 - **Resource Indicators**: RFC 8707 mandatory for token binding and phishing protection
 - **Protected Resource Metadata**: RFC 9728 for authorization server discovery
 
+## Standards Compliance Documentation
+**OAuth 2.1 RFC Specifications**: `oauth2_rfc_specifications.md`
+- RFC 9728: OAuth 2.0 Protected Resource Metadata (complete implementation guide)
+- RFC 7636: Proof Key for Code Exchange (PKCE) with S256 method requirements
+- RFC 8707: Resource Indicators for OAuth 2.0 (prevents confused deputy attacks)
+- RFC 6749: OAuth 2.0 Authorization Framework (core authorization flows)
+
+**MCP Protocol Specification**: `mcp_official_specification.md`
+- MCP 2025-06-18: Current specification with OAuth 2.1 integration requirements
+- JSON-RPC 2.0: Base protocol for MCP message format
+- Security Architecture: Client-host-server isolation boundaries
+- OAuth Integration: Mandatory HTTP transport authentication requirements
+- Implementation Patterns: Token audience validation, scope mapping, PKCE integration
+
 ## Development Setup
 - Built as part of AIRS workspace
 - Follows workspace build instructions

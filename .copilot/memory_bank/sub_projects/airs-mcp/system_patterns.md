@@ -6,6 +6,21 @@
 - Async-native performance: Tokio-based async, sub-ms latency, high throughput
 - Operational requirements: Structured logging, metrics, error handling, connection recovery, 24/7 stability
 - **Single Responsibility Principle**: Each module focuses on exactly one responsibility (MANDATORY STANDARD)
+- **Standards Compliance**: OAuth 2.1 + MCP protocol conformance patterns (see: `oauth2_rfc_specifications.md`, `mcp_official_specification.md`)
+
+## Standards Compliance Architecture Pattern
+**STANDARDS FIRST DESIGN**: All implementations must follow documented RFC and protocol specifications for interoperability and security.
+
+**Reference Documentation**:
+- **OAuth 2.1 Standards**: `oauth2_rfc_specifications.md` - Complete RFC implementation guides
+- **MCP Protocol**: `mcp_official_specification.md` - Official specification with security requirements
+- **Integration Patterns**: Documented convergence of OAuth 2.1 + MCP requirements for production deployment
+
+**Compliance Requirements**:
+- **RFC Adherence**: Mandatory compliance with documented OAuth 2.1 RFCs (9728, 7636, 8707, 6749)
+- **MCP Specification**: 100% adherence to MCP 2025-06-18 specification requirements
+- **Security Boundaries**: Client-host-server isolation, token audience validation, PKCE implementation
+- **Transport Integration**: OAuth middleware patterns with HTTP Streamable transport compatibility
 
 ## Single Responsibility Principle Standard (MANDATORY - 2025-08-14) ✅
 

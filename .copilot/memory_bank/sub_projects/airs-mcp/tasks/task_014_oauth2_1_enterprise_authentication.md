@@ -50,11 +50,15 @@ Router::new()
 3. **Authentication Context**: AuthContext propagation through middleware chain
 4. **Audit Logging**: Comprehensive security event tracking
 
-### **Phase 3: Human-in-the-Loop & Enterprise Features (Week 3)**
-1. **Approval Workflow System**: Web-based approval for sensitive operations
-2. **Enterprise IdP Integration**: AWS Cognito, Azure AD, Auth0 patterns
-3. **Token Management**: Refresh handling, secure caching, lifecycle management
-4. **Production Hardening**: Rate limiting, abuse detection, security monitoring
+### **Phase 3: Core Production Features (Week 3) - REFINED SCOPE**
+1. **Human-in-the-Loop Approval**: Web-based approval workflow for sensitive operations
+2. **Token Management**: Refresh handling, secure caching, lifecycle management  
+3. **Essential Production Security**: Rate limiting and basic abuse detection
+4. **Security Audit Logging**: Core security event tracking
+
+**EXCLUDED FROM SCOPE:**
+- ❌ Enterprise IdP Integration (AWS Cognito, Azure AD, Auth0)
+- ❌ Comprehensive security monitoring systems
 
 ## Progress Tracking
 
@@ -70,9 +74,9 @@ Router::new()
 | 14.5 | Operation-specific scope validation | not_started | 2025-08-13 | MCP method to scope mapping (mcp:tools:execute, etc.) |
 | 14.6 | AuthContext propagation system | not_started | 2025-08-13 | Middleware chain context passing |
 | 14.7 | Human-in-the-loop approval workflow | not_started | 2025-08-13 | Web-based approval for sensitive operations |
-| 14.8 | Enterprise IdP integration patterns | not_started | 2025-08-13 | AWS Cognito, Azure AD, Auth0 integration examples |
-| 14.9 | Security audit logging system | not_started | 2025-08-13 | Comprehensive authentication event tracking |
-| 14.10 | Production testing and validation | not_started | 2025-08-13 | Performance, security, and enterprise deployment testing |
+| 14.8 | Token lifecycle management | not_started | 2025-08-13 | Refresh handling, secure caching, token expiration |
+| 14.9 | Essential security audit logging | not_started | 2025-08-13 | Core authentication event tracking |
+| 14.10 | Production testing and validation | not_started | 2025-08-13 | Performance, security, and deployment testing |
 | 14.3 | Universal PKCE implementation (mandatory for all clients) | not_started | 2025-08-11 | S256 code challenge method requirement |
 | 14.4 | Resource Indicators implementation (RFC 8707) | not_started | 2025-08-11 | Prevent confused deputy attacks |
 | 14.5 | JWT token validation with audience verification | not_started | 2025-08-11 | Critical audience and issuer validation |
@@ -103,13 +107,40 @@ Router::new()
 - **RFC 7636**: Proof Key for Code Exchange - Universal PKCE (mandatory)
 - **Enterprise Security**: JWT audience validation, multi-tenant isolation
 
-### Enterprise Features - PRODUCTION READY
-- **Multi-Tenant Architecture**: Strict tenant isolation with context-aware authentication
-- **External Authorization Server**: AWS Cognito, Azure AD, Auth0 integration patterns
-- **Context-Based Authentication**: FastMCP-style authenticated context propagation
-- **Security Monitoring**: OAuth flow logging, suspicious activity detection
-- **Rate Limiting**: Abuse prevention and DoS protection
-- **Audit Compliance**: Comprehensive authentication event logging
+### **Enhanced Enterprise Features - CORE SCOPE ONLY**
+- **Human-in-the-Loop Approval**: Web-based approval workflow for sensitive operations
+- **Token Management**: Secure refresh handling, caching, and lifecycle management
+- **Essential Security**: Rate limiting, basic abuse detection, audit logging
+
+**EXCLUDED ENTERPRISE FEATURES:**
+- ❌ External IdP Integration (AWS Cognito, Azure AD, Auth0)
+- ❌ Comprehensive security monitoring and alerting
+- ❌ Advanced multi-tenant architecture beyond basic isolation
+
+## Standards Compliance
+
+### OAuth 2.1 Standards
+✅ **Complete Documentation**: RFC specifications documented in memory bank
+- RFC 9728: OAuth 2.0 Protected Resource Metadata  
+- RFC 7636: Proof Key for Code Exchange (PKCE)
+- RFC 8707: Resource Indicators for OAuth 2.0
+- RFC 6749: OAuth 2.0 Authorization Framework (base)
+- Documentation: `oauth2_rfc_specifications.md`
+
+### MCP Protocol Standards  
+✅ **Complete Documentation**: MCP official specification documented
+- MCP 2025-06-18: Current specification with OAuth 2.1 integration
+- JSON-RPC 2.0: Base protocol for MCP message format
+- Security Requirements: Token audience validation, scope mapping
+- Architecture: Client-host-server isolation boundaries
+- Documentation: `mcp_official_specification.md`
+
+### Integration Requirements
+✅ **Standards Convergence**: OAuth 2.1 + MCP requirements mapped
+- RFC 9728 + MCP: Protected resource metadata for MCP servers
+- RFC 8707 + MCP: Resource indicators for server identification
+- PKCE + MCP: S256 method mandatory for authorization code protection
+- Scope Mapping: MCP methods to OAuth scopes (`mcp:tools:execute`, etc.)
 
 ## Integration Dependencies
 
@@ -128,3 +159,11 @@ Router::new()
 - Comprehensive specification analysis and requirements documented
 - Integration dependencies with transport layer tasks identified
 - Ready for implementation prioritization alongside HTTP Streamable transport
+
+### 2025-08-13
+- ✅ **SCOPE REFINEMENT**: Excluded enterprise IdP integration and comprehensive monitoring per user request
+- ✅ **STANDARDS DOCUMENTATION COMPLETE**: 
+  - Created `oauth2_rfc_specifications.md` with complete OAuth 2.1 RFC reference
+  - Created `mcp_official_specification.md` with complete MCP 2025-06-18 specification
+  - Mapped OAuth 2.1 + MCP integration requirements for TASK014 implementation
+- ✅ **READY FOR IMPLEMENTATION**: All standards compliance documentation complete
