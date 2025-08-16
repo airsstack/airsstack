@@ -38,6 +38,18 @@ This document provides quick links to all standards compliance documentation acr
 
 **Usage**: Complete implementation roadmap for OAuth 2.1 + MCP integration
 
+### Module Architecture Documentation
+**File**: `sub_projects/airs-mcp/oauth2_module_architecture.md`
+
+**Contains**:
+- **7-Module Structure**: Complete OAuth 2.1 implementation organization (middleware, jwt_validator, scope_validator, metadata, error, config, context)
+- **Integration Patterns**: Axum middleware with zero HTTP transport modifications
+- **Dependencies**: Complete crate dependencies and feature flag specifications
+- **Testing Strategy**: Unit and integration testing patterns
+- **Implementation Sequence**: 3-phase, 10-step implementation plan
+
+**Usage**: Detailed technical architecture and code organization for OAuth 2.1 implementation
+
 ## Reference Locations in Memory Bank
 
 ### Core Memory Bank References
