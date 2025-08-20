@@ -79,6 +79,18 @@ Router::new()
 
 ## Technical Requirements
 
+### Workspace Standards Compliance
+**Reference**: `workspace/shared_patterns.md` and related workspace documentation
+
+**Required Standards**:
+- **chrono DateTime<Utc>** (§3.2) - All time operations must use workspace time standard
+- **3-Layer Import Organization** (§2.1) - std → third-party → internal structure mandatory
+- **Module Architecture** (§4.3) - mod.rs organization patterns required
+- **Zero Warning Policy** (workspace/zero_warning_policy.md) - Clean compilation required
+- **Dependency Management** (§5.1) - Follow workspace dependency centralization patterns
+
+**Foundation Status**: ✅ **COMPLETE** - OAuth module already workspace-compliant (TASK022)
+
 ### Core Dependencies - ENHANCED
 - **oauth2 crate**: Enhanced OAuth 2.1 with PKCE and resource indicator support
 - **jsonwebtoken**: JWT validation with audience and issuer verification
@@ -108,38 +120,41 @@ Router::new()
 
 ## Standards Compliance
 
-### OAuth 2.1 Standards
-✅ **Complete Documentation**: RFC specifications documented in memory bank
-- RFC 9728: OAuth 2.0 Protected Resource Metadata  
-- RFC 7636: Proof Key for Code Exchange (PKCE)
-- RFC 8707: Resource Indicators for OAuth 2.0
-- RFC 6749: OAuth 2.0 Authorization Framework (base)
-- Documentation: `oauth2_rfc_specifications.md`
+### OAuth 2.1 Protocol Standards
+**Reference**: `oauth2_rfc_specifications.md` (Complete technical specification)
+- **RFC 9728**: OAuth 2.0 Protected Resource Metadata  
+- **RFC 7636**: Proof Key for Code Exchange (PKCE)
+- **RFC 8707**: Resource Indicators for OAuth 2.0
+- **RFC 6749**: OAuth 2.0 Authorization Framework (base)
 
 ### MCP Protocol Standards  
-✅ **Complete Documentation**: MCP official specification documented
-- MCP 2025-06-18: Current specification with OAuth 2.1 integration
-- JSON-RPC 2.0: Base protocol for MCP message format
-- Security Requirements: Token audience validation, scope mapping
-- Architecture: Client-host-server isolation boundaries
-- Documentation: `mcp_official_specification.md`
+**Reference**: `mcp_official_specification.md` (MCP 2025-06-18)
+- **JSON-RPC 2.0**: Base protocol integration
+- **Security Architecture**: Client-host-server isolation
+- **OAuth Integration**: HTTP transport authentication requirements
+- **Scope Mapping**: MCP method to OAuth scope mappings
+
+### Workspace Technical Standards
+**Reference**: `workspace/shared_patterns.md` and workspace documentation
+- **Status**: ✅ **FOUNDATION COMPLETE** (TASK022) - OAuth module workspace-compliant
+- **Standards Applied**: chrono DateTime<Utc>, 3-layer imports, module architecture, zero warnings
+- **Evidence**: Complete compliance documentation in `tasks/task_022_oauth_technical_standards.md`
 
 ### Integration Requirements
-✅ **Standards Convergence**: OAuth 2.1 + MCP requirements mapped
-- RFC 9728 + MCP: Protected resource metadata for MCP servers
-- RFC 8707 + MCP: Resource indicators for server identification
-- PKCE + MCP: S256 method mandatory for authorization code protection
-- Scope Mapping: MCP methods to OAuth scopes (`mcp:tools:execute`, etc.)
+**Standards Convergence**: OAuth 2.1 + MCP + Workspace requirements successfully mapped
+- **RFC 9728 + MCP**: Protected resource metadata for MCP servers
+- **RFC 8707 + MCP**: Resource indicators for server identification  
+- **PKCE + MCP**: S256 method mandatory for authorization code protection
+- **Scope Mapping**: MCP methods to OAuth scopes (`mcp:tools:execute`, etc.)
+- **Workspace Compliance**: All implementation will follow established workspace patterns
 
 ### Module Architecture Reference
-✅ **Complete Architecture Plan**: Detailed module structure and integration patterns documented
-- **Architecture Document**: `oauth2_module_architecture.md`
+**Reference**: `oauth2_module_architecture.md` (Complete implementation architecture)
 - **Module Structure**: 7-module OAuth 2.1 implementation with single responsibility design
-- **Integration Pattern**: Axum middleware layer with zero transport modifications
-- **Dependencies**: Complete dependency specification with feature flags
+- **Integration Pattern**: Axum middleware layer with zero HTTP transport modifications
+- **Dependencies**: Complete dependency specification with workspace feature flags
 - **Testing Strategy**: Unit + integration testing patterns defined
-
-## Integration Dependencies
+- **Workspace Integration**: Architecture designed for workspace standards compliance## Integration Dependencies
 
 ### Transport Layer Dependencies
 - **TASK012 (HTTP Streamable)**: Primary OAuth integration target

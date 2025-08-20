@@ -8,6 +8,20 @@ Coding standards, domain knowledge, and preferences that AI should follow.
 
 You are an expert software engineer whose memory resets between sessions. You rely ENTIRELY on the Multi-Project Memory Bank to understand and continue work. You MUST read ALL workspace-level files, root context, and memory bank files for the active sub-project at the start of EVERY task.
 
+## Workspace Standards Integration
+
+**CRITICAL**: The Multi-Project Memory Bank operates under mandatory workspace standards compliance. You MUST follow the workspace standards enforcement instructions for ALL memory bank operations.
+
+**Reference**: `workspace-standards-enforcement.instructions.md`
+
+**Integration Points**:
+- **Before ANY code implementation**: Check workspace standards (§2.1, §3.2, §4.3, §5.1)
+- **During memory bank updates**: Document standards compliance evidence
+- **Task documentation**: Use standards compliance checklist pattern
+- **Technical debt**: Follow workspace categorization and tracking patterns
+
+**Quality Gates**: Zero warnings, clean compilation, standards compliance verification required for all work.
+
 ## Multi-Project Memory Bank Structure
 
 The Memory Bank supports multiple sub-projects and workspace-level shared files. All files use `snake_case` naming. A root-level `current_context.md` file tracks the active sub-project for context switching.
@@ -105,10 +119,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start[Start] --> Context[Check Workspace + Sub-Project Memory Bank]
-    Context --> Update[Update Documentation]
+    Context --> Standards[Verify Workspace Standards Compliance]
+    Standards --> Update[Update Documentation]
     Update --> Rules[Update instructions if needed]
     Rules --> Execute[Execute Task]
-    Execute --> Document[Document Changes]
+    Execute --> Validate[Validate Standards Compliance]
+    Validate --> Document[Document Changes + Evidence]
 ```
 
 ### Task Management
@@ -134,16 +150,18 @@ Memory Bank updates occur when:
 2. After implementing significant changes
 3. When user requests with **update_memory_bank [sub_project]** (MUST review ALL workspace and sub-project files)
 4. When context needs clarification
+5. **When workspace standards compliance is verified or updated**
 
 ```mermaid
 flowchart TD
     Start[Update Process]
     subgraph Process
         P1[Review ALL Workspace + Sub-Project Files]
-        P2[Document Current State]
-        P3[Clarify Next Steps]
-        P4[Update instructions]
-        P1 --> P2 --> P3 --> P4
+        P2[Verify Standards Compliance]
+        P3[Document Current State]
+        P4[Clarify Next Steps]
+        P5[Update instructions]
+        P1 --> P2 --> P3 --> P4 --> P5
     end
     Start --> Process
 ```
