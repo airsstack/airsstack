@@ -48,17 +48,16 @@ Router::new()
 1. **Enhanced Session Middleware**: OAuth context integration with session management
 2. **Scope Validation System**: Operation-specific scope checking (mcp:tools:execute, etc.)
 3. **Authentication Context**: AuthContext propagation through middleware chain
-4. **Audit Logging**: Comprehensive security event tracking
 
 ### **Phase 3: Core Production Features (Week 3) - REFINED SCOPE**
 1. **Human-in-the-Loop Approval**: Web-based approval workflow for sensitive operations
 2. **Token Management**: Refresh handling, secure caching, lifecycle management  
 3. **Essential Production Security**: Rate limiting and basic abuse detection
-4. **Security Audit Logging**: Core security event tracking
 
 **EXCLUDED FROM SCOPE:**
 - ❌ Enterprise IdP Integration (AWS Cognito, Azure AD, Auth0)
 - ❌ Comprehensive security monitoring systems
+- ❌ Security audit logging (deferred for future implementation)
 
 ## Progress Tracking
 
@@ -67,26 +66,16 @@ Router::new()
 ### Subtasks - MIDDLEWARE ARCHITECTURE IMPLEMENTATION
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 14.1 | JWT Token Validator with JWKS client | not_started | 2025-08-13 | RS256 validation, token caching, <5ms latency |
-| 14.2 | OAuth Middleware Layer implementation | not_started | 2025-08-13 | Axum middleware for token validation and scope checking |
-| 14.3 | Protected Resource Metadata endpoint | not_started | 2025-08-13 | RFC 9728 compliant /.well-known/oauth-protected-resource |
-| 14.4 | Enhanced Session Middleware integration | not_started | 2025-08-13 | OAuth context integration with session management |
-| 14.5 | Operation-specific scope validation | not_started | 2025-08-13 | MCP method to scope mapping (mcp:tools:execute, etc.) |
-| 14.6 | AuthContext propagation system | not_started | 2025-08-13 | Middleware chain context passing |
-| 14.7 | Human-in-the-loop approval workflow | not_started | 2025-08-13 | Web-based approval for sensitive operations |
-| 14.8 | Token lifecycle management | not_started | 2025-08-13 | Refresh handling, secure caching, token expiration |
-| 14.9 | Essential security audit logging | not_started | 2025-08-13 | Core authentication event tracking |
-| 14.10 | Production testing and validation | not_started | 2025-08-13 | Performance, security, and deployment testing |
-| 14.3 | Universal PKCE implementation (mandatory for all clients) | not_started | 2025-08-11 | S256 code challenge method requirement |
-| 14.4 | Resource Indicators implementation (RFC 8707) | not_started | 2025-08-11 | Prevent confused deputy attacks |
-| 14.5 | JWT token validation with audience verification | not_started | 2025-08-11 | Critical audience and issuer validation |
-| 14.6 | Dynamic Client Registration (RFC 7591) | not_started | 2025-08-11 | Enterprise client onboarding automation |
-| 14.7 | OAuth provider interface for transport integration | not_started | 2025-08-11 | StreamableHTTPClientTransport pattern |
-| 14.8 | Context-based authentication system | not_started | 2025-08-11 | FastMCP-style authenticated context |
-| 14.9 | Multi-tenant security architecture | not_started | 2025-08-11 | Tenant-aware token validation |
-| 14.10 | Enterprise IdP integration patterns | not_started | 2025-08-11 | AWS Cognito, Azure AD, Auth0 support |
-| 14.11 | Security monitoring and abuse detection | not_started | 2025-08-11 | Comprehensive logging and rate limiting |
-| 14.12 | Production deployment validation | not_started | 2025-08-11 | Enterprise security assessment |
+| 14.1 | JWT Token Validator with JWKS client | not_started | 2025-08-20 | RS256 validation, token caching, <5ms latency |
+| 14.2 | OAuth Middleware Layer implementation | not_started | 2025-08-20 | Axum middleware for token validation and scope checking |
+| 14.3 | Protected Resource Metadata endpoint | not_started | 2025-08-20 | RFC 9728 compliant /.well-known/oauth-protected-resource |
+| 14.4 | Enhanced Session Middleware integration | not_started | 2025-08-20 | OAuth context integration with session management |
+| 14.5 | Operation-specific scope validation | not_started | 2025-08-20 | MCP method to scope mapping (mcp:tools:execute, etc.) |
+| 14.6 | AuthContext propagation system | not_started | 2025-08-20 | Middleware chain context passing |
+| 14.7 | Human-in-the-loop approval workflow | not_started | 2025-08-20 | Web-based approval for sensitive operations |
+| 14.8 | Token lifecycle management | not_started | 2025-08-20 | Refresh handling, secure caching, token expiration |
+| 14.9 | Essential production security features | not_started | 2025-08-20 | Rate limiting and basic abuse detection |
+| 14.10 | Production testing and validation | not_started | 2025-08-20 | Performance, security, and deployment testing |
 
 ## Technical Requirements
 
@@ -184,3 +173,10 @@ Router::new()
   - Complete dependency specification and testing strategy
   - Phase-by-phase implementation sequence (3 phases, 10 implementation steps)
 - ✅ **IMPLEMENTATION READY**: Complete technical architecture, standards compliance, and integration patterns documented
+
+### 2025-08-20
+- ✅ **SCOPE REFINEMENT**: Removed audit logging requirements from Phase 2 and Phase 3 per user request
+- ✅ **SIMPLIFIED IMPLEMENTATION**: Focused on core OAuth functionality without security logging overhead
+- ✅ **SUBTASKS UPDATED**: Cleaned up task list to reflect streamlined scope (10 core subtasks)
+- ✅ **AUDIT LOGGING DEFERRED**: Security audit logging moved to future implementation scope
+- ✅ **READY FOR PHASE 1**: Foundation and token validation ready to begin implementation
