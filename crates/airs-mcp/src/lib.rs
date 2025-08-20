@@ -186,6 +186,9 @@ pub mod correlation;
 // Integration layer modules
 pub mod integration;
 
+// OAuth 2.1 authentication module
+pub mod oauth2;
+
 // Providers layer modules
 pub mod providers;
 

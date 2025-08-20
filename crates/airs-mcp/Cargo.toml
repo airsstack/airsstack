@@ -43,6 +43,12 @@ reqwest.workspace = true
 regex.workspace = true
 serde_yml.workspace = true
 
+# OAuth 2.1 authentication dependencies (inherited from workspace)
+jsonwebtoken.workspace = true
+oauth2.workspace = true
+base64.workspace = true
+url.workspace = true
+
 [dev-dependencies]
 # Async testing utilities for correlation manager testing
 tokio-test.workspace = true

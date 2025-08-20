@@ -82,6 +82,12 @@ dirs = { version = "6.0" }
 # Date/time handling (latest stable)
 chrono = { version = "~0.4", features = ["serde"] }
 
+# OAuth 2.1 authentication dependencies
+jsonwebtoken = { version = "9.3" }
+oauth2 = { version = "4.4" }
+base64 = { version = "0.22" }
+url = { version = "2.5" }
+
 # Testing and development utilities
 # Async testing utilities - ACTUAL VERSION THAT EXISTS
 tokio-test = { version = "0.4" }
