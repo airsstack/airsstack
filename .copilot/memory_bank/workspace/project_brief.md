@@ -48,6 +48,22 @@ This document defines the overall vision, objectives, architecture, and technica
 #### Async-First Design
 - **Tokio Runtime:** Consistent async runtime across all components
 - **Non-Blocking I/O:** All I/O operations implemented as async operations
+
+#### Rust Language Excellence Standards
+**Reference:** `workspace/shared_patterns.md` §1-§5 for detailed implementation guidelines.
+
+**Core Principles:**
+- **Zero-Cost Abstractions:** Prefer generics over trait objects for performance-critical paths
+- **Minimal Lifetime Constraints:** Avoid `'static` bounds unless required for global state  
+- **Stack-Preferred Memory:** Use `Box<T>` only when heap allocation provides clear benefits
+- **Trait-Based Design:** Design for flexibility with associated types and generic constraints
+- **Performance Validation:** Benchmark critical paths and verify monomorphization behavior
+
+**Enforcement:**
+- All code must pass `cargo clippy --workspace` with zero warnings
+- Performance assumptions validated with `cargo bench`
+- Architecture compliance verified in code reviews
+- Migration guided by strangler fig pattern for safe refactoring
 - **Backpressure Handling:** Proper flow control and resource management
 - **Cancellation Support:** Graceful shutdown and operation cancellation
 

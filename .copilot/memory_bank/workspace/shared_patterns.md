@@ -2,6 +2,167 @@
 
 This file documents core implementation, architecture, and methodology patterns shared across all sub-projects in the workspace. These standards ensure consistency, maintainability, and professional code quality across the entire AIRS ecosystem.
 
+## Rust Language Standards (Mandatory)
+
+### §1. Generic Type Usage - Zero-Cost Abstractions
+
+**Principle**: Always prefer generics over trait objects for performance-critical paths.
+
+#### Generic Trait Constraints (Preferred)
+```rust
+// ✅ Zero-cost abstractions with compile-time dispatch
+pub struct Validator<J, S> 
+where
+    J: JwtValidator,
+    S: ScopeValidator,
+{
+    jwt: J,
+    scope: S,
+}
+
+impl<J, S> Validator<J, S> 
+where
+    J: JwtValidator,
+    S: ScopeValidator,
+{
+    pub const fn new(jwt: J, scope: S) -> Self {
+        Self { jwt, scope }
+    }
+}
+```
+
+#### Trait Objects (Only When Necessary)
+```rust
+// ❌ Avoid unless you need runtime polymorphism
+struct Validator {
+    jwt: Box<dyn JwtValidator>,    // Runtime dispatch + heap allocation
+    scope: Box<dyn ScopeValidator>, // vtable lookup overhead
+}
+
+// ✅ Valid use cases for trait objects:
+// - Heterogeneous collections: Vec<Box<dyn Trait>>
+// - Plugin architectures with runtime loading
+// - Configuration-driven type selection
+```
+
+### §2. Lifetime Management - Minimal Constraints
+
+**Principle**: Avoid `'static` lifetimes unless truly required for global state.
+
+#### Avoid Unnecessary `'static` Constraints
+```rust
+// ❌ Over-constrained - forces values to live entire program duration
+pub fn process<T: Validator + 'static>(validator: T) -> Result<(), Error> {
+    // This prevents using validators with shorter, adequate lifetimes
+}
+
+// ✅ Use appropriate lifetime bounds or none at all
+pub fn process<T: Validator>(validator: T) -> Result<(), Error> {
+    // Let compiler infer appropriate lifetimes
+}
+
+// ✅ `'static` only when actually storing in global state
+static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| Config::load());
+```
+
+#### Lifetime Bound Guidelines
+```rust
+// ✅ Explicit lifetime when structure needs it
+pub struct Processor<'a, T> {
+    data: &'a T,
+}
+
+// ✅ No lifetime bounds when ownership is transferred
+pub struct Processor<T> {
+    data: T,  // Owned data, no lifetime needed
+}
+```
+
+### §3. Memory Management - Stack vs Heap
+
+**Principle**: Prefer stack allocation unless heap allocation provides clear benefits.
+
+#### Avoid Unnecessary `Box<T>` Allocation
+```rust
+// ❌ Unnecessary heap allocation
+struct Config {
+    name: Box<String>,      // String is already heap-allocated
+    settings: Box<HashMap<String, String>>,  // HashMap is already heap-allocated
+}
+
+// ✅ Direct ownership on stack
+struct Config {
+    name: String,          // Already heap-allocated internally
+    settings: HashMap<String, String>,  // Already heap-allocated internally
+}
+
+// ✅ Valid Box<T> use cases:
+// - Recursive data structures: Box<Node>
+// - Large stack objects: Box<[u8; HUGE_SIZE]>
+// - Trait objects: Box<dyn Trait>
+// - Breaking ownership cycles
+```
+
+#### Smart Pointer Selection
+```rust
+// Choose appropriate smart pointer for the use case:
+use std::rc::Rc;           // Single-threaded reference counting
+use std::sync::Arc;        // Multi-threaded reference counting  
+use std::cell::RefCell;    // Interior mutability (single-threaded)
+use std::sync::Mutex;      // Interior mutability (multi-threaded)
+
+// ✅ Arc for shared ownership across threads
+pub struct SharedValidator {
+    inner: Arc<ValidatorImpl>,
+}
+
+// ✅ Rc for shared ownership within single thread
+pub struct LocalValidator {
+    inner: Rc<ValidatorImpl>,
+}
+```
+
+### §4. Trait Design Patterns
+
+**Principle**: Design traits for flexibility and zero-cost abstractions.
+
+#### Associated Types vs Generics
+```rust
+// ✅ Associated types for single implementation per type
+pub trait Iterator {
+    type Item;  // Each iterator has one specific item type
+    fn next(&mut self) -> Option<Self::Item>;
+}
+
+// ✅ Generic parameters for multiple implementations
+pub trait From<T> {
+    fn from(value: T) -> Self;  // Can implement From<String>, From<&str>, etc.
+}
+```
+
+#### Error Type Patterns
+```rust
+// ✅ Flexible error handling with associated types
+pub trait Validator {
+    type Error: Into<ValidationError> + Send + Sync;
+    async fn validate(&self, input: &str) -> Result<Claims, Self::Error>;
+}
+
+// ✅ Allows different validators to have specific error types
+impl Validator for JwtValidator {
+    type Error = JwtError;  // Specific to JWT validation
+    // ...
+}
+```
+
+### §5. Performance Guidelines
+
+**Summary**: These patterns prioritize performance through zero-cost abstractions while maintaining code clarity and safety.
+
+**Enforcement**: Code reviews must verify adherence to these patterns. Use `cargo bench` to validate performance assumptions and `cargo expand` to verify monomorphization behavior.
+
+**Migration Strategy**: When refactoring existing code, apply these patterns incrementally using the strangler fig pattern to minimize risk.
+
 ## Zero-Warning Policy (Mandatory)
 
 ### Code Quality Requirements
