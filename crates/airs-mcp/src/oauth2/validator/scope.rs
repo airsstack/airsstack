@@ -16,7 +16,7 @@ use crate::oauth2::{
 };
 
 /// OAuth scope validation trait
-/// 
+///
 /// Provides method-to-scope validation with flexible error handling
 /// following workspace standards for trait design.
 pub trait ScopeValidator {
@@ -24,18 +24,18 @@ pub trait ScopeValidator {
     type Error: Into<OAuth2Error> + Send + Sync + 'static;
 
     /// Validate that provided scopes are sufficient for the given MCP method
-    /// 
+    ///
     /// # Arguments
     /// * `method` - MCP method name (e.g., "tools/call", "resources/read")
     /// * `scopes` - User's OAuth scopes from JWT token
-    /// 
+    ///
     /// # Returns
     /// * `Ok(())` - User has sufficient scope for the method
     /// * `Err(Self::Error)` - Insufficient scope or validation error
     fn validate_method_access(&self, method: &str, scopes: &[String]) -> Result<(), Self::Error>;
 
     /// Check if method is configured in scope mappings
-    /// 
+    ///
     /// Default implementation returns true, override for custom logic.
     fn is_method_configured(&self, method: &str) -> bool {
         // Default: assume all methods are valid
@@ -45,7 +45,7 @@ pub trait ScopeValidator {
     }
 
     /// Get required scope for a method
-    /// 
+    ///
     /// Default implementation returns None, override for inspection capabilities.
     fn get_required_scope(&self, method: &str) -> Option<&str> {
         // Default: no scope inspection
@@ -54,10 +54,14 @@ pub trait ScopeValidator {
     }
 
     /// Batch validate multiple methods
-    /// 
+    ///
     /// Default implementation validates each method individually.
     /// Override for optimized batch processing.
-    fn validate_batch_access(&self, methods: &[&str], scopes: &[String]) -> Result<(), Self::Error> {
+    fn validate_batch_access(
+        &self,
+        methods: &[&str],
+        scopes: &[String],
+    ) -> Result<(), Self::Error> {
         for method in methods {
             self.validate_method_access(method, scopes)?;
         }
@@ -66,7 +70,7 @@ pub trait ScopeValidator {
 }
 
 /// Concrete scope validator implementation
-/// 
+///
 /// Self-contained scope validator with method-to-scope mapping logic
 /// following workspace standards for zero-cost abstractions.
 pub struct Scope {
@@ -76,10 +80,10 @@ pub struct Scope {
 
 impl Scope {
     /// Create new scope validator with custom mappings
-    /// 
+    ///
     /// # Arguments
     /// * `mappings` - Vector of method-to-scope mappings
-    /// 
+    ///
     /// # Returns
     /// * New scope validator instance
     pub fn new(mappings: Vec<ScopeMapping>) -> Self {
@@ -96,14 +100,14 @@ impl Scope {
     }
 
     /// Create scope validator with default MCP mappings
-    /// 
+    ///
     /// Uses the standard MCP method-to-scope mappings for common operations.
     pub fn with_default_mappings() -> Self {
         Self::new(OAuth2Config::default_scope_mappings())
     }
 
     /// Add new scope mapping
-    /// 
+    ///
     /// # Arguments
     /// * `mapping` - New method-to-scope mapping to add
     pub fn add_mapping(&mut self, mapping: ScopeMapping) {
@@ -165,7 +169,7 @@ impl Scope {
         method.split('/').next().unwrap_or(method)
     }
 }
-        // refactoring the inner validator for thread safety
+// refactoring the inner validator for thread safety
 impl ScopeValidator for Scope {
     type Error = OAuth2Error;
 
@@ -227,7 +231,11 @@ impl ScopeValidator for Scope {
         self.scope_mappings.get(method).map(|m| m.scope.as_str())
     }
 
-    fn validate_batch_access(&self, methods: &[&str], scopes: &[String]) -> Result<(), Self::Error> {
+    fn validate_batch_access(
+        &self,
+        methods: &[&str],
+        scopes: &[String],
+    ) -> Result<(), Self::Error> {
         for method in methods {
             self.validate_method_access(method, scopes)?;
         }
@@ -248,7 +256,7 @@ impl Clone for Scope {
 mod tests {
     use super::*;
     use crate::oauth2::config::ScopeMapping;
-    
+
     fn create_test_scope_validator() -> Scope {
         let mappings = vec![
             ScopeMapping {
@@ -269,37 +277,47 @@ mod tests {
         ];
         Scope::new(mappings)
     }
-    
+
     #[test]
     fn test_scope_trait_implementation() {
         let validator = create_test_scope_validator();
         let scopes = vec!["mcp:tools:execute".to_string()];
-        
+
         // Should succeed for method with matching scope
-        assert!(validator.validate_method_access("tools/call", &scopes).is_ok());
-        
+        assert!(validator
+            .validate_method_access("tools/call", &scopes)
+            .is_ok());
+
         // Should fail for method requiring different scope
-        assert!(validator.validate_method_access("resources/read", &scopes).is_err());
+        assert!(validator
+            .validate_method_access("resources/read", &scopes)
+            .is_err());
     }
-    
+
     #[test]
     fn test_method_configuration_check() {
         let validator = create_test_scope_validator();
-        
+
         assert!(validator.is_method_configured("tools/call"));
         assert!(validator.is_method_configured("resources/read"));
         assert!(!validator.is_method_configured("unknown/method"));
     }
-    
+
     #[test]
     fn test_scope_inspection() {
         let validator = create_test_scope_validator();
-        
-        assert_eq!(validator.get_required_scope("tools/call"), Some("mcp:tools:execute"));
-        assert_eq!(validator.get_required_scope("resources/read"), Some("mcp:resources:read"));
+
+        assert_eq!(
+            validator.get_required_scope("tools/call"),
+            Some("mcp:tools:execute")
+        );
+        assert_eq!(
+            validator.get_required_scope("resources/read"),
+            Some("mcp:resources:read")
+        );
         assert_eq!(validator.get_required_scope("unknown/method"), None);
     }
-    
+
     #[test]
     fn test_batch_validation() {
         let validator = create_test_scope_validator();
@@ -307,24 +325,26 @@ mod tests {
             "mcp:tools:execute".to_string(),
             "mcp:resources:read".to_string(),
         ];
-        
+
         // Should succeed for methods with matching scopes
         let methods = vec!["tools/call", "resources/read"];
         assert!(validator.validate_batch_access(&methods, &scopes).is_ok());
-        
+
         // Should fail if any method lacks required scope
         let methods_with_missing = vec!["tools/call", "resources/read", "admin/config"];
-        assert!(validator.validate_batch_access(&methods_with_missing, &scopes).is_err());
+        assert!(validator
+            .validate_batch_access(&methods_with_missing, &scopes)
+            .is_err());
     }
-    
+
     #[test]
     fn test_default_mappings() {
         let validator = Scope::with_default_mappings();
-        
+
         // Should handle default mappings without error
         let scopes = vec!["mcp:tools:execute".to_string()];
         let result = validator.validate_method_access("tools/call", &scopes);
-        
+
         // Result depends on default mappings, but should not panic
         assert!(result.is_ok() || result.is_err());
     }

@@ -22,6 +22,7 @@
 pub mod builder;
 pub mod jwt;
 pub mod scope;
+#[allow(clippy::module_inception)]
 pub mod validator;
 
 // Re-exports for public API

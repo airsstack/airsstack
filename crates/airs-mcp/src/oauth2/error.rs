@@ -3,12 +3,19 @@
 //! This module provides structured error handling for OAuth 2.1 authentication
 //! with RFC 6750 compliant WWW-Authenticate header generation.
 
+// Layer 1: Standard library imports
+// (none for this module)
+
+// Layer 2: Third-party crate imports
 use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
+
+// Layer 3: Internal module imports
+// (none for this module)
 
 /// OAuth 2.1 specific error types with detailed context
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]

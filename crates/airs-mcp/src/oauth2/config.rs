@@ -3,9 +3,15 @@
 //! This module provides configuration structures for OAuth 2.1 authentication
 //! with reasonable defaults and validation.
 
-use serde::{Deserialize, Serialize};
+// Layer 1: Standard library imports
 use std::time::Duration;
+
+// Layer 2: Third-party crate imports
+use serde::{Deserialize, Serialize};
 use url::Url;
+
+// Layer 3: Internal module imports
+// (none for this module)
 
 /// OAuth 2.1 configuration for MCP authentication
 #[derive(Debug, Clone, Serialize, Deserialize)]

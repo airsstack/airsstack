@@ -215,7 +215,7 @@ impl Default for ValidatorBuilder<(), ()> {
 }
 
 /// Convenience functions for common validator configurations
-
+///
 /// Create validator with default configuration
 ///
 /// # Arguments
@@ -293,7 +293,7 @@ mod tests {
             Err(OAuth2Error::Configuration(_)) => {
                 // Expected for default config without proper JWKS URL
             }
-            Err(other) => panic!("Unexpected error: {:?}", other),
+            Err(other) => panic!("Unexpected error: {other:?}"),
         }
     }
 
@@ -316,7 +316,7 @@ mod tests {
             Err(OAuth2Error::Configuration(_)) => {
                 // Expected for default config without proper JWKS URL
             }
-            Err(other) => panic!("Unexpected error: {:?}", other),
+            Err(other) => panic!("Unexpected error: {other:?}"),
         }
     }
 
