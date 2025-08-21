@@ -72,5 +72,8 @@ pub use context::{AuditLogEntry, AuthContext, AuthContextExt, AuthMetadata};
 pub use error::{OAuth2Error, OAuth2Result};
 pub use jwt_validator::{JwksResponse, JwtClaims, JwtValidator};
 pub use metadata::{oauth_metadata_handler, ProtectedResourceMetadata};
-pub use middleware::{oauth2_middleware_handler, oauth2_middleware_layer, OAuth2Middleware};
+pub use middleware::{
+    oauth2_middleware_layer, AuthenticationProvider, AxumOAuth2Middleware, OAuth2MiddlewareCore,
+    OAuthMiddleware, OAuthRequestProcessor, OAuthResponseBuilder,
+};
 pub use scope_validator::ScopeValidator;

@@ -11,7 +11,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 /// OAuth 2.1 specific error types with detailed context
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum OAuth2Error {
     /// Invalid token error - token is malformed, expired, or invalid
     #[error("Invalid token: {0}")]
