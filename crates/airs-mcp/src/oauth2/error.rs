@@ -19,10 +19,15 @@ pub enum OAuth2Error {
 
     /// Insufficient scope error - token lacks required permissions
     #[error("Insufficient scope: required '{required}', provided '{provided}'")]
-    InsufficientScope {
-        required: String,
-        provided: String,
-    },
+    InsufficientScope { required: String, provided: String },
+
+    /// Missing authorization header or Bearer token
+    #[error("Missing authorization token")]
+    MissingToken,
+
+    /// Invalid token format (not Bearer, empty, etc.)
+    #[error("Invalid token format")]
+    InvalidTokenFormat,
 
     /// JWKS retrieval or validation error
     #[error("JWKS error: {0}")]
@@ -77,6 +82,8 @@ impl OAuth2Error {
         match self {
             OAuth2Error::InvalidToken(_) => "invalid_token",
             OAuth2Error::InsufficientScope { .. } => "insufficient_scope",
+            OAuth2Error::MissingToken => "invalid_request",
+            OAuth2Error::InvalidTokenFormat => "invalid_request",
             OAuth2Error::TokenExpired { .. } => "invalid_token",
             OAuth2Error::InvalidAudience { .. } => "invalid_token",
             OAuth2Error::InvalidIssuer { .. } => "invalid_token",
@@ -93,6 +100,8 @@ impl OAuth2Error {
         match self {
             OAuth2Error::InvalidToken(_) => StatusCode::UNAUTHORIZED,
             OAuth2Error::InsufficientScope { .. } => StatusCode::FORBIDDEN,
+            OAuth2Error::MissingToken => StatusCode::UNAUTHORIZED,
+            OAuth2Error::InvalidTokenFormat => StatusCode::BAD_REQUEST,
             OAuth2Error::TokenExpired { .. } => StatusCode::UNAUTHORIZED,
             OAuth2Error::InvalidAudience { .. } => StatusCode::UNAUTHORIZED,
             OAuth2Error::InvalidIssuer { .. } => StatusCode::UNAUTHORIZED,
@@ -143,7 +152,7 @@ impl IntoResponse for OAuth2Error {
         let error_response = self.to_bearer_token_error();
 
         let mut headers = HeaderMap::new();
-        
+
         // Add RFC 6750 compliant WWW-Authenticate header
         if let Ok(header_value) = HeaderValue::from_str(&www_authenticate) {
             headers.insert("WWW-Authenticate", header_value);

@@ -19,10 +19,7 @@ use tracing::{debug, error};
 
 // Layer 3: Internal module imports
 use crate::oauth2::{
-    config::OAuth2Config,
-    context::AuthContext,
-    error::OAuth2Error,
-    jwt_validator::JwtValidator,
+    config::OAuth2Config, context::AuthContext, error::OAuth2Error, jwt_validator::JwtValidator,
     scope_validator::ScopeValidator,
 };
 
@@ -34,10 +31,10 @@ use crate::oauth2::{
 pub struct OAuth2Middleware {
     /// JWT token validator with JWKS support
     jwt_validator: Arc<JwtValidator>,
-    
+
     /// Scope validator for MCP method authorization
     scope_validator: Arc<ScopeValidator>,
-    
+
     /// OAuth configuration
     config: OAuth2Config,
 }
@@ -47,7 +44,7 @@ impl OAuth2Middleware {
     pub fn new(config: OAuth2Config) -> Result<Self, OAuth2Error> {
         let jwt_validator = Arc::new(JwtValidator::new(config.clone())?);
         let scope_validator = Arc::new(ScopeValidator::with_default_mappings());
-        
+
         Ok(Self {
             jwt_validator,
             scope_validator,
@@ -73,7 +70,10 @@ impl OAuth2Middleware {
                 "invalid_token",
                 "The access token is invalid or expired",
             ),
-            OAuth2Error::InsufficientScope { required: _, provided: _ } => (
+            OAuth2Error::InsufficientScope {
+                required: _,
+                provided: _,
+            } => (
                 StatusCode::FORBIDDEN,
                 "insufficient_scope",
                 "Insufficient scope for this operation",
@@ -86,7 +86,7 @@ impl OAuth2Middleware {
         };
 
         let mut headers = HeaderMap::new();
-        
+
         if include_challenge {
             let challenge = match &error {
                 OAuth2Error::InsufficientScope { required, .. } => {
@@ -94,10 +94,11 @@ impl OAuth2Middleware {
                 }
                 _ => "Bearer".to_string(),
             };
-            
+
             headers.insert(
                 header::WWW_AUTHENTICATE,
-                HeaderValue::from_str(&challenge).unwrap_or_else(|_| HeaderValue::from_static("Bearer")),
+                HeaderValue::from_str(&challenge)
+                    .unwrap_or_else(|_| HeaderValue::from_static("Bearer")),
             );
         }
 
@@ -125,7 +126,7 @@ fn extract_bearer_token(headers: &HeaderMap) -> Result<String, OAuth2Error> {
     }
 
     let token = auth_str.strip_prefix("Bearer ").unwrap().trim();
-    
+
     if token.is_empty() {
         return Err(OAuth2Error::InvalidTokenFormat);
     }
@@ -146,7 +147,7 @@ pub async fn oauth2_middleware_handler(
     middleware: OAuth2Middleware,
 ) -> Result<Response, OAuth2Error> {
     let path = request.uri().path();
-    
+
     // Skip OAuth for health checks and metadata endpoints
     if path == "/health" || path == "/.well-known/oauth-protected-resource" {
         debug!("Skipping OAuth for public endpoint: {}", path);
@@ -157,10 +158,10 @@ pub async fn oauth2_middleware_handler(
 
     // Extract Bearer token from Authorization header
     let token = extract_bearer_token(request.headers())?;
-    
+
     // Validate JWT token and get claims
     let claims = middleware.jwt_validator.validate_token(&token).await?;
-    
+
     // Extract scopes from token (OAuth 2.1 scopes are space-separated)
     let scopes: Vec<String> = claims
         .scope
@@ -176,9 +177,15 @@ pub async fn oauth2_middleware_handler(
         // For now, we'll use a basic scope validation
         // In a full implementation, you'd parse the JSON-RPC request to get the actual method
         let required_scope = "mcp:*"; // Base MCP access scope
-        
-        if !scopes.iter().any(|s| s == required_scope || s == "mcp:*" || s.starts_with("mcp:")) {
-            debug!("Insufficient scope for MCP access. Required: {}, Provided: {:?}", required_scope, scopes);
+
+        if !scopes
+            .iter()
+            .any(|s| s == required_scope || s == "mcp:*" || s.starts_with("mcp:"))
+        {
+            debug!(
+                "Insufficient scope for MCP access. Required: {}, Provided: {:?}",
+                required_scope, scopes
+            );
             return Err(OAuth2Error::InsufficientScope {
                 required: required_scope.to_string(),
                 provided: scopes.join(" "),
@@ -191,15 +198,23 @@ pub async fn oauth2_middleware_handler(
     request.extensions_mut().insert(auth_context);
 
     debug!("OAuth authentication successful, proceeding to next handler");
-    
+
     // Continue to next middleware
     Ok(next.run(request).await)
 }
 
 /// OAuth 2.1 middleware layer factory function
-/// 
+///
 /// Creates a simple middleware function that can be used with Axum
-pub fn oauth2_middleware_layer(middleware: OAuth2Middleware) -> impl Clone + Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, std::convert::Infallible>> + Send>> {
+pub fn oauth2_middleware_layer(
+    middleware: OAuth2Middleware,
+) -> impl Clone
+       + Fn(
+    Request,
+    Next,
+) -> std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Response, std::convert::Infallible>> + Send>,
+> {
     move |req: Request, next: Next| {
         let middleware = middleware.clone();
         Box::pin(async move {
@@ -222,18 +237,21 @@ mod tests {
     #[test]
     fn test_bearer_token_extraction() {
         let mut headers = HeaderMap::new();
-        
+
         // Test valid Bearer token
-        headers.insert(header::AUTHORIZATION, "Bearer test-token-123".parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer test-token-123".parse().unwrap(),
+        );
         let result = extract_bearer_token(&headers);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "test-token-123");
-        
+
         // Test missing authorization header
         let empty_headers = HeaderMap::new();
         let result = extract_bearer_token(&empty_headers);
         assert!(matches!(result, Err(OAuth2Error::MissingToken)));
-        
+
         // Test invalid format
         let mut invalid_headers = HeaderMap::new();
         invalid_headers.insert(header::AUTHORIZATION, "Basic test".parse().unwrap());

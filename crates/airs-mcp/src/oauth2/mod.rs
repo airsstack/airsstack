@@ -62,6 +62,7 @@ pub mod config;
 pub mod context;
 pub mod error;
 pub mod jwt_validator;
+pub mod metadata;
 pub mod middleware;
 pub mod scope_validator;
 
@@ -70,5 +71,6 @@ pub use config::{OAuth2Config, ScopeMapping};
 pub use context::{AuditLogEntry, AuthContext, AuthContextExt, AuthMetadata};
 pub use error::{OAuth2Error, OAuth2Result};
 pub use jwt_validator::{JwksResponse, JwtClaims, JwtValidator};
-pub use middleware::{oauth2_middleware_handler, oauth2_middleware_layer};
+pub use metadata::{oauth_metadata_handler, ProtectedResourceMetadata};
+pub use middleware::{oauth2_middleware_handler, oauth2_middleware_layer, OAuth2Middleware};
 pub use scope_validator::ScopeValidator;

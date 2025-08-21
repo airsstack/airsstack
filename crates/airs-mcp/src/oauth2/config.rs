@@ -19,6 +19,9 @@ pub struct OAuth2Config {
     /// Expected JWT issuer (authorization server identifier)
     pub issuer: String,
 
+    /// Optional documentation URL for the protected resource
+    pub documentation_url: Option<String>,
+
     /// Cache configuration for JWKS keys and tokens
     pub cache: CacheConfig,
 
@@ -89,6 +92,7 @@ impl Default for OAuth2Config {
                 .expect("Default JWKS URL should be valid"),
             audience: "mcp-server".to_string(),
             issuer: "https://example.com".to_string(),
+            documentation_url: None,
             cache: CacheConfig::default(),
             validation: ValidationConfig::default(),
             scope_mappings: Self::default_scope_mappings(),
@@ -218,6 +222,7 @@ pub struct OAuth2ConfigBuilder {
     jwks_url: Option<Url>,
     audience: Option<String>,
     issuer: Option<String>,
+    documentation_url: Option<String>,
     cache: Option<CacheConfig>,
     validation: Option<ValidationConfig>,
     scope_mappings: Option<Vec<ScopeMapping>>,
@@ -236,6 +241,11 @@ impl OAuth2ConfigBuilder {
 
     pub fn issuer(mut self, issuer: String) -> Self {
         self.issuer = Some(issuer);
+        self
+    }
+
+    pub fn documentation_url(mut self, url: String) -> Self {
+        self.documentation_url = Some(url);
         self
     }
 
@@ -259,6 +269,7 @@ impl OAuth2ConfigBuilder {
             jwks_url: self.jwks_url.ok_or("JWKS URL is required")?,
             audience: self.audience.ok_or("Audience is required")?,
             issuer: self.issuer.ok_or("Issuer is required")?,
+            documentation_url: self.documentation_url,
             cache: self.cache.unwrap_or_default(),
             validation: self.validation.unwrap_or_default(),
             scope_mappings: self
@@ -300,19 +311,19 @@ mod tests {
     fn test_config_validation() {
         let mut config = OAuth2Config::default();
         config.audience = "".to_string();
-        
+
         assert!(config.validate().is_err());
-        
+
         config.audience = "valid-audience".to_string();
         config.validation.algorithms = vec!["INVALID_ALG".to_string()];
-        
+
         assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_default_scope_mappings() {
         let mappings = OAuth2Config::default_scope_mappings();
-        
+
         // Check that tools/call maps to mcp:tools:execute
         let tools_call = mappings
             .iter()
@@ -320,7 +331,7 @@ mod tests {
             .expect("tools/call mapping should exist");
         assert_eq!(tools_call.scope, "mcp:tools:execute");
         assert!(!tools_call.optional);
-        
+
         // Check that we have mappings for all major MCP operations
         let methods: Vec<&str> = mappings.iter().map(|m| m.method.as_str()).collect();
         assert!(methods.contains(&"tools/call"));
@@ -336,13 +347,13 @@ mod tests {
             scope: "mcp:tools:execute".to_string(),
             optional: false,
         };
-        
+
         let mapping2 = ScopeMapping {
             method: "tools/call".to_string(),
             scope: "mcp:tools:execute".to_string(),
             optional: false,
         };
-        
+
         assert_eq!(mapping1, mapping2);
     }
 }

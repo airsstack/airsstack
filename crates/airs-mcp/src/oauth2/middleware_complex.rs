@@ -1,4 +1,4 @@
-//! OAuth 2.1 Middleware Implementation - Simplified Version
+//! OAuth 2.1 Middleware Implementation
 //!
 //! This module provides the OAuth 2.1 middleware layer that integrates with
 //! Axum HTTP transport for request authentication and authorization.
@@ -133,6 +133,28 @@ fn extract_bearer_token(headers: &HeaderMap) -> Result<String, OAuth2Error> {
     Ok(token.to_string())
 }
 
+/// OAuth 2.1 middleware layer factory function
+pub fn oauth2_middleware_layer(
+    middleware: OAuth2Middleware,
+) -> axum::middleware::FromFnLayer<
+    impl Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, std::convert::Infallible>> + Send>> + Clone,
+    Request,
+    Response,
+> {
+    axum::middleware::from_fn(move |req: Request, next: Next| {
+        let middleware = middleware.clone();
+        Box::pin(async move {
+            match oauth2_middleware_handler(req, next, middleware).await {
+                Ok(response) => Ok(response),
+                Err(oauth_error) => {
+                    error!("OAuth middleware error: {:?}", oauth_error);
+                    Ok(OAuth2Middleware::create_error_response(oauth_error, true))
+                }
+            }
+        })
+    })
+}
+
 /// OAuth 2.1 middleware handler implementation
 ///
 /// Performs the actual OAuth 2.1 authentication and authorization:
@@ -194,24 +216,6 @@ pub async fn oauth2_middleware_handler(
     
     // Continue to next middleware
     Ok(next.run(request).await)
-}
-
-/// OAuth 2.1 middleware layer factory function
-/// 
-/// Creates a simple middleware function that can be used with Axum
-pub fn oauth2_middleware_layer(middleware: OAuth2Middleware) -> impl Clone + Fn(Request, Next) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, std::convert::Infallible>> + Send>> {
-    move |req: Request, next: Next| {
-        let middleware = middleware.clone();
-        Box::pin(async move {
-            match oauth2_middleware_handler(req, next, middleware).await {
-                Ok(response) => Ok(response),
-                Err(oauth_error) => {
-                    error!("OAuth middleware error: {:?}", oauth_error);
-                    Ok(OAuth2Middleware::create_error_response(oauth_error, true))
-                }
-            }
-        })
-    }
 }
 
 #[cfg(test)]
