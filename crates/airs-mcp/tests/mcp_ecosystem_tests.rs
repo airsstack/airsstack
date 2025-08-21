@@ -787,8 +787,7 @@ async fn test_http_client_transport_ecosystem_integration() {
         let error_msg = error.to_string();
         assert!(!error_msg.contains("Message too large"));
         println!(
-            "     ✅ Message size validation passed (network error expected: {})",
-            error_msg
+            "     ✅ Message size validation passed (network error expected: {error_msg})"
         );
     }
 
@@ -1232,7 +1231,7 @@ async fn test_http_streamable_capabilities() {
 
     println!("     ❌ Missing features identified:");
     for feature in missing_features {
-        println!("        - {}", feature);
+        println!("        - {feature}");
     }
 
     // Test 6: Performance characteristics assessment

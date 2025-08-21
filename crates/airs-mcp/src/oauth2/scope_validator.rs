@@ -10,7 +10,11 @@ use std::collections::HashMap;
 use tracing::{debug, warn};
 
 // Layer 3: Internal module imports
-use crate::oauth2::{config::ScopeMapping, error::OAuth2Error, error::OAuth2Result};
+use crate::oauth2::{
+    config::{OAuth2Config, ScopeMapping},
+    error::OAuth2Error,
+    error::OAuth2Result,
+};
 
 /// Validator for MCP method to OAuth scope mappings
 pub struct ScopeValidator {
@@ -35,7 +39,6 @@ impl ScopeValidator {
 
     /// Create a scope validator with default MCP mappings
     pub fn with_default_mappings() -> Self {
-        use crate::oauth2::config::OAuth2Config;
         Self::new(OAuth2Config::default_scope_mappings())
     }
 
@@ -49,27 +52,31 @@ impl ScopeValidator {
                 // Check if the required scope is present in user scopes
                 let has_required_scope = user_scopes.contains(&mapping.scope);
 
-                if has_required_scope {
-                    debug!(
-                        "Access granted to method '{}' with scope '{}'",
-                        method, mapping.scope
-                    );
-                    Ok(())
-                } else if mapping.optional {
-                    warn!(
-                        "Optional scope '{}' missing for method '{}', allowing access",
-                        mapping.scope, method
-                    );
-                    Ok(())
-                } else {
-                    debug!(
-                        "Access denied to method '{}': required scope '{}' not found in user scopes: {:?}",
-                        method, mapping.scope, user_scopes
-                    );
-                    Err(OAuth2Error::InsufficientScope {
-                        required: mapping.scope.clone(),
-                        provided: user_scopes.join(" "),
-                    })
+                match (has_required_scope, mapping.optional) {
+                    (true, _) => {
+                        debug!(
+                            "Access granted to method '{}' with scope '{}'",
+                            method, mapping.scope
+                        );
+                        Ok(())
+                    }
+                    (false, true) => {
+                        warn!(
+                            "Optional scope '{}' missing for method '{}', allowing access",
+                            mapping.scope, method
+                        );
+                        Ok(())
+                    }
+                    (false, false) => {
+                        debug!(
+                            "Access denied to method '{}': required scope '{}' not found in user scopes: {:?}",
+                            method, mapping.scope, user_scopes
+                        );
+                        Err(OAuth2Error::InsufficientScope {
+                            required: mapping.scope.clone(),
+                            provided: user_scopes.join(" "),
+                        })
+                    }
                 }
             }
             None => {
@@ -189,20 +196,20 @@ impl ScopeValidator {
 impl ScopeValidator {
     /// Check if user has read access to a resource type
     pub fn has_read_access(&self, resource_type: &str, user_scopes: &[String]) -> bool {
-        let read_scope = format!("mcp:{}:read", resource_type);
+        let read_scope = format!("mcp:{resource_type}:read");
         user_scopes.contains(&read_scope)
     }
 
     /// Check if user has write/execute access to a resource type
     pub fn has_write_access(&self, resource_type: &str, user_scopes: &[String]) -> bool {
-        let write_scope = format!("mcp:{}:execute", resource_type);
-        let admin_scope = format!("mcp:{}:admin", resource_type);
+        let write_scope = format!("mcp:{resource_type}:execute");
+        let admin_scope = format!("mcp:{resource_type}:admin");
         user_scopes.contains(&write_scope) || user_scopes.contains(&admin_scope)
     }
 
     /// Check if user has admin access to a resource type
     pub fn has_admin_access(&self, resource_type: &str, user_scopes: &[String]) -> bool {
-        let admin_scope = format!("mcp:{}:admin", resource_type);
+        let admin_scope = format!("mcp:{resource_type}:admin");
         user_scopes.contains(&admin_scope)
     }
 

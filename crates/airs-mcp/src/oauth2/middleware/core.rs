@@ -199,7 +199,7 @@ impl AuthenticationProvider for OAuth2MiddlewareCore {
             "/openapi.json",
         ];
 
-        let should_skip = skip_paths.iter().any(|&skip_path| path == skip_path);
+        let should_skip = skip_paths.contains(&path);
 
         if should_skip {
             debug!(

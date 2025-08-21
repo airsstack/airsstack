@@ -121,15 +121,11 @@ impl OAuth2Error {
         match self {
             OAuth2Error::InsufficientScope { required, .. } => {
                 format!(
-                    r#"Bearer error="{}", error_description="{}", scope="{}""#,
-                    error_code, error_description, required
+                    r#"Bearer error="{error_code}", error_description="{error_description}", scope="{required}""#
                 )
             }
             _ => {
-                format!(
-                    r#"Bearer error="{}", error_description="{}""#,
-                    error_code, error_description
-                )
+                format!(r#"Bearer error="{error_code}", error_description="{error_description}""#)
             }
         }
     }

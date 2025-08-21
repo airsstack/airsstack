@@ -53,7 +53,7 @@ impl AuthContext {
     pub fn new(claims: JwtClaims, scopes: Vec<String>) -> Self {
         let expires_at = claims
             .exp
-            .map(|exp| DateTime::from_timestamp(exp, 0).unwrap_or_else(|| Utc::now()));
+            .map(|exp| DateTime::from_timestamp(exp, 0).unwrap_or_else(Utc::now));
 
         Self {
             claims,
@@ -151,8 +151,7 @@ impl AuthContext {
 
     /// Get scopes that match a pattern (e.g., "mcp:tools:*")
     pub fn get_scopes_matching(&self, pattern: &str) -> Vec<&String> {
-        if pattern.ends_with('*') {
-            let prefix = &pattern[..pattern.len() - 1];
+        if let Some(prefix) = pattern.strip_suffix('*') {
             self.scopes
                 .iter()
                 .filter(|scope| scope.starts_with(prefix))
@@ -339,21 +338,15 @@ mod tests {
         assert!(!context.has_scope("mcp:tools:admin"));
 
         // Test any scope checking
-        assert!(context.has_any_scope(&vec![
-            "mcp:tools:execute".to_string(),
-            "mcp:unknown:scope".to_string(),
-        ]));
-        assert!(!context.has_any_scope(&vec!["mcp:unknown:scope".to_string()]));
+        assert!(context.has_any_scope(&["mcp:tools:execute".to_string(),
+            "mcp:unknown:scope".to_string()]));
+        assert!(!context.has_any_scope(&["mcp:unknown:scope".to_string()]));
 
         // Test all scopes checking
-        assert!(context.has_all_scopes(&vec![
-            "mcp:tools:execute".to_string(),
-            "mcp:resources:read".to_string(),
-        ]));
-        assert!(!context.has_all_scopes(&vec![
-            "mcp:tools:execute".to_string(),
-            "mcp:unknown:scope".to_string(),
-        ]));
+        assert!(context.has_all_scopes(&["mcp:tools:execute".to_string(),
+            "mcp:resources:read".to_string()]));
+        assert!(!context.has_all_scopes(&["mcp:tools:execute".to_string(),
+            "mcp:unknown:scope".to_string()]));
     }
 
     #[test]

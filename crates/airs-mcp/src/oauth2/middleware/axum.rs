@@ -259,7 +259,7 @@ impl AxumOAuth2Middleware {
         if include_challenge {
             let challenge = match &error {
                 OAuth2Error::InsufficientScope { required, .. } => {
-                    format!("Bearer scope=\"{}\"", required)
+                    format!("Bearer scope=\"{required}\"")
                 }
                 _ => "Bearer".to_string(),
             };

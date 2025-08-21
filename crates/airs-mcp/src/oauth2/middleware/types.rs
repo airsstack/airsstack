@@ -192,12 +192,12 @@ impl MiddlewareContext {
 impl fmt::Display for MiddlewareError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MiddlewareError::OAuth(err) => write!(f, "OAuth error: {}", err),
-            MiddlewareError::Http(err) => write!(f, "HTTP error: {}", err),
-            MiddlewareError::RequestParsing(msg) => write!(f, "Request parsing error: {}", msg),
-            MiddlewareError::ResponseBuilding(msg) => write!(f, "Response building error: {}", msg),
-            MiddlewareError::Configuration(msg) => write!(f, "Configuration error: {}", msg),
-            MiddlewareError::Internal(msg) => write!(f, "Internal middleware error: {}", msg),
+            MiddlewareError::OAuth(err) => write!(f, "OAuth error: {err}"),
+            MiddlewareError::Http(err) => write!(f, "HTTP error: {err}"),
+            MiddlewareError::RequestParsing(msg) => write!(f, "Request parsing error: {msg}"),
+            MiddlewareError::ResponseBuilding(msg) => write!(f, "Response building error: {msg}"),
+            MiddlewareError::Configuration(msg) => write!(f, "Configuration error: {msg}"),
+            MiddlewareError::Internal(msg) => write!(f, "Internal middleware error: {msg}"),
         }
     }
 }
@@ -205,13 +205,13 @@ impl fmt::Display for MiddlewareError {
 impl fmt::Display for HttpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HttpError::InvalidHeader(header) => write!(f, "Invalid header: {}", header),
-            HttpError::MissingHeader(header) => write!(f, "Missing header: {}", header),
-            HttpError::BodyParsing(msg) => write!(f, "Body parsing error: {}", msg),
+            HttpError::InvalidHeader(header) => write!(f, "Invalid header: {header}"),
+            HttpError::MissingHeader(header) => write!(f, "Missing header: {header}"),
+            HttpError::BodyParsing(msg) => write!(f, "Body parsing error: {msg}"),
             HttpError::ResponseSerialization(msg) => {
-                write!(f, "Response serialization error: {}", msg)
+                write!(f, "Response serialization error: {msg}")
             }
-            HttpError::Framework(msg) => write!(f, "Framework error: {}", msg),
+            HttpError::Framework(msg) => write!(f, "Framework error: {msg}"),
         }
     }
 }

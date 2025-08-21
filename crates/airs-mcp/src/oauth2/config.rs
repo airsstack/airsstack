@@ -208,7 +208,7 @@ impl OAuth2Config {
         // Validate that all algorithms are supported
         for algorithm in &self.validation.algorithms {
             if !["RS256", "RS384", "RS512", "ES256", "ES384"].contains(&algorithm.as_str()) {
-                return Err(format!("Unsupported algorithm: {}", algorithm));
+                return Err(format!("Unsupported algorithm: {algorithm}"));
             }
         }
 
@@ -274,7 +274,7 @@ impl OAuth2ConfigBuilder {
             validation: self.validation.unwrap_or_default(),
             scope_mappings: self
                 .scope_mappings
-                .unwrap_or_else(|| OAuth2Config::default_scope_mappings()),
+                .unwrap_or_else(OAuth2Config::default_scope_mappings),
         };
 
         config.validate()?;
@@ -309,8 +309,10 @@ mod tests {
 
     #[test]
     fn test_config_validation() {
-        let mut config = OAuth2Config::default();
-        config.audience = "".to_string();
+        let mut config = OAuth2Config {
+            audience: "".to_string(),
+            ..Default::default()
+        };
 
         assert!(config.validate().is_err());
 

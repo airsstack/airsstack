@@ -172,7 +172,7 @@ impl JwtValidator {
             .timeout(Duration::from_secs(10))
             .build()
             .map_err(|e| {
-                OAuth2Error::Configuration(format!("Failed to create HTTP client: {}", e))
+                OAuth2Error::Configuration(format!("Failed to create HTTP client: {e}"))
             })?;
 
         Ok(Self {
@@ -187,7 +187,7 @@ impl JwtValidator {
     pub async fn validate_token(&self, token: &str) -> OAuth2Result<JwtClaims> {
         // Decode the token header to get the key ID
         let header = jsonwebtoken::decode_header(token)
-            .map_err(|e| OAuth2Error::TokenValidation(format!("Invalid token header: {}", e)))?;
+            .map_err(|e| OAuth2Error::TokenValidation(format!("Invalid token header: {e}")))?;
 
         let kid = header.kid.ok_or_else(|| {
             OAuth2Error::TokenValidation("Token missing key ID (kid) in header".to_string())
@@ -215,7 +215,7 @@ impl JwtValidator {
                         expected: self.config.issuer.clone(),
                         actual: "Invalid issuer in token".to_string(),
                     },
-                    _ => OAuth2Error::TokenValidation(format!("Token validation failed: {}", e)),
+                    _ => OAuth2Error::TokenValidation(format!("Token validation failed: {e}")),
                 }
             })?;
 
@@ -254,7 +254,7 @@ impl JwtValidator {
             .iter()
             .find(|key| key.kid.as_deref() == Some(kid))
             .ok_or_else(|| {
-                OAuth2Error::JwksError(format!("Key with id '{}' not found in JWKS", kid))
+                OAuth2Error::JwksError(format!("Key with id '{kid}' not found in JWKS"))
             })?;
 
         // Convert JWK to DecodingKey
@@ -286,7 +286,7 @@ impl JwtValidator {
             .get(self.config.jwks_url.clone())
             .send()
             .await
-            .map_err(|e| OAuth2Error::JwksError(format!("Failed to fetch JWKS: {}", e)))?;
+            .map_err(|e| OAuth2Error::JwksError(format!("Failed to fetch JWKS: {e}")))?;
 
         if !response.status().is_success() {
             return Err(OAuth2Error::JwksError(format!(
@@ -298,7 +298,7 @@ impl JwtValidator {
         let jwks: JwksResponse = response
             .json()
             .await
-            .map_err(|e| OAuth2Error::JwksError(format!("Failed to parse JWKS response: {}", e)))?;
+            .map_err(|e| OAuth2Error::JwksError(format!("Failed to parse JWKS response: {e}")))?;
 
         debug!("Successfully fetched JWKS with {} keys", jwks.keys.len());
         Ok(jwks)
@@ -317,7 +317,7 @@ impl JwtValidator {
 
                 // Decode base64url encoded values
                 DecodingKey::from_rsa_components(n, e)
-                    .map_err(|e| OAuth2Error::JwksError(format!("Failed to create RSA key: {}", e)))
+                    .map_err(|e| OAuth2Error::JwksError(format!("Failed to create RSA key: {e}")))
             }
             _ => Err(OAuth2Error::JwksError(format!(
                 "Unsupported key type: {}",
@@ -383,13 +383,12 @@ mod tests {
             "keys": [{{
                 "kty": "RSA",
                 "use": "sig",
-                "kid": "{}",
+                "kid": "{TEST_KID}",
                 "alg": "RS256",
-                "n": "{}",
-                "e": "{}"
+                "n": "{TEST_RSA_PUBLIC_KEY_N}",
+                "e": "{TEST_RSA_PUBLIC_KEY_E}"
             }}]
-        }}"#,
-            TEST_KID, TEST_RSA_PUBLIC_KEY_N, TEST_RSA_PUBLIC_KEY_E
+        }}"#
         )
     }
 
@@ -431,14 +430,14 @@ mod tests {
         let token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXIifQ.invalid";
 
         // Validate token - should fail with TokenValidation
-        let result = validator.validate_token(&token).await;
+        let result = validator.validate_token(token).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
             OAuth2Error::TokenValidation(msg) => {
                 assert!(msg.contains("missing key ID") || msg.contains("kid"));
             }
-            other => panic!("Expected TokenValidation error, got: {:?}", other),
+            other => panic!("Expected TokenValidation error, got: {other:?}"),
         }
     }
 
@@ -453,11 +452,10 @@ mod tests {
                 "use": "sig",
                 "kid": "different-key-id",
                 "alg": "RS256",
-                "n": "{}",
-                "e": "{}"
+                "n": "{TEST_RSA_PUBLIC_KEY_N}",
+                "e": "{TEST_RSA_PUBLIC_KEY_E}"
             }}]
-        }}"#,
-            TEST_RSA_PUBLIC_KEY_N, TEST_RSA_PUBLIC_KEY_E
+        }}"#
         );
 
         Mock::given(method("GET"))
@@ -487,7 +485,7 @@ mod tests {
             OAuth2Error::JwksError(msg) => {
                 assert!(msg.contains("not found in JWKS"));
             }
-            other => panic!("Expected JwksError, got: {:?}", other),
+            other => panic!("Expected JwksError, got: {other:?}"),
         }
     }
 
@@ -511,8 +509,7 @@ mod tests {
         let token_with_valid_header = format!(
             "{}.{}.{}",
             URL_SAFE_NO_PAD.encode(format!(
-                r#"{{"alg":"RS256","typ":"JWT","kid":"{}"}}"#,
-                TEST_KID
+                r#"{{"alg":"RS256","typ":"JWT","kid":"{TEST_KID}"}}"#
             )),
             URL_SAFE_NO_PAD.encode(r#"{"sub":"test-user"}"#),
             "invalid_signature"
@@ -526,7 +523,7 @@ mod tests {
             OAuth2Error::JwksError(msg) => {
                 assert!(msg.contains("returned status: 500"));
             }
-            other => panic!("Expected JwksError, got: {:?}", other),
+            other => panic!("Expected JwksError, got: {other:?}"),
         }
     }
 
@@ -547,7 +544,7 @@ mod tests {
             OAuth2Error::TokenValidation(msg) => {
                 assert!(msg.contains("Invalid token header"));
             }
-            other => panic!("Expected TokenValidation error, got: {:?}", other),
+            other => panic!("Expected TokenValidation error, got: {other:?}"),
         }
     }
 
@@ -571,8 +568,7 @@ mod tests {
         let token_with_valid_header = format!(
             "{}.{}.{}",
             URL_SAFE_NO_PAD.encode(format!(
-                r#"{{"alg":"RS256","typ":"JWT","kid":"{}"}}"#,
-                TEST_KID
+                r#"{{"alg":"RS256","typ":"JWT","kid":"{TEST_KID}"}}"#
             )),
             URL_SAFE_NO_PAD.encode(r#"{"sub":"test-user"}"#),
             "invalid_signature"
@@ -586,7 +582,7 @@ mod tests {
             OAuth2Error::JwksError(msg) => {
                 assert!(msg.contains("Failed to parse JWKS response"));
             }
-            other => panic!("Expected JwksError, got: {:?}", other),
+            other => panic!("Expected JwksError, got: {other:?}"),
         }
     }
 
@@ -806,7 +802,7 @@ mod tests {
             expires_at: tokio::time::Instant::now(),
         };
 
-        let debug_str = format!("{:?}", cached_key);
+        let debug_str = format!("{cached_key:?}");
         assert!(debug_str.contains("CachedKey"));
         assert!(debug_str.contains("expires_at"));
         // Should not contain the actual key data
