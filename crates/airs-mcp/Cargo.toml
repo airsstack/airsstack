@@ -65,6 +65,9 @@ tracing-subscriber.workspace = true
 # Temporary file/directory creation for tests (inherited from workspace)
 tempfile.workspace = true
 
+# HTTP mocking for JWT validation tests
+wiremock.workspace = true
+
 # Benchmark dependencies
 chrono.workspace = true
 num_cpus.workspace = true
