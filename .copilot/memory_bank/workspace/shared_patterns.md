@@ -155,7 +155,98 @@ impl Validator for JwtValidator {
 }
 ```
 
-### §5. Performance Guidelines
+### §5. Advanced Builder Pattern - Progressive Type Refinement
+
+**Principle**: Use progressive type refinement in builder patterns for maximum type safety with ergonomic APIs.
+
+#### Builder Struct Design - No Premature Constraints
+```rust
+// ✅ CORRECT - No constraints on struct definition
+pub struct ValidatorBuilder<J, S> {
+    jwt: Option<J>,    // No trait bounds here
+    scope: Option<S>,  // No trait bounds here
+}
+
+// ❌ INCORRECT - Overly restrictive constraints
+pub struct ValidatorBuilder<J, S> 
+where
+    J: JwtValidator,    // Don't do this - prevents flexible construction
+    S: ScopeValidator,  // Don't do this - prevents type evolution
+{
+    jwt: Option<J>,
+    scope: Option<S>,
+}
+```
+
+#### Progressive Constraint Application
+```rust
+impl<J, S> ValidatorBuilder<J, S> {
+    // ✅ Apply constraints only where needed
+    pub fn jwt<NewJ>(self, jwt_validator: NewJ) -> ValidatorBuilder<NewJ, S>
+    where
+        NewJ: JwtValidator,  // Constraint applied when setting component
+    {
+        ValidatorBuilder {
+            jwt: Some(jwt_validator),
+            scope: self.scope,
+        }
+    }
+
+    // ✅ Constraints enforced at build time
+    pub fn build(self) -> Result<Validator<J, S>, BuilderError>
+    where
+        J: JwtValidator,     // Required for final construction
+        S: ScopeValidator,   // Required for final construction
+    {
+        let jwt = self.jwt.ok_or(BuilderError::MissingJwtValidator)?;
+        let scope = self.scope.ok_or(BuilderError::MissingScopeValidator)?;
+        Ok(Validator::new(jwt, scope))
+    }
+}
+```
+
+#### Type Evolution Flow
+```rust
+// Progressive type refinement enables this natural flow:
+let builder = ValidatorBuilder::new();              // ValidatorBuilder<(), ()>
+let with_jwt = builder.with_default_jwt(config)?;   // ValidatorBuilder<Jwt, ()>  
+let with_scope = with_jwt.with_default_scope();     // ValidatorBuilder<Jwt, Scope>
+let validator = with_scope.build()?;                // Validator<Jwt, Scope> - constraints checked here
+```
+
+#### Benefits of Progressive Type Refinement
+- **Flexible Construction**: Can start with any types (including unit types)
+- **Type Safety**: Constraints enforced exactly when needed, not before
+- **Ergonomic API**: Natural building flow guided by type system
+- **Compile-Time Guarantees**: Impossible states prevented without runtime overhead
+- **Zero-Cost Abstractions**: No performance penalty for type safety
+
+#### Anti-Patterns to Avoid
+```rust
+// ❌ Don't constrain struct when fields are optional
+pub struct Builder<T: Trait> {
+    field: Option<T>,  // Why require Trait when field might be None?
+}
+
+// ❌ Don't apply constraints globally when only some methods need them
+impl<T: Trait> Builder<T> {  // This forces all impls to have Trait bound
+    pub fn new() -> Self { ... }  // new() doesn't need T: Trait!
+}
+
+// ✅ Apply constraints per-method based on actual requirements
+impl<T> Builder<T> {
+    pub fn new() -> Self { ... }  // No unnecessary constraints
+    
+    pub fn use_trait(&self) -> Result<(), Error>
+    where
+        T: Trait,  // Constraint only where actually needed
+    {
+        self.field.as_ref().unwrap().trait_method()
+    }
+}
+```
+
+### §6. Performance Guidelines
 
 **Summary**: These patterns prioritize performance through zero-cost abstractions while maintaining code clarity and safety.
 

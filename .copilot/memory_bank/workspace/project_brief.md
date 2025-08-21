@@ -50,14 +50,20 @@ This document defines the overall vision, objectives, architecture, and technica
 - **Non-Blocking I/O:** All I/O operations implemented as async operations
 
 #### Rust Language Excellence Standards
-**Reference:** `workspace/shared_patterns.md` §1-§5 for detailed implementation guidelines.
+**Reference:** `workspace/shared_patterns.md` §1-§6 for detailed implementation guidelines.
 
 **Core Principles:**
 - **Zero-Cost Abstractions:** Prefer generics over trait objects for performance-critical paths
 - **Minimal Lifetime Constraints:** Avoid `'static` bounds unless required for global state  
 - **Stack-Preferred Memory:** Use `Box<T>` only when heap allocation provides clear benefits
 - **Trait-Based Design:** Design for flexibility with associated types and generic constraints
+- **Progressive Type Refinement:** Use advanced builder patterns with constraint evolution
 - **Performance Validation:** Benchmark critical paths and verify monomorphization behavior
+
+**Advanced Patterns:**
+- **Builder Pattern Excellence:** Progressive type refinement without premature constraints
+- **Generic Constraint Placement:** Apply trait bounds only where actually needed
+- **Type Evolution Flow:** Enable natural API usage through compile-time type safety
 
 **Enforcement:**
 - All code must pass `cargo clippy --workspace` with zero warnings
