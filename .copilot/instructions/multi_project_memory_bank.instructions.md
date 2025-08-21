@@ -30,10 +30,16 @@ The Memory Bank supports multiple sub-projects and workspace-level shared files.
 flowchart TD
     Root[.copilot/memory_bank/] --> WS[workspace/]
     Root --> CC[current_context.md]
+    Root --> TMPL[templates/]
     WS --> WSPB[project_brief.md]
     WS --> WSPT[shared_patterns.md]
     WS --> WSARCH[workspace_architecture.md]
     WS --> WSPROG[workspace_progress.md]
+    TMPL --> DOCS[docs/]
+    DOCS --> TDTEMPL[technical-debt-template.md]
+    DOCS --> KTEMPL[knowledge-template.md]
+    DOCS --> ADRTEMPL[adr-template.md]
+    DOCS --> GUIDELINES[documentation-guidelines.md]
     Root --> SP[sub_projects/]
     SP --> Sub[sub_project_name/]
     Sub --> PB[project_brief.md]
@@ -43,6 +49,10 @@ flowchart TD
     Sub --> AC[active_context.md]
     Sub --> P[progress.md]
     Sub --> TF[tasks/ folder]
+    Sub --> DOCSDIR[docs/ folder]
+    DOCSDIR --> DEBTS[debts/]
+    DOCSDIR --> KNOWLEDGES[knowledges/]
+    DOCSDIR --> ADRS[adr/]
 ```
 
 
@@ -51,6 +61,15 @@ flowchart TD
 - `workspace/shared_patterns.md`: Core implementation, architecture, and methodology patterns
 - `workspace/workspace_architecture.md`: High-level workspace structure and relationships
 - `workspace/workspace_progress.md`: Cross-crate milestones, status, and strategic decisions
+
+### Technical Documentation Templates
+- `templates/docs/`: Standardized templates for technical knowledge management
+  - `technical-debt-template.md`: Template for tracking technical shortcuts and compromises
+  - `knowledge-template.md`: Template for capturing architectural and technical knowledge
+  - `adr-template.md`: Template for Architecture Decision Records
+  - `documentation-guidelines.md`: Guidelines for when and how to create technical documentation
+  - `debt-index-template.md`: Template for debt registry maintenance
+  - `adr-index-template.md`: Template for ADR chronological registry
 
 ### Root-Level Context File
 - `current_context.md`: Tracks the currently active sub-project for context switching
@@ -91,6 +110,12 @@ flowchart TD
    - Each task file: `task_[id]_[name].md`
    - Task index file: `_index.md` listing all tasks and statuses
 
+8. `docs/` folder (Technical Knowledge Management)
+   - `debts/`: Technical debt records tracking shortcuts and compromises
+   - `knowledges/`: Architectural patterns, implementation details, and domain expertise
+   - `adr/`: Architecture Decision Records for significant technical decisions
+   - Each section maintains an `_index.md` registry file
+
 
 ### Additional Context
 Create additional files/folders within each sub-project or workspace as needed:
@@ -99,6 +124,60 @@ Create additional files/folders within each sub-project or workspace as needed:
 - API documentation
 - Testing strategies
 - Deployment procedures
+
+**Note**: All sub-projects should follow the standardized technical documentation structure using templates from `templates/docs/` for consistency across the workspace.
+
+## Technical Documentation Framework
+
+The memory bank includes a comprehensive technical documentation framework to capture, organize, and maintain technical knowledge across all sub-projects.
+
+### Documentation Types
+
+**Technical Debt Records** (`docs/debts/`)
+- **Purpose**: Track technical shortcuts, compromises, and items requiring future attention
+- **Template**: `templates/docs/technical-debt-template.md`
+- **Index**: Each sub-project maintains `docs/debts/_index.md` for debt registry
+- **Integration**: Links with GitHub Issues and task management for remediation tracking
+
+**Knowledge Documentation** (`docs/knowledges/`)
+- **Purpose**: Capture architectural patterns, implementation details, and domain expertise
+- **Template**: `templates/docs/knowledge-template.md`
+- **Organization**: Structured by categories (architecture/, patterns/, performance/, integration/, security/, domain/)
+- **Focus**: Reusable technical knowledge that supports development and maintenance
+
+**Architecture Decision Records** (`docs/adr/`)
+- **Purpose**: Document significant technical decisions with full context and rationale
+- **Template**: `templates/docs/adr-template.md`
+- **Index**: Each sub-project maintains `docs/adr/_index.md` for chronological decision tracking
+- **Lifecycle**: Tracks decision status (Proposed/Accepted/Deprecated/Superseded)
+
+### Documentation Guidelines
+
+**Documentation Triggers**
+- **Technical Debt**: Required for any `TODO(DEBT)` comments, workspace standards violations, or architectural shortcuts
+- **Knowledge Docs**: Required for complex algorithms, reusable patterns, external integrations, or performance-critical code
+- **ADRs**: Required for technology selections, architectural patterns, or decisions affecting system scalability/performance
+
+**Quality Standards**
+- All code examples must compile and run correctly
+- Reference workspace standards rather than duplicating content
+- Maintain cross-references between related documentation
+- Regular maintenance and review schedules (see `templates/docs/documentation-guidelines.md`)
+
+**Workflow Integration**
+- Documentation creation integrated into task planning and completion
+- Code review verification of documentation completeness
+- Quarterly documentation review for accuracy and relevance
+
+### Template Usage
+
+All technical documentation MUST follow the standardized templates:
+- Use exact template structure from `templates/docs/`
+- Follow naming conventions specified in templates
+- Maintain required index files for tracking and navigation
+- Cross-reference related documentation types appropriately
+
+This framework ensures consistent, high-quality technical documentation that supports long-term maintainability and knowledge transfer across all sub-projects in the workspace.
 
 
 ## Workspace-Aware Workflows
@@ -350,6 +429,14 @@ To support operational continuity, onboarding, and historical analysis, the memo
     shared_patterns.md
     workspace_architecture.md
     workspace_progress.md
+  templates/
+    docs/
+      technical-debt-template.md
+      knowledge-template.md
+      adr-template.md
+      documentation-guidelines.md
+      debt-index-template.md
+      adr-index-template.md
   context_snapshots/
     2025_07_29_initial_setup.md
     2025_07_29_pre_release_state.md
@@ -365,6 +452,18 @@ To support operational continuity, onboarding, and historical analysis, the memo
         _index.md
         task_001_setup_database.md
         task_002_build_api.md
+      docs/
+        debts/
+          _index.md
+          DEBT-001-correlation-error-handling.md
+        knowledges/
+          architecture/
+            transport-layer-design.md
+          patterns/
+            async-error-handling.md
+        adr/
+          _index.md
+          ADR-001-transport-abstraction.md
     frontend_app/
       project_brief.md
       ...
