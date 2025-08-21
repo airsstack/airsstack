@@ -11,7 +11,7 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-use crate::oauth2::jwt_validator::JwtClaims;
+use crate::oauth2::types::JwtClaims;
 
 /// Authentication context for OAuth 2.1 authenticated requests
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -262,7 +262,7 @@ macro_rules! require_scope {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::oauth2::jwt_validator::JwtClaims;
+    use crate::oauth2::types::JwtClaims;
 
     fn create_test_claims() -> JwtClaims {
         JwtClaims {

@@ -179,7 +179,7 @@ mod tests {
     impl AuthenticationProvider for MockAuthProvider {
         async fn authenticate(&self, _token: &str) -> Result<AuthContext, OAuth2Error> {
             // Mock implementation for testing
-            let claims = crate::oauth2::jwt_validator::JwtClaims {
+            let claims = crate::oauth2::types::JwtClaims {
                 sub: "test-user".to_string(),
                 aud: Some("test-audience".to_string()),
                 iss: Some("https://auth.example.com".to_string()),

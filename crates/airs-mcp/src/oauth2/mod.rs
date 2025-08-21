@@ -61,19 +61,22 @@
 pub mod config;
 pub mod context;
 pub mod error;
-pub mod jwt_validator;
 pub mod metadata;
 pub mod middleware;
-pub mod scope_validator;
+pub mod types;
+pub mod validator;
 
 // Re-exports for public API
 pub use config::{OAuth2Config, ScopeMapping};
 pub use context::{AuditLogEntry, AuthContext, AuthContextExt, AuthMetadata};
 pub use error::{OAuth2Error, OAuth2Result};
-pub use jwt_validator::{JwksResponse, JwtClaims, JwtValidator};
 pub use metadata::{oauth_metadata_handler, ProtectedResourceMetadata};
 pub use middleware::{
     oauth2_middleware_layer, AuthenticationProvider, AxumOAuth2Middleware, OAuth2MiddlewareCore,
     OAuthMiddleware, OAuthRequestProcessor, OAuthResponseBuilder,
 };
-pub use scope_validator::ScopeValidator;
+pub use types::{Jwk, JwksResponse, JwtClaims};
+pub use validator::{
+    create_default_validator, create_validator_with_mappings, Jwt, Scope, Validator,
+    ValidatorBuilder,
+};

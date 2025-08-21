@@ -14,8 +14,10 @@ use tracing::{debug, warn};
 // Layer 3: Internal module imports
 use super::traits::{AuthenticationProvider, OAuthMiddlewareConfig};
 use crate::oauth2::{
-    config::OAuth2Config, context::AuthContext, error::OAuth2Error, jwt_validator::JwtValidator,
-    scope_validator::ScopeValidator,
+    config::OAuth2Config,
+    context::AuthContext,
+    error::OAuth2Error,
+    validator::{Jwt, JwtValidator, Scope},
 };
 
 /// Core OAuth 2.1 middleware implementation
@@ -25,11 +27,11 @@ use crate::oauth2::{
 /// middleware implementations for different HTTP frameworks.
 #[derive(Clone)]
 pub struct OAuth2MiddlewareCore {
-    /// JWT token validator with JWKS support
-    jwt_validator: Arc<JwtValidator>,
+    /// JWT validator for token verification
+    jwt_validator: Arc<Jwt>,
 
-    /// Scope validator for MCP method authorization  
-    scope_validator: Arc<ScopeValidator>,
+    /// Scope validator for method access control
+    scope_validator: Arc<Scope>,
 
     /// OAuth configuration
     config: OAuth2Config,
@@ -63,8 +65,8 @@ impl OAuth2MiddlewareCore {
     pub fn new(config: OAuth2Config) -> Result<Self, OAuth2Error> {
         debug!("Creating OAuth2MiddlewareCore with config: {:?}", config);
 
-        let jwt_validator = Arc::new(JwtValidator::new(config.clone())?);
-        let scope_validator = Arc::new(ScopeValidator::with_default_mappings());
+        let jwt_validator = Arc::new(Jwt::new(config.clone())?);
+        let scope_validator = Arc::new(Scope::with_default_mappings());
 
         Ok(Self {
             jwt_validator,
@@ -74,34 +76,18 @@ impl OAuth2MiddlewareCore {
     }
 
     /// Get reference to JWT validator
-    pub fn jwt_validator(&self) -> &JwtValidator {
+    pub fn jwt_validator(&self) -> &Jwt {
         &self.jwt_validator
     }
 
     /// Get reference to scope validator
-    pub fn scope_validator(&self) -> &ScopeValidator {
+    pub fn scope_validator(&self) -> &Scope {
         &self.scope_validator
     }
 
     /// Get reference to OAuth configuration
     pub fn config(&self) -> &OAuth2Config {
         &self.config
-    }
-
-    /// Extract OAuth scopes from JWT claims
-    ///
-    /// Parses the space-separated scope claim from JWT according to RFC 6749.
-    fn extract_scopes_from_token(
-        &self,
-        claims: &crate::oauth2::jwt_validator::JwtClaims,
-    ) -> Vec<String> {
-        claims
-            .scope
-            .as_deref()
-            .unwrap_or("")
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .collect()
     }
 
     /// Validate MCP method access against OAuth scopes
@@ -154,11 +140,11 @@ impl AuthenticationProvider for OAuth2MiddlewareCore {
         debug!("Authenticating Bearer token");
 
         // Validate JWT token and get claims
-        let claims = self.jwt_validator.validate_token(token).await?;
+        let claims = self.jwt_validator.validate(token).await?;
         debug!("JWT validation successful for subject: {:?}", claims.sub);
 
         // Extract scopes from token claims
-        let scopes = self.extract_scopes_from_token(&claims);
+        let scopes = self.jwt_validator.extract_scopes(&claims);
         debug!("Extracted scopes from token: {:?}", scopes);
 
         // Create AuthContext with claims and scopes
@@ -295,7 +281,7 @@ mod tests {
         let core = OAuth2MiddlewareCore::new(config).unwrap();
 
         // Create mock JWT claims with scopes
-        let claims = crate::oauth2::jwt_validator::JwtClaims {
+        let claims = crate::oauth2::types::JwtClaims {
             sub: "test-user".to_string(),
             aud: Some("test-audience".to_string()),
             iss: Some("https://auth.example.com".to_string()),
@@ -307,7 +293,7 @@ mod tests {
             scopes: None,
         };
 
-        let scopes = core.extract_scopes_from_token(&claims);
+        let scopes = core.jwt_validator.extract_scopes(&claims);
         assert_eq!(scopes, vec!["mcp:read", "mcp:write", "admin:*"]);
     }
 }
