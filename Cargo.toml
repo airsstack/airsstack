@@ -15,6 +15,9 @@ repository = "https://github.com/rstlix0x0/airs"
 rust-version = "1.88"
 
 [workspace.dependencies]
+# AIRS MCP Foundation - path dependency
+airs-mcp = { path = "crates/airs-mcp" }
+
 # Core async runtime
 tokio = { version = "1.47", features = ["full"] }
 futures = { version = "0.3" }
@@ -107,9 +110,6 @@ predicates = { version = "3.1" }
 
 # HTTP mocking for testing
 wiremock = { version = "0.6" }
-
-# AIRS MCP Foundation - path dependency
-airs-mcp = { path = "crates/airs-mcp" }
 
 # Binary processing (latest stable - for airs-mcp-fs)
 image = { version = "0.25", features = ["jpeg", "png", "gif", "webp", "tiff", "bmp"] }
