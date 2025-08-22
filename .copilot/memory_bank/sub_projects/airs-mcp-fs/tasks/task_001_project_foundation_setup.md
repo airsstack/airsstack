@@ -20,13 +20,55 @@ This task establishes the critical foundation that all subsequent development de
 
 The success of this task determines implementation velocity for all subsequent phases, making careful execution critical.
 
-## Implementation Plan
-1. Configure Cargo.toml with all required dependencies and workspace integration
-2. Create modular project structure aligned with architectural design  
-3. Set up basic lib.rs and main.rs with foundation types
-4. Configure development tools (testing, benchmarking, documentation)
-5. Validate build system and integration with AIRS workspace
-6. Create basic CI/CD foundation for automated testing
+## Implementation Plan (FINALIZED - 2025-08-22)
+
+### TECHNICAL DECISIONS APPROVED
+
+**1. Root Workspace Dependency Management**
+- ALL dependencies MUST be defined in root `/Cargo.toml` with latest stable versions
+- airs-mcp path dependency: `airs-mcp = { path = "crates/airs-mcp" }`
+- airs-mcp-fs inherits ALL dependencies from workspace using `.workspace = true`
+
+**2. lib.rs Architecture Pattern**
+- lib.rs functions as pure module coordinator (like mod.rs)
+- ONLY module declarations (`pub mod`) and re-exports (`pub use`)
+- NO type definitions, implementations, or business logic
+- All types defined in appropriate module files
+
+**3. Testing Strategy (Standard Rust Conventions)**
+- Unit tests: Inline `#[cfg(test)]` modules within each source file
+- Integration tests: Separate files in `tests/` directory only
+- NO benchmark suites initially (focus on unit tests priority)
+
+**4. Directory Structure**
+```
+src/
+├── lib.rs              # Pure import/re-export coordinator
+├── main.rs             # Binary entry point
+├── mcp/                # MCP integration layer
+├── security/           # Security and approval framework  
+├── filesystem/         # Core filesystem operations
+├── binary/             # Binary processing engine
+└── config/             # Configuration management
+```
+
+**5. Workspace Standards Compliance (Mandatory)**
+- §2.1: 3-Layer Import Organization in ALL files
+- §3.2: chrono DateTime<Utc> for ALL time operations
+- §4.3: Clean mod.rs organization (declarations + re-exports only)
+- §5.1: Centralized dependency management at workspace level
+
+### IMPLEMENTATION SEQUENCE
+1. Update root Cargo.toml with latest stable versions
+2. Configure airs-mcp-fs Cargo.toml with workspace inheritance
+3. Create modular directory structure
+4. Implement lib.rs as pure coordinator
+5. Create main.rs binary entry point
+6. Implement module foundations with inline unit tests
+7. Validate workspace standards compliance
+
+**Estimated Time**: ~3 hours total
+**Next Action**: Begin with root Cargo.toml dependency additions
 
 ## Progress Tracking
 
@@ -35,14 +77,25 @@ The success of this task determines implementation velocity for all subsequent p
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | Configure Cargo.toml with all dependencies | not_started | 2025-08-16 | Ready for implementation |
-| 1.2 | Create modular directory structure (mcp/, security/, binary/, filesystem/) | not_started | 2025-08-16 | Follows architectural design |
-| 1.3 | Set up basic lib.rs with core types and public API | not_started | 2025-08-16 | Foundation for all modules |
-| 1.4 | Create main.rs binary entry point | not_started | 2025-08-16 | MCP server executable |
-| 1.5 | Configure development tools and testing framework | not_started | 2025-08-16 | Essential for TDD approach |
-| 1.6 | Validate build system and workspace integration | not_started | 2025-08-16 | Ensure zero warnings policy |
+| 1.1 | Update root Cargo.toml with airs-mcp-fs dependencies (latest stable) | not_started | 2025-08-22 | Add image, infer, config, path-clean, glob, assert_fs to workspace |
+| 1.2 | Configure airs-mcp-fs Cargo.toml with workspace inheritance | not_started | 2025-08-22 | Inherit ALL dependencies using .workspace = true |
+| 1.3 | Create modular directory structure with inline unit tests | not_started | 2025-08-22 | mcp/, security/, filesystem/, binary/, config/ modules |
+| 1.4 | Implement lib.rs as pure coordinator (no types/logic) | not_started | 2025-08-22 | Module declarations and re-exports only |
+| 1.5 | Create main.rs binary entry point | not_started | 2025-08-22 | MCP server executable with proper error handling |
+| 1.6 | Validate workspace standards compliance and build system | not_started | 2025-08-22 | Zero warnings policy + standards enforcement |
 
 ## Progress Log
+### 2025-08-22
+- **CRITICAL TECHNICAL DECISIONS FINALIZED** - Implementation plan refined with user feedback
+- **ADR-001 CREATED**: Foundation Architecture Patterns documented with formal decision record
+- **Root Cargo.toml Management**: All dependencies MUST be defined at workspace level with latest stable versions
+- **airs-mcp Path Dependency**: Define airs-mcp path dependency at workspace level, inherit in airs-mcp-fs
+- **lib.rs Architecture**: Pure import/re-export structure (like mod.rs), NO type definitions or operations
+- **Testing Strategy**: Inline unit tests with `#[cfg(test)]` modules (standard Rust conventions), NO benchmark suites initially
+- **Standards Compliance**: All workspace standards (§2.1, §3.2, §4.3, §5.1) enforced from foundation
+- **Documentation**: ADR-001 captures architectural rationale for future reference and onboarding
+- Implementation plan approved and ready for execution
+
 ### 2025-08-16
 - Task created during memory bank setup
 - All architectural documentation and dependencies clearly defined
