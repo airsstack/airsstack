@@ -107,3 +107,21 @@ predicates = { version = "3.1" }
 
 # HTTP mocking for testing
 wiremock = { version = "0.6" }
+
+# AIRS MCP Foundation - path dependency
+airs-mcp = { path = "crates/airs-mcp" }
+
+# Binary processing (latest stable - for airs-mcp-fs)
+image = { version = "0.25", features = ["jpeg", "png", "gif", "webp", "tiff", "bmp"] }
+infer = { version = "0.16" }
+
+# Configuration management (latest stable - for airs-mcp-fs)
+config = { version = "0.14" }
+toml = { version = "0.8" }
+
+# Path and filesystem utilities (latest stable - for airs-mcp-fs)
+path-clean = { version = "1.0" }
+glob = { version = "0.3" }
+
+# Additional testing utilities (for airs-mcp-fs)
+assert_fs = { version = "1.1" }
