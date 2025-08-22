@@ -27,7 +27,7 @@ Compliance Documentation (Proof of Application)
    - **§2.1**: 3-Layer Import Organization (std → third-party → internal)
    - **§3.2**: chrono DateTime<Utc> Standard (mandatory for all time operations)
    - **§4.3**: Module Architecture Patterns (mod.rs organization principles)
-   - **§5.1**: Dependency Management (workspace centralization patterns)
+   - **§5.1**: Dependency Management (AIRS foundation crates prioritization)
 
 2. **Verify Zero Warning Policy** - Reference `workspace/zero_warning_policy.md`:
    - ALL code MUST compile with zero warnings
@@ -94,7 +94,27 @@ impl SomeStruct {
 }
 ```
 
-#### 4. Zero Warning Policy
+#### 4. Dependency Management (§5.1)
+**ALL workspace dependency additions MUST follow priority hierarchy:**
+```toml
+[workspace.dependencies]
+# Layer 1: AIRS Foundation Crates (MUST be at top)
+airs-mcp = { path = "crates/airs-mcp" }
+airs-mcp-fs = { path = "crates/airs-mcp-fs" }
+airs-memspec = { path = "crates/airs-memspec" }
+
+# Layer 2: Core Runtime Dependencies
+tokio = { version = "1.47", features = ["full"] }
+futures = { version = "0.3" }
+
+# Layer 3: External Dependencies (by category)
+serde = { version = "1.0", features = ["derive"] }
+# ... rest of external dependencies
+```
+
+**Enforcement**: Reject any workspace dependency changes that don't prioritize AIRS crates at the top.
+
+#### 5. Zero Warning Policy
 **Before submitting ANY code:**
 - Run `cargo check --workspace` - MUST return zero warnings
 - Run `cargo clippy --workspace --all-targets --all-features` - MUST pass
@@ -110,11 +130,11 @@ impl SomeStruct {
 ```markdown
 ## Standards Compliance Checklist
 **Workspace Standards Applied** (Reference: `workspace/shared_patterns.md`):
-- [ ] **chrono DateTime<Utc> Standard** (§3.2) - [Status and evidence]
-- [ ] **3-Layer Import Organization** (§2.1) - [Status and evidence]  
+- [ ] **3-Layer Import Organization** (§2.1) - [Status and evidence]
+- [ ] **chrono DateTime<Utc> Standard** (§3.2) - [Status and evidence]  
 - [ ] **Module Architecture Patterns** (§4.3) - [Status and evidence]
-- [ ] **Zero Warning Policy** (workspace/zero_warning_policy.md) - [Status and evidence]
 - [ ] **Dependency Management** (§5.1) - [Status and evidence]
+- [ ] **Zero Warning Policy** (workspace/zero_warning_policy.md) - [Status and evidence]
 
 ## Compliance Evidence
 [Document proof of standards application with code examples]
@@ -219,6 +239,7 @@ impl AuthContext {
 - All tests pass consistently
 - Import organization follows 3-layer pattern
 - No `std::time::SystemTime` in business logic
+- AIRS foundation crates prioritized at top of workspace dependencies
 
 ### Documentation Quality
 - Task files reference workspace standards rather than explaining them

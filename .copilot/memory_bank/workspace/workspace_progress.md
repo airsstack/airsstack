@@ -39,6 +39,7 @@ This file tracks cross-project milestones, status, and strategic decisions for t
 - **📋 Development Timeline:** Phase 3D → OAuth 2.1 (TASK014) → HTTP SSE (TASK013) → Future phases  
 - **⚡ Strategic Decisions:** Security hardening deferred to OAuth 2.1, module refactoring deferred to maintain focus
 - **✅ Integration Testing:** Complete (13 ecosystem tests passing, HTTP client testing gap eliminated)
+- **✅ NEW - Dependency Standard:** AIRS foundation crate prioritization established (ADR-002, §5.1) ✅
 
 ## Current Workspace Status
 

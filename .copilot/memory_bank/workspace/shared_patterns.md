@@ -715,5 +715,61 @@ async fn test_concurrent_operations() {
 }
 ```
 
+### §5. Dependency Management - Root Cargo.toml Organization
+
+**Principle**: AIRS foundation crates MUST be prioritized and organized at the top of workspace dependencies for clear dependency hierarchy.
+
+#### Root Cargo.toml Dependency Organization (MANDATORY)
+```toml
+[workspace.dependencies]
+# Layer 1: AIRS Foundation Crates (MUST be at top)
+airs-mcp = { path = "crates/airs-mcp" }
+airs-mcp-fs = { path = "crates/airs-mcp-fs" }  
+airs-memspec = { path = "crates/airs-memspec" }
+
+# Layer 2: Core Runtime Dependencies  
+tokio = { version = "1.47", features = ["full"] }
+futures = { version = "0.3" }
+
+# Layer 3: Serialization and Data Handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+
+# Layer 4: Additional External Dependencies (alphabetical by category)
+# ... rest of external dependencies
+```
+
+#### Rationale for Foundation Crate Priority
+- **Dependency Hierarchy Clarity**: Internal AIRS crates represent the foundation layer that everything else builds upon
+- **Maintenance Visibility**: Changes to foundation crates have the highest impact and should be immediately visible
+- **Development Workflow**: Developers should see internal dependencies first when reviewing workspace configuration
+- **Version Management**: Foundation crates use path dependencies and require different update strategies than external crates
+
+#### Enforcement Pattern
+```rust
+// ✅ When adding new AIRS crates
+[workspace.dependencies] 
+# NEW AIRS crates must be added to Layer 1 (top section)
+airs-new-crate = { path = "crates/airs-new-crate" }
+airs-mcp = { path = "crates/airs-mcp" }
+# ... existing AIRS crates
+
+# External dependencies follow after all AIRS crates
+tokio = { version = "1.47", features = ["full"] }
+# ... external dependencies
+```
+
+#### Individual Crate Cargo.toml Pattern
+```toml
+# Individual crate dependencies should inherit from workspace
+[dependencies]
+# Foundation dependencies (inherit from workspace)
+airs-mcp = { workspace = true }
+
+# External dependencies (inherit from workspace)
+tokio = { workspace = true }
+serde = { workspace = true }
+```
+
 ## Workspace Inheritance
 All sub-projects must inherit and extend these patterns. Project-specific patterns should be documented in sub-project memory banks but must not conflict with workspace standards.
