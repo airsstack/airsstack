@@ -28,7 +28,8 @@ The security-first architecture was established during the project brief and req
 **Alternative approaches considered**:
 - **Full Automation**: AI direct filesystem access (rejected - too risky)
 - **Read-Only Access**: No modification capabilities (rejected - limited value)
-- **Security-First with Human Approval**: Balanced approach (selected)
+- **Assumption-Based Security**: Design approval systems based on theoretical risk models (rejected - high failure rate)
+- **Data-Driven Security with Behavioral Logging**: Evidence-based security design (selected)
 
 ## Technical Details
 **How does this work?**
@@ -82,21 +83,29 @@ pub struct ThreatAssessment {
 
 ### Security Layers
 
+#### Layer 0: Behavioral Learning & Analytics
+- **User Behavior Logging**: Comprehensive tracking of interaction patterns
+- **Privacy-Preserving Data Collection**: Anonymized behavioral data for security design
+- **Pattern Recognition**: ML-based detection of normal vs anomalous behavior
+- **Evidence-Based Policy**: Security rules derived from actual user data rather than assumptions
+
 #### Layer 1: Path Validation
 - **Canonicalization**: Resolve symlinks and relative paths
 - **Sandbox Enforcement**: Prevent directory traversal attacks
-- **Allowlist/Denylist**: Configurable path restrictions
+- **Allowlist/Denylist**: Configurable path restrictions based on behavioral insights
 - **Permission Checks**: Verify filesystem permissions
 
 #### Layer 2: Content Analysis
 - **File Type Validation**: Magic number verification vs extension
-- **Size Limits**: Prevent resource exhaustion attacks
+- **Size Limits**: Dynamic limits based on user behavior patterns
 - **Content Scanning**: Basic malware signature detection
 - **Encoding Validation**: Prevent encoding-based attacks
 
-#### Layer 3: Operation Approval
-- **Human Review**: Interactive approval for dangerous operations
-- **Auto-Approval Rules**: Configurable patterns for safe operations
+#### Layer 3: Adaptive Operation Approval
+- **Behavioral Risk Assessment**: Risk scoring based on user patterns and context
+- **Data-Driven Approval Thresholds**: Approval requirements based on actual user behavior data
+- **Auto-Approval Rules**: Evidence-based patterns for safe operations
+- **Human Review**: Interactive approval for operations outside normal patterns
 - **Approval History**: Track patterns and learn from decisions
 - **Emergency Override**: Admin bypass for critical situations
 
