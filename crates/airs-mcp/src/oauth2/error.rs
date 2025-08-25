@@ -67,6 +67,42 @@ pub enum OAuth2Error {
     /// Configuration error in OAuth setup
     #[error("OAuth configuration error: {0}")]
     Configuration(String),
+
+    /// Token validation failed during lifecycle operations
+    #[error("Token validation failed: {0}")]
+    ValidationFailed(String),
+
+    /// Token not found in cache or storage
+    #[error("Token not found")]
+    TokenNotFound,
+
+    /// Token refresh operation failed
+    #[error("Token refresh failed: {0}")]
+    RefreshFailed(String),
+
+    /// Network error during token operations
+    #[error("Network error: {0}")]
+    NetworkError(String),
+
+    /// Invalid token response from authorization server
+    #[error("Invalid token response: {0}")]
+    InvalidTokenResponse(String),
+
+    /// Invalid refresh token provided
+    #[error("Invalid refresh token")]
+    InvalidRefreshToken,
+
+    /// Invalid client credentials
+    #[error("Invalid client")]
+    InvalidClient,
+
+    /// Invalid request parameters
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+
+    /// Unsupported grant type
+    #[error("Unsupported grant type")]
+    UnsupportedGrantType,
 }
 
 /// Type alias for OAuth 2.1 results
@@ -99,6 +135,15 @@ impl OAuth2Error {
             OAuth2Error::TokenValidation(_) => "invalid_token",
             OAuth2Error::JwksError(_) => "temporarily_unavailable",
             OAuth2Error::Configuration(_) => "server_error",
+            OAuth2Error::ValidationFailed(_) => "invalid_token",
+            OAuth2Error::TokenNotFound => "invalid_token",
+            OAuth2Error::RefreshFailed(_) => "invalid_token",
+            OAuth2Error::NetworkError(_) => "temporarily_unavailable",
+            OAuth2Error::InvalidTokenResponse(_) => "invalid_request",
+            OAuth2Error::InvalidRefreshToken => "invalid_grant",
+            OAuth2Error::InvalidClient => "invalid_client",
+            OAuth2Error::InvalidRequest(_) => "invalid_request",
+            OAuth2Error::UnsupportedGrantType => "unsupported_grant_type",
         }
     }
 
@@ -117,6 +162,15 @@ impl OAuth2Error {
             OAuth2Error::TokenValidation(_) => StatusCode::UNAUTHORIZED,
             OAuth2Error::JwksError(_) => StatusCode::SERVICE_UNAVAILABLE,
             OAuth2Error::Configuration(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            OAuth2Error::ValidationFailed(_) => StatusCode::UNAUTHORIZED,
+            OAuth2Error::TokenNotFound => StatusCode::UNAUTHORIZED,
+            OAuth2Error::RefreshFailed(_) => StatusCode::UNAUTHORIZED,
+            OAuth2Error::NetworkError(_) => StatusCode::SERVICE_UNAVAILABLE,
+            OAuth2Error::InvalidTokenResponse(_) => StatusCode::BAD_REQUEST,
+            OAuth2Error::InvalidRefreshToken => StatusCode::UNAUTHORIZED,
+            OAuth2Error::InvalidClient => StatusCode::UNAUTHORIZED,
+            OAuth2Error::InvalidRequest(_) => StatusCode::BAD_REQUEST,
+            OAuth2Error::UnsupportedGrantType => StatusCode::BAD_REQUEST,
         }
     }
 

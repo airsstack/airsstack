@@ -61,6 +61,7 @@
 pub mod config;
 pub mod context;
 pub mod error;
+pub mod lifecycle;
 pub mod metadata;
 pub mod middleware;
 pub mod types;
@@ -70,6 +71,12 @@ pub mod validator;
 pub use config::{OAuth2Config, ScopeMapping};
 pub use context::{AuditLogEntry, AuthContext, AuthContextExt, AuthMetadata};
 pub use error::{OAuth2Error, OAuth2Result};
+pub use lifecycle::{
+    RefreshTokenConfig, RefreshTokenHandler, RefreshTokenStrategy, TokenCache, TokenCacheConfig,
+    TokenCacheEntry, TokenCacheKey, TokenCacheMetrics, TokenCacheProvider, TokenLifecycleConfig,
+    TokenLifecycleEvent, TokenLifecycleEventHandler, TokenLifecycleManager,
+    TokenLifecycleManagerBuilder, TokenLifecycleProvider, TokenRefreshProvider, TokenStatus,
+};
 pub use metadata::{oauth_metadata_handler, ProtectedResourceMetadata};
 pub use middleware::{
     oauth2_middleware_layer, AuthenticationProvider, AxumOAuth2Middleware, OAuth2MiddlewareCore,
