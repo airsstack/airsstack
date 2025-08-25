@@ -14,10 +14,13 @@ use tokio::sync::Mutex;
 use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
-use crate::config::Settings;
-use crate::mcp::handlers::{DirectoryHandler, FileHandler};
+// Layer 3a: AIRS foundation crates (prioritized)
 use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
 use airs_mcp::shared::protocol::{Content, Tool};
+
+// Layer 3b: Local crate modules
+use crate::config::Settings;
+use crate::mcp::handlers::{DirectoryHandler, FileHandler};
 
 /// Filesystem MCP server implementing MCP protocol for secure file operations
 #[derive(Debug)]
@@ -290,7 +293,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("File not found"));
         }
     }

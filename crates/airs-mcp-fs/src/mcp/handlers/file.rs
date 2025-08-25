@@ -13,11 +13,14 @@ use serde_json::Value;
 use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
+// Layer 3a: AIRS foundation crates (prioritized)
+use airs_mcp::integration::mcp::{McpError, McpResult};
+use airs_mcp::shared::protocol::Content;
+
+// Layer 3b: Local crate modules
 use crate::filesystem::FileOperation;
 use crate::mcp::OperationType;
 use crate::security::{ApprovalDecision, SecurityManager};
-use airs_mcp::integration::mcp::{McpError, McpResult};
-use airs_mcp::shared::protocol::Content;
 
 /// Handler for file operations (read_file, write_file)
 #[derive(Debug)]
@@ -47,7 +50,7 @@ impl FileHandler {
         }
 
         let args: ReadFileArgs = serde_json::from_value(arguments).map_err(|e| {
-            McpError::invalid_request(format!("Invalid read_file arguments: {}", e))
+            McpError::invalid_request(format!("Invalid read_file arguments: {e}"))
         })?;
 
         // Create filesystem operation for security validation
@@ -58,11 +61,11 @@ impl FileHandler {
         self.security_manager
             .validate_read_access(&operation)
             .await
-            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {}", e)))?;
+            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {e}")))?;
 
         // Check if file exists
         if !tokio::fs::try_exists(&args.path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to check file existence: {}", e))
+            McpError::internal_error(format!("Failed to check file existence: {e}"))
         })? {
             return Err(McpError::invalid_request(format!(
                 "File not found: {}",
@@ -72,7 +75,7 @@ impl FileHandler {
 
         // Check file size
         let metadata = tokio::fs::metadata(&args.path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file metadata: {}", e))
+            McpError::internal_error(format!("Failed to read file metadata: {e}"))
         })?;
 
         let max_size = args.max_size_mb.unwrap_or(100) * 1024 * 1024; // Default 100MB
@@ -91,8 +94,7 @@ impl FileHandler {
             "base64" | "binary" => self.read_as_base64(&args.path).await,
             "auto" => self.read_with_auto_detection(&args.path).await,
             _ => Err(McpError::invalid_request(format!(
-                "Unsupported encoding: {}",
-                encoding
+                "Unsupported encoding: {encoding}"
             ))),
         }
     }
@@ -116,7 +118,7 @@ impl FileHandler {
         }
 
         let args: WriteFileArgs = serde_json::from_value(arguments).map_err(|e| {
-            McpError::invalid_request(format!("Invalid write_file arguments: {}", e))
+            McpError::invalid_request(format!("Invalid write_file arguments: {e}"))
         })?;
 
         // Create filesystem operation for security validation
@@ -128,7 +130,7 @@ impl FileHandler {
             .security_manager
             .validate_write_access(&operation)
             .await
-            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {}", e)))?;
+            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {e}")))?;
 
         // Check approval status
         self.validate_approval_decision(approval_decision)?;
@@ -148,8 +150,7 @@ impl FileHandler {
             "utf8" | "text" => self.write_as_text(&args.path, &args.content).await,
             "base64" => self.write_from_base64(&args.path, &args.content).await,
             _ => Err(McpError::invalid_request(format!(
-                "Unsupported encoding: {}",
-                encoding
+                "Unsupported encoding: {encoding}"
             ))),
         }
     }
@@ -157,7 +158,7 @@ impl FileHandler {
     /// Read file as UTF-8 text
     async fn read_as_text(&self, path: &str) -> McpResult<Vec<Content>> {
         let content = tokio::fs::read_to_string(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file as UTF-8: {}", e))
+            McpError::internal_error(format!("Failed to read file as UTF-8: {e}"))
         })?;
 
         info!(
@@ -172,7 +173,7 @@ impl FileHandler {
     /// Read file as binary and encode as base64
     async fn read_as_base64(&self, path: &str) -> McpResult<Vec<Content>> {
         let bytes = tokio::fs::read(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file as binary: {}", e))
+            McpError::internal_error(format!("Failed to read file as binary: {e}"))
         })?;
 
         let base64_content = base64::prelude::BASE64_STANDARD.encode(&bytes);
@@ -194,7 +195,7 @@ impl FileHandler {
     async fn read_with_auto_detection(&self, path: &str) -> McpResult<Vec<Content>> {
         let bytes = tokio::fs::read(path)
             .await
-            .map_err(|e| McpError::internal_error(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| McpError::internal_error(format!("Failed to read file: {e}")))?;
 
         // Simple UTF-8 detection
         match String::from_utf8(bytes.clone()) {
@@ -248,7 +249,7 @@ impl FileHandler {
         if create_directories {
             if let Some(parent) = std::path::Path::new(path).parent() {
                 tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                    McpError::internal_error(format!("Failed to create directories: {}", e))
+                    McpError::internal_error(format!("Failed to create directories: {e}"))
                 })?;
             }
         }
@@ -261,7 +262,7 @@ impl FileHandler {
             let backup_path = format!("{}.backup.{}", path, chrono::Utc::now().timestamp());
             tokio::fs::copy(path, &backup_path)
                 .await
-                .map_err(|e| McpError::internal_error(format!("Failed to create backup: {}", e)))?;
+                .map_err(|e| McpError::internal_error(format!("Failed to create backup: {e}")))?;
             info!(backup_path = %backup_path, "Created backup of existing file");
         }
         Ok(())
@@ -271,7 +272,7 @@ impl FileHandler {
     async fn write_as_text(&self, path: &str, content: &str) -> McpResult<Vec<Content>> {
         tokio::fs::write(path, content)
             .await
-            .map_err(|e| McpError::internal_error(format!("Failed to write file: {}", e)))?;
+            .map_err(|e| McpError::internal_error(format!("Failed to write file: {e}")))?;
 
         info!(
             file_path = %path,
@@ -290,11 +291,11 @@ impl FileHandler {
     async fn write_from_base64(&self, path: &str, content: &str) -> McpResult<Vec<Content>> {
         let bytes = base64::prelude::BASE64_STANDARD
             .decode(content)
-            .map_err(|e| McpError::invalid_request(format!("Invalid base64 content: {}", e)))?;
+            .map_err(|e| McpError::invalid_request(format!("Invalid base64 content: {e}")))?;
 
         tokio::fs::write(path, &bytes)
             .await
-            .map_err(|e| McpError::internal_error(format!("Failed to write binary file: {}", e)))?;
+            .map_err(|e| McpError::internal_error(format!("Failed to write binary file: {e}")))?;
 
         info!(
             file_path = %path,
@@ -410,7 +411,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("File not found"));
         }
     }
@@ -537,14 +538,13 @@ mod tests {
             }
             Err(error) => {
                 // Zero size limit blocked the file - this is also valid behavior
-                let error_msg = format!("{:?}", error);
+                let error_msg = format!("{error:?}");
                 assert!(
                     error_msg.contains("File too large")
                         || error_msg.contains("exceeds maximum allowed size")
                         || error_msg.contains("Size limit")
                         || error_msg.contains("Security validation failed"),
-                    "Zero size limit error should contain appropriate message, got: {}",
-                    error_msg
+                    "Zero size limit error should contain appropriate message, got: {error_msg}"
                 );
             }
         }
@@ -598,7 +598,7 @@ mod tests {
             }
             Err(error) => {
                 // Write failed due to security/approval
-                let error_msg = format!("{:?}", error);
+                let error_msg = format!("{error:?}");
                 assert!(
                     error_msg.contains("Security validation failed")
                         || error_msg.contains("denied by security policy")
@@ -635,7 +635,7 @@ mod tests {
             }
             Err(error) => {
                 // Write failed due to security/approval
-                let error_msg = format!("{:?}", error);
+                let error_msg = format!("{error:?}");
                 assert!(
                     error_msg.contains("Security validation failed")
                         || error_msg.contains("denied by security policy")
@@ -682,7 +682,7 @@ mod tests {
             }
             Err(error) => {
                 // Write failed due to security/approval
-                let error_msg = format!("{:?}", error);
+                let error_msg = format!("{error:?}");
                 assert!(
                     error_msg.contains("Security validation failed")
                         || error_msg.contains("denied by security policy")
@@ -739,7 +739,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("Unsupported encoding"));
         }
     }
@@ -768,7 +768,7 @@ mod tests {
         // Should fail due to invalid base64 OR security (depending on which check comes first)
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(
                 error_msg.contains("Invalid base64 content")
                     || error_msg.contains("Security validation failed")
@@ -789,7 +789,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("Invalid read_file arguments"));
         }
 
@@ -799,7 +799,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("Invalid write_file arguments"));
         }
     }

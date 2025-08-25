@@ -12,11 +12,14 @@ use serde_json::Value;
 use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
+// Layer 3a: AIRS foundation crates (prioritized)
+use airs_mcp::integration::mcp::{McpError, McpResult};
+use airs_mcp::shared::protocol::Content;
+
+// Layer 3b: Local crate modules
 use crate::filesystem::FileOperation;
 use crate::mcp::OperationType;
 use crate::security::SecurityManager;
-use airs_mcp::integration::mcp::{McpError, McpResult};
-use airs_mcp::shared::protocol::Content;
 
 /// Handler for directory operations (list_directory)
 #[derive(Debug)]
@@ -50,7 +53,7 @@ impl DirectoryHandler {
         }
 
         let args: ListDirectoryArgs = serde_json::from_value(arguments).map_err(|e| {
-            McpError::invalid_request(format!("Invalid list_directory arguments: {}", e))
+            McpError::invalid_request(format!("Invalid list_directory arguments: {e}"))
         })?;
 
         // Create filesystem operation for security validation
@@ -61,7 +64,7 @@ impl DirectoryHandler {
         self.security_manager
             .validate_read_access(&operation)
             .await
-            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {}", e)))?;
+            .map_err(|e| McpError::invalid_request(format!("Security validation failed: {e}")))?;
 
         // Validate directory exists and is actually a directory
         self.validate_directory(&args.path).await?;
@@ -104,7 +107,7 @@ impl DirectoryHandler {
 
         Ok(vec![Content::text(
             serde_json::to_string_pretty(&response).map_err(|e| {
-                McpError::internal_error(format!("Failed to serialize response: {}", e))
+                McpError::internal_error(format!("Failed to serialize response: {e}"))
             })?,
         )])
     }
@@ -113,23 +116,21 @@ impl DirectoryHandler {
     async fn validate_directory(&self, path: &str) -> McpResult<()> {
         // Check if directory exists
         if !tokio::fs::try_exists(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to check directory existence: {}", e))
+            McpError::internal_error(format!("Failed to check directory existence: {e}"))
         })? {
             return Err(McpError::invalid_request(format!(
-                "Directory not found: {}",
-                path
+                "Directory not found: {path}"
             )));
         }
 
         // Check if path is actually a directory
         let metadata = tokio::fs::metadata(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read directory metadata: {}", e))
+            McpError::internal_error(format!("Failed to read directory metadata: {e}"))
         })?;
 
         if !metadata.is_dir() {
             return Err(McpError::invalid_request(format!(
-                "Path is not a directory: {}",
-                path
+                "Path is not a directory: {path}"
             )));
         }
 
@@ -149,12 +150,12 @@ impl DirectoryHandler {
                 return Ok(());
             }
 
-            let mut dir_entries = tokio::fs::read_dir(path).await.map_err(|e| {
-                McpError::internal_error(format!("Failed to read directory: {}", e))
-            })?;
+            let mut dir_entries = tokio::fs::read_dir(path)
+                .await
+                .map_err(|e| McpError::internal_error(format!("Failed to read directory: {e}")))?;
 
             while let Some(entry) = dir_entries.next_entry().await.map_err(|e| {
-                McpError::internal_error(format!("Failed to read directory entry: {}", e))
+                McpError::internal_error(format!("Failed to read directory entry: {e}"))
             })? {
                 let entry_path = entry.path();
                 let entry_name = entry_path
@@ -212,11 +213,13 @@ impl DirectoryHandler {
     ) -> McpResult<()> {
         let mut dir_entries = tokio::fs::read_dir(path)
             .await
-            .map_err(|e| McpError::internal_error(format!("Failed to read directory: {}", e)))?;
+            .map_err(|e| McpError::internal_error(format!("Failed to read directory: {e}")))?;
 
-        while let Some(entry) = dir_entries.next_entry().await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read directory entry: {}", e))
-        })? {
+        while let Some(entry) = dir_entries
+            .next_entry()
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to read directory entry: {e}")))?
+        {
             let entry_name = entry.file_name().to_string_lossy().to_string();
 
             // Skip hidden files if not requested
@@ -346,7 +349,7 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(error) = result {
-            let error_msg = format!("{:?}", error);
+            let error_msg = format!("{error:?}");
             assert!(error_msg.contains("Directory not found"));
         }
     }

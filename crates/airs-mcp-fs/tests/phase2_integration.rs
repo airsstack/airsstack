@@ -57,5 +57,5 @@ async fn test_phase2_filesystem_tool_provider_functionality() {
     assert!(tool_names.contains(&"list_directory"));
 
     println!("✅ Phase 2 filesystem tool provider functionality test passed!");
-    println!("📋 Available tools: {:?}", tool_names);
+    println!("📋 Available tools: {tool_names:?}");
 }
