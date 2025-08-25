@@ -1,11 +1,12 @@
-//! MCP server implementation for AIRS MCP-FS
+//! MCP Server implementation for filesystem operations
+//!
+//! This module provides the core MCP server that integrates with Claude Desktop
+//! and other MCP-compatible clients to provide secure filesystem operations.
 
 // Layer 1: Standard library imports
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
-use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
-use airs_mcp::shared::protocol::{Content, Tool};
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
@@ -15,6 +16,8 @@ use tracing::{info, instrument};
 // Layer 3: Internal module imports
 use crate::config::Settings;
 use crate::security::SecurityManager;
+use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
+use airs_mcp::shared::protocol::{Content, Tool};
 
 /// Filesystem MCP server implementing MCP protocol for secure file operations
 #[derive(Debug)]
