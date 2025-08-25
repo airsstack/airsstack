@@ -1,7 +1,7 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-08-25  
-**Total Knowledge Docs**: 8  
+**Total Knowledge Docs**: 10  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
@@ -43,7 +43,7 @@
   - **Related**: Production deployment, task_003 completion
 
 ### Patterns
-**Documentation Count**: 2  
+**Documentation Count**: 4  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -59,6 +59,18 @@
   - **Complexity**: High - Real-time streaming protocols and message handling
   - **Updated**: 2025-08-21
   - **Related**: TASK013 (HTTP SSE legacy support), HTTP transport
+
+- **[Static Dispatch Optimization](./patterns/static-dispatch-optimization.md)**
+  - **Focus**: Performance optimization through generics, dependency injection, compile-time polymorphism
+  - **Complexity**: High - Generic programming patterns and performance optimization
+  - **Updated**: 2025-08-25
+  - **Related**: OAuth 2.1 token lifecycle, performance optimization
+
+- **[Rust Lifetime Bounds Fundamentals](./patterns/rust-lifetime-bounds-fundamentals.md)**
+  - **Focus**: Memory safety through lifetime bounds, 'static requirements, Arc<T> patterns
+  - **Complexity**: High - Advanced Rust concepts and memory safety guarantees
+  - **Updated**: 2025-08-25
+  - **Related**: Generic type parameters, memory safety, thread safety
 
 ### Performance
 **Documentation Count**: 1  
@@ -96,12 +108,14 @@
 - MCP Official Specification Protocol
 - OAuth2.1 Middleware Specification
 
-### High Complexity (5 documents)
+### High Complexity (7 documents)
 - Transport Layer Design
 - Async Error Handling
 - HTTP SSE Message Patterns
 - Benchmarking Methodology
 - User Behavior Logging Strategy
+- Static Dispatch Optimization
+- Rust Lifetime Bounds Fundamentals
 
 ### Medium Complexity (1 document)
 - Claude Desktop Integration Patterns
@@ -115,12 +129,14 @@
 - MCP Official Specification Protocol (Domain knowledge)
 - OAuth2.1 Middleware Specification (Security implementation)
 
-### High Priority (5 documents)
+### High Priority (7 documents)
 - Transport Layer Design (Core architecture)
 - Claude Desktop Integration Patterns (Production deployment)
 - Async Error Handling (Core patterns)
 - HTTP SSE Message Patterns (Real-time features)
 - User Behavior Logging Strategy (Security strategy)
+- Static Dispatch Optimization (Performance patterns)
+- Rust Lifetime Bounds Fundamentals (Language fundamentals)
 
 ### Medium Priority (1 document)
 - Benchmarking Methodology (Performance validation)
@@ -131,6 +147,12 @@
 - **Added**: User Behavior Logging Strategy (Security category)
   - **Reason**: Data-driven human-in-the-loop security design
   - **Impact**: Provides foundation for evidence-based security decisions
+- **Added**: Static Dispatch Optimization (Patterns category)
+  - **Reason**: Document performance optimization techniques from OAuth 2.1 token lifecycle
+  - **Impact**: Reusable patterns for compile-time polymorphism and dependency injection
+- **Added**: Rust Lifetime Bounds Fundamentals (Patterns category)
+  - **Reason**: Capture deep technical understanding of memory safety in generic programming
+  - **Impact**: Foundational knowledge for safe concurrent programming patterns
 
 ### 2025-08-21  
 - **Added**: Transport Layer Design (Architecture category)
