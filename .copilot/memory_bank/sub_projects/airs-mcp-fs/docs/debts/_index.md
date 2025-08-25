@@ -1,14 +1,16 @@
 # Technical Debt Registry - airs-mcp-fs
 
-**Last Updated**: 2025-08-22  
-**Total Debt Records**: 1  
-**Active Debt**: 1  
+**Last Updated**: 2025-08-25  
+**Total Debt Records**: 2  
+**Active Debt**: 2  
 **Resolved Debt**: 0
 
 ## Debt Categories
 
 ### Implementation Gap
-- **Active**: 1 debt record
+- **Active**: 2 debt records
+  - [DEBT-001: Implementation Gap - Hello World to Production](./DEBT-001-implementation-gap-hello-world-to-production.md)
+  - [DEBT-002: MCP Server Implementation Scope Limitations](./DEBT-002-mcp-server-implementation-scope.md)
 - **Resolved**: 0 debt records
 
 ### Code Quality

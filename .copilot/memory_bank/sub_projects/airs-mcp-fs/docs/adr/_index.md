@@ -1,8 +1,8 @@
 # Architecture Decision Record Registry - airs-mcp-fs
 
-**Last Updated**: 2025-08-22  
-**Total ADRs**: 1  
-**Active ADRs**: 1  
+**Last Updated**: 2025-08-25  
+**Total ADRs**: 2  
+**Active ADRs**: 2  
 **Superseded ADRs**: 0
 
 ## Decision Categories
@@ -10,6 +10,11 @@
 ### System Architecture
 - **Active**: 1 ADRs
   - [ADR-001: Foundation Architecture Patterns](./ADR-001-foundation-architecture-patterns.md)
+- **Superseded**: 0 ADRs
+
+### Integration Patterns
+- **Active**: 1 ADRs
+  - [ADR-002: MCP Server Architecture Decisions](./ADR-002-mcp-server-architecture-decisions.md)
 - **Superseded**: 0 ADRs
 
 ### Technology Selection  
@@ -24,11 +29,13 @@
 - **Active**: 0 ADRs
 - **Superseded**: 0 ADRs
 
-### Integration Patterns
-- **Active**: 0 ADRs
-- **Superseded**: 0 ADRs
-
 ## Chronological Decision History
+
+### 2025-08-25
+- **[ADR-002: MCP Server Architecture Decisions](./ADR-002-mcp-server-architecture-decisions.md)** - **ACCEPTED**
+  - **Impact**: High - Establishes MCP server foundation architecture
+  - **Scope**: airs-mcp foundation leverage, STDIO transport, ToolProvider patterns
+  - **Drivers**: Claude Desktop compatibility, development velocity, ecosystem alignment
 
 ### 2025-08-22
 - **[ADR-001: Foundation Architecture Patterns](./ADR-001-foundation-architecture-patterns.md)** - **ACCEPTED**
