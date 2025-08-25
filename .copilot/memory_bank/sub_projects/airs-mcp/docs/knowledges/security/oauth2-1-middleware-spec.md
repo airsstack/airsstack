@@ -379,125 +379,319 @@ impl ScopeValidator {
 }
 ```
 
-### Phase 3: Human-in-the-Loop & Enterprise Features (Week 3)
+### Phase 3: Token Lifecycle & Rate Limiting (Week 3)
 
-#### 3.1 Human-in-the-Loop Approval System
+#### 3.1 Token Lifecycle Management System
 
 ```rust
-// Human approval workflow for sensitive operations
-#[async_trait]
-pub trait ApprovalHandler: Send + Sync {
-    async fn request_approval(
-        &self,
-        operation: OperationRequest,
-        context: AuthContext,
-    ) -> Result<ApprovalDecision, ApprovalError>;
+// Token lifecycle management with refresh and caching
+#[derive(Debug)]
+pub struct TokenManager {
+    cache: Arc<RwLock<TokenCache>>,
+    refresh_client: RefreshTokenClient,
+    config: TokenConfig,
 }
 
 #[derive(Debug, Clone)]
-pub struct OperationRequest {
-    pub method: String,
-    pub params: serde_json::Value,
-    pub risk_level: RiskLevel,
-    pub estimated_impact: String,
+pub struct TokenCache {
+    entries: HashMap<String, CachedToken>,
+    expiration_queue: BinaryHeap<ExpirationEntry>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CachedToken {
+    pub auth_context: AuthContext,
+    pub expires_at: SystemTime,
+    pub refresh_token: Option<String>,
+    pub cached_at: SystemTime,
+}
+
+impl TokenManager {
+    pub async fn new(config: TokenConfig) -> Result<Self, TokenError> {
+        let refresh_client = RefreshTokenClient::new(
+            config.token_endpoint.clone(),
+            config.client_id.clone(),
+            config.client_secret.clone(),
+        )?;
+        
+        Ok(Self {
+            cache: Arc::new(RwLock::new(TokenCache::new())),
+            refresh_client,
+            config,
+        })
+    }
+    
+    pub async fn get_valid_token(&self, token: &str) -> Result<AuthContext, TokenError> {
+        // Check cache first
+        if let Some(cached) = self.cache.read().await.get(token) {
+            // If token is still valid, return cached context
+            if cached.expires_at > SystemTime::now() + Duration::from_secs(30) {
+                return Ok(cached.auth_context.clone());
+            }
+            
+            // If token is near expiry and has refresh token, attempt refresh
+            if let Some(refresh_token) = &cached.refresh_token {
+                if let Ok(new_tokens) = self.refresh_token(refresh_token).await {
+                    self.cache_token(&new_tokens.access_token, new_tokens.auth_context.clone(), 
+                                   new_tokens.refresh_token).await?;
+                    return Ok(new_tokens.auth_context);
+                }
+            }
+        }
+        
+        // Token not in cache or expired without refresh - validation required
+        Err(TokenError::ValidationRequired)
+    }
+    
+    async fn refresh_token(&self, refresh_token: &str) -> Result<RefreshResult, TokenError> {
+        let response = self.refresh_client.refresh_access_token(refresh_token).await?;
+        
+        let auth_context = AuthContext::from_token_response(&response)?;
+        
+        Ok(RefreshResult {
+            access_token: response.access_token,
+            refresh_token: response.refresh_token,
+            auth_context,
+            expires_in: response.expires_in,
+        })
+    }
+    
+    async fn cache_token(
+        &self,
+        token: &str,
+        auth_context: AuthContext,
+        refresh_token: Option<String>
+    ) -> Result<(), TokenError> {
+        let expires_at = SystemTime::now() + Duration::from_secs(auth_context.expires_in);
+        
+        let cached_token = CachedToken {
+            auth_context,
+            expires_at,
+            refresh_token,
+            cached_at: SystemTime::now(),
+        };
+        
+        self.cache.write().await.insert(token.to_string(), cached_token);
+        Ok(())
+    }
+    
+    // Background task for cleaning expired tokens
+    pub async fn cleanup_expired_tokens(&self) {
+        let mut cache = self.cache.write().await;
+        let now = SystemTime::now();
+        
+        cache.entries.retain(|_, token| token.expires_at > now);
+        
+        // Update expiration queue
+        while let Some(entry) = cache.expiration_queue.peek() {
+            if entry.expires_at <= now {
+                cache.expiration_queue.pop();
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
-pub enum ApprovalDecision {
-    Approved { expires_at: SystemTime },
-    Denied { reason: String },
-    Pending { approval_id: String },
-}
-
-// Web-based approval handler
-pub struct WebApprovalHandler {
-    approval_store: Arc<RwLock<HashMap<String, PendingApproval>>>,
-    notification_service: Arc<dyn NotificationService>,
-    config: ApprovalConfig,
-}
-
-impl WebApprovalHandler {
-    pub async fn request_approval(
-        &self,
-        operation: OperationRequest,
-        context: AuthContext,
-    ) -> Result<ApprovalDecision, ApprovalError> {
-        
-        // Check if operation requires approval
-        if !self.requires_approval(&operation.method) {
-            return Ok(ApprovalDecision::Approved {
-                expires_at: SystemTime::now() + Duration::from_secs(3600),
-            });
-        }
-        
-        // Create approval request
-        let approval_id = Uuid::new_v4().to_string();
-        let pending = PendingApproval {
-            id: approval_id.clone(),
-            operation: operation.clone(),
-            context: context.clone(),
-            created_at: SystemTime::now(),
-            status: ApprovalStatus::Pending,
-        };
-        
-        // Store pending approval
-        self.approval_store.write().await.insert(approval_id.clone(), pending);
-        
-        // Send notification to approvers
-        self.notification_service.notify_approvers(
-            &approval_id,
-            &operation,
-            &context,
-        ).await?;
-        
-        Ok(ApprovalDecision::Pending { approval_id })
-    }
+pub struct RefreshResult {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub auth_context: AuthContext,
+    pub expires_in: u64,
 }
 ```
 
-#### 3.2 MCP Handler Integration
+#### 3.2 Rate Limiting Middleware
 
 ```rust
-// OAuth-aware MCP request handlers
-pub async fn handle_mcp_post(
-    Extension(auth_context): Extension<AuthContext>,
-    Extension(session): Extension<SessionContext>,
-    State(transport): State<Arc<HttpStreamableTransport>>,
-    body: Bytes,
-) -> Result<Response<Body>, HttpError> {
+// Rate limiting middleware for OAuth-protected endpoints
+#[derive(Debug, Clone)]
+pub struct RateLimitMiddleware {
+    limiter: Arc<RateLimiter>,
+    config: RateLimitConfig,
+}
+
+#[derive(Debug)]
+pub struct RateLimiter {
+    client_limits: Arc<RwLock<HashMap<String, ClientRateLimit>>>,
+    global_limit: Arc<Mutex<GlobalRateLimit>>,
+    config: RateLimitConfig,
+}
+
+#[derive(Debug)]
+pub struct ClientRateLimit {
+    pub client_id: String,
+    pub requests: VecDeque<SystemTime>,
+    pub window_start: SystemTime,
+    pub current_count: u32,
+    pub blocked_until: Option<SystemTime>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RateLimitConfig {
+    pub requests_per_minute: u32,
+    pub requests_per_hour: u32,
+    pub burst_limit: u32,
+    pub block_duration: Duration,
+    pub global_requests_per_second: u32,
+}
+
+impl RateLimitMiddleware {
+    pub fn new(config: RateLimitConfig) -> Self {
+        Self {
+            limiter: Arc::new(RateLimiter::new(config.clone())),
+            config,
+        }
+    }
+}
+
+#[async_trait]
+impl<S> Layer<S> for RateLimitMiddleware {
+    type Service = RateLimitService<S>;
     
-    // Parse JSON-RPC request
-    let request: JsonRpcRequest = serde_json::from_slice(&body)?;
+    fn layer(&self, inner: S) -> Self::Service {
+        RateLimitService {
+            inner,
+            limiter: self.limiter.clone(),
+        }
+    }
+}
+
+pub struct RateLimitService<S> {
+    inner: S,
+    limiter: Arc<RateLimiter>,
+}
+
+#[async_trait]
+impl<S> Service<Request<Body>> for RateLimitService<S>
+where
+    S: Service<Request<Body>, Response = Response<Body>, Error = Infallible> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+{
+    type Response = Response<Body>;
+    type Error = Infallible;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
     
-    // Validate OAuth scopes for operation
-    ScopeValidator::validate_mcp_operation(
-        &auth_context.scopes,
-        &request.method,
-    )?;
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
     
-    // Check if operation requires human approval
-    if transport.oauth_config.human_approval_operations.contains(&request.method) {
-        let approval_result = transport.approval_handler
-            .request_approval(
-                OperationRequest {
-                    method: request.method.clone(),
-                    params: request.params.clone(),
-                    risk_level: assess_risk_level(&request),
-                    estimated_impact: estimate_impact(&request),
-                },
-                auth_context.clone(),
-            ).await?;
+    fn call(&mut self, mut req: Request<Body>) -> Self::Future {
+        let limiter = self.limiter.clone();
+        let mut inner = self.inner.clone();
+        
+        Box::pin(async move {
+            // Extract client info from OAuth context
+            let client_id = req.extensions()
+                .get::<AuthContext>()
+                .map(|ctx| &ctx.client_id)
+                .unwrap_or("anonymous");
             
-        match approval_result {
-            ApprovalDecision::Denied { reason } => {
-                return Ok(create_error_response(
-                    &request.id,
-                    "operation_denied",
-                    &reason,
-                ));
-            },
-            ApprovalDecision::Pending { approval_id } => {
-                return Ok(create_pending_response(
+            // Check rate limits
+            match limiter.check_rate_limit(client_id).await {
+                RateLimitResult::Allowed => {
+                    // Continue with request
+                    inner.call(req).await
+                },
+                RateLimitResult::RateLimited { retry_after } => {
+                    // Return 429 Too Many Requests
+                    let response = Response::builder()
+                        .status(StatusCode::TOO_MANY_REQUESTS)
+                        .header("Retry-After", retry_after.as_secs().to_string())
+                        .header("X-RateLimit-Limit", limiter.config.requests_per_minute.to_string())
+                        .header("X-RateLimit-Remaining", "0")
+                        .body(Body::from("Rate limit exceeded"))
+                        .unwrap();
+                    
+                    Ok(response)
+                },
+                RateLimitResult::Blocked { until } => {
+                    // Return 429 with longer block time
+                    let retry_after = until.duration_since(SystemTime::now())
+                        .unwrap_or(Duration::from_secs(60));
+                    
+                    let response = Response::builder()
+                        .status(StatusCode::TOO_MANY_REQUESTS)
+                        .header("Retry-After", retry_after.as_secs().to_string())
+                        .body(Body::from("Client temporarily blocked due to abuse"))
+                        .unwrap();
+                    
+                    Ok(response)
+                }
+            }
+        })
+    }
+}
+
+impl RateLimiter {
+    pub fn new(config: RateLimitConfig) -> Self {
+        Self {
+            client_limits: Arc::new(RwLock::new(HashMap::new())),
+            global_limit: Arc::new(Mutex::new(GlobalRateLimit::new(config.global_requests_per_second))),
+            config,
+        }
+    }
+    
+    pub async fn check_rate_limit(&self, client_id: &str) -> RateLimitResult {
+        // Check global rate limit first
+        if !self.global_limit.lock().await.allow_request() {
+            return RateLimitResult::RateLimited { 
+                retry_after: Duration::from_secs(1) 
+            };
+        }
+        
+        let mut client_limits = self.client_limits.write().await;
+        let now = SystemTime::now();
+        
+        let client_limit = client_limits.entry(client_id.to_string())
+            .or_insert_with(|| ClientRateLimit::new(client_id.to_string()));
+        
+        // Check if client is currently blocked
+        if let Some(blocked_until) = client_limit.blocked_until {
+            if now < blocked_until {
+                return RateLimitResult::Blocked { until: blocked_until };
+            } else {
+                client_limit.blocked_until = None;
+            }
+        }
+        
+        // Clean old requests outside the window
+        let window_start = now - Duration::from_secs(60); // 1 minute window
+        client_limit.requests.retain(|&req_time| req_time >= window_start);
+        
+        // Check rate limits
+        if client_limit.requests.len() >= self.config.requests_per_minute as usize {
+            // Block client for abuse
+            client_limit.blocked_until = Some(now + self.config.block_duration);
+            return RateLimitResult::Blocked { until: client_limit.blocked_until.unwrap() };
+        }
+        
+        // Allow request and record it
+        client_limit.requests.push_back(now);
+        RateLimitResult::Allowed
+    }
+}
+
+#[derive(Debug)]
+pub enum RateLimitResult {
+    Allowed,
+    RateLimited { retry_after: Duration },
+    Blocked { until: SystemTime },
+}
+```
+
+#### 3.3 Production Integration
+
+```rust
+// Integration with OAuth middleware stack
+Router::new()
+    .route("/mcp", post(handle_mcp_post))
+    .route("/mcp", get(handle_mcp_get))
+    .layer(rate_limit_middleware_layer(rate_config))   // Rate limiting
+    .layer(oauth_middleware_layer(oauth_config))       // OAuth authentication  
+    .layer(session_middleware_layer(session_config))   // Session management
+```
                     &request.id,
                     &approval_id,
                 ));

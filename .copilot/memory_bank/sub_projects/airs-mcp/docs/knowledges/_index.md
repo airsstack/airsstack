@@ -79,10 +79,10 @@
 
 #### Active Documents
 - **[OAuth2.1 Middleware Specification](./security/oauth2-1-middleware-spec.md)**
-  - **Focus**: OAuth 2.1 implementation, middleware integration, human-in-the-loop approval
+  - **Focus**: OAuth 2.1 implementation, middleware integration, token lifecycle & rate limiting
   - **Complexity**: Critical - Enterprise security implementation and compliance
-  - **Updated**: 2025-08-14
-  - **Related**: TASK014 (OAuth implementation), enterprise security
+  - **Updated**: 2025-08-25
+  - **Related**: TASK014 (OAuth implementation), token management, rate limiting
 
 - **[User Behavior Logging Strategy](./security/user-behavior-logging-strategy.md)**
   - **Focus**: Behavioral analytics, data-driven security design, client-agnostic logging

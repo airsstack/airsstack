@@ -49,13 +49,14 @@ Router::new()
 2. **Scope Validation System**: Operation-specific scope checking (mcp:tools:execute, etc.)
 3. **Authentication Context**: AuthContext propagation through middleware chain
 
-### **Phase 3: Core Production Features (Week 3) - REFINED SCOPE**
-1. **Human-in-the-Loop Approval**: Web-based approval workflow for sensitive operations
-2. **Token Management**: Refresh handling, secure caching, lifecycle management  
-3. **Essential Production Security**: Rate limiting and basic abuse detection
+### **Phase 3: Token Lifecycle & Rate Limiting (Week 3) - FOCUSED SCOPE**
+1. **Token Lifecycle Management**: Refresh handling, secure caching, automatic expiration
+2. **Rate Limiting System**: Request throttling, abuse detection, per-client limits
+3. **Production Hardening**: Performance optimization, error recovery
 
 **EXCLUDED FROM SCOPE:**
-- ❌ Enterprise IdP Integration (AWS Cognito, Azure AD, Auth0)
+- ❌ Human-in-the-Loop Approval (deferred to future security enhancement)
+- ❌ Enterprise IdP Integration (AWS Cognito, Azure AD, Auth0) 
 - ❌ Comprehensive security monitoring systems
 - ❌ Security audit logging (deferred for future implementation)
 
@@ -63,7 +64,7 @@ Router::new()
 
 **Overall Status:** in_progress - 70%
 
-### Subtasks - MIDDLEWARE ARCHITECTURE IMPLEMENTATION
+### Subtasks - TOKEN LIFECYCLE & RATE LIMITING FOCUS
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
 | 14.1 | JWT Token Validator with JWKS client | complete | 2025-08-21 | ✅ Implemented in validator/jwt.rs with full RS256 validation |
@@ -72,10 +73,10 @@ Router::new()
 | 14.4 | Enhanced Session Middleware integration | complete | 2025-08-21 | ✅ AuthContext injection via request extensions in middleware stack |
 | 14.5 | Operation-specific scope validation | complete | 2025-08-21 | ✅ Comprehensive MCP method mappings with 10 operations configured |
 | 14.6 | AuthContext propagation system | complete | 2025-08-21 | ✅ Complete middleware chain with context passing and metadata support |
-| 14.7 | Human-in-the-loop approval workflow | not_started | 2025-08-21 | 🔄 Phase 3 - Web-based approval for sensitive operations |
-| 14.8 | Token lifecycle management | not_started | 2025-08-21 | 🔄 Phase 3 - Refresh handling, secure caching, token expiration |
-| 14.9 | Essential production security features | not_started | 2025-08-21 | 🔄 Phase 3 - Rate limiting and basic abuse detection |
-| 14.10 | Production testing and validation | not_started | 2025-08-21 | 🔄 Phase 3 - Performance, security, and deployment testing |
+| 14.7 | Token lifecycle management system | not_started | 2025-08-25 | 🔄 Phase 3 - Refresh token handling, secure caching, automatic expiration |
+| 14.8 | Rate limiting middleware implementation | not_started | 2025-08-25 | 🔄 Phase 3 - Request throttling, per-client limits, abuse detection |
+| 14.9 | Production hardening and optimization | not_started | 2025-08-25 | 🔄 Phase 3 - Performance tuning, error recovery, monitoring |
+| 14.10 | Production testing and validation | not_started | 2025-08-25 | 🔄 Phase 3 - Load testing, security validation, deployment verification |
 
 ## Technical Requirements
 
@@ -195,6 +196,15 @@ Router::new()
 - ✅ **SUBTASKS UPDATED**: Cleaned up task list to reflect streamlined scope (10 core subtasks)
 - ✅ **AUDIT LOGGING DEFERRED**: Security audit logging moved to future implementation scope
 - ✅ **READY FOR PHASE 1**: Foundation and token validation ready to begin implementation
+
+### 2025-08-25
+- ✅ **SCOPE REFINEMENT**: Focused Phase 3 on core production features only
+- ✅ **HUMAN-IN-THE-LOOP EXCLUDED**: Removed complex approval workflow from immediate scope
+- ✅ **TOKEN LIFECYCLE FOCUS**: Prioritized refresh token handling, secure caching, automatic expiration
+- ✅ **RATE LIMITING FOCUS**: Prioritized request throttling, per-client limits, abuse detection
+- ✅ **PRODUCTION READY TARGET**: Streamlined scope for faster completion and deployment
+- ✅ **SUBTASKS UPDATED**: Refined remaining 4 subtasks to focus on token management and rate limiting
+- 🎯 **READY FOR PHASE 3**: Clear focus on foundational security infrastructure
 
 ### 2025-08-21
 - 🎉 **MAJOR DISCOVERY**: Phase 1 & Phase 2 ALREADY IMPLEMENTED in OAuth2 module
