@@ -15,14 +15,15 @@ use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
 use crate::config::Settings;
-use crate::security::SecurityManager;
+use crate::mcp::handlers::{DirectoryHandler, FileHandler};
 use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
 use airs_mcp::shared::protocol::{Content, Tool};
 
 /// Filesystem MCP server implementing MCP protocol for secure file operations
 #[derive(Debug)]
 pub struct FilesystemMcpServer {
-    security_manager: Arc<SecurityManager>,
+    file_handler: FileHandler,
+    directory_handler: DirectoryHandler,
     settings: Arc<Settings>,
     _server_state: Arc<Mutex<ServerState>>,
 }
@@ -50,18 +51,30 @@ impl FilesystemMcpServer {
         info!("Initializing AIRS MCP-FS filesystem server");
 
         // Initialize security manager with security config
-        let security_manager = Arc::new(SecurityManager::new(settings.security.clone()));
+        let security_manager = Arc::new(crate::security::SecurityManager::new(
+            settings.security.clone(),
+        ));
+
+        // Create handlers with shared security manager
+        let file_handler = FileHandler::new(Arc::clone(&security_manager));
+        let directory_handler = DirectoryHandler::new(Arc::clone(&security_manager));
 
         Ok(Self {
-            security_manager,
+            file_handler,
+            directory_handler,
             settings: Arc::new(settings),
             _server_state: Arc::new(Mutex::new(ServerState::default())),
         })
     }
 
-    /// Get reference to security manager for validation
-    pub fn security_manager(&self) -> &SecurityManager {
-        &self.security_manager
+    /// Get reference to file handler
+    pub fn file_handler(&self) -> &FileHandler {
+        &self.file_handler
+    }
+
+    /// Get reference to directory handler  
+    pub fn directory_handler(&self) -> &DirectoryHandler {
+        &self.directory_handler
     }
 
     /// Get server settings
@@ -142,43 +155,18 @@ impl ToolProvider for FilesystemMcpServer {
         info!(tool_name = %name, "Executing filesystem tool");
 
         match name {
-            "read_file" => self.handle_read_file(arguments).await,
-            "write_file" => self.handle_write_file(arguments).await,
-            "list_directory" => self.handle_list_directory(arguments).await,
+            "read_file" => self.file_handler.handle_read_file(arguments).await,
+            "write_file" => self.file_handler.handle_write_file(arguments).await,
+            "list_directory" => {
+                self.directory_handler
+                    .handle_list_directory(arguments)
+                    .await
+            }
             _ => {
                 info!(tool_name = %name, "Tool not found");
                 Err(McpError::tool_not_found(name))
             }
         }
-    }
-}
-
-impl FilesystemMcpServer {
-    /// Handle read_file tool execution (placeholder implementation)
-    async fn handle_read_file(&self, _arguments: Value) -> McpResult<Vec<Content>> {
-        // TODO: Implement in task_003 - Core File Operations
-        info!("read_file tool called - placeholder implementation");
-        Ok(vec![Content::text(
-            "File reading will be implemented in task_003",
-        )])
-    }
-
-    /// Handle write_file tool execution (placeholder implementation)
-    async fn handle_write_file(&self, _arguments: Value) -> McpResult<Vec<Content>> {
-        // TODO: Implement in task_003 - Core File Operations
-        info!("write_file tool called - placeholder implementation");
-        Ok(vec![Content::text(
-            "File writing will be implemented in task_003",
-        )])
-    }
-
-    /// Handle list_directory tool execution (placeholder implementation)
-    async fn handle_list_directory(&self, _arguments: Value) -> McpResult<Vec<Content>> {
-        // TODO: Implement in task_003 - Core File Operations
-        info!("list_directory tool called - placeholder implementation");
-        Ok(vec![Content::text(
-            "Directory listing will be implemented in task_003",
-        )])
     }
 }
 
@@ -212,6 +200,7 @@ impl McpServer {
 mod tests {
     use super::*;
     use crate::config::Settings;
+    use tempfile;
 
     #[tokio::test]
     async fn test_mcp_server_creation() {
@@ -238,12 +227,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_filesystem_mcp_server_security_manager_access() {
+    async fn test_filesystem_mcp_server_handler_access() {
         let settings = Settings::default();
         let server = FilesystemMcpServer::new(settings).await.unwrap();
 
-        // Test that we can access the security manager
-        let _security_manager = server.security_manager();
+        // Test that we can access the handlers
+        let _file_handler = server.file_handler();
+        let _directory_handler = server.directory_handler();
         let _settings = server.settings();
     }
 
@@ -265,18 +255,43 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_provider_call_tool_read_file() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
         let settings = Settings::default();
         let server = FilesystemMcpServer::new(settings).await.unwrap();
 
-        // Test calling read_file tool (placeholder implementation)
-        let args = serde_json::json!({"path": "/test/file.txt"});
+        // Create a temporary file for testing
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let test_content = "Hello, World! This is test content.";
+        temp_file.write_all(test_content.as_bytes()).unwrap();
+        temp_file.flush().unwrap();
+
+        // Test calling read_file tool with real file
+        let args = serde_json::json!({"path": temp_file.path().to_string_lossy()});
         let result = server.call_tool("read_file", args).await.unwrap();
 
         assert_eq!(result.len(), 1);
         if let Some(content) = result.first() {
             if let Some(text) = content.as_text() {
-                assert!(text.contains("task_003"));
+                assert_eq!(text, test_content);
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_tool_provider_call_tool_read_file_not_found() {
+        let settings = Settings::default();
+        let server = FilesystemMcpServer::new(settings).await.unwrap();
+
+        // Test calling read_file tool with non-existent file
+        let args = serde_json::json!({"path": "/non/existent/file.txt"});
+        let result = server.call_tool("read_file", args).await;
+
+        assert!(result.is_err());
+        if let Err(error) = result {
+            let error_msg = format!("{:?}", error);
+            assert!(error_msg.contains("File not found"));
         }
     }
 
@@ -290,5 +305,111 @@ mod tests {
         let result = server.call_tool("unknown_tool", args).await;
 
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_write_file_tool() {
+        use tempfile::TempDir;
+
+        let settings = Settings::default();
+        let server = FilesystemMcpServer::new(settings).await.unwrap();
+
+        // Create a temporary directory for testing
+        let temp_dir = TempDir::new().unwrap();
+        let test_file_path = temp_dir.path().join("test_write.txt");
+        let test_content = "Hello from write_file tool!";
+
+        // Test writing a file
+        let args = serde_json::json!({
+            "path": test_file_path.to_string_lossy(),
+            "content": test_content
+        });
+        let result = server.call_tool("write_file", args).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        if let Some(content) = result.first() {
+            if let Some(text) = content.as_text() {
+                assert!(text.contains("File written successfully"));
+                assert!(text.contains(&test_file_path.to_string_lossy().to_string()));
+            }
+        }
+
+        // Verify the file was actually written
+        let written_content = tokio::fs::read_to_string(&test_file_path).await.unwrap();
+        assert_eq!(written_content, test_content);
+    }
+
+    #[tokio::test]
+    async fn test_list_directory_tool() {
+        use tempfile::TempDir;
+
+        let settings = Settings::default();
+        let server = FilesystemMcpServer::new(settings).await.unwrap();
+
+        // Create a temporary directory with some files for testing
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create test files
+        let file1_path = temp_dir.path().join("file1.txt");
+        let file2_path = temp_dir.path().join("file2.md");
+        tokio::fs::write(&file1_path, "content1").await.unwrap();
+        tokio::fs::write(&file2_path, "# content2").await.unwrap();
+
+        // Test listing directory
+        let args = serde_json::json!({
+            "path": temp_dir.path().to_string_lossy()
+        });
+        let result = server.call_tool("list_directory", args).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        if let Some(content) = result.first() {
+            if let Some(text) = content.as_text() {
+                // Parse the JSON response
+                let response: serde_json::Value = serde_json::from_str(text).unwrap();
+
+                assert_eq!(response["total_entries"].as_u64().unwrap(), 2);
+                assert!(text.contains("file1.txt"));
+                assert!(text.contains("file2.md"));
+
+                // Check that entries have type "file" - be flexible with JSON formatting
+                let entries = response["entries"].as_array().unwrap();
+                assert_eq!(entries.len(), 2);
+                for entry in entries {
+                    assert_eq!(entry["type"].as_str().unwrap(), "file");
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_read_file_base64_encoding() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let settings = Settings::default();
+        let server = FilesystemMcpServer::new(settings).await.unwrap();
+
+        // Create a temporary file with binary content
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let binary_data = vec![0u8, 1u8, 2u8, 255u8]; // Some binary data
+        temp_file.write_all(&binary_data).unwrap();
+        temp_file.flush().unwrap();
+
+        // Test reading with base64 encoding
+        let args = serde_json::json!({
+            "path": temp_file.path().to_string_lossy(),
+            "encoding": "base64"
+        });
+        let result = server.call_tool("read_file", args).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        if let Some(content) = result.first() {
+            if let Some(text) = content.as_text() {
+                assert!(text.contains("Base64 encoded content"));
+                assert!(text.contains("4 bytes"));
+                // The base64 encoding of [0, 1, 2, 255] should be "AAEC/w=="
+                assert!(text.contains("AAEC/w=="));
+            }
+        }
     }
 }

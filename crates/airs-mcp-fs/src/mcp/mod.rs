@@ -9,6 +9,7 @@
 // (None needed for pure module coordinator)
 
 // Layer 3: Internal module declarations
+pub mod handlers;
 pub mod server;
 pub mod tools;
 pub mod types;
