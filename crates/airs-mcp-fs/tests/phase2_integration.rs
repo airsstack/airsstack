@@ -2,13 +2,13 @@
 
 use airs_mcp::integration::mcp::{McpServerBuilder, ToolProvider};
 use airs_mcp::transport::StdioTransport;
-use airs_mcp_fs::{FilesystemMcpServer, Settings};
+use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};
 
 #[tokio::test]
 async fn test_phase2_mcp_server_builder_integration() {
     // Test that we can create a FilesystemMcpServer
     let settings = Settings::default();
-    let filesystem_server = FilesystemMcpServer::new(settings)
+    let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings)
         .await
         .expect("Failed to create filesystem server");
 
@@ -38,7 +38,7 @@ async fn test_phase2_mcp_server_builder_integration() {
 async fn test_phase2_filesystem_tool_provider_functionality() {
     // Create filesystem server
     let settings = Settings::default();
-    let filesystem_server = FilesystemMcpServer::new(settings)
+    let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings)
         .await
         .expect("Failed to create filesystem server");
 
