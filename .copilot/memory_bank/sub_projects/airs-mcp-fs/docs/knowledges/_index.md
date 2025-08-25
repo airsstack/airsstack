@@ -1,10 +1,22 @@
 # Knowledge Documentation Index - airs-mcp-fs
 
 **Last Updated**: 2025-08-25  
-**Total Knowledge Docs**: 3  
-**Categories**: 2 (Integration, Security)
+**Total Knowledge Docs**: 4  
+**Categories**: 3 (Architecture, Integration, Security)
 
 ## Knowledge Categories
+
+### Architecture
+**Documentation Count**: 1  
+**Complexity Level**: Medium  
+**Maintenance Priority**: High
+
+#### Active Documents
+- **[Dependency Injection Architecture](./dependency-injection-architecture.md)**
+  - **Focus**: Trait-based dependency injection patterns, constructor refactoring, testability improvements
+  - **Complexity**: Medium - Design pattern implementation and migration strategy
+  - **Updated**: 2025-08-25
+  - **Related**: FilesystemMcpServer refactoring, SOLID principles compliance
 
 ### Integration
 **Documentation Count**: 2  
@@ -43,8 +55,8 @@
 - MCP Server Foundation Patterns  
 - Security Framework Architecture
 
-### Medium Complexity (0 documents)
-*No medium complexity documents yet*
+### Medium Complexity (1 document)
+- Dependency Injection Architecture
 
 ### Low Complexity (0 documents)
 *No low complexity documents yet*
@@ -52,6 +64,9 @@
 ## Recent Updates
 
 ### 2025-08-25
+- **Created**: Dependency Injection Architecture - Trait-based dependency injection patterns for FilesystemMcpServer
+- **Content**: Constructor refactoring strategy, SOLID principles compliance, testability improvements
+- **Impact**: High - Architectural improvement for server design and testing capabilities
 - **Created**: MCP Server Foundation Patterns - Comprehensive technical implementation patterns for MCP servers
 - **Content**: AIRS MCP foundation integration, STDIO transport patterns, ToolProvider implementation
 - **Impact**: High - Primary reference for task_002 implementation and future MCP server development
