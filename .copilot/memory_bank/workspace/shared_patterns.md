@@ -747,7 +747,161 @@ serde_json = { version = "1.0" }
 
 #### Enforcement Pattern
 ```rust
-// ✅ When adding new AIRS crates
+#### Enforcement Pattern
+```rust
+// ✅ When adding new AIRS crates, add at the top of workspace dependencies
+// ✅ External dependencies maintain their categorical organization
+```
+
+### §6. Error Handling Standards (Mandatory)
+
+**Principle**: Production code MUST use proper error handling patterns to ensure reliability and prevent panics.
+
+#### Production Code Unwrap Prohibition (MANDATORY)
+**ZERO TOLERANCE POLICY**: No `.unwrap()` or `.expect()` calls in production code paths.
+
+```rust
+// ❌ FORBIDDEN: Production unwrap usage
+pub fn production_function(input: &str) -> Result<Output, Error> {
+    let parsed = input.parse().unwrap(); // VIOLATION: Will panic on invalid input
+    process(parsed)
+}
+
+// ✅ CORRECT: Proper error propagation
+pub fn production_function(input: &str) -> Result<Output, Error> {
+    let parsed = input.parse()
+        .map_err(|e| Error::InvalidInput(format!("Parse failed: {}", e)))?;
+    process(parsed)
+}
+
+// ✅ ACCEPTABLE: Test code only with clear marking
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_valid_input() {
+        // TEST: unwrap safe - controlled test input
+        let result = production_function("valid").unwrap();
+        assert_eq!(result.value, 42);
+    }
+}
+```
+
+#### Error Handling Best Practices
+```rust
+// ✅ Use Result propagation with `?` operator
+pub async fn chain_operations() -> Result<Output, AppError> {
+    let step1 = first_operation().await?;
+    let step2 = second_operation(step1).await?;
+    Ok(third_operation(step2)?)
+}
+
+// ✅ Add context to errors at boundaries
+pub async fn high_level_operation(input: Input) -> Result<Output, AppError> {
+    validate_input(&input)
+        .await
+        .with_context(|| format!("Input validation failed for: {:?}", input))?;
+    
+    process_input(input)
+        .await
+        .with_context(|| "Processing operation failed")
+}
+
+// ✅ Use proper error types with structured information
+#[derive(Debug, Error)]
+pub enum AppError {
+    #[error("Configuration error: {message}")]
+    Config { message: String },
+    
+    #[error("IO operation failed: {operation}")]
+    Io {
+        operation: String,
+        #[source]
+        source: std::io::Error,
+    },
+}
+```
+
+#### CI/CD Enforcement
+```toml
+# Cargo.toml - Enable clippy lint to prevent unwrap usage
+[workspace.lints.clippy]
+unwrap_used = "forbid"
+expect_used = "forbid"
+
+# Allow unwrap in test code only
+[workspace.lints.clippy]
+unwrap_used = { level = "forbid", priority = 1 }
+expect_used = { level = "forbid", priority = 1 }
+
+# Configuration for test-only allowance
+[[workspace.lints.clippy.unwrap_used]]
+allow-in-tests = true
+```
+
+#### Test Code Exception Pattern
+```rust
+// ✅ ONLY acceptable unwrap pattern: Test code with clear documentation
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_successful_parsing() {
+        // TEST: unwrap safe - controlled test environment with known valid input
+        let result = parse_config("valid_config.toml").unwrap();
+        assert_eq!(result.setting, "expected_value");
+    }
+    
+    #[test]
+    fn test_error_handling() {
+        // TEST: Verify proper error handling without unwrap
+        let result = parse_config("invalid_config.toml");
+        assert!(result.is_err());
+        match result {
+            Err(ConfigError::InvalidFormat { .. }) => { /* Expected */ },
+            _ => panic!("Unexpected error type"),
+        }
+    }
+}
+```
+
+#### Refactoring Legacy Unwrap Usage
+```rust
+// BEFORE: Unwrap in production code
+fn legacy_function(input: &str) -> String {
+    let value = input.parse::<i32>().unwrap();
+    format!("Result: {}", value * 2)
+}
+
+// AFTER: Proper error handling
+fn refactored_function(input: &str) -> Result<String, ProcessingError> {
+    let value = input.parse::<i32>()
+        .map_err(|e| ProcessingError::InvalidInput {
+            input: input.to_string(),
+            reason: e.to_string(),
+        })?;
+    
+    Ok(format!("Result: {}", value * 2))
+}
+```
+
+#### Emergency Exception Process
+**If unwrap is absolutely necessary in production code (extremely rare):**
+1. **Document with GitHub Issue**: Create issue explaining why unwrap is necessary
+2. **Add Inline Documentation**: Explain why unwrap is safe in this specific context
+3. **Add TODO for Remediation**: Plan to eliminate unwrap in future refactoring
+4. **Use expect() with Context**: Provide meaningful panic message
+
+```rust
+// EMERGENCY ONLY: Documented unwrap with remediation plan
+// TODO(DEBT-EMERGENCY-001): Replace with proper error handling
+// GitHub Issue: #123 - Remove emergency unwrap in initialization
+// Context: System initialization - failure should terminate program anyway
+let config = load_critical_config()
+    .expect("CRITICAL: Cannot start without valid configuration - terminating");
+```
+
+### Performance Guidelines
 [workspace.dependencies] 
 # NEW AIRS crates must be added to Layer 1 (top section)
 airs-new-crate = { path = "crates/airs-new-crate" }
