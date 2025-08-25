@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs-mcp-fs  
-**switched_on:** 2025-08-22T12:00:00Z
-**updated_on:** 2025-08-22T12:00:00Z
-**by:** context_switch_to_mcp_fs
-**status:** foundation_ready_for_implementation
+**active_sub_project:** airs-mcp  
+**switched_on:** 2025-08-25T00:00:00Z
+**updated_on:** 2025-08-25T00:00:00Z
+**by:** context_switch_to_airs_mcp
+**status:** oauth_middleware_refactoring_planned
 
 # OAUTH 2.1 MIDDLEWARE ARCHITECTURE PLANNING - 2025-08-21
 
