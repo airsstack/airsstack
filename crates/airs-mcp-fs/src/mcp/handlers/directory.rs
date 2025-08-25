@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
+use async_trait::async_trait;
 use chrono;
 use serde_json::Value;
 use tracing::{info, instrument};
@@ -18,8 +19,18 @@ use airs_mcp::shared::protocol::Content;
 
 // Layer 3b: Local crate modules
 use crate::filesystem::FileOperation;
+use crate::mcp::handlers::traits::DirectoryOperations;
 use crate::mcp::OperationType;
 use crate::security::SecurityManager;
+
+/// Configuration options for directory listing
+#[derive(Debug)]
+struct ListingOptions {
+    include_hidden: bool,
+    include_metadata: bool,
+    recursive: bool,
+    max_depth: u32,
+}
 
 /// Handler for directory operations (list_directory)
 #[derive(Debug)]
@@ -285,13 +296,15 @@ impl DirectoryHandler {
     }
 }
 
-/// Configuration options for directory listing
-#[derive(Debug)]
-struct ListingOptions {
-    include_hidden: bool,
-    include_metadata: bool,
-    recursive: bool,
-    max_depth: u32,
+/// Implementation of DirectoryOperations trait for DirectoryHandler
+///
+/// This implementation provides the dependency injection interface for directory operations,
+/// enabling loose coupling and improved testability.
+#[async_trait]
+impl DirectoryOperations for DirectoryHandler {
+    async fn handle_list_directory(&self, arguments: Value) -> McpResult<Vec<Content>> {
+        self.handle_list_directory(arguments).await
+    }
 }
 
 #[cfg(test)]

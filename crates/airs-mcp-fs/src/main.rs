@@ -13,7 +13,7 @@ use anyhow::Result;
 use tracing::{error, info};
 
 // Layer 3: Internal module imports
-use airs_mcp_fs::{FilesystemMcpServer, Settings};
+use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -55,7 +55,8 @@ async fn main() -> Result<()> {
     };
 
     // Initialize filesystem MCP server
-    let filesystem_server = match FilesystemMcpServer::new(settings).await {
+    let filesystem_server = match DefaultFilesystemMcpServer::with_default_handlers(settings).await
+    {
         Ok(server) => {
             info!("✅ Filesystem MCP server initialized with security manager");
             server

@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
+use async_trait::async_trait;
 use base64::prelude::*;
 use chrono;
 use serde_json::Value;
@@ -19,6 +20,7 @@ use airs_mcp::shared::protocol::Content;
 
 // Layer 3b: Local crate modules
 use crate::filesystem::FileOperation;
+use crate::mcp::handlers::traits::FileOperations;
 use crate::mcp::OperationType;
 use crate::security::{ApprovalDecision, SecurityManager};
 
@@ -49,9 +51,8 @@ impl FileHandler {
             max_size_mb: Option<u64>,
         }
 
-        let args: ReadFileArgs = serde_json::from_value(arguments).map_err(|e| {
-            McpError::invalid_request(format!("Invalid read_file arguments: {e}"))
-        })?;
+        let args: ReadFileArgs = serde_json::from_value(arguments)
+            .map_err(|e| McpError::invalid_request(format!("Invalid read_file arguments: {e}")))?;
 
         // Create filesystem operation for security validation
         let operation =
@@ -64,9 +65,10 @@ impl FileHandler {
             .map_err(|e| McpError::invalid_request(format!("Security validation failed: {e}")))?;
 
         // Check if file exists
-        if !tokio::fs::try_exists(&args.path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to check file existence: {e}"))
-        })? {
+        if !tokio::fs::try_exists(&args.path)
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to check file existence: {e}")))?
+        {
             return Err(McpError::invalid_request(format!(
                 "File not found: {}",
                 args.path
@@ -74,9 +76,9 @@ impl FileHandler {
         }
 
         // Check file size
-        let metadata = tokio::fs::metadata(&args.path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file metadata: {e}"))
-        })?;
+        let metadata = tokio::fs::metadata(&args.path)
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to read file metadata: {e}")))?;
 
         let max_size = args.max_size_mb.unwrap_or(100) * 1024 * 1024; // Default 100MB
         if metadata.len() > max_size {
@@ -117,9 +119,8 @@ impl FileHandler {
             backup_existing: Option<bool>,
         }
 
-        let args: WriteFileArgs = serde_json::from_value(arguments).map_err(|e| {
-            McpError::invalid_request(format!("Invalid write_file arguments: {e}"))
-        })?;
+        let args: WriteFileArgs = serde_json::from_value(arguments)
+            .map_err(|e| McpError::invalid_request(format!("Invalid write_file arguments: {e}")))?;
 
         // Create filesystem operation for security validation
         let operation =
@@ -157,9 +158,9 @@ impl FileHandler {
 
     /// Read file as UTF-8 text
     async fn read_as_text(&self, path: &str) -> McpResult<Vec<Content>> {
-        let content = tokio::fs::read_to_string(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file as UTF-8: {e}"))
-        })?;
+        let content = tokio::fs::read_to_string(path)
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to read file as UTF-8: {e}")))?;
 
         info!(
             file_path = %path,
@@ -172,9 +173,9 @@ impl FileHandler {
 
     /// Read file as binary and encode as base64
     async fn read_as_base64(&self, path: &str) -> McpResult<Vec<Content>> {
-        let bytes = tokio::fs::read(path).await.map_err(|e| {
-            McpError::internal_error(format!("Failed to read file as binary: {e}"))
-        })?;
+        let bytes = tokio::fs::read(path)
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to read file as binary: {e}")))?;
 
         let base64_content = base64::prelude::BASE64_STANDARD.encode(&bytes);
 
@@ -308,6 +309,21 @@ impl FileHandler {
             path,
             bytes.len()
         ))])
+    }
+}
+
+/// Implementation of FileOperations trait for FileHandler
+///
+/// This implementation provides the dependency injection interface for file operations,
+/// enabling loose coupling and improved testability.
+#[async_trait]
+impl FileOperations for FileHandler {
+    async fn handle_read_file(&self, arguments: Value) -> McpResult<Vec<Content>> {
+        self.handle_read_file(arguments).await
+    }
+
+    async fn handle_write_file(&self, arguments: Value) -> McpResult<Vec<Content>> {
+        self.handle_write_file(arguments).await
     }
 }
 

@@ -20,13 +20,18 @@ use airs_mcp::shared::protocol::{Content, Tool};
 
 // Layer 3b: Local crate modules
 use crate::config::Settings;
-use crate::mcp::handlers::{DirectoryHandler, FileHandler};
+use crate::mcp::handlers::{DirectoryHandler, DirectoryOperations, FileHandler, FileOperations};
+use crate::security::SecurityManager;
 
 /// Filesystem MCP server implementing MCP protocol for secure file operations
 #[derive(Debug)]
-pub struct FilesystemMcpServer {
-    file_handler: FileHandler,
-    directory_handler: DirectoryHandler,
+pub struct FilesystemMcpServer<F, D>
+where
+    F: FileOperations,
+    D: DirectoryOperations,
+{
+    file_handler: F,
+    directory_handler: D,
     settings: Arc<Settings>,
     _server_state: Arc<Mutex<ServerState>>,
 }
@@ -47,20 +52,15 @@ struct ServerState {
     tools_registered: bool,
 }
 
-impl FilesystemMcpServer {
-    /// Create a new filesystem MCP server instance
+impl<F, D> FilesystemMcpServer<F, D>
+where
+    F: FileOperations,
+    D: DirectoryOperations,
+{
+    /// Create a new filesystem MCP server instance with dependency injection
     #[instrument(level = "debug")]
-    pub async fn new(settings: Settings) -> Result<Self> {
-        info!("Initializing AIRS MCP-FS filesystem server");
-
-        // Initialize security manager with security config
-        let security_manager = Arc::new(crate::security::SecurityManager::new(
-            settings.security.clone(),
-        ));
-
-        // Create handlers with shared security manager
-        let file_handler = FileHandler::new(Arc::clone(&security_manager));
-        let directory_handler = DirectoryHandler::new(Arc::clone(&security_manager));
+    pub async fn new(settings: Settings, file_handler: F, directory_handler: D) -> Result<Self> {
+        info!("Initializing AIRS MCP-FS filesystem server with injected handlers");
 
         Ok(Self {
             file_handler,
@@ -71,12 +71,12 @@ impl FilesystemMcpServer {
     }
 
     /// Get reference to file handler
-    pub fn file_handler(&self) -> &FileHandler {
+    pub fn file_handler(&self) -> &F {
         &self.file_handler
     }
 
     /// Get reference to directory handler  
-    pub fn directory_handler(&self) -> &DirectoryHandler {
+    pub fn directory_handler(&self) -> &D {
         &self.directory_handler
     }
 
@@ -86,8 +86,32 @@ impl FilesystemMcpServer {
     }
 }
 
+// Convenience type alias for the default implementation
+pub type DefaultFilesystemMcpServer = FilesystemMcpServer<FileHandler, DirectoryHandler>;
+
+impl DefaultFilesystemMcpServer {
+    /// Create a new filesystem MCP server instance with default handlers
+    #[instrument(level = "debug")]
+    pub async fn with_default_handlers(settings: Settings) -> Result<Self> {
+        info!("Initializing AIRS MCP-FS filesystem server with default handlers");
+
+        // Initialize security manager with security config
+        let security_manager = Arc::new(SecurityManager::new(settings.security.clone()));
+
+        // Create handlers with shared security manager
+        let file_handler = FileHandler::new(Arc::clone(&security_manager));
+        let directory_handler = DirectoryHandler::new(Arc::clone(&security_manager));
+
+        Self::new(settings, file_handler, directory_handler).await
+    }
+}
+
 #[async_trait]
-impl ToolProvider for FilesystemMcpServer {
+impl<F, D> ToolProvider for FilesystemMcpServer<F, D>
+where
+    F: FileOperations,
+    D: DirectoryOperations,
+{
     /// List available filesystem tools for MCP clients
     #[instrument(level = "debug")]
     async fn list_tools(&self) -> McpResult<Vec<Tool>> {
@@ -225,14 +249,16 @@ mod tests {
     #[tokio::test]
     async fn test_filesystem_mcp_server_creation() {
         let settings = Settings::default();
-        let result = FilesystemMcpServer::new(settings).await;
+        let result = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_filesystem_mcp_server_handler_access() {
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Test that we can access the handlers
         let _file_handler = server.file_handler();
@@ -243,7 +269,9 @@ mod tests {
     #[tokio::test]
     async fn test_tool_provider_list_tools() {
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Test tool listing functionality
         let tools = server.list_tools().await.unwrap();
@@ -262,7 +290,9 @@ mod tests {
         use tempfile::NamedTempFile;
 
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Create a temporary file for testing
         let mut temp_file = NamedTempFile::new().unwrap();
@@ -285,7 +315,9 @@ mod tests {
     #[tokio::test]
     async fn test_tool_provider_call_tool_read_file_not_found() {
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Test calling read_file tool with non-existent file
         let args = serde_json::json!({"path": "/non/existent/file.txt"});
@@ -301,7 +333,9 @@ mod tests {
     #[tokio::test]
     async fn test_tool_provider_call_tool_unknown() {
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Test calling unknown tool
         let args = serde_json::json!({"invalid": "data"});
@@ -315,7 +349,9 @@ mod tests {
         use tempfile::TempDir;
 
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Create a temporary directory for testing
         let temp_dir = TempDir::new().unwrap();
@@ -347,7 +383,9 @@ mod tests {
         use tempfile::TempDir;
 
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Create a temporary directory with some files for testing
         let temp_dir = TempDir::new().unwrap();
@@ -390,7 +428,9 @@ mod tests {
         use tempfile::NamedTempFile;
 
         let settings = Settings::default();
-        let server = FilesystemMcpServer::new(settings).await.unwrap();
+        let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
+            .await
+            .unwrap();
 
         // Create a temporary file with binary content
         let mut temp_file = NamedTempFile::new().unwrap();

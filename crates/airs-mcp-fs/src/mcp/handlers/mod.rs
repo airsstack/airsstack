@@ -1,10 +1,9 @@
-//! MCP Tool Handlers
-//!
-//! This module contains specialized handlers for different types of MCP filesystem operations.
-//! Each handler is responsible for a specific domain of functionality.
+//! MCP handlers for filesystem operations
 
 pub mod directory;
 pub mod file;
+pub mod traits;
 
 pub use directory::DirectoryHandler;
 pub use file::FileHandler;
+pub use traits::{DirectoryOperations, FileOperations};
