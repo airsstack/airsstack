@@ -14,5 +14,5 @@ pub mod tools;
 pub mod types;
 
 // Public API re-exports
-pub use server::McpServer;
+pub use server::{FilesystemMcpServer, McpServer};
 pub use types::OperationType;

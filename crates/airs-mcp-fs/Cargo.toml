@@ -21,6 +21,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+async-trait.workspace = true
 
 # MCP-FS specific dependencies (workspace managed)
 image.workspace = true

@@ -19,5 +19,5 @@ pub mod security;
 // Public API re-exports
 pub use config::Settings;
 pub use filesystem::FileOperation;
-pub use mcp::{McpServer, OperationType};
+pub use mcp::{FilesystemMcpServer, McpServer, OperationType};
 pub use security::{ApprovalDecision, SecurityManager};
