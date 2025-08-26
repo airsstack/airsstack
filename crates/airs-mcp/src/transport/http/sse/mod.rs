@@ -48,6 +48,7 @@
 
 pub mod config;
 pub mod constants;
+pub mod handlers;
 pub mod transport;
 
 // Re-export public types
@@ -62,3 +63,9 @@ pub use constants::{
 
 // Re-export transport types
 pub use transport::{HttpSseTransport, SseBroadcaster, SseEvent};
+
+// Re-export handler types for easy access
+pub use handlers::{
+    health_handler, messages_handler, sse_stream_handler, MessageRequest, MessageResponse,
+    SseQueryParams,
+};

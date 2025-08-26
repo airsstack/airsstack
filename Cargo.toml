@@ -20,11 +20,13 @@ airs-mcp = { path = "crates/airs-mcp" }
 
 # Core async runtime
 tokio = { version = "1.47", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 futures = { version = "0.3" }
 
 # JSON serialization for JSON-RPC messages
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+serde_urlencoded = { version = "0.7" }
 
 # Concurrent collections for request correlation
 dashmap = { version = "5.5" }

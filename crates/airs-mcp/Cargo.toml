@@ -18,9 +18,11 @@ homepage = "https://github.com/rstlix0x0/airs/tree/main/crates/airs-mcp"
 # Core serialization for JSON-RPC messages (current implementation needs)
 serde.workspace = true
 serde_json.workspace = true
+serde_urlencoded.workspace = true
 
 # Future dependencies (now enabled for development and future use)
 tokio.workspace = true
+tokio-stream.workspace = true
 futures.workspace = true
 dashmap.workspace = true
 thiserror.workspace = true
