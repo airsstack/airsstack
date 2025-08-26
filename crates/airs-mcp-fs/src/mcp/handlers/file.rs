@@ -330,7 +330,7 @@ impl FileOperations for FileHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{SecurityConfig, FilesystemConfig, OperationConfig};
+    use crate::config::{FilesystemConfig, OperationConfig, SecurityConfig};
     use crate::security::SecurityManager;
     use std::collections::HashMap;
     use std::io::Write;
@@ -340,7 +340,7 @@ mod tests {
         SecurityConfig {
             filesystem: FilesystemConfig {
                 allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
-                denied_paths: vec![], // No denied paths for testing
+                denied_paths: vec![],                     // No denied paths for testing
             },
             operations: OperationConfig {
                 read_allowed: true,
