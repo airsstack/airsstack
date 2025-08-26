@@ -254,6 +254,83 @@ impl<T> Builder<T> {
 
 **Migration Strategy**: When refactoring existing code, apply these patterns incrementally using the strangler fig pattern to minimize risk.
 
+### §7. String Literals and Constants - Centralized Management
+
+**Principle**: Eliminate hardcoded string literals through centralized constants modules to prevent typos and improve maintainability.
+
+#### Constants Module Organization
+```rust
+// transport/http/sse/constants.rs
+// Group related constants into logical modules
+pub mod endpoints {
+    /// Default Server-Sent Events streaming endpoint
+    pub const DEFAULT_SSE_ENDPOINT: &str = "/sse";
+    
+    /// Default bi-directional messaging endpoint
+    pub const DEFAULT_MESSAGES_ENDPOINT: &str = "/messages";
+}
+
+pub mod headers {
+    /// Content-Type for Server-Sent Events responses
+    pub const CONTENT_TYPE_EVENT_STREAM: &str = "text/event-stream";
+    
+    /// Cache-Control directive for SSE responses
+    pub const CACHE_CONTROL_NO_CACHE: &str = "no-cache";
+}
+
+pub mod events {
+    /// Standard SSE event type for MCP messages
+    pub const MESSAGE_EVENT_TYPE: &str = "message";
+    
+    /// SSE event type for connection status updates
+    pub const STATUS_EVENT_TYPE: &str = "status";
+}
+```
+
+#### Usage in Configuration
+```rust
+// ✅ Use constants instead of hardcoded strings
+use crate::transport::http::sse::constants::endpoints::{
+    DEFAULT_SSE_ENDPOINT, DEFAULT_MESSAGES_ENDPOINT
+};
+
+#[derive(Debug, Clone)]
+pub struct HttpSseConfig {
+    /// SSE streaming endpoint path
+    pub sse_endpoint: String,
+    /// Bi-directional messaging endpoint path  
+    pub messages_endpoint: String,
+}
+
+impl Default for HttpSseConfig {
+    fn default() -> Self {
+        Self {
+            sse_endpoint: DEFAULT_SSE_ENDPOINT.to_string(),
+            messages_endpoint: DEFAULT_MESSAGES_ENDPOINT.to_string(),
+        }
+    }
+}
+
+// ❌ Avoid hardcoded strings that can lead to typos
+impl Default for HttpSseConfig {
+    fn default() -> Self {
+        Self {
+            sse_endpoint: "/sse".to_string(),     // Typo risk
+            messages_endpoint: "/messages".to_string(), // Maintenance burden
+        }
+    }
+}
+```
+
+#### Benefits
+- **Typo Prevention**: Compile-time verification of string usage
+- **Refactoring Safety**: Single point of change for string values
+- **IDE Support**: Auto-completion and find-all-references
+- **Documentation**: Self-documenting constant names with descriptions
+- **Testing**: Consistent values across implementation and tests
+
+**Enforcement**: All hardcoded strings related to endpoints, headers, event types, and other protocol constants MUST be replaced with centralized constants.
+
 ## Zero-Warning Policy (Mandatory)
 
 ### Code Quality Requirements

@@ -1,18 +1,11 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
-- No tasks currently in progress
+- [TASK013] HTTP SSE Implementation - **Phase 1.1 STARTED** - Configuration foundation with HTTP Streamable integration
 
 ## Pending
 ## Pending
-- [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment  
-- [TASK013] HTTP SSE Implementation - **POST-OAUTH DEVELOPMENT** - Maintained for legacy compatibility
-  - **Strategic Position**: Preserved as planned task for implementation after OAuth 2.1
-  - **Timeline**: Phase 3D → OAuth 2.1 (TASK014) → HTTP SSE (TASK013) → Future phases
-  - **Technical Plan**: Complete 3-week implementation plan with shared infrastructure approach
-  - **Architecture**: Dual-endpoint pattern (/sse + /messages) leveraging HTTP Streamable foundation
-  - **Legacy Support**: Backward compatibility option for clients requiring SSE transport
-  - **Migration Support**: Built-in MigrationHelper for smooth HTTP Streamable transition guidance
+- [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment
 
 ## Completed
 - [TASK014] OAuth 2.1 Enterprise Authentication - COMPLETE - Completed on 2025-08-25
