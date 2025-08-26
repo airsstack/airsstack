@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-08-25  
-**Total Knowledge Docs**: 10  
+**Last Updated**: 2025-08-26  
+**Total Knowledge Docs**: 13  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 1  
+**Documentation Count**: 2  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -17,6 +17,12 @@
   - **Complexity**: High - Core architectural decisions and transport layer design
   - **Updated**: 2025-08-21
   - **Related**: ADR-001 (Transport role-specific), ADR-002 (HTTP architecture)
+
+- **[HTTP SSE Transport Architecture](./architecture/http-sse-transport-architecture.md)**
+  - **Focus**: HTTP SSE legacy compatibility architecture, shared infrastructure, migration strategy
+  - **Complexity**: High - Complete SSE transport design with dual-endpoint architecture
+  - **Updated**: 2025-08-26
+  - **Related**: TASK013 (HTTP SSE implementation), HTTP Streamable foundation
 
 ### Domain
 **Documentation Count**: 1  
@@ -31,7 +37,7 @@
   - **Related**: TASK014 (OAuth 2.1 implementation), ADR-007 (MCP protocol architecture)
 
 ### Integration
-**Documentation Count**: 1  
+**Documentation Count**: 2  
 **Complexity Level**: Medium  
 **Maintenance Priority**: High
 
@@ -42,8 +48,14 @@
   - **Updated**: 2025-08-21
   - **Related**: Production deployment, task_003 completion
 
+- **[HTTP SSE Migration Strategy](./integration/http-sse-migration-strategy.md)**
+  - **Focus**: Ecosystem transition strategy, migration tools, deprecation management
+  - **Complexity**: Medium - Migration framework and ecosystem support patterns
+  - **Updated**: 2025-08-26
+  - **Related**: TASK013 (HTTP SSE implementation), ecosystem transition planning
+
 ### Patterns
-**Documentation Count**: 4  
+**Documentation Count**: 5  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -54,11 +66,11 @@
   - **Updated**: 2025-08-21
   - **Related**: ADR-004 (SRP patterns), correlation system
 
-- **[HTTP SSE Message Patterns](./patterns/http-sse-message-patterns.md)**
-  - **Focus**: Server-sent events, HTTP streaming, real-time communication patterns
-  - **Complexity**: High - Real-time streaming protocols and message handling
-  - **Updated**: 2025-08-21
-  - **Related**: TASK013 (HTTP SSE legacy support), HTTP transport
+- **[HTTP SSE Development Phases](./patterns/http-sse-development-phases.md)**
+  - **Focus**: Comprehensive 3-week development plan, phase-by-phase implementation strategy
+  - **Complexity**: High - Complex project management and technical implementation phases
+  - **Updated**: 2025-08-26
+  - **Related**: TASK013 (HTTP SSE implementation), development methodology
 
 - **[Static Dispatch Optimization](./patterns/static-dispatch-optimization.md)**
   - **Focus**: Performance optimization through generics, dependency injection, compile-time polymorphism
@@ -71,6 +83,12 @@
   - **Complexity**: High - Advanced Rust concepts and memory safety guarantees
   - **Updated**: 2025-08-25
   - **Related**: Generic type parameters, memory safety, thread safety
+
+- **[HTTP SSE Message Patterns](./patterns/http-sse-message-patterns.md)**
+  - **Focus**: Server-sent events, HTTP streaming, real-time communication patterns
+  - **Complexity**: High - Real-time streaming protocols and message handling
+  - **Updated**: 2025-08-21
+  - **Related**: TASK013 (HTTP SSE legacy support), HTTP transport
 
 ### Performance
 **Documentation Count**: 1  
