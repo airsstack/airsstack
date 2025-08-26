@@ -16,13 +16,13 @@ pub const DEFAULT_MESSAGES_ENDPOINT: &str = "/messages";
 pub mod headers {
     /// Deprecation warning header
     pub const TRANSPORT_DEPRECATED: &str = "X-Transport-Deprecated";
-    
+
     /// Migration guidance header
     pub const MIGRATION_AVAILABLE: &str = "X-Migration-Available";
-    
+
     /// SSE last event ID header
     pub const LAST_EVENT_ID: &str = "Last-Event-ID";
-    
+
     /// Session ID header for correlation
     pub const SESSION_ID: &str = "X-Session-ID";
 }
@@ -31,13 +31,13 @@ pub mod headers {
 pub mod events {
     /// Standard message event type
     pub const MESSAGE: &str = "message";
-    
+
     /// Heartbeat/keep-alive event type
     pub const HEARTBEAT: &str = "heartbeat";
-    
+
     /// Error event type
     pub const ERROR: &str = "error";
-    
+
     /// Migration suggestion event type
     pub const MIGRATION_HINT: &str = "migration-hint";
 }
@@ -46,7 +46,7 @@ pub mod events {
 pub mod content_types {
     /// Server-Sent Events content type
     pub const EVENT_STREAM: &str = "text/event-stream";
-    
+
     /// JSON content type for messages endpoint
     pub const JSON: &str = "application/json";
 }

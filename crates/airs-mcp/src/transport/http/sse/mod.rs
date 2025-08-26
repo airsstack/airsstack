@@ -57,8 +57,7 @@ pub use config::{
 
 // Re-export constants for easy access
 pub use constants::{
-    DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
-    cache_control, content_types, events, headers,
+    cache_control, content_types, events, headers, DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
 };
 
 // Re-export transport types
