@@ -1,53 +1,67 @@
 # Current Context
 
-**active_sub_project:** airs-mcp  
+**active_sub_project:** airs-mcp-fs  
 **switched_on:** 2025-08-26T00:00:00Z
 **updated_on:** 2025-08-26T00:00:00Z
-**by:** http_streamable_transport_progress_reassessment
-**status:** http_streamable_90_percent_complete_infrastructure_delivered
+**by:** focus_switch_to_production_readiness_critical_tasks
+**status:** production_readiness_blocked_critical_security_reliability_gaps
 
-# HTTP STREAMABLE TRANSPORT PROGRESS REASSESSMENT - 2025-08-26
+# AIRS-MCP-FS PRODUCTION READINESS CRISIS - 2025-08-26
 
-## 🎯 CRITICAL DISCOVERY: HTTP STREAMABLE 90-95% COMPLETE ✅
+## 🚨 CRITICAL PRODUCTION BLOCKERS IDENTIFIED
 
-### HTTP STREAMABLE INFRASTRUCTURE DELIVERED
-**Major Progress Reassessment**: HTTP Streamable transport implementation discovered to be 90-95% complete with comprehensive infrastructure already operational.
+### Context Switch Reason
+**Focus Switch**: From airs-mcp (90-95% complete HTTP streamable transport) to airs-mcp-fs due to **CRITICAL PRODUCTION READINESS GAPS** discovered during comprehensive assessment.
 
-**HTTP Streamable Implementation Status**:
+**airs-mcp-fs Status**: Foundation complete but **NOT PRODUCTION READY** - Critical security, reliability, and configuration gaps prevent deployment.
+
+**Production Readiness Score**: **2/10** - Demo-ware with production aspirations
+
+### **CRITICAL SECURITY GAPS** 🔴
 ```
-OAuth 2.1 Complete (✅) → HTTP SSE Complete (✅) → HTTP Streamable Infrastructure (✅ 90-95%)
-       ↓                         ↓                                    ↓
-Security Foundation         Legacy Support                Modern Transport Nearly Complete
-All Tests Passing         Zero Warnings                    Final Features Pending
-```
-
-**Infrastructure Already Delivered**:
-- ✅ **Single `/mcp` Endpoint**: POST handler with complete JSON-RPC processing pipeline
-- ✅ **Session Management**: Full `SessionManager` with `Mcp-Session-Id` header support and correlation  
-- ✅ **Connection Management**: Complete `HttpConnectionManager` with health checks and resource tracking
-- ✅ **Recovery Foundation**: `Last-Event-ID` extraction and session context tracking operational
-- ✅ **Axum Integration**: Production-ready server state and routing infrastructure
-- ✅ **Standards Compliance**: Complete workspace standards adherence across HTTP modules
-
-**Remaining Work (5-10%)**:
-- ⏳ **GET `/mcp` Handler**: Add SSE streaming response to existing endpoint (route addition)
-- ⏳ **Dynamic Mode Selection**: Request type detection for JSON vs SSE responses (conditional logic)
-- ⏳ **Event Replay**: Connection recovery implementation using `Last-Event-ID` (feature addition)
-
-**SSE Transport Implementation Summary**:
-```
-OAuth 2.1 Complete (✅) → HTTP SSE Transport (✅ COMPLETE) → Next Transport Layer (🎯 READY)
-       ↓                         ↓                                    ↓
-OAuth Foundation            SSE Legacy Support              Future Protocol Support  
-All Tests Passing         Zero Warnings, Axum Ready       Transport Architecture Ready
+Current: Auto-Approval Security Bypass (ALL operations approved)
+Reality: "Enterprise-grade security" = TODO comments
+Missing: Human-in-the-loop approval workflows
+Impact: MASSIVE security vulnerability - any operation approved
 ```
 
-**Technical Standards Compliance Delivered**:
-- ✅ **HTTP SSE Module**: Complete transport implementation with 5 core modules
-- ✅ **Axum Integration**: Production-ready HTTP handlers with SSE streaming support
-- ✅ **Dual-Endpoint Architecture**: Clean separation of SSE streaming and JSON-RPC messaging
-- ✅ **Deprecation Management**: Built-in migration assistance with sunset dates and warnings
-- ✅ **Broadcasting System**: Efficient tokio broadcast channels for event distribution
+### **CRITICAL RELIABILITY GAPS** 🔴  
+```
+Unwrap Calls: 20+ .unwrap() calls in production code
+Panic Risk: Malicious inputs can crash entire system
+Error Recovery: Missing graceful error handling patterns
+DoS Vector: Unwrap-based denial-of-service vulnerabilities
+```
+
+### **CRITICAL CONFIGURATION GAPS** 🔴
+```
+Config System: Placeholder implementation (non-functional)
+Validation: Zero configuration validation or error reporting  
+Deployment: Cannot deploy without real configuration system
+Environment: No environment-specific config support
+```
+
+### **UNVALIDATED PERFORMANCE CLAIMS** 🟡
+```
+Claims: "Sub-100ms response times" 
+Reality: Zero benchmarking or performance testing
+Unknown: Actual performance characteristics under load
+Validation: Performance claims require immediate verification
+```
+
+### **IMMEDIATE PRIORITY TASKS**
+- **[task_005]** Implement Actual Security Framework (Replace auto-approval bypass)
+- **[task_006]** Real Configuration Management System (Replace placeholder config)  
+- **[task_007]** Eliminate Unwrap Calls + Workspace Standards (Remove 20+ unwrap calls)
+- **[task_008]** Performance Benchmarking (Validate performance claims)
+- **[task_010]** Security Audit (Comprehensive security validation)
+
+### **CONTEXT SWITCH IMPACT**
+```
+Previous Focus: airs-mcp HTTP streamable (90-95% complete, ready for features)
+Current Focus: airs-mcp-fs production readiness (critical blockers preventing deployment)
+Strategic: Address production-blocking issues before feature development
+```
 - ✅ **Test Coverage**: Unit tests + integration tests with zero compilation warnings
 - ✅ **Workspace Standards**: Complete 3-layer imports, chrono DateTime<Utc>, constants strategy
 
