@@ -11,6 +11,30 @@
   - **Ready for Completion**: All major infrastructure delivered, final features are small additions to existing code
 
 ## Pending
+- [TASK023] HTTP Streamable GET Handler Implementation - High Priority - Added on 2025-08-26
+  - **Core Feature**: Implement GET `/mcp` endpoint for SSE streaming responses
+  - **SSE Integration**: Add Server-Sent Events streaming with proper headers (text/event-stream, cache-control)
+  - **Session Management**: Reuse existing session infrastructure for streaming responses
+  - **Connection Recovery**: Support `Last-Event-ID` for connection resume
+  - **Dependencies**: Uses existing session and connection management infrastructure
+  - **Impact**: Completes HTTP Streamable streaming capability (remaining 5% of transport)
+
+- [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
+  - **Unified Endpoint**: Single `/mcp` endpoint handles both JSON and SSE responses
+  - **Mode Detection**: Automatic selection based on HTTP method, Accept headers, query parameters
+  - **Request Processing**: POST → JSON responses, GET → SSE streaming responses
+  - **Configuration**: Server default mode and client override support (?mode=json/?mode=stream)
+  - **Dependencies**: Requires TASK023 (GET handler implementation)
+  - **Impact**: Enables specification-compliant dynamic response mode selection
+
+- [TASK025] HTTP Streamable Event Replay & Connection Recovery - Medium Priority - Added on 2025-08-26
+  - **Event Buffer**: Store recent events with sequence IDs for replay capability
+  - **Connection Recovery**: Replay missed events using `Last-Event-ID` headers
+  - **Session Continuity**: Maintain session state and event tracking across reconnections
+  - **Buffer Management**: Configurable event retention and cleanup policies
+  - **Dependencies**: Requires TASK023 (GET handler) and existing session management
+  - **Impact**: Provides production-grade reliability and message delivery guarantees
+
 - [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment
 
 ## Completed
