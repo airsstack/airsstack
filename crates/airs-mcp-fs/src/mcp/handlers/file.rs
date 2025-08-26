@@ -330,14 +330,31 @@ impl FileOperations for FileHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Settings;
+    use crate::config::{SecurityConfig, FilesystemConfig, OperationConfig};
     use crate::security::SecurityManager;
+    use std::collections::HashMap;
     use std::io::Write;
     use tempfile::{NamedTempFile, TempDir};
 
+    fn create_permissive_test_config() -> SecurityConfig {
+        SecurityConfig {
+            filesystem: FilesystemConfig {
+                allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
+                denied_paths: vec![], // No denied paths for testing
+            },
+            operations: OperationConfig {
+                read_allowed: true,
+                write_requires_policy: false, // Permissive for testing
+                delete_requires_explicit_allow: false, // Permissive for testing
+                create_dir_allowed: true,
+            },
+            policies: HashMap::new(), // No policies needed for permissive testing
+        }
+    }
+
     fn create_test_handler() -> FileHandler {
-        let settings = Settings::default();
-        let security_manager = Arc::new(SecurityManager::new(settings.security));
+        let security_config = create_permissive_test_config();
+        let security_manager = Arc::new(SecurityManager::new(security_config));
         FileHandler::new(security_manager)
     }
 

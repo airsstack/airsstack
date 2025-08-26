@@ -12,4 +12,7 @@
 pub mod settings;
 
 // Public API re-exports
-pub use settings::{BinaryConfig, SecurityConfig, ServerConfig, Settings};
+pub use settings::{
+    BinaryConfig, SecurityConfig, ServerConfig, Settings,
+    FilesystemConfig, OperationConfig, SecurityPolicy, RiskLevel,
+};

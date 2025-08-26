@@ -226,19 +226,47 @@ impl McpServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Settings;
+    use crate::config::{Settings, SecurityConfig, FilesystemConfig, OperationConfig, BinaryConfig, ServerConfig};
+    use std::collections::HashMap;
     use tempfile;
+
+    fn create_permissive_test_settings() -> Settings {
+        Settings {
+            security: SecurityConfig {
+                filesystem: FilesystemConfig {
+                    allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
+                    denied_paths: vec![], // No denied paths for testing
+                },
+                operations: OperationConfig {
+                    read_allowed: true,
+                    write_requires_policy: false, // Permissive for testing
+                    delete_requires_explicit_allow: false, // Permissive for testing
+                    create_dir_allowed: true,
+                },
+                policies: HashMap::new(), // No policies needed for permissive testing
+            },
+            binary: BinaryConfig {
+                max_file_size: 100 * 1024 * 1024, // 100MB
+                enable_image_processing: true,
+                enable_pdf_processing: true,
+            },
+            server: ServerConfig {
+                name: "airs-mcp-fs".to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+        }
+    }
 
     #[tokio::test]
     async fn test_mcp_server_creation() {
-        let settings = Settings::default();
+        let settings = create_permissive_test_settings();
         let result = McpServer::new(settings).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_mcp_server_run() {
-        let settings = Settings::default();
+        let settings = create_permissive_test_settings();
         let server = McpServer::new(settings).await.unwrap();
 
         // Test that run() completes without error

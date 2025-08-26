@@ -24,8 +24,8 @@ impl SecurityManager {
     /// Create a new security manager with configuration
     pub fn new(config: SecurityConfig) -> Self {
         let path_validator = PathValidator::new(
-            config.allowed_paths.clone(),
-            config.denied_paths.clone(),
+            config.filesystem.allowed_paths.clone(),
+            config.filesystem.denied_paths.clone(),
         );
         
         Self {
@@ -52,7 +52,7 @@ impl SecurityManager {
         self.path_validator.validate_path(&operation.path)?;
         
         // Check if approval is required for write operations
-        if self.config.require_approval && self.requires_approval(operation.operation_type) {
+        if self.config.operations.write_requires_policy && self.requires_approval(operation.operation_type) {
             let decision = self.approval_workflow.request_approval(operation).await;
             Ok(decision)
         } else {
@@ -77,10 +77,32 @@ mod tests {
     use std::path::PathBuf;
 
     fn create_test_config() -> SecurityConfig {
+        use std::collections::HashMap;
+        use crate::config::settings::{FilesystemConfig, OperationConfig, SecurityPolicy, RiskLevel};
+        
+        let mut policies = HashMap::new();
+        policies.insert(
+            "test_policy".to_string(),
+            SecurityPolicy {
+                patterns: vec!["src/**".to_string(), "tests/**".to_string()],
+                operations: vec!["read".to_string(), "write".to_string()],
+                risk_level: RiskLevel::Low,
+                description: None,
+            },
+        );
+        
         SecurityConfig {
-            allowed_paths: vec!["src/**".to_string(), "tests/**".to_string()],
-            denied_paths: vec!["**/.git/**".to_string()],
-            require_approval: true,
+            filesystem: FilesystemConfig {
+                allowed_paths: vec!["src/**".to_string(), "tests/**".to_string()],
+                denied_paths: vec!["**/.git/**".to_string()],
+            },
+            operations: OperationConfig {
+                read_allowed: true,
+                write_requires_policy: true,
+                delete_requires_explicit_allow: true,
+                create_dir_allowed: true,
+            },
+            policies,
         }
     }
 
@@ -88,7 +110,7 @@ mod tests {
     fn test_security_manager_creation() {
         let config = create_test_config();
         let manager = SecurityManager::new(config);
-        assert!(manager.config.require_approval);
+        assert!(manager.config.operations.write_requires_policy);
     }
 
     #[tokio::test]
