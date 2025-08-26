@@ -18,6 +18,9 @@ rust-version = "1.88"
 # AIRS MCP Foundation - path dependency
 airs-mcp = { path = "crates/airs-mcp" }
 
+# Pattern matching for security policies (for airs-mcp-fs)
+globset = { version = "0.4" }
+
 # Core async runtime
 tokio = { version = "1.47", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }

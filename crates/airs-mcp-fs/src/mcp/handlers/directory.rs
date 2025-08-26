@@ -310,25 +310,13 @@ impl DirectoryOperations for DirectoryHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{SecurityConfig, FilesystemConfig, OperationConfig};
+    use crate::config::{SecurityConfig, Settings};
     use crate::security::SecurityManager;
-    use std::collections::HashMap;
     use tempfile::TempDir;
 
     fn create_permissive_test_config() -> SecurityConfig {
-        SecurityConfig {
-            filesystem: FilesystemConfig {
-                allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
-                denied_paths: vec![], // No denied paths for testing
-            },
-            operations: OperationConfig {
-                read_allowed: true,
-                write_requires_policy: false, // Permissive for testing
-                delete_requires_explicit_allow: false, // Permissive for testing
-                create_dir_allowed: true,
-            },
-            policies: HashMap::new(), // No policies needed for permissive testing
-        }
+        // Use the default configuration which includes proper test mode policies
+        Settings::default().security
     }
 
     fn create_test_handler() -> DirectoryHandler {

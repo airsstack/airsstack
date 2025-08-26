@@ -11,12 +11,14 @@ use crate::config::settings::SecurityConfig;
 use crate::filesystem::{validation::PathValidator, FileOperation};
 use crate::mcp::OperationType;
 use crate::security::approval::{ApprovalDecision, ApprovalWorkflow};
+use crate::security::policy::PolicyEngine;
 
 /// Main security manager for filesystem operations
 #[derive(Debug)]
 pub struct SecurityManager {
     path_validator: PathValidator,
     approval_workflow: ApprovalWorkflow,
+    policy_engine: PolicyEngine,
     config: Arc<SecurityConfig>,
 }
 
@@ -28,9 +30,14 @@ impl SecurityManager {
             config.filesystem.denied_paths.clone(),
         );
         
+        // Create policy engine from configured policies
+        let policy_engine = PolicyEngine::new(config.policies.clone())
+            .expect("Failed to create policy engine - invalid security policies");
+        
         Self {
             path_validator,
             approval_workflow: ApprovalWorkflow::new(),
+            policy_engine,
             config: Arc::new(config),
         }
     }
@@ -40,23 +47,42 @@ impl SecurityManager {
         // Validate path security
         self.path_validator.validate_path(&operation.path)?;
         
-        // Read operations generally don't require approval
-        // Additional security checks can be added here
+        // Use policy engine to validate read access
+        let policy_decision = self.policy_engine.evaluate_operation(operation);
         
-        Ok(())
+        if policy_decision.is_allowed() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Policy denied read access: {}", policy_decision.reason()))
+        }
     }
 
-    /// Validate write access to a path (requires approval if configured)
+    /// Validate write access to a path (requires policy evaluation)
     pub async fn validate_write_access(&self, operation: &FileOperation) -> Result<ApprovalDecision> {
         // Validate path security first
         self.path_validator.validate_path(&operation.path)?;
         
-        // Check if approval is required for write operations
+        // Use policy engine for real security evaluation instead of auto-approval
         if self.config.operations.write_requires_policy && self.requires_approval(operation.operation_type) {
-            let decision = self.approval_workflow.request_approval(operation).await;
-            Ok(decision)
+            let policy_decision = self.policy_engine.evaluate_operation(operation);
+            
+            if policy_decision.is_allowed() {
+                // Policy allows operation - still check approval workflow if needed
+                let decision = self.approval_workflow.request_approval(operation).await;
+                Ok(decision)
+            } else {
+                // Policy denies operation - convert to ApprovalDecision::Denied
+                Ok(ApprovalDecision::Denied)
+            }
         } else {
-            Ok(ApprovalDecision::Approved)
+            // For operations that don't require policy evaluation, still check with policy engine
+            let policy_decision = self.policy_engine.evaluate_operation(operation);
+            
+            if policy_decision.is_allowed() {
+                Ok(ApprovalDecision::Approved)
+            } else {
+                Ok(ApprovalDecision::Denied)
+            }
         }
     }
 

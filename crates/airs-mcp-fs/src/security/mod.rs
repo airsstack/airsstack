@@ -1,5 +1,5 @@
 //! Security framework and human approval workflows
-//! 
+//!
 //! Provides access control, approval workflows, and audit logging for filesystem operations.
 
 // Layer 1: Standard library imports
@@ -11,7 +11,9 @@
 // Layer 3: Internal module declarations
 pub mod approval;
 pub mod manager;
+pub mod policy;
 
 // Public API re-exports
 pub use approval::ApprovalDecision;
 pub use manager::SecurityManager;
+pub use policy::{PolicyDecision, PolicyEngine};
