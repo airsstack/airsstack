@@ -29,7 +29,7 @@ use std::time::Duration;
 ///     .session_timeout(Duration::from_secs(300))
 ///     .enable_buffer_pool();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HttpTransportConfig {
     /// Address to bind the HTTP server
     pub bind_address: SocketAddr,
@@ -156,7 +156,7 @@ impl Default for HttpTransportConfig {
 ///
 /// This configuration allows progressive optimization from simple
 /// per-request allocation to advanced buffer pooling.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ParserConfig {
     /// Optimization strategy for buffer management
     pub optimization_strategy: OptimizationStrategy,
@@ -186,7 +186,7 @@ impl Default for ParserConfig {
 /// Based on principal engineer review findings:
 /// - `None`: Simple per-request allocation (default, no contention)
 /// - `BufferPool`: Reuse memory buffers for high-throughput scenarios
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OptimizationStrategy {
     /// Simple per-request allocation
     /// 
@@ -208,7 +208,7 @@ pub enum OptimizationStrategy {
 /// Controls memory buffer reuse strategy for optimization.
 /// Buffer pooling reuses memory allocations (Vec<u8>) rather than
 /// entire parser objects for better performance and lower overhead.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BufferPoolConfig {
     /// Maximum number of buffers to keep in pool
     pub max_buffers: usize,

@@ -78,6 +78,7 @@ impl Default for SessionConfig {
 ///
 /// Manages HTTP sessions for the server transport, providing correlation
 /// with the existing correlation system and automatic cleanup of stale sessions.
+#[derive(Debug)]
 pub struct SessionManager {
     /// Active sessions indexed by session ID
     sessions: Arc<DashMap<SessionId, SessionContext>>,
