@@ -20,12 +20,64 @@ The current security implementation is fundamentally broken with auto-approval w
 **Key Insight**: Instead of impossible real-time approval, implement **declarative security policies** that users configure once and enforce automatically.
 
 ## Implementation Plan
-- Design configuration-based security policy system
-- Implement policy engine for real-time evaluation
-- Build comprehensive audit logging framework
-- Create path-based permission validation
-- Add risk assessment and flagging system
-- Design security configuration management and validation
+
+**FOCUSED APPROACH: Critical & High Priority Only**
+
+### **CRITICAL PATH (Production Blockers) - MUST COMPLETE**
+1. **Subtask 5.1** - Security Policy Configuration Schema (Foundation for all security)
+2. **Subtask 5.2** - Policy Engine Implementation (Core security evaluation - replaces auto-approval)
+3. **Subtask 5.3** - Audit Logging System (Compliance requirement)
+
+### **HIGH PRIORITY (Security Enhancement) - SHOULD COMPLETE** 
+4. **Subtask 5.4** - Path-Based Permission System (Access control foundation)
+5. **Subtask 5.5** - Operation-Type Restrictions (Operation-level security)
+6. **Subtask 5.7** - Configuration Validation (Deployment safety)
+
+### **EXCLUDED FROM SCOPE** (Medium/Nice-to-Have deferred)
+- Subtask 5.6 (Risk Assessment) - Advanced analysis
+- Subtask 5.8 (Configuration Hot-Reload) - Convenience feature  
+- Subtask 5.9 (Security Metrics) - Monitoring enhancement
+- Subtask 5.10 (Post-Session Review Tools) - Analysis tools
+
+### **Essential Security Configuration Schema**
+```toml
+# Core security policy configuration
+[security.filesystem]
+allowed_paths = ["~/projects/**/*.{rs,md,toml,json}"]
+denied_paths = ["**/.git/**", "**/.env*", "~/.*/**"]
+
+[security.operations]
+read_allowed = true
+write_requires_policy = true     # Write ops need explicit policy match
+delete_requires_explicit_allow = true  # Delete needs explicit "delete" permission
+
+[security.policies.source_code]
+patterns = ["**/*.{rs,py,js,ts}"]
+operations = ["read", "write"]
+risk_level = "low"
+```
+
+### **Security Operations Configuration Details**
+
+**`write_requires_policy = true`**: Write operations must match a defined security policy to be allowed - cannot rely on just general `allowed_paths`. Files need explicit policy with "write" in operations array.
+
+**`delete_requires_explicit_allow = true`**: Delete operations require explicit "delete" permission in policy operations array - never allowed by default, even if policy allows other operations.
+
+### **Policy Engine Architecture**
+```rust
+pub struct PolicyEngine {
+    policies: Vec<SecurityPolicy>,
+    path_matcher: GlobMatcher,
+    operation_rules: OperationRules,
+}
+
+// Replace auto-approval with real policy evaluation
+impl PolicyEngine {
+    pub fn evaluate_operation(&self, operation: &FileOperation) -> PolicyDecision {
+        // Security-first evaluation logic
+    }
+}
+```
 
 ## Progress Tracking
 
@@ -34,16 +86,12 @@ The current security implementation is fundamentally broken with auto-approval w
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 5.1 | Design security policy configuration schema | not_started | 2025-08-25 | TOML-based declarative security rules |
-| 5.2 | Implement policy engine for real-time evaluation | not_started | 2025-08-25 | Fast policy matching without human interaction |
-| 5.3 | Build comprehensive audit logging system | not_started | 2025-08-25 | Structured logging with tamper-proof records |
-| 5.4 | Create path-based permission validation | not_started | 2025-08-25 | Glob pattern matching for filesystem access |
-| 5.5 | Add operation-type restrictions framework | not_started | 2025-08-25 | Read/write/delete/create permission granularity |
-| 5.6 | Implement risk assessment and flagging | not_started | 2025-08-25 | Automatic detection of potentially risky operations |
-| 5.7 | Create security configuration validation | not_started | 2025-08-25 | Validate security configs on startup with clear errors |
-| 5.8 | Build configuration hot-reload capability | not_started | 2025-08-25 | Runtime security policy updates without restart |
-| 5.9 | Add security metrics and monitoring | not_started | 2025-08-25 | Policy hit rates, blocked operations, audit stats |
-| 5.10 | Create post-session security review tools | not_started | 2025-08-25 | Review audit logs and flagged operations |
+| 5.1 | Design security policy configuration schema | not_started | 2025-08-26 | TOML-based declarative security rules - CRITICAL |
+| 5.2 | Implement policy engine for real-time evaluation | not_started | 2025-08-26 | Replace auto-approval with real policy evaluation - CRITICAL |
+| 5.3 | Build comprehensive audit logging system | not_started | 2025-08-26 | Structured logging with compliance records - CRITICAL |
+| 5.4 | Create path-based permission validation | not_started | 2025-08-26 | Glob pattern matching for filesystem access - HIGH |
+| 5.5 | Add operation-type restrictions framework | not_started | 2025-08-26 | Read/write/delete/create permission granularity - HIGH |
+| 5.7 | Create security configuration validation | not_started | 2025-08-26 | Validate security configs on startup with clear errors - HIGH |
 
 ## Standards Compliance Checklist
 **Workspace Standards Applied** (Reference: `workspace/shared_patterns.md`):
@@ -63,6 +111,15 @@ The current security implementation is fundamentally broken with auto-approval w
 - **DEBT-AUDIT-003**: Missing audit logging creates compliance gaps
 
 ## Progress Log
+### 2025-08-26
+- **CRITICAL FOCUS REFINEMENT**: Streamlined implementation plan to focus on critical and high priority tasks only
+- **Security Operations Design**: Detailed configuration schema for `write_requires_policy` and `delete_requires_explicit_allow`
+- **Implementation Architecture**: Defined policy engine architecture to replace auto-approval security bypass
+- **Scope Reduction**: Excluded medium/nice-to-have features (risk assessment, hot-reload, metrics, review tools) to focus on production blockers
+- **Configuration Schema**: Finalized essential security configuration structure with TOML-based policies
+- **Expected Outcome**: Transform from "2/10 demo-ware" to "7-8/10 production-ready" with focused approach
+- Updated subtask priorities and removed deferred tasks for clarity
+
 ### 2025-08-25
 - Task created to address critical security implementation gap
 - Identified auto-approval vulnerability as immediate security risk

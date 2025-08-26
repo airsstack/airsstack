@@ -1,52 +1,49 @@
 # Active Context: AIRS MCP-FS
 
-**Updated:** 2025-08-25  
-**Phase:** Foundation Complete → **PRODUCTION READINESS CRITICAL**  
-**Status:** **NOT PRODUCTION READY** - Critical Issues Identified  
-**Next Milestone:** Production Readiness Remediation
+**Updated:** 2025-08-26  
+**Phase:** Foundation Complete → **SECURITY FRAMEWORK IMPLEMENTATION**  
+**Status:** **FOCUSED IMPLEMENTATION PLAN** - Critical and High Priority Tasks Only  
+**Next Milestone:** Eliminate Auto-Approval Security Bypass
 
-## **CRITICAL PRODUCTION READINESS ASSESSMENT**
+## **FOCUSED SECURITY FRAMEWORK IMPLEMENTATION - 2025-08-26**
 
-### **Production Status: BLOCKED** 🚨
-Following comprehensive production readiness analysis, airs-mcp-fs has **CRITICAL GAPS** that prevent production deployment despite having a solid foundation.
+### **Implementation Strategy: CRITICAL & HIGH PRIORITY ONLY**
+Following user agreement, implementation plan refined to focus on production-blocking issues while deferring operational enhancements for future phases.
 
-**Assessment Score: 2/10** - Demo-ware with production aspirations
+**Target Outcome**: Transform from **"2/10 demo-ware"** to **"7-8/10 production-ready"**
 
-### **CRITICAL BLOCKERS IDENTIFIED**
+### **CRITICAL PATH TASKS (Production Blockers)**
+- **[task_005.1]** Security Policy Configuration Schema - TOML-based declarative security rules
+- **[task_005.2]** Policy Engine Implementation - Replace auto-approval with real policy evaluation  
+- **[task_005.3]** Audit Logging System - Structured logging with compliance records
 
-#### **🔴 SECURITY CRITICAL** 
-- **Auto-Approval Security Bypass**: All filesystem operations auto-approved regardless of risk
-- **Security Claims vs Reality**: "Enterprise-grade security" is actually TODO comments
-- **Missing Human-in-the-Loop**: Approval workflow is placeholder implementation
+### **HIGH PRIORITY TASKS (Security Enhancement)**
+- **[task_005.4]** Path-Based Permission System - Glob pattern filesystem access control
+- **[task_005.5]** Operation-Type Restrictions - Read/write/delete/create permission granularity
+- **[task_005.7]** Configuration Validation - Startup config validation with clear errors
 
-#### **🔴 RELIABILITY CRITICAL**
-- **20+ Unwrap Calls**: Production code contains `.unwrap()` calls creating panic vulnerabilities
-- **Denial-of-Service Risk**: Malicious inputs can crash entire system via panic
-- **No Error Recovery**: Missing graceful error handling patterns
+### **SECURITY OPERATIONS CONFIGURATION**
+```toml
+[security.operations]
+read_allowed = true
+write_requires_policy = true     # Write ops need explicit policy match
+delete_requires_explicit_allow = true  # Delete needs explicit "delete" permission
+```
 
-#### **🔴 CONFIGURATION CRITICAL**
-- **Placeholder Settings**: Configuration system doesn't actually load configs
-- **Missing Validation**: No config validation or environment support
-- **Deployment Impossible**: Cannot deploy without real configuration system
+**Key Design Decisions**:
+- **`write_requires_policy`**: Write operations must match defined security policy, cannot rely on general allowed_paths
+- **`delete_requires_explicit_allow`**: Delete operations require explicit "delete" permission in policy - never allowed by default
 
-#### **🔴 PERFORMANCE UNVALIDATED**
-- **Unsubstantiated Claims**: "Sub-100ms response times" have zero validation
-- **No Benchmarking**: Complete absence of performance testing
-- **Unknown Characteristics**: Actual performance under load is unknown
+### **DEFERRED SCOPE** (Medium/Nice-to-Have)
+- Risk Assessment System (Advanced analysis)
+- Configuration Hot-Reload (Convenience feature)
+- Security Metrics & Monitoring (Operational enhancement)  
+- Post-Session Review Tools (Analysis tools)
 
-#### **🟡 USABILITY GAPS**
-- **Zero Examples**: No examples showing actual usage
-- **Missing Documentation**: Incomplete deployment guides
-- **User Adoption Barriers**: Documentation prevents real-world usage
-
-### **REMEDIATION TASKS CREATED**
-
-#### **Critical Priority Tasks**
-- **[task_005]** Implement Actual Security Framework - Replace auto-approval bypass
-- **[task_006]** Real Configuration Management System - Replace placeholder config
-- **[task_007]** Eliminate Unwrap Calls + Workspace Standards - Remove 20+ unwrap calls
-- **[task_008]** Performance Benchmarking - Validate performance claims
-- **[task_010]** Security Audit - Comprehensive security validation
+### **IMMEDIATE NEXT ACTIONS**
+1. **Start with task_005.1** (Security Policy Schema) - Foundation for all security
+2. **Implement task_005.2** (Policy Engine) - Eliminate auto-approval bypass
+3. **Build task_005.3** (Audit Logging) - Add compliance trail
 
 #### **High Priority Tasks**
 - **[task_009]** Production Examples and Documentation - Enable user adoption
