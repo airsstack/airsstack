@@ -1,0 +1,80 @@
+# Production Environment Configuration
+# Secure, locked-down settings for production deployment
+
+[security.filesystem]
+# Restricted paths for production security
+allowed_paths = [
+    "/app/data/**/*",
+    "/app/workspace/**/*",
+    "/var/lib/airs-mcp-fs/**/*",
+]
+
+denied_paths = [
+    # System critical paths
+    "/boot/**",
+    "/dev/**", 
+    "/proc/**",
+    "/sys/**",
+    "/run/**",
+    
+    # Configuration and secrets
+    "/etc/**",
+    "/root/**",
+    "**/.ssh/**",
+    "**/secrets/**",
+    "**/private/**",
+    
+    # Application internals
+    "/app/bin/**",
+    "/app/lib/**", 
+    "/usr/local/bin/**",
+    
+    # Logs and temp (prevent tampering)
+    "/var/log/**",
+    "/tmp/**",
+    "/var/tmp/**",
+]
+
+[security.operations]
+# Strict operations for production
+write_requires_policy = true
+delete_requires_explicit_allow = true
+
+[binary]
+# Production file size limits
+max_file_size = 268435456  # 256MB for production workloads
+
+# Production-specific security policies
+[security.policies.production_data]
+patterns = [
+    "/app/data/**/*.{json,csv,txt}",
+]
+operations = ["read", "write"]
+risk_level = "medium"
+description = "Production data files - controlled access"
+
+[security.policies.application_logs]
+patterns = [
+    "/var/lib/airs-mcp-fs/logs/**/*.log",
+]
+operations = ["read"]
+risk_level = "low"
+description = "Application logs - read-only access"
+
+[security.policies.workspace_files]
+patterns = [
+    "/app/workspace/**/*.{md,txt,json,yaml}",
+]
+operations = ["read", "write"]
+risk_level = "medium"
+description = "Workspace files - controlled editing"
+
+# High-risk policy for critical files
+[security.policies.critical_config]
+patterns = [
+    "/app/config/**/*.toml",
+    "/app/config/**/*.yaml",
+]
+operations = ["read"]
+risk_level = "high"
+description = "Critical configuration files - read-only"

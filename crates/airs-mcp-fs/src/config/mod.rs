@@ -9,10 +9,12 @@
 // (None needed for pure module coordinator)
 
 // Layer 3: Internal module declarations
+pub mod loader;
 pub mod settings;
 pub mod validation;
 
 // Public API re-exports
+pub use loader::{ConfigEnvironment, ConfigurationLoader, ConfigurationSource};
 pub use settings::{
     BinaryConfig, FilesystemConfig, OperationConfig, RiskLevel, SecurityConfig, SecurityPolicy,
     ServerConfig, Settings,

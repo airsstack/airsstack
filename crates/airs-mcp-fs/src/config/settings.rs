@@ -248,10 +248,35 @@ impl Default for Settings {
 impl Settings {
     /// Load settings from configuration file or use defaults with validation
     pub fn load() -> anyhow::Result<Self> {
-        // TODO: Implement actual configuration loading in subsequent tasks
-        let settings = Self::default();
+        use crate::config::loader::ConfigurationLoader;
 
-        // Validate the configuration before returning
+        // Use the new configuration loader for real configuration loading
+        let loader = ConfigurationLoader::new();
+        let (settings, source_info) = loader
+            .load()
+            .context("Failed to load configuration using ConfigurationLoader")?;
+
+        // Log configuration source information in non-test mode
+        if !cfg!(test) {
+            eprintln!(
+                "📋 Configuration loaded from {} environment",
+                source_info.environment
+            );
+            if !source_info.files.is_empty() {
+                eprintln!("   Configuration files: {:?}", source_info.files);
+            }
+            if !source_info.env_vars.is_empty() {
+                eprintln!(
+                    "   Environment variables: {} overrides",
+                    source_info.env_vars.len()
+                );
+            }
+            if source_info.uses_defaults {
+                eprintln!("   Using built-in defaults as base configuration");
+            }
+        }
+
+        // Validate the loaded configuration before returning
         Self::validate_and_warn(&settings)?;
 
         Ok(settings)
