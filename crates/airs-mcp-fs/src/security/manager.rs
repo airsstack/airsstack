@@ -9,12 +9,14 @@ use anyhow::Result;
 use globset;
 
 // Layer 3: Internal module imports
-use crate::config::settings::SecurityConfig;
+use crate::config::settings::{RiskLevel, SecurityConfig};
 use crate::filesystem::{validation::PathValidator, FileOperation};
 use crate::mcp::OperationType;
 use crate::security::approval::{ApprovalDecision, ApprovalWorkflow};
 use crate::security::audit::{AuditLogger, CorrelationId};
-use crate::security::permissions::{PathPermissionRule, PathPermissionValidator, PermissionLevel};
+use crate::security::permissions::{
+    PathPermissionRule, PathPermissionValidator, PermissionEvaluation, PermissionLevel,
+};
 use crate::security::policy::PolicyEngine;
 
 /// Main security manager for filesystem operations
@@ -269,7 +271,7 @@ impl SecurityManager {
                 "Operation {:?} denied - no matching policy found",
                 operation.operation_type
             ),
-            crate::config::settings::RiskLevel::High,
+            RiskLevel::High,
         );
 
         Ok(false)
@@ -303,7 +305,7 @@ impl SecurityManager {
             "delete_denied",
             &operation.path,
             "Delete operation denied - no explicit delete permission found",
-            crate::config::settings::RiskLevel::High,
+            RiskLevel::High,
         );
 
         Ok(false)
@@ -535,7 +537,7 @@ impl SecurityManager {
     }
 
     /// Add a permission rule to the path permission validator
-    pub fn add_permission_rule(&mut self, rule: crate::security::permissions::PathPermissionRule) {
+    pub fn add_permission_rule(&mut self, rule: PathPermissionRule) {
         self.permission_validator.add_rule(rule);
     }
 
@@ -545,7 +547,7 @@ impl SecurityManager {
         path: &std::path::Path,
         operations: &std::collections::HashSet<OperationType>,
         context: Option<&str>,
-    ) -> crate::security::permissions::PermissionEvaluation {
+    ) -> PermissionEvaluation {
         self.permission_validator
             .evaluate_permissions(path, operations, context)
     }
