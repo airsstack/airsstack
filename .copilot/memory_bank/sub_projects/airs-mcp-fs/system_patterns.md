@@ -1,7 +1,7 @@
 # System Patterns: AIRS MCP-FS
 
-**Updated:** 2025-08-16  
-**Architecture Status:** Design Phase - Implementation Pending
+**Updated:** 2025-08-29  
+**Architecture Status:** Implementation In Progress - Security Framework 67% Complete
 
 ## Core System Architecture
 
@@ -48,35 +48,72 @@
 
 ## Core Technical Patterns
 
-### 1. Security-First Design Pattern
+### 1. Security-First Design Pattern ✅ **IMPLEMENTED**
 
 **Pattern**: Every operation passes through security validation before execution
+**Status**: Operational with 67% security framework complete (4/6 subtasks)
 **Implementation**:
 ```rust
 #[derive(Clone)]
 pub struct SecurityManager {
     config: Arc<SecurityConfig>,
-    approval_workflow: Arc<ApprovalWorkflow>,
-    audit_logger: Arc<AuditLogger>,
+    policy_engine: Arc<PolicyEngine>,           // ✅ COMPLETE
+    permission_validator: PathPermissionValidator, // ✅ COMPLETE  
+    audit_logger: Arc<AuditLogger>,            // ✅ COMPLETE
 }
 
 impl SecurityManager {
     async fn validate_read_access(&self, path: &str) -> Result<(), SecurityError> {
-        // 1. Path canonicalization and traversal prevention
-        // 2. Allowlist/denylist pattern matching
-        // 3. File size and type validation
-        // 4. Audit logging
+        // ✅ IMPLEMENTED: Path-based permission validation with glob patterns
+        // ✅ IMPLEMENTED: 5-level permission hierarchy (None → ReadOnly → ReadBasic → ReadWrite → Full)
+        // ✅ IMPLEMENTED: Policy-based evaluation with deny-by-default security
+        // ✅ IMPLEMENTED: Comprehensive audit logging with correlation IDs
     }
     
     async fn validate_write_access(&self, path: &str) -> Result<ApprovalToken, SecurityError> {
-        // 1. Security validation (same as read)
-        // 2. Human approval workflow trigger
-        // 3. Approval token generation for authorized operations
+        // ✅ IMPLEMENTED: Advanced permission validation with rule priority
+        // ✅ IMPLEMENTED: Policy integration with risk level assessment
+        // 🔄 PENDING: Operation-type restrictions (Subtask 5.5)
+        // 🔄 PENDING: Configuration validation (Subtask 5.7)
     }
 }
 ```
 
-### 2. Human-in-the-Loop Approval Pattern
+**Security Framework Progress:**
+- ✅ **PolicyEngine**: Real-time policy evaluation with TOML configuration
+- ✅ **PathPermissionValidator**: Advanced glob pattern matching with inheritance  
+- ✅ **AuditLogger**: Structured JSON logging with compliance records
+- ✅ **Permission Hierarchy**: 5-level system with operation-specific validation
+- 🔄 **Operation Restrictions**: Granular read/write/delete/create controls (next)
+- 🔄 **Configuration Validation**: Startup validation with clear error messages
+
+### 2. Modular Architecture Pattern ✅ **EVOLVED**
+
+**Pattern**: Component-based design with clear separation of concerns
+**Recent Evolution**: Permission system refactoring planned for improved maintainability
+**Current Issue**: permissions.rs has grown to 541 lines, violating single responsibility
+
+**Planned Refactoring** (security/permissions/ sub-module):
+```rust
+// Current: Single 541-line file
+src/security/permissions.rs
+
+// Target: Focused sub-modules with comprehensive documentation
+src/security/permissions/
+├── mod.rs           // Architectural overview + re-exports (§4.3 compliance)
+├── level.rs         // PermissionLevel hierarchy (~120 lines)  
+├── rule.rs          // PathPermissionRule matching (~180 lines)
+├── evaluation.rs    // PermissionEvaluation results (~60 lines)
+└── validator.rs     // PathPermissionValidator engine (~230 lines)
+```
+
+**Documentation Strategy**:
+- **Module-level**: Architectural diagrams, quick start guides, security considerations
+- **Type-level**: Purpose, examples, invariants, performance characteristics  
+- **Method-level**: Parameters, return values, side effects, time complexity
+- **Integration**: Cross-references, usage patterns, best practices
+
+### 3. Configuration-Driven Security Policy Pattern ✅ **IMPLEMENTED**
 
 **Pattern**: Critical operations require explicit human approval with context
 **Implementation**:

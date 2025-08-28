@@ -1,8 +1,8 @@
 # Technical Debt Registry - airs-mcp-fs
 
-**Last Updated**: 2025-08-25  
-**Total Debt Records**: 3  
-**Active Debt**: 3  
+**Last Updated**: 2025-08-29  
+**Total Debt Records**: 4  
+**Active Debt**: 4  
 **Resolved Debt**: 0
 
 ## Debt Categories
@@ -19,7 +19,8 @@
 - **Resolved**: 0 debt records
 
 ### Architecture
-- **Active**: 0 debt records
+- **Active**: 1 debt record
+  - [DEBT-REFACTOR-001: Permissions Module Architectural Refactoring](./DEBT-REFACTOR-001-permissions-module-refactoring.md) ⭐ **NEW**
 - **Resolved**: 0 debt records
 
 ### Performance
@@ -45,14 +46,30 @@
 - **Records**: DEBT-001
 
 ### Medium Priority
-- **Count**: 0
-- **Records**: None
+- **Count**: 1
+- **Records**: DEBT-REFACTOR-001
 
 ### Low Priority
 - **Count**: 1
 - **Records**: DEBT-002
 
 ## Active Debt Records
+
+## Detailed Debt Records
+
+### DEBT-REFACTOR-001: Permissions Module Architectural Refactoring ⭐ **NEW**
+- **Category**: Architecture
+- **Priority**: Medium
+- **Location**: `src/security/permissions.rs` (541 lines)
+- **Status**: Active  
+- **Added**: 2025-08-29
+- **Effort**: 2-3 sessions (refactoring + documentation)
+- **Impact**: Developer productivity reduced by large, complex single file
+- **Root Cause**: Natural feature growth without architectural refactoring
+- **Remediation**: Split into 4 focused sub-modules with comprehensive documentation
+- **Benefits**: Improved maintainability, better developer onboarding, enhanced API clarity
+- **Risk**: Low (maintains API compatibility through re-exports)
+- **File**: `docs/debts/DEBT-REFACTOR-001-permissions-module-refactoring.md`
 
 ### DEBT-CRITICAL-001: Production Unwrap Calls Create Reliability Vulnerabilities
 - **Created**: 2025-08-25

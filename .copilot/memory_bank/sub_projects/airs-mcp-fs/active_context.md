@@ -45,6 +45,15 @@ Following user agreement, implementation plan refined to focus on production-blo
 - **[task_005.5]** Operation-Type Restrictions 🔄 **NEXT TARGET** - Read/write/delete/create permission granularity
 - **[task_005.7]** Configuration Validation - Startup config validation with clear errors
 
+### **ARCHITECTURAL IMPROVEMENT PLANNED**
+**Permissions Module Refactoring** (security/permissions/ sub-module):
+- **Current Issue**: permissions.rs has grown to 541 lines, violating single responsibility
+- **Target Structure**: 4 focused modules (level.rs, rule.rs, evaluation.rs, validator.rs)
+- **Documentation Strategy**: Comprehensive API docs with examples and security notes
+- **Rust Conventions**: Maintain `#[cfg(test)]` inline tests per standard practices
+- **Expected Benefits**: Improved maintainability, better developer onboarding, enhanced API clarity
+- **Technical Debt**: Resolves DEBT-REFACTOR-001 (large file architectural debt)
+
 ### **SECURITY OPERATIONS CONFIGURATION**
 ```toml
 [security.operations]

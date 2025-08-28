@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp-fs
 
-**Last Updated**: 2025-08-25  
-**Total Knowledge Docs**: 4  
+**Last Updated**: 2025-08-29  
+**Total Knowledge Docs**: 5  
 **Categories**: 3 (Architecture, Integration, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 1  
+**Documentation Count**: 2  
 **Complexity Level**: Medium  
 **Maintenance Priority**: High
 
@@ -17,6 +17,12 @@
   - **Complexity**: Medium - Design pattern implementation and migration strategy
   - **Updated**: 2025-08-25
   - **Related**: FilesystemMcpServer refactoring, SOLID principles compliance
+
+- **[Permissions Module Refactoring Decision](./architecture/permissions-refactoring-decision.md)** ⭐ **NEW**
+  - **Focus**: Large module refactoring strategy, sub-module architecture, comprehensive documentation approach
+  - **Complexity**: Medium - Architectural refactoring and developer experience improvement
+  - **Updated**: 2025-08-29
+  - **Related**: Security framework maintainability, workspace standards compliance (§4.3)
 
 ### Integration
 **Documentation Count**: 2  
