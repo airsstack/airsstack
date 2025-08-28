@@ -308,6 +308,7 @@ impl DirectoryOperations for DirectoryHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::config::{SecurityConfig, Settings};

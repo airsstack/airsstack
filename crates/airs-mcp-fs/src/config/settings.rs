@@ -293,7 +293,7 @@ impl Settings {
         if !validation_result.warnings.is_empty() {
             eprintln!("Configuration warnings:");
             for warning in &validation_result.warnings {
-                eprintln!("  ⚠️  {}", warning);
+                eprintln!("  ⚠️  {warning}");
             }
         }
 
@@ -301,7 +301,7 @@ impl Settings {
         if !validation_result.is_valid {
             eprintln!("Configuration errors:");
             for error in &validation_result.errors {
-                eprintln!("  ❌ {}", error);
+                eprintln!("  ❌ {error}");
             }
             return Err(anyhow::anyhow!(
                 "Configuration validation failed with {} error(s)",
@@ -325,6 +325,7 @@ impl Settings {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

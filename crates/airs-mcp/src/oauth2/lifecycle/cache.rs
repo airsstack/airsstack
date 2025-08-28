@@ -395,6 +395,7 @@ impl TokenCacheProvider for TokenCache {
 }
 
 #[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
     use crate::oauth2::types::JwtClaims;

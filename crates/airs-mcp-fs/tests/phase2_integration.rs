@@ -1,5 +1,7 @@
 //! Integration test to verify Phase 2 STDIO transport implementation
 
+#![allow(clippy::expect_used)]
+
 use airs_mcp::integration::mcp::{McpServerBuilder, ToolProvider};
 use airs_mcp::transport::StdioTransport;
 use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};

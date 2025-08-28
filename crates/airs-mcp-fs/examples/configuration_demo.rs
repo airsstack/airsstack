@@ -6,6 +6,8 @@
 //! - Configuration validation
 //! - Different configuration formats
 
+#![allow(clippy::uninlined_format_args)]
+
 use airs_mcp_fs::config::{ConfigEnvironment, ConfigurationLoader, Settings};
 use std::env;
 

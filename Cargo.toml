@@ -6,6 +6,19 @@ members = [
 ]
 resolver = "2"
 
+[workspace.lints.clippy]
+# Production code reliability (MANDATORY) - but allow in test code
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+# Performance and best practices
+clone_on_ref_ptr = "warn"
+inefficient_to_string = "warn"
+large_stack_arrays = "warn"
+# Code quality
+missing_docs_in_private_items = "allow"  # Too verbose for internal code
+needless_pass_by_value = "warn"
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"

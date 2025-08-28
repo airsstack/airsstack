@@ -63,7 +63,7 @@ impl BinaryProcessor {
 
         // Detect file format
         let format = self.format_detector.detect_from_bytes(data);
-        
+
         // Initialize result
         let mut result = ProcessingResult {
             format,
@@ -73,26 +73,30 @@ impl BinaryProcessor {
 
         // Process based on format and configuration
         match format {
-            FileFormat::Jpeg | FileFormat::Png | FileFormat::Gif | 
-            FileFormat::WebP | FileFormat::Tiff | FileFormat::Bmp => {
+            FileFormat::Jpeg
+            | FileFormat::Png
+            | FileFormat::Gif
+            | FileFormat::WebP
+            | FileFormat::Tiff
+            | FileFormat::Bmp => {
                 if self.config.enable_image_processing {
                     self.process_image_data(data, &mut result).await?;
                 }
-            },
+            }
             FileFormat::Pdf => {
                 if self.config.enable_pdf_processing {
                     self.process_pdf_data(data, &mut result).await?;
                 }
-            },
+            }
             FileFormat::Text => {
                 // Text files are processed directly without binary processing
                 if let Ok(text) = std::str::from_utf8(data) {
                     result.metadata.text_content = Some(text.to_string());
                 }
-            },
+            }
             FileFormat::Unknown => {
                 // Unknown formats are stored as-is
-            },
+            }
         }
 
         Ok(result)
@@ -106,13 +110,13 @@ impl BinaryProcessor {
         // - Extracting dimensions
         // - Generating thumbnails
         // - Reading EXIF metadata
-        
+
         // Placeholder: just mark that image processing was attempted
-        result.metadata.properties.insert(
-            "processing_attempted".to_string(),
-            "image".to_string(),
-        );
-        
+        result
+            .metadata
+            .properties
+            .insert("processing_attempted".to_string(), "image".to_string());
+
         Ok(())
     }
 
@@ -123,23 +127,25 @@ impl BinaryProcessor {
         // - Text extraction from PDF
         // - Image extraction from PDF
         // - Metadata reading
-        
+
         // Placeholder: just mark that PDF processing was attempted
-        result.metadata.properties.insert(
-            "processing_attempted".to_string(),
-            "pdf".to_string(),
-        );
-        
+        result
+            .metadata
+            .properties
+            .insert("processing_attempted".to_string(), "pdf".to_string());
+
         Ok(())
     }
 
     /// Check if a file format can be processed with current configuration
     pub fn can_process(&self, format: FileFormat) -> bool {
         match format {
-            FileFormat::Jpeg | FileFormat::Png | FileFormat::Gif | 
-            FileFormat::WebP | FileFormat::Tiff | FileFormat::Bmp => {
-                self.config.enable_image_processing
-            },
+            FileFormat::Jpeg
+            | FileFormat::Png
+            | FileFormat::Gif
+            | FileFormat::WebP
+            | FileFormat::Tiff
+            | FileFormat::Bmp => self.config.enable_image_processing,
             FileFormat::Pdf => self.config.enable_pdf_processing,
             FileFormat::Text => true, // Text is always processable
             FileFormat::Unknown => false,
@@ -148,6 +154,7 @@ impl BinaryProcessor {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::config::settings::BinaryConfig;
@@ -172,17 +179,20 @@ mod tests {
     async fn test_process_text_data() {
         let config = create_test_config();
         let processor = BinaryProcessor::new(config);
-        
+
         let text_data = b"Hello, world!";
         let path = PathBuf::from("test.txt");
-        
+
         let result = processor.process_file_data(text_data, &path).await;
         assert!(result.is_ok());
-        
+
         let result = result.unwrap();
         assert_eq!(result.format, FileFormat::Text);
         assert_eq!(result.size, text_data.len());
-        assert_eq!(result.metadata.text_content, Some("Hello, world!".to_string()));
+        assert_eq!(
+            result.metadata.text_content,
+            Some("Hello, world!".to_string())
+        );
     }
 
     #[tokio::test]
@@ -190,10 +200,10 @@ mod tests {
         let mut config = create_test_config();
         config.max_file_size = 10; // Very small limit
         let processor = BinaryProcessor::new(config);
-        
+
         let large_data = vec![0u8; 100]; // Larger than limit
         let path = PathBuf::from("large.bin");
-        
+
         let result = processor.process_file_data(&large_data, &path).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("exceeds limit"));
@@ -203,7 +213,7 @@ mod tests {
     fn test_can_process() {
         let config = create_test_config();
         let processor = BinaryProcessor::new(config);
-        
+
         assert!(processor.can_process(FileFormat::Jpeg));
         assert!(processor.can_process(FileFormat::Pdf));
         assert!(processor.can_process(FileFormat::Text));
@@ -216,7 +226,7 @@ mod tests {
         config.enable_image_processing = false;
         config.enable_pdf_processing = false;
         let processor = BinaryProcessor::new(config);
-        
+
         assert!(!processor.can_process(FileFormat::Jpeg));
         assert!(!processor.can_process(FileFormat::Pdf));
         assert!(processor.can_process(FileFormat::Text)); // Always processable

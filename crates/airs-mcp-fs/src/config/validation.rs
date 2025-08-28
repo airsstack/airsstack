@@ -207,7 +207,7 @@ impl ConfigurationValidator {
 
         for (name, policy) in policies {
             let policy_result = Self::validate_security_policy(name, policy)
-                .context(format!("Failed to validate policy '{}'", name))?;
+                .context(format!("Failed to validate policy '{name}'"))?;
             result = result.combine(policy_result);
         }
 
@@ -232,7 +232,7 @@ impl ConfigurationValidator {
 
         // Validate patterns
         if policy.patterns.is_empty() {
-            result.add_error(format!("Policy '{}' must have at least one pattern", name));
+            result.add_error(format!("Policy '{name}' must have at least one pattern"));
         }
 
         for (i, pattern) in policy.patterns.iter().enumerate() {
@@ -249,8 +249,7 @@ impl ConfigurationValidator {
         // Validate operations
         if policy.operations.is_empty() {
             result.add_error(format!(
-                "Policy '{}' must specify at least one operation",
-                name
+                "Policy '{name}' must specify at least one operation"
             ));
         }
 
@@ -379,7 +378,7 @@ impl ConfigurationValidator {
             for denied_pattern in denied {
                 // Simple heuristic: if patterns overlap, it might be a conflict
                 if Self::patterns_might_overlap(allowed_pattern, denied_pattern) {
-                    conflicts.push(format!("'{}' vs '{}'", allowed_pattern, denied_pattern));
+                    conflicts.push(format!("'{allowed_pattern}' vs '{denied_pattern}'"));
                 }
             }
         }
@@ -454,8 +453,7 @@ impl ConfigurationValidator {
         if policy.risk_level >= RiskLevel::High && policy.operations.contains(&"delete".to_string())
         {
             result.add_warning(format!(
-                "Policy '{}' has high risk level but allows delete operations - consider review",
-                name
+                "Policy '{name}' has high risk level but allows delete operations - consider review"
             ));
         }
 
@@ -469,8 +467,7 @@ impl ConfigurationValidator {
 
             if has_risky_ops {
                 result.add_warning(format!(
-                    "Policy '{}' has critical risk level but allows write/delete/move - consider restrictions",
-                    name
+                    "Policy '{name}' has critical risk level but allows write/delete/move - consider restrictions"
                 ));
             }
         }
@@ -478,6 +475,7 @@ impl ConfigurationValidator {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::config::settings::Settings;

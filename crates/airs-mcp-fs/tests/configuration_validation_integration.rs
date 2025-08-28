@@ -2,6 +2,8 @@
 //!
 //! Tests that configuration validation works correctly at the application level.
 
+#![allow(clippy::expect_used, clippy::bool_assert_comparison)]
+
 // Layer 1: Standard library imports
 // (None needed)
 
@@ -61,12 +63,12 @@ fn test_configuration_validation_comprehensive() {
     // In test mode, should have permissive settings
     if cfg!(test) {
         // Note: In test mode, the default settings should be permissive
-        assert_eq!(
-            settings.security.operations.write_requires_policy, false,
+        assert!(
+            !settings.security.operations.write_requires_policy,
             "Test mode should not require policies for writes"
         );
-        assert_eq!(
-            settings.security.operations.delete_requires_explicit_allow, false,
+        assert!(
+            !settings.security.operations.delete_requires_explicit_allow,
             "Test mode should not require explicit delete permissions"
         );
     }

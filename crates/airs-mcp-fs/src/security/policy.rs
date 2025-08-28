@@ -193,6 +193,7 @@ impl PolicyEngine {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::config::settings::RiskLevel;

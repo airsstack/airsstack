@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::filesystem::FileOperation;
 
 /// Result of a human approval decision
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ApprovalDecision {
     /// Operation approved by human
     Approved,
@@ -60,6 +60,7 @@ impl Default for ApprovalWorkflow {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use crate::mcp::OperationType;
@@ -90,11 +91,8 @@ mod tests {
     #[tokio::test]
     async fn test_request_approval_placeholder() {
         let workflow = ApprovalWorkflow::new();
-        let operation = FileOperation::new(
-            OperationType::Read,
-            PathBuf::from("/test/file.txt"),
-        );
-        
+        let operation = FileOperation::new(OperationType::Read, PathBuf::from("/test/file.txt"));
+
         let decision = workflow.request_approval(&operation).await;
         assert_eq!(decision, ApprovalDecision::Approved);
     }

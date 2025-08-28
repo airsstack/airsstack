@@ -242,6 +242,7 @@ impl PermissionEvaluation {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::mcp::types::OperationType;
