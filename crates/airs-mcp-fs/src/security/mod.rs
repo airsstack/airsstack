@@ -10,10 +10,12 @@
 
 // Layer 3: Internal module declarations
 pub mod approval;
+pub mod audit;
 pub mod manager;
 pub mod policy;
 
 // Public API re-exports
 pub use approval::ApprovalDecision;
+pub use audit::{AuditEvent, AuditLogger, CorrelationId};
 pub use manager::SecurityManager;
 pub use policy::{PolicyDecision, PolicyEngine};

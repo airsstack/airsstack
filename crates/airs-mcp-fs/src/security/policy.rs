@@ -75,15 +75,14 @@ impl PolicyMatcher {
 
         // Add all patterns from the policy
         for pattern in &policy.patterns {
-            let glob = Glob::new(pattern).with_context(|| {
-                format!("Invalid glob pattern in policy '{}': {}", name, pattern)
-            })?;
+            let glob = Glob::new(pattern)
+                .with_context(|| format!("Invalid glob pattern in policy '{name}': {pattern}"))?;
             builder.add(glob);
         }
 
         let glob_set = builder
             .build()
-            .with_context(|| format!("Failed to build glob set for policy '{}'", name))?;
+            .with_context(|| format!("Failed to build glob set for policy '{name}'"))?;
 
         Ok(PolicyMatcher {
             name,
