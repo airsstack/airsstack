@@ -96,7 +96,7 @@ impl DefaultFilesystemMcpServer {
         info!("Initializing AIRS MCP-FS filesystem server with default handlers");
 
         // Initialize security manager with security config
-        let security_manager = Arc::new(SecurityManager::new(settings.security.clone()));
+        let security_manager = Arc::new(SecurityManager::new(settings.security.clone())?);
 
         // Create handlers with shared security manager
         let file_handler = FileHandler::new(Arc::clone(&security_manager));
@@ -226,7 +226,9 @@ impl McpServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{Settings, SecurityConfig, FilesystemConfig, OperationConfig, BinaryConfig, ServerConfig};
+    use crate::config::{
+        BinaryConfig, FilesystemConfig, OperationConfig, SecurityConfig, ServerConfig, Settings,
+    };
     use std::collections::HashMap;
     use tempfile;
 
@@ -235,7 +237,7 @@ mod tests {
             security: SecurityConfig {
                 filesystem: FilesystemConfig {
                     allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
-                    denied_paths: vec![], // No denied paths for testing
+                    denied_paths: vec![],                     // No denied paths for testing
                 },
                 operations: OperationConfig {
                     read_allowed: true,

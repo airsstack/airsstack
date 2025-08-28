@@ -32,15 +32,14 @@ pub struct SecurityManager {
 
 impl SecurityManager {
     /// Create a new security manager with configuration
-    pub fn new(config: SecurityConfig) -> Self {
+    pub fn new(config: SecurityConfig) -> Result<Self> {
         let path_validator = PathValidator::new(
             config.filesystem.allowed_paths.clone(),
             config.filesystem.denied_paths.clone(),
         );
 
         // Create policy engine from configured policies
-        let policy_engine = PolicyEngine::new(config.policies.clone())
-            .expect("Failed to create policy engine - invalid security policies");
+        let policy_engine = PolicyEngine::new(config.policies.clone())?;
 
         // Create permission validator in strict mode for security-first approach
         // Only policies should define permissions - no auto-generated rules
@@ -70,21 +69,20 @@ impl SecurityManager {
                     policy.operations.iter().map(|s| s.as_str()).collect(),
                     100, // Standard priority for policy-based rules
                     format!("Policy '{name}' rule for pattern: {pattern}"),
-                )
-                .expect("Failed to create permission rule from policy");
+                )?;
 
                 permission_validator.add_rule(rule);
             }
         }
 
-        Self {
+        Ok(Self {
             path_validator,
             approval_workflow: ApprovalWorkflow::new(),
             policy_engine,
             permission_validator,
             audit_logger: AuditLogger::new(),
             config: Arc::new(config),
-        }
+        })
     }
 
     /// Validate operation-specific permissions
@@ -621,7 +619,7 @@ mod tests {
     #[test]
     fn test_security_manager_creation() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         // Test should pass with our permissive test config
         assert!(manager.config.operations.read_allowed);
@@ -632,7 +630,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_read_access_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Read, PathBuf::from("src/main.rs"));
 
@@ -643,7 +641,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_read_access_denied_path() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Read, PathBuf::from(".git/config"));
 
@@ -654,7 +652,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_write_access_with_approval() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Write, PathBuf::from("src/new_file.rs"));
 
@@ -667,7 +665,7 @@ mod tests {
     #[test]
     fn test_requires_approval() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         assert!(!manager.requires_approval(OperationType::Read));
         assert!(!manager.requires_approval(OperationType::List));
@@ -681,7 +679,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_read_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Read, PathBuf::from("src/main.rs"));
 
@@ -693,7 +691,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_write_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Write, PathBuf::from("src/new_file.rs"));
 
@@ -723,7 +721,7 @@ mod tests {
             .policies
             .insert("delete_policy".to_string(), delete_policy);
 
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         // Test with a file in src/ directory that has explicit delete permission
         let operation =
@@ -767,7 +765,7 @@ mod tests {
             policies,
         };
 
-        let manager = SecurityManager::new(restrictive_config);
+        let manager = SecurityManager::new(restrictive_config).unwrap();
 
         // Test with source code that doesn't have explicit delete permission
         let operation = FileOperation::new(OperationType::Delete, PathBuf::from("src/main.rs"));
@@ -782,7 +780,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_create_dir_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation =
             FileOperation::new(OperationType::CreateDir, PathBuf::from("src/new_module"));
@@ -795,7 +793,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_list_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         // List the src directory itself
         let operation = FileOperation::new(OperationType::List, PathBuf::from("src"));
@@ -808,7 +806,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_move_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Move, PathBuf::from("src/old_file.rs"));
 
@@ -820,7 +818,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_copy_success() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Copy, PathBuf::from("src/main.rs"));
 
@@ -832,7 +830,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_permission_denied_path() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         // Test with denied path (.git directory)
         let operation = FileOperation::new(OperationType::Read, PathBuf::from(".git/config"));
@@ -851,7 +849,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_operation_against_policies_write_allowed() {
         let config = create_test_config();
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         let operation = FileOperation::new(OperationType::Write, PathBuf::from("src/main.rs"));
         let correlation_id = CorrelationId::new();
@@ -896,7 +894,7 @@ mod tests {
             policies,
         };
 
-        let manager = SecurityManager::new(restrictive_config);
+        let manager = SecurityManager::new(restrictive_config).unwrap();
 
         // Test with a write operation that should be denied by the read-only policy
         let operation = FileOperation::new(OperationType::Write, PathBuf::from("test/file.txt"));
@@ -926,7 +924,7 @@ mod tests {
             },
         );
 
-        let manager = SecurityManager::new(config);
+        let manager = SecurityManager::new(config).unwrap();
 
         // Test with a file in src/ that has explicit delete permission
         let operation =
@@ -973,7 +971,7 @@ mod tests {
             policies,
         };
 
-        let manager = SecurityManager::new(restrictive_config);
+        let manager = SecurityManager::new(restrictive_config).unwrap();
 
         // Test with source code that doesn't have explicit delete permission
         let operation = FileOperation::new(OperationType::Delete, PathBuf::from("src/main.rs"));
@@ -992,7 +990,7 @@ mod tests {
 
         // Test with default settings which should be permissive in test mode
         let default_settings = Settings::default();
-        let manager = SecurityManager::new(default_settings.security);
+        let manager = SecurityManager::new(default_settings.security).unwrap();
 
         // Test that configuration settings are properly applied
         assert!(manager.config.operations.read_allowed);
@@ -1007,7 +1005,7 @@ mod tests {
 
         // Also test with explicit restrictive configuration
         let restrictive_config = create_test_config();
-        let restrictive_manager = SecurityManager::new(restrictive_config);
+        let restrictive_manager = SecurityManager::new(restrictive_config).unwrap();
 
         // Our test config is actually permissive now
         assert!(restrictive_manager.config.operations.read_allowed);

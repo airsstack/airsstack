@@ -342,7 +342,7 @@ mod tests {
 
     fn create_test_handler() -> FileHandler {
         let security_config = create_permissive_test_config();
-        let security_manager = Arc::new(SecurityManager::new(security_config));
+        let security_manager = Arc::new(SecurityManager::new(security_config).unwrap());
         FileHandler::new(security_manager)
     }
 
