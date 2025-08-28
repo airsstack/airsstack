@@ -102,9 +102,51 @@ pub struct ServerConfig {
     pub version: String,
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        // Create default security policies
+/// Builder for creating Settings with different security configurations
+pub struct SettingsBuilder {
+    security_mode: SecurityMode,
+}
+
+/// Security mode for configuring Settings behavior
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SecurityMode {
+    /// Production mode: Secure by default, requires explicit policies for sensitive operations
+    Production,
+    /// Development mode: Balanced security, allows most development tasks
+    Development,
+    /// Permissive mode: Minimal restrictions, suitable for testing and development
+    Permissive,
+}
+
+impl SettingsBuilder {
+    /// Create a new builder with production security mode (secure by default)
+    pub fn new() -> Self {
+        Self {
+            security_mode: SecurityMode::Production,
+        }
+    }
+
+    /// Set security mode to production (secure by default)
+    pub fn secure(mut self) -> Self {
+        self.security_mode = SecurityMode::Production;
+        self
+    }
+
+    /// Set security mode to development (balanced security)
+    pub fn development(mut self) -> Self {
+        self.security_mode = SecurityMode::Development;
+        self
+    }
+
+    /// Set security mode to permissive (minimal restrictions)
+    pub fn permissive(mut self) -> Self {
+        self.security_mode = SecurityMode::Permissive;
+        self
+    }
+
+    /// Build the Settings with the configured security mode
+    pub fn build(self) -> Settings {
+        // Create default security policies that apply to all modes
         let mut policies = HashMap::new();
 
         // Source code policy - low risk, read and write allowed
@@ -170,48 +212,64 @@ impl Default for Settings {
             },
         );
 
-        // Determine if we're in test mode and use appropriate configuration
-        let (allowed_paths, write_requires_policy, delete_requires_explicit_allow) = if cfg!(test) {
-            // Test mode: permissive configuration for all tests to pass
-            // Add universal test policy
-            policies.insert(
-                "test_universal".to_string(),
-                SecurityPolicy {
-                    patterns: vec!["*".to_string()], // Single * should match any file path
-                    operations: vec![
-                        "read".to_string(),
-                        "write".to_string(),
-                        "delete".to_string(),
-                        "list".to_string(),
-                        "create_dir".to_string(),
-                        "move".to_string(),
-                        "copy".to_string(),
-                    ],
-                    risk_level: RiskLevel::Low,
-                    description: Some(
-                        "Universal test policy - allows all operations in test mode".to_string(),
-                    ),
-                },
-            );
+        // Configure security settings based on mode
+        let (allowed_paths, write_requires_policy, delete_requires_explicit_allow) =
+            match self.security_mode {
+                SecurityMode::Permissive => {
+                    // Permissive mode: Allow all operations, suitable for testing
+                    policies.insert(
+                        "permissive_universal".to_string(),
+                        SecurityPolicy {
+                            patterns: vec!["**/*".to_string()], // Match all paths
+                            operations: vec![
+                                "read".to_string(),
+                                "write".to_string(),
+                                "delete".to_string(),
+                                "list".to_string(),
+                                "create_dir".to_string(),
+                                "move".to_string(),
+                                "copy".to_string(),
+                            ],
+                            risk_level: RiskLevel::Low,
+                            description: Some(
+                                "Universal permissive policy - allows all operations".to_string(),
+                            ),
+                        },
+                    );
 
-            (
-                vec!["/**/*".to_string()], // Allow all paths in test mode
-                false,                     // Don't require policies for writes in test mode
-                false,                     // Don't require explicit delete permissions in test mode
-            )
-        } else {
-            // Production mode: secure configuration
-            (
-                vec![
-                    "~/projects/**/*".to_string(),
-                    "~/Documents/**/*.{md,txt,rst}".to_string(),
-                ],
-                true, // Require policies for writes in production
-                true, // Require explicit delete permissions in production
-            )
-        };
+                    (
+                        vec!["/**/*".to_string()], // Allow all paths
+                        false,                     // Don't require policies for writes
+                        false,                     // Don't require explicit delete permissions
+                    )
+                }
+                SecurityMode::Development => {
+                    // Development mode: Balanced security, reasonable for development work
+                    (
+                        vec![
+                            "~/projects/**/*".to_string(),
+                            "~/Documents/**/*".to_string(),
+                            "~/Desktop/**/*".to_string(),
+                            "./**/*".to_string(), // Current directory and subdirectories
+                        ],
+                        false, // Allow writes without strict policy requirements
+                        true,  // Still require explicit delete permissions for safety
+                    )
+                }
+                SecurityMode::Production => {
+                    // Production mode: Secure by default
+                    (
+                        vec![
+                            "~/projects/**/*".to_string(),
+                            "~/Documents/**/*.{md,txt,rst}".to_string(),
+                        ],
+                        true, // Require policies for writes
+                        true, // Require explicit delete permissions
+                    )
+                }
+            };
 
-        Self {
+        Settings {
             security: SecurityConfig {
                 filesystem: FilesystemConfig {
                     allowed_paths,
@@ -245,7 +303,25 @@ impl Default for Settings {
     }
 }
 
+impl Default for SettingsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for Settings {
+    /// Default Settings use production security mode (secure by default)
+    fn default() -> Self {
+        SettingsBuilder::new().secure().build()
+    }
+}
+
 impl Settings {
+    /// Create a new SettingsBuilder for configuring security modes
+    pub fn builder() -> SettingsBuilder {
+        SettingsBuilder::new()
+    }
+
     /// Load settings from configuration file or use defaults with validation
     pub fn load() -> anyhow::Result<Self> {
         use crate::config::loader::ConfigurationLoader;
@@ -335,16 +411,9 @@ mod tests {
 
         assert_eq!(settings.server.name, "airs-mcp-fs");
 
-        // In test mode, configuration should be permissive
-        if cfg!(test) {
-            assert!(!settings.security.operations.write_requires_policy);
-            assert!(!settings.security.operations.delete_requires_explicit_allow);
-            assert_eq!(settings.security.filesystem.allowed_paths, vec!["/**/*"]);
-        } else {
-            // In production mode, configuration should be secure
-            assert!(settings.security.operations.write_requires_policy);
-            assert!(settings.security.operations.delete_requires_explicit_allow);
-        }
+        // Default should be secure (production mode)
+        assert!(settings.security.operations.write_requires_policy);
+        assert!(settings.security.operations.delete_requires_explicit_allow);
 
         assert_eq!(settings.binary.max_file_size, 100 * 1024 * 1024);
         assert!(settings.binary.enable_image_processing);
@@ -355,6 +424,81 @@ mod tests {
         assert!(settings.security.policies.contains_key("documentation"));
         assert!(settings.security.policies.contains_key("config_files"));
         assert!(settings.security.policies.contains_key("build_artifacts"));
+    }
+
+    #[test]
+    fn test_settings_builder_modes() {
+        // Test production mode (secure)
+        let production_settings = Settings::builder().secure().build();
+        assert!(
+            production_settings
+                .security
+                .operations
+                .write_requires_policy
+        );
+        assert!(
+            production_settings
+                .security
+                .operations
+                .delete_requires_explicit_allow
+        );
+
+        // Test development mode (balanced)
+        let dev_settings = Settings::builder().development().build();
+        assert!(!dev_settings.security.operations.write_requires_policy);
+        assert!(
+            dev_settings
+                .security
+                .operations
+                .delete_requires_explicit_allow
+        );
+
+        // Test permissive mode (minimal restrictions)
+        let permissive_settings = Settings::builder().permissive().build();
+        assert!(
+            !permissive_settings
+                .security
+                .operations
+                .write_requires_policy
+        );
+        assert!(
+            !permissive_settings
+                .security
+                .operations
+                .delete_requires_explicit_allow
+        );
+        assert!(permissive_settings
+            .security
+            .policies
+            .contains_key("permissive_universal"));
+    }
+
+    #[test]
+    fn test_settings_builder_default() {
+        // Test that builder defaults to secure mode
+        let default_builder_settings = Settings::builder().build();
+        let explicit_secure_settings = Settings::builder().secure().build();
+
+        assert_eq!(
+            default_builder_settings
+                .security
+                .operations
+                .write_requires_policy,
+            explicit_secure_settings
+                .security
+                .operations
+                .write_requires_policy
+        );
+        assert_eq!(
+            default_builder_settings
+                .security
+                .operations
+                .delete_requires_explicit_allow,
+            explicit_secure_settings
+                .security
+                .operations
+                .delete_requires_explicit_allow
+        );
     }
 
     #[test]

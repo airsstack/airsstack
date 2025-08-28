@@ -958,20 +958,35 @@ mod tests {
     async fn test_operation_type_specific_configuration() {
         use crate::config::settings::Settings;
 
-        // Test with default settings which should be permissive in test mode
-        let default_settings = Settings::default();
-        let manager = SecurityManager::new(default_settings.security).unwrap();
+        // Test with production settings (default)
+        let production_settings = Settings::default();
+        let production_manager = SecurityManager::new(production_settings.security).unwrap();
 
         // Test that configuration settings are properly applied
-        assert!(manager.config.operations.read_allowed);
+        assert!(production_manager.config.operations.read_allowed);
+        assert!(production_manager.config.operations.write_requires_policy);
+        assert!(
+            production_manager
+                .config
+                .operations
+                .delete_requires_explicit_allow
+        );
+        assert!(production_manager.config.operations.create_dir_allowed);
 
-        // In test mode, these should be false for permissive testing
-        if cfg!(test) {
-            assert!(!manager.config.operations.write_requires_policy);
-            assert!(!manager.config.operations.delete_requires_explicit_allow);
-        }
+        // Test with permissive settings for testing
+        let permissive_settings = Settings::builder().permissive().build();
+        let permissive_manager = SecurityManager::new(permissive_settings.security).unwrap();
 
-        assert!(manager.config.operations.create_dir_allowed);
+        // Test that permissive configuration is properly applied
+        assert!(permissive_manager.config.operations.read_allowed);
+        assert!(!permissive_manager.config.operations.write_requires_policy);
+        assert!(
+            !permissive_manager
+                .config
+                .operations
+                .delete_requires_explicit_allow
+        );
+        assert!(permissive_manager.config.operations.create_dir_allowed);
 
         // Also test with explicit restrictive configuration
         let restrictive_config = create_test_config();

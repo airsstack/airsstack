@@ -33,8 +33,8 @@ fn test_configuration_validation_integration() {
 
 #[test]
 fn test_configuration_validation_comprehensive() {
-    // Test validation of all configuration components
-    let settings = Settings::default();
+    // Test validation with permissive settings for testing
+    let settings = Settings::builder().permissive().build();
 
     // Test security configuration validation specifically
     let security_validation = ConfigurationValidator::validate_security_config(&settings.security)
@@ -60,16 +60,20 @@ fn test_configuration_validation_comprehensive() {
         "Should have documentation policy"
     );
 
-    // In test mode, should have permissive settings
-    if cfg!(test) {
-        // Note: In test mode, the default settings should be permissive
-        assert!(
-            !settings.security.operations.write_requires_policy,
-            "Test mode should not require policies for writes"
-        );
-        assert!(
-            !settings.security.operations.delete_requires_explicit_allow,
-            "Test mode should not require explicit delete permissions"
-        );
-    }
+    // Test permissive mode settings
+    assert!(
+        !settings.security.operations.write_requires_policy,
+        "Permissive mode should not require policies for writes"
+    );
+    assert!(
+        !settings.security.operations.delete_requires_explicit_allow,
+        "Permissive mode should not require explicit delete permissions"
+    );
+    assert!(
+        settings
+            .security
+            .policies
+            .contains_key("permissive_universal"),
+        "Permissive mode should have universal policy"
+    );
 }

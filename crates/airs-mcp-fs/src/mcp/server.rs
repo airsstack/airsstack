@@ -192,61 +192,26 @@ where
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::config::{
-        BinaryConfig, FilesystemConfig, OperationConfig, SecurityConfig, ServerConfig, Settings,
-    };
-    use std::collections::HashMap;
+    use crate::config::Settings;
     use tempfile;
-
-    fn create_permissive_test_settings() -> Settings {
-        Settings {
-            security: SecurityConfig {
-                filesystem: FilesystemConfig {
-                    allowed_paths: vec!["/**/*".to_string()], // Allow all paths for testing
-                    denied_paths: vec![],                     // No denied paths for testing
-                },
-                operations: OperationConfig {
-                    read_allowed: true,
-                    write_requires_policy: false, // Permissive for testing
-                    delete_requires_explicit_allow: false, // Permissive for testing
-                    create_dir_allowed: true,
-                },
-                policies: HashMap::new(), // No policies needed for permissive testing
-            },
-            binary: BinaryConfig {
-                max_file_size: 100 * 1024 * 1024, // 100MB
-                enable_image_processing: true,
-                enable_pdf_processing: true,
-            },
-            server: ServerConfig {
-                name: "airs-mcp-fs".to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-            },
-        }
-    }
 
     #[tokio::test]
     async fn test_mcp_server_setup() {
-        let settings = create_permissive_test_settings();
-
-        // Test that we can create the filesystem server with proper handlers
-        let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
-        assert!(filesystem_server.is_ok());
-
-        // Note: StdioTransport testing removed since it's handled in main.rs
-        // The actual server building is tested through integration tests with MCP clients
+        let settings = Settings::builder().permissive().build();
+        let result = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_filesystem_mcp_server_creation() {
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let result = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_filesystem_mcp_server_handler_access() {
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -259,7 +224,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_provider_list_tools() {
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -280,7 +245,7 @@ mod tests {
         use std::io::Write;
         use tempfile::NamedTempFile;
 
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -305,7 +270,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_provider_call_tool_read_file_not_found() {
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -323,7 +288,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_provider_call_tool_unknown() {
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -339,7 +304,7 @@ mod tests {
     async fn test_write_file_tool() {
         use tempfile::TempDir;
 
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -373,7 +338,7 @@ mod tests {
     async fn test_list_directory_tool() {
         use tempfile::TempDir;
 
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();
@@ -418,7 +383,7 @@ mod tests {
         use std::io::Write;
         use tempfile::NamedTempFile;
 
-        let settings = Settings::default();
+        let settings = Settings::builder().permissive().build();
         let server = DefaultFilesystemMcpServer::with_default_handlers(settings)
             .await
             .unwrap();

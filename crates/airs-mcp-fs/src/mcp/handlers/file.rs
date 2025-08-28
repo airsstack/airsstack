@@ -337,8 +337,8 @@ mod tests {
     use tempfile::{NamedTempFile, TempDir};
 
     fn create_permissive_test_config() -> SecurityConfig {
-        // Use the default configuration which includes test policies when cfg!(test) is true
-        Settings::default().security
+        // Use permissive settings for testing
+        Settings::builder().permissive().build().security
     }
 
     fn create_test_handler() -> FileHandler {
