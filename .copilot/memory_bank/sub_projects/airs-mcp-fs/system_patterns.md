@@ -46,7 +46,40 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Core Technical Patterns
+## 🏗️ Module Architecture Patterns
+
+### Enhanced Sub-Module Organization Pattern
+**Status**: Implemented in `security/permissions/` (2025-08-28)
+
+**Pattern**: Large modules (>500 lines) should be refactored into focused sub-modules
+**Implementation**: 
+```
+src/security/permissions/
+├── mod.rs          - Module coordinator with architectural documentation
+├── level.rs        - PermissionLevel enum hierarchy
+├── rule.rs         - PathPermissionRule implementation  
+├── evaluation.rs   - PermissionEvaluation framework
+└── validator.rs    - PathPermissionValidator main engine
+```
+
+**Benefits Achieved**:
+- **Single Responsibility**: Each module handles one focused concern
+- **Enhanced Maintainability**: Clear separation improves debugging and development
+- **Documentation Excellence**: Comprehensive docs with examples and security considerations
+- **API Compatibility**: Zero breaking changes through proper re-exports
+- **Developer Experience**: Easier onboarding and code navigation
+
+**Documentation Standard**:
+- Module-level docs with ASCII architecture diagrams
+- Type-level docs with usage examples
+- Method-level docs with security considerations
+- Cross-references between related components
+
+**Quality Gates**:
+- All tests must pass during refactoring
+- Zero compilation warnings maintained
+- API compatibility verified through existing test suite
+- Documentation coverage for all public APIs
 
 ### 1. Security-First Design Pattern ✅ **IMPLEMENTED**
 
