@@ -13,6 +13,7 @@ use crate::filesystem::{validation::PathValidator, FileOperation};
 use crate::mcp::OperationType;
 use crate::security::approval::{ApprovalDecision, ApprovalWorkflow};
 use crate::security::audit::{AuditLogger, CorrelationId};
+use crate::security::permissions::PathPermissionValidator;
 use crate::security::policy::PolicyEngine;
 
 /// Main security manager for filesystem operations
@@ -21,6 +22,7 @@ pub struct SecurityManager {
     path_validator: PathValidator,
     approval_workflow: ApprovalWorkflow,
     policy_engine: PolicyEngine,
+    permission_validator: PathPermissionValidator,
     audit_logger: AuditLogger,
     config: Arc<SecurityConfig>,
 }
@@ -37,10 +39,20 @@ impl SecurityManager {
         let policy_engine = PolicyEngine::new(config.policies.clone())
             .expect("Failed to create policy engine - invalid security policies");
 
+        // Create permission validator in permissive mode for backward compatibility
+        // Can be switched to strict mode later with explicit configuration
+        let mut permission_validator = PathPermissionValidator::new(false);
+        
+        // Add security policies to the permission validator
+        for (name, policy) in &config.policies {
+            permission_validator.add_policy(name.clone(), policy.clone());
+        }
+
         Self {
             path_validator,
             approval_workflow: ApprovalWorkflow::new(),
             policy_engine,
+            permission_validator,
             audit_logger: AuditLogger::new(),
             config: Arc::new(config),
         }
@@ -68,6 +80,25 @@ impl SecurityManager {
                 );
                 return Err(e);
             }
+        }
+
+        // Validate path permissions
+        let operations = std::iter::once(operation.operation_type).collect();
+        let permission_result = self.permission_validator.evaluate_permissions(
+            &operation.path,
+            &operations,
+            Some("read_access_validation"),
+        );
+
+        if !permission_result.allowed {
+            let execution_time_ms = start_time.elapsed().as_millis() as u64;
+            self.audit_logger.log_operation_failed(
+                correlation_id,
+                operation,
+                &format!("Permission denied: {}", permission_result.decision_reason),
+                execution_time_ms,
+            );
+            return Err(anyhow::anyhow!("Permission denied: {}", permission_result.decision_reason));
         }
 
         // Use policy engine to validate read access
@@ -134,6 +165,25 @@ impl SecurityManager {
                 );
                 return Err(e);
             }
+        }
+
+        // Validate path permissions
+        let operations = std::iter::once(operation.operation_type).collect();
+        let permission_result = self.permission_validator.evaluate_permissions(
+            &operation.path,
+            &operations,
+            Some("write_access_validation"),
+        );
+
+        if !permission_result.allowed {
+            let execution_time_ms = start_time.elapsed().as_millis() as u64;
+            self.audit_logger.log_operation_failed(
+                correlation_id,
+                operation,
+                &format!("Permission denied: {}", permission_result.decision_reason),
+                execution_time_ms,
+            );
+            return Err(anyhow::anyhow!("Permission denied: {}", permission_result.decision_reason));
         }
 
         // Use policy engine for real security evaluation instead of auto-approval
@@ -225,6 +275,26 @@ impl SecurityManager {
                 Ok(ApprovalDecision::Denied)
             }
         }
+    }
+
+    /// Add a permission rule to the path permission validator
+    pub fn add_permission_rule(&mut self, rule: crate::security::permissions::PathPermissionRule) {
+        self.permission_validator.add_rule(rule);
+    }
+
+    /// Get permission evaluation for a specific path and operations
+    pub fn evaluate_path_permissions(
+        &self,
+        path: &std::path::Path,
+        operations: &std::collections::HashSet<OperationType>,
+        context: Option<&str>,
+    ) -> crate::security::permissions::PermissionEvaluation {
+        self.permission_validator.evaluate_permissions(path, operations, context)
+    }
+
+    /// Get permission coverage statistics
+    pub fn get_permission_coverage(&self) -> std::collections::HashMap<String, usize> {
+        self.permission_validator.get_coverage_stats()
     }
 
     /// Check if an operation type requires human approval

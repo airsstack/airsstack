@@ -68,7 +68,7 @@ pub struct SecurityPolicy {
 }
 
 /// Risk level for operations and audit logging
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RiskLevel {
     /// Low risk operations (normal source code, documentation)

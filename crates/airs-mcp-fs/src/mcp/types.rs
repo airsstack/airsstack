@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 // (None needed yet)
 
 /// Types of filesystem operations supported by MCP tools
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OperationType {
     /// Read file contents
     Read,

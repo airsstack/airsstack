@@ -12,10 +12,12 @@
 pub mod approval;
 pub mod audit;
 pub mod manager;
+pub mod permissions;
 pub mod policy;
 
 // Public API re-exports
 pub use approval::ApprovalDecision;
 pub use audit::{AuditEvent, AuditLogger, CorrelationId};
 pub use manager::SecurityManager;
+pub use permissions::{PathPermissionValidator, PermissionEvaluation, PermissionLevel};
 pub use policy::{PolicyDecision, PolicyEngine};
