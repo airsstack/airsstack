@@ -10,9 +10,11 @@
 
 // Layer 3: Internal module declarations
 pub mod settings;
+pub mod validation;
 
 // Public API re-exports
 pub use settings::{
     BinaryConfig, FilesystemConfig, OperationConfig, RiskLevel, SecurityConfig, SecurityPolicy,
     ServerConfig, Settings,
 };
+pub use validation::{ConfigurationValidator, ValidationResult};

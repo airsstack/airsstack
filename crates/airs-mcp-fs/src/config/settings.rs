@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 // Layer 2: Third-party crate imports
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
@@ -245,10 +246,56 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// Load settings from configuration file or use defaults
+    /// Load settings from configuration file or use defaults with validation
     pub fn load() -> anyhow::Result<Self> {
         // TODO: Implement actual configuration loading in subsequent tasks
-        Ok(Self::default())
+        let settings = Self::default();
+
+        // Validate the configuration before returning
+        Self::validate_and_warn(&settings)?;
+
+        Ok(settings)
+    }
+
+    /// Validate configuration and display warnings/errors
+    pub fn validate_and_warn(settings: &Settings) -> anyhow::Result<()> {
+        use crate::config::validation::ConfigurationValidator;
+
+        let validation_result = ConfigurationValidator::validate_settings(settings)
+            .context("Failed to validate configuration")?;
+
+        // Log warnings if any
+        if !validation_result.warnings.is_empty() {
+            eprintln!("Configuration warnings:");
+            for warning in &validation_result.warnings {
+                eprintln!("  ⚠️  {}", warning);
+            }
+        }
+
+        // If there are errors, fail the configuration load
+        if !validation_result.is_valid {
+            eprintln!("Configuration errors:");
+            for error in &validation_result.errors {
+                eprintln!("  ❌ {}", error);
+            }
+            return Err(anyhow::anyhow!(
+                "Configuration validation failed with {} error(s)",
+                validation_result.errors.len()
+            ));
+        }
+
+        // In non-test mode, also log a success message
+        if !cfg!(test) && validation_result.warnings.is_empty() {
+            eprintln!("✅ Configuration validation passed");
+        }
+
+        Ok(())
+    }
+
+    /// Validate configuration and return detailed results for programmatic use
+    pub fn validate(&self) -> anyhow::Result<crate::config::validation::ValidationResult> {
+        use crate::config::validation::ConfigurationValidator;
+        ConfigurationValidator::validate_settings(self)
     }
 }
 
@@ -291,5 +338,29 @@ mod tests {
 
         let settings = result.unwrap();
         assert_eq!(settings.server.name, "airs-mcp-fs");
+    }
+
+    #[test]
+    fn test_settings_validation() {
+        let settings = Settings::default();
+        let validation_result = settings.validate();
+
+        assert!(validation_result.is_ok());
+        let result = validation_result.unwrap();
+        assert!(
+            result.is_valid,
+            "Default settings should be valid. Errors: {:?}",
+            result.errors
+        );
+    }
+
+    #[test]
+    fn test_validate_and_warn_success() {
+        let settings = Settings::default();
+        let result = Settings::validate_and_warn(&settings);
+        assert!(
+            result.is_ok(),
+            "validate_and_warn should succeed for default settings"
+        );
     }
 }
