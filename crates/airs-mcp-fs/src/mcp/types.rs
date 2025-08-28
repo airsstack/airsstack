@@ -29,6 +29,34 @@ pub enum OperationType {
     Copy,
 }
 
+impl OperationType {
+    /// Get the string representation of the operation type
+    ///
+    /// Returns the lowercase string identifier used in security policies
+    /// and throughout the system for operation matching.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp_fs::mcp::OperationType;
+    ///
+    /// assert_eq!(OperationType::Read.as_str(), "read");
+    /// assert_eq!(OperationType::Write.as_str(), "write");
+    /// assert_eq!(OperationType::CreateDir.as_str(), "create_dir");
+    /// ```
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            OperationType::Read => "read",
+            OperationType::Write => "write",
+            OperationType::List => "list",
+            OperationType::CreateDir => "create_dir",
+            OperationType::Delete => "delete",
+            OperationType::Move => "move",
+            OperationType::Copy => "copy",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -45,5 +73,16 @@ mod tests {
     fn test_operation_type_equality() {
         assert_eq!(OperationType::Read, OperationType::Read);
         assert_ne!(OperationType::Read, OperationType::Write);
+    }
+
+    #[test]
+    fn test_operation_type_as_str() {
+        assert_eq!(OperationType::Read.as_str(), "read");
+        assert_eq!(OperationType::Write.as_str(), "write");
+        assert_eq!(OperationType::List.as_str(), "list");
+        assert_eq!(OperationType::CreateDir.as_str(), "create_dir");
+        assert_eq!(OperationType::Delete.as_str(), "delete");
+        assert_eq!(OperationType::Move.as_str(), "move");
+        assert_eq!(OperationType::Copy.as_str(), "copy");
     }
 }

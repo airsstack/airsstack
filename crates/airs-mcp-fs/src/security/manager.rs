@@ -248,15 +248,7 @@ impl SecurityManager {
                 if let Ok(glob) = globset::Glob::new(pattern) {
                     if glob.compile_matcher().is_match(&operation.path) {
                         // Check if the operation is allowed by this policy
-                        let operation_name = match operation.operation_type {
-                            OperationType::Write => "write",
-                            OperationType::Delete => "delete",
-                            OperationType::Read => "read",
-                            OperationType::List => "list",
-                            OperationType::CreateDir => "create_dir",
-                            OperationType::Move => "move",
-                            OperationType::Copy => "copy",
-                        };
+                        let operation_name = operation.operation_type.as_str();
 
                         if policy.operations.contains(&operation_name.to_string()) {
                             // Log successful policy match as information (not a violation)

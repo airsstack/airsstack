@@ -100,16 +100,7 @@ impl PolicyMatcher {
 
     /// Check if this policy allows the given operation type
     fn allows_operation(&self, operation_type: OperationType) -> bool {
-        let operation_str = match operation_type {
-            OperationType::Read => "read",
-            OperationType::Write => "write",
-            OperationType::Delete => "delete",
-            OperationType::CreateDir => "create_dir",
-            OperationType::List => "list",
-            OperationType::Move => "move",
-            OperationType::Copy => "copy",
-        };
-
+        let operation_str = operation_type.as_str();
         self.policy.operations.contains(&operation_str.to_string())
     }
 }
@@ -187,15 +178,7 @@ impl PolicyEngine {
 
     /// Convert operation type to string for display
     fn operation_type_str(&self, operation_type: OperationType) -> &'static str {
-        match operation_type {
-            OperationType::Read => "read",
-            OperationType::Write => "write",
-            OperationType::Delete => "delete",
-            OperationType::CreateDir => "create_dir",
-            OperationType::List => "list",
-            OperationType::Move => "move",
-            OperationType::Copy => "copy",
-        }
+        operation_type.as_str()
     }
 
     /// Get statistics about loaded policies
