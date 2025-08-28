@@ -13,11 +13,11 @@ use chrono::Utc;
 use glob::Pattern;
 
 // Layer 3: Internal module imports
-use crate::config::settings::{RiskLevel, SecurityPolicy};
-use crate::mcp::types::OperationType;
 use super::evaluation::PermissionEvaluation;
 use super::level::PermissionLevel;
 use super::rule::PathPermissionRule;
+use crate::config::settings::{RiskLevel, SecurityPolicy};
+use crate::mcp::types::OperationType;
 
 /// Advanced path permission validator with glob patterns and inheritance.
 ///
@@ -37,6 +37,7 @@ use super::rule::PathPermissionRule;
 ///
 /// ```rust
 /// use airs_mcp_fs::security::permissions::*;
+/// use airs_mcp_fs::OperationType;
 /// use std::collections::HashSet;
 /// use std::path::PathBuf;
 ///
@@ -699,11 +700,8 @@ mod tests {
         let validator = PathPermissionValidator::new(false);
 
         let operations = [OperationType::Read].iter().cloned().collect();
-        let result = validator.evaluate_permissions(
-            &PathBuf::from("any/file.txt"), 
-            &operations, 
-            None
-        );
+        let result =
+            validator.evaluate_permissions(&PathBuf::from("any/file.txt"), &operations, None);
 
         assert!(result.allowed);
         assert_eq!(result.effective_level, PermissionLevel::ReadWrite);
@@ -715,21 +713,20 @@ mod tests {
         let validator = PathPermissionValidator::new(true);
 
         let operations = [OperationType::Read].iter().cloned().collect();
-        let result = validator.evaluate_permissions(
-            &PathBuf::from("any/file.txt"), 
-            &operations, 
-            None
-        );
+        let result =
+            validator.evaluate_permissions(&PathBuf::from("any/file.txt"), &operations, None);
 
         assert!(!result.allowed);
         assert_eq!(result.effective_level, PermissionLevel::None);
-        assert!(result.decision_reason.contains("No explicit permission granted"));
+        assert!(result
+            .decision_reason
+            .contains("No explicit permission granted"));
     }
 
     #[test]
     fn test_rule_validation() {
         let mut validator = PathPermissionValidator::new(true);
-        
+
         validator.add_rule(create_test_rule("src/**/*.rs", PermissionLevel::ReadWrite));
         validator.add_rule(create_test_rule("docs/**/*.md", PermissionLevel::ReadOnly));
 
@@ -739,7 +736,7 @@ mod tests {
     #[test]
     fn test_matching_rules() {
         let mut validator = PathPermissionValidator::new(true);
-        
+
         validator.add_rule(create_test_rule("src/**/*.rs", PermissionLevel::ReadWrite));
         validator.add_rule(create_test_rule("**/*.rs", PermissionLevel::ReadOnly));
 
@@ -750,13 +747,13 @@ mod tests {
     #[test]
     fn test_validator_state_queries() {
         let mut validator = PathPermissionValidator::new(true);
-        
+
         assert!(validator.is_strict_mode());
         assert_eq!(validator.rule_count(), 0);
         assert_eq!(validator.policy_count(), 0);
 
         validator.add_rule(create_test_rule("**/*", PermissionLevel::ReadOnly));
-        
+
         let policy = SecurityPolicy {
             patterns: vec!["secret/**".to_string()],
             operations: vec!["read".to_string()],

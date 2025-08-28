@@ -32,6 +32,7 @@
 //!
 //! ```rust
 //! use airs_mcp_fs::security::permissions::*;
+//! use airs_mcp_fs::OperationType;
 //! use std::collections::HashSet;
 //! use std::path::PathBuf;
 //!
