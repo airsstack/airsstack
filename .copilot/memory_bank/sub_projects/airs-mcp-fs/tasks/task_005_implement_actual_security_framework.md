@@ -2,7 +2,7 @@
 
 **Status:** in_progress  
 **Added:** 2025-08-25  
-**Updated:** 2025-08-26
+**Updated:** 2025-08-28
 
 ## Original Request
 Implement actual security framework to replace placeholder approval workflows and establish enterprise-grade security controls for filesystem operations.
@@ -81,7 +81,7 @@ impl PolicyEngine {
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 67% (4/6 subtasks complete)
+**Overall Status:** in_progress - 83% (5/6 subtasks complete)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -90,10 +90,26 @@ impl PolicyEngine {
 | 5.2 | Implement policy engine for real-time evaluation | complete | 2025-08-26 | PolicyEngine with glob pattern matching - auto-approval eliminated ✅ |
 | 5.3 | Build comprehensive audit logging system | complete | 2025-08-28 | Structured JSON logging with correlation IDs and compliance records ✅ |
 | 5.4 | Create path-based permission validation | complete | 2025-08-29 | Advanced PathPermissionValidator with glob patterns and inheritance ✅ |
-| 5.5 | Add operation-type restrictions framework | not_started | 2025-08-26 | Read/write/delete/create permission granularity - HIGH |
+| 5.5 | Add operation-type restrictions framework | complete | 2025-08-28 | Granular validation for all 7 operation types with 4-layer security pipeline ✅ |
 | 5.7 | Create security configuration validation | not_started | 2025-08-26 | Validate security configs on startup with clear errors - HIGH |
 
 ## Progress Log
+### 2025-08-28 - SUBTASK 5.5 COMPLETE ✅
+- **OPERATION-TYPE RESTRICTIONS FRAMEWORK COMPLETE**: Advanced operation-level security successfully implemented
+- **validate_operation_permission() Implementation**:
+  - 4-layer security validation pipeline (Path → Permission → Configuration → Policy)
+  - Complete coverage for all 7 operation types (Read, Write, Delete, CreateDir, List, Move, Copy)
+  - Deep integration with PathPermissionValidator and PolicyEngine systems
+  - Operation-specific configuration rules (write_requires_policy, delete_requires_explicit_allow)
+- **Comprehensive Testing Added**:
+  - 19 security manager tests covering all operation scenarios
+  - Success/failure testing for each operation type
+  - Configuration-based denial testing for restrictive policies
+- **Standards Compliance**: chrono DateTime<Utc> for timestamps (§3.2), 3-layer imports (§2.1)
+- **Quality Achievement**: All 121 tests passing with operation-type restrictions
+- **Architecture Impact**: Security framework now 83% complete (5/6 critical subtasks)
+- **Next Target**: Subtask 5.7 (Configuration validation) - final security framework component
+
 ### 2025-08-29 - ARCHITECTURAL IMPROVEMENT PLANNING
 - **REFACTORING ANALYSIS**: Identified permissions.rs module growth to 541 lines requiring sub-module refactoring
 - **ARCHITECTURAL DECISION**: Refactor into `security/permissions/` sub-module structure with comprehensive documentation

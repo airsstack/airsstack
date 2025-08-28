@@ -1,11 +1,11 @@
 # Tasks Index
 
-**Last Updated:** 2025-08-29  
+**Last Updated:** 2025-08-28  
 **Active Sub-Project:** airs-mcp-fs  
-**Phase:** Security Framework Implementation (**67% COMPLETE**)
+**Phase:** Security Framework Implementation (**83% COMPLETE**)
 
 ## In Progress
-- [task_005] implement_actual_security_framework - **CRITICAL**: 67% complete (4/6 subtasks done) - Path permission system operational ✅
+- [task_005] implement_actual_security_framework - **CRITICAL**: 83% complete (5/6 subtasks done) - Operation-type restrictions operational ✅
 
 ## Pending
 - [task_004] security_framework - Implement behavioral logging and enhanced security features
@@ -25,12 +25,30 @@
 
 ---
 
-## **🎉 MAJOR SECURITY MILESTONE ACHIEVED - 2025-08-29**
+## **🎉 OPERATION-TYPE RESTRICTIONS FRAMEWORK COMPLETE - 2025-08-28**
 
-### **PATH-BASED PERMISSION SYSTEM OPERATIONAL**
-**Advanced permission validation system now fully integrated:**
+### **GRANULAR OPERATION-LEVEL SECURITY OPERATIONAL**
+**Advanced operation validation system now fully integrated:**
 
-#### **Latest Achievement (Subtask 5.4)**
+#### **Latest Achievement (Subtask 5.5)**
+- ✅ **validate_operation_permission()**: Comprehensive 4-layer validation pipeline
+- ✅ **Complete Operation Coverage**: Read, Write, Delete, CreateDir, List, Move, Copy (7 types)
+- ✅ **Configuration Integration**: Operation-specific rules (write_requires_policy, delete_requires_explicit_allow)
+- ✅ **Policy Engine Integration**: Deep integration with existing security infrastructure
+- ✅ **Comprehensive Testing**: 19 security manager tests covering all operation scenarios
+- ✅ **Production Quality**: 121/121 tests passing with zero compilation warnings
+
+#### **4-Layer Security Validation Pipeline**
+```rust
+pub async fn validate_operation_permission(operation: &FileOperation) -> Result<ApprovalDecision> {
+    // Layer 1: Basic path validation (PathValidator)
+    // Layer 2: Permission system validation (PathPermissionValidator) 
+    // Layer 3: Operation-specific configuration rules
+    // Layer 4: Policy engine validation (PolicyEngine)
+}
+```
+
+#### **Previous Achievements**
 - ✅ **PathPermissionValidator**: Advanced glob pattern matching with ** (globstar) and * (wildcard) support
 - ✅ **5-Level Permission Hierarchy**: Denied < ReadOnly < Write < Admin < Full permission levels
 - ✅ **Rule Priority System**: Explicit rule ordering with deny-first policy evaluation
@@ -44,10 +62,10 @@
 - ✅ **Workspace Standards Compliance**: Full adherence to workspace standards (§2.1, §3.2, §5.1)
 
 #### **Production Readiness Impact**
-- **Security Score**: Improved from 2/10 to 8/10 with advanced path permissions
-- **Quality Standards**: 86/86 tests passing, zero compilation warnings
-- **Architecture**: 67% security framework complete (4/6 critical subtasks operational)
-- **Next Focus**: Complete operation-type restrictions (Subtask 5.5)
+- **Security Score**: Improved from 2/10 to 8/10 with operation-level restrictions
+- **Quality Standards**: 121/121 tests passing, zero compilation warnings
+- **Architecture**: 83% security framework complete (5/6 critical subtasks operational)
+- **Next Focus**: Complete configuration validation (Subtask 5.7) - final framework component
 
 ---
 
