@@ -14,7 +14,7 @@ use crate::filesystem::{validation::PathValidator, FileOperation};
 use crate::mcp::OperationType;
 use crate::security::approval::{ApprovalDecision, ApprovalWorkflow};
 use crate::security::audit::{AuditLogger, CorrelationId};
-use crate::security::permissions::PathPermissionValidator;
+use crate::security::permissions::{PathPermissionRule, PathPermissionValidator, PermissionLevel};
 use crate::security::policy::PolicyEngine;
 
 /// Main security manager for filesystem operations
@@ -51,8 +51,6 @@ impl SecurityManager {
 
             // Create permission rules from policy patterns and operations
             for pattern in &policy.patterns {
-                use crate::security::permissions::{PathPermissionRule, PermissionLevel};
-
                 // Determine permission level based on operations allowed
                 let permission_level = if policy.operations.contains(&"delete".to_string()) {
                     PermissionLevel::Full
