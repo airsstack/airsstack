@@ -17,7 +17,6 @@ use tracing::{info, instrument};
 // Layer 3a: AIRS foundation crates (prioritized)
 use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
 use airs_mcp::shared::protocol::{Content, Tool};
-use airs_mcp::transport::StdioTransport;
 
 // Layer 3b: Local crate modules
 use crate::config::Settings;
@@ -33,13 +32,6 @@ where
 {
     file_handler: F,
     directory_handler: D,
-    settings: Arc<Settings>,
-    _server_state: Arc<Mutex<ServerState>>,
-}
-
-/// Legacy MCP server wrapper (maintained for backward compatibility)
-#[derive(Debug)]
-pub struct McpServer {
     settings: Arc<Settings>,
     _server_state: Arc<Mutex<ServerState>>,
 }
@@ -196,44 +188,6 @@ where
     }
 }
 
-impl McpServer {
-    /// Create a new MCP server instance
-    pub async fn new(settings: Settings) -> Result<Self> {
-        info!("Initializing AIRS MCP-FS server");
-
-        Ok(Self {
-            settings: Arc::new(settings),
-            _server_state: Arc::new(Mutex::new(ServerState::default())),
-        })
-    }
-
-    /// Run the MCP server with STDIO transport
-    pub async fn run(&self) -> Result<()> {
-        info!("Starting AIRS MCP-FS server: {}", self.settings.server.name);
-
-        // Create the filesystem server with proper handlers
-        let filesystem_server =
-            DefaultFilesystemMcpServer::with_default_handlers((*self.settings).clone()).await?;
-
-        // Create STDIO transport for MCP communication
-        let transport = StdioTransport::new().await?;
-
-        // Build the complete MCP server using the builder pattern
-        let mcp_server = airs_mcp::integration::mcp::McpServerBuilder::new()
-            .server_info(&self.settings.server.name, &self.settings.server.version)
-            .with_tool_provider(filesystem_server)
-            .build(transport)
-            .await?;
-
-        info!("MCP server ready for connections");
-
-        // Run the actual MCP server loop
-        mcp_server.run().await?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -272,13 +226,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mcp_server_creation() {
-        let settings = create_permissive_test_settings();
-        let result = McpServer::new(settings).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
     async fn test_mcp_server_setup() {
         let settings = create_permissive_test_settings();
 
@@ -286,12 +233,8 @@ mod tests {
         let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
         assert!(filesystem_server.is_ok());
 
-        // Test that we can create STDIO transport
-        let transport_result = StdioTransport::new().await;
-        assert!(transport_result.is_ok());
-
-        // Note: We don't test the actual run() method as it starts an infinite server loop
-        // The run() method is tested through integration tests with actual MCP clients
+        // Note: StdioTransport testing removed since it's handled in main.rs
+        // The actual server building is tested through integration tests with MCP clients
     }
 
     #[tokio::test]
