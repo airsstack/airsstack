@@ -17,6 +17,7 @@ use tracing::{info, instrument};
 // Layer 3a: AIRS foundation crates (prioritized)
 use airs_mcp::integration::mcp::{McpError, McpResult, ToolProvider};
 use airs_mcp::shared::protocol::{Content, Tool};
+use airs_mcp::transport::StdioTransport;
 
 // Layer 3b: Local crate modules
 use crate::config::Settings;
@@ -208,16 +209,28 @@ impl McpServer {
         })
     }
 
-    /// Run the MCP server (placeholder implementation)
+    /// Run the MCP server with STDIO transport
     pub async fn run(&self) -> Result<()> {
         info!("Starting AIRS MCP-FS server: {}", self.settings.server.name);
 
-        // TODO: Implement actual MCP server loop in task_002
-        // For now, just log that we're ready
+        // Create the filesystem server with proper handlers
+        let filesystem_server =
+            DefaultFilesystemMcpServer::with_default_handlers((*self.settings).clone()).await?;
+
+        // Create STDIO transport for MCP communication
+        let transport = StdioTransport::new().await?;
+
+        // Build the complete MCP server using the builder pattern
+        let mcp_server = airs_mcp::integration::mcp::McpServerBuilder::new()
+            .server_info(&self.settings.server.name, &self.settings.server.version)
+            .with_tool_provider(filesystem_server)
+            .build(transport)
+            .await?;
+
         info!("MCP server ready for connections");
 
-        // Placeholder - prevent immediate exit
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        // Run the actual MCP server loop
+        mcp_server.run().await?;
 
         Ok(())
     }
