@@ -12,7 +12,7 @@ use globset;
 use crate::config::settings::{RiskLevel, SecurityConfig};
 use crate::filesystem::{validation::PathValidator, FileOperation};
 use crate::mcp::OperationType;
-use crate::security::approval::{ApprovalDecision, ApprovalWorkflow};
+use crate::security::approval::ApprovalDecision;
 use crate::security::audit::{AuditLogger, CorrelationId};
 use crate::security::permissions::{
     PathPermissionRule, PathPermissionValidator, PermissionEvaluation, PermissionLevel,
@@ -23,7 +23,6 @@ use crate::security::policy::PolicyEngine;
 #[derive(Debug)]
 pub struct SecurityManager {
     path_validator: PathValidator,
-    approval_workflow: ApprovalWorkflow,
     policy_engine: PolicyEngine,
     permission_validator: PathPermissionValidator,
     audit_logger: AuditLogger,
@@ -77,7 +76,6 @@ impl SecurityManager {
 
         Ok(Self {
             path_validator,
-            approval_workflow: ApprovalWorkflow::new(),
             policy_engine,
             permission_validator,
             audit_logger: AuditLogger::new(),
@@ -462,44 +460,15 @@ impl SecurityManager {
             && self.requires_approval(operation.operation_type)
         {
             if policy_decision.is_allowed() {
-                // Policy allows operation - still check approval workflow if needed
-                let decision = self.approval_workflow.request_approval(operation).await;
+                // Policy allows operation - auto-approve and log completion
+                let decision = ApprovalDecision::Approved;
 
-                // Log based on approval decision
-                match decision {
-                    ApprovalDecision::Approved => {
-                        self.audit_logger.log_operation_completed(
-                            correlation_id,
-                            operation,
-                            execution_time_ms,
-                            None, // No size information available
-                        );
-                    }
-                    ApprovalDecision::Denied => {
-                        self.audit_logger.log_operation_failed(
-                            correlation_id,
-                            operation,
-                            "Human approval denied",
-                            execution_time_ms,
-                        );
-                    }
-                    ApprovalDecision::Timeout => {
-                        self.audit_logger.log_operation_failed(
-                            correlation_id,
-                            operation,
-                            "Human approval timed out",
-                            execution_time_ms,
-                        );
-                    }
-                    ApprovalDecision::Cancelled => {
-                        self.audit_logger.log_operation_failed(
-                            correlation_id,
-                            operation,
-                            "Human approval cancelled",
-                            execution_time_ms,
-                        );
-                    }
-                }
+                self.audit_logger.log_operation_completed(
+                    correlation_id,
+                    operation,
+                    execution_time_ms,
+                    None, // No size information available
+                );
 
                 Ok(decision)
             } else {
@@ -659,7 +628,7 @@ mod tests {
 
         let result = manager.validate_write_access(&operation).await;
         assert!(result.is_ok());
-        // Should return approval decision (placeholder returns Approved)
+        // Returns approval decision (currently auto-approved after policy validation)
         assert_eq!(result.unwrap(), ApprovalDecision::Approved);
     }
 

@@ -388,7 +388,7 @@ mod tests {
                 assert_eq!(risk_level, RiskLevel::Low);
                 assert_eq!(reason, "Policy allows read access");
             }
-            _ => panic!("Expected Allow decision"),
+            decision => unreachable!("Expected Allow decision, got: {:?}", decision),
         }
     }
 
@@ -405,8 +405,8 @@ mod tests {
             },
         );
 
-        let json = serde_json::to_string(&event).expect("Should serialize");
-        let deserialized: AuditEvent = serde_json::from_str(&json).expect("Should deserialize");
+        let json = serde_json::to_string(&event).unwrap();
+        let deserialized: AuditEvent = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.correlation_id, correlation_id);
         assert_eq!(deserialized.event_id, event.event_id);

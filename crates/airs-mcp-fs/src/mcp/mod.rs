@@ -11,7 +11,6 @@
 // Layer 3: Internal module declarations
 pub mod handlers;
 pub mod server;
-pub mod tools;
 pub mod types;
 
 // Public API re-exports

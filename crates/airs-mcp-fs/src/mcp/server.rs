@@ -47,10 +47,8 @@ pub struct McpServer {
 /// Internal server state
 #[derive(Debug, Default)]
 struct ServerState {
-    #[allow(dead_code)] // Will be used in task_002
-    connected: bool,
-    #[allow(dead_code)] // Will be used in task_002
-    tools_registered: bool,
+    // Placeholder for future state tracking if needed
+    _reserved: (),
 }
 
 impl<F, D> FilesystemMcpServer<F, D>
@@ -281,13 +279,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mcp_server_run() {
+    async fn test_mcp_server_setup() {
         let settings = create_permissive_test_settings();
-        let server = McpServer::new(settings).await.unwrap();
 
-        // Test that run() completes without error
-        let result = server.run().await;
-        assert!(result.is_ok());
+        // Test that we can create the filesystem server with proper handlers
+        let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings).await;
+        assert!(filesystem_server.is_ok());
+
+        // Test that we can create STDIO transport
+        let transport_result = StdioTransport::new().await;
+        assert!(transport_result.is_ok());
+
+        // Note: We don't test the actual run() method as it starts an infinite server loop
+        // The run() method is tested through integration tests with actual MCP clients
     }
 
     #[tokio::test]
