@@ -40,38 +40,41 @@ impl SecurityManager {
         let policy_engine = PolicyEngine::new(config.policies.clone())
             .expect("Failed to create policy engine - invalid security policies");
 
-        // Create permission validator in permissive mode for backward compatibility
-        // Can be switched to strict mode later with explicit configuration
-        let mut permission_validator = PathPermissionValidator::new(false);
+        // Create permission validator in strict mode for security-first approach
+        // Only policies should define permissions - no auto-generated rules
+        let mut permission_validator = PathPermissionValidator::new(true); // strict mode
 
-        // Add security policies to the permission validator
+        // Convert security policies to permission rules
+        // This ensures all permissions are explicitly defined in configuration
         for (name, policy) in &config.policies {
             permission_validator.add_policy(name.clone(), policy.clone());
-        }
 
-        // Add basic permission rules based on allowed paths
-        for allowed_pattern in &config.filesystem.allowed_paths {
-            use crate::security::permissions::{PathPermissionRule, PermissionLevel};
+            // Create permission rules from policy patterns and operations
+            for pattern in &policy.patterns {
+                use crate::security::permissions::{PathPermissionRule, PermissionLevel};
 
-            // Create a permissive rule that allows all operations for allowed paths
-            let rule = PathPermissionRule::new(
-                allowed_pattern.clone(),
-                PermissionLevel::Full, // Allow all operations including delete, move, create_dir
-                vec![
-                    "read",
-                    "write",
-                    "list",
-                    "create_dir",
-                    "move",
-                    "copy",
-                    "delete",
-                ], // Allow all operations
-                100,                   // Standard priority
-                format!("Allow operations for pattern: {}", allowed_pattern),
-            )
-            .expect("Failed to create permission rule");
+                // Determine permission level based on operations allowed
+                let permission_level = if policy.operations.contains(&"delete".to_string()) {
+                    PermissionLevel::Full
+                } else if policy.operations.contains(&"write".to_string()) {
+                    PermissionLevel::ReadWrite
+                } else if policy.operations.contains(&"read".to_string()) {
+                    PermissionLevel::ReadOnly
+                } else {
+                    PermissionLevel::None
+                };
 
-            permission_validator.add_rule(rule);
+                let rule = PathPermissionRule::new(
+                    pattern.clone(),
+                    permission_level,
+                    policy.operations.iter().map(|s| s.as_str()).collect(),
+                    100, // Standard priority for policy-based rules
+                    format!("Policy '{name}' rule for pattern: {pattern}"),
+                )
+                .expect("Failed to create permission rule from policy");
+
+                permission_validator.add_rule(rule);
+            }
         }
 
         Self {
@@ -241,7 +244,7 @@ impl SecurityManager {
         correlation_id: CorrelationId,
     ) -> Result<bool> {
         // Check if any policy explicitly allows this operation
-        for (_policy_name, policy) in &self.config.policies {
+        for policy in self.config.policies.values() {
             // Check if the file path matches any pattern in this policy
             for pattern in &policy.patterns {
                 if let Ok(glob) = globset::Glob::new(pattern) {
@@ -289,7 +292,7 @@ impl SecurityManager {
         correlation_id: CorrelationId,
     ) -> Result<bool> {
         // For delete operations, we need explicit "delete" permission in a policy
-        for (_policy_name, policy) in &self.config.policies {
+        for policy in self.config.policies.values() {
             // Check if the file path matches any pattern in this policy
             for pattern in &policy.patterns {
                 if let Ok(glob) = globset::Glob::new(pattern) {

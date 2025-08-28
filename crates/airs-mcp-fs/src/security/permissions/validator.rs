@@ -293,7 +293,7 @@ impl PathPermissionValidator {
 
                 // Apply policy restrictions - policies can only restrict, not expand
                 if !policy.patterns.is_empty() {
-                    decision_reasons.push(format!("Policy '{}' applies restrictions", name));
+                    decision_reasons.push(format!("Policy '{name}' applies restrictions"));
                 }
             }
         }
@@ -587,7 +587,7 @@ mod tests {
             permission,
             vec!["read", "write"],
             100,
-            format!("Test rule for {}", pattern),
+            format!("Test rule for {pattern}"),
         )
         .unwrap()
     }

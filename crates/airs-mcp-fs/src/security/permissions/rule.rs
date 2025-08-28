@@ -13,8 +13,8 @@ use glob::Pattern;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-use crate::mcp::types::OperationType;
 use super::level::PermissionLevel;
+use crate::mcp::types::OperationType;
 
 /// A path-based permission rule with glob pattern matching.
 ///
@@ -156,8 +156,7 @@ impl PathPermissionRule {
         description: String,
     ) -> Result<Self> {
         // Validate the glob pattern
-        Pattern::new(&pattern)
-            .with_context(|| format!("Invalid glob pattern: {}", pattern))?;
+        Pattern::new(&pattern).with_context(|| format!("Invalid glob pattern: {pattern}"))?;
 
         let mut allowed_operations = HashSet::new();
 
@@ -296,7 +295,7 @@ impl PathPermissionRule {
     /// )?;
     ///
     /// assert!(rule.matches_path(&PathBuf::from("temp/file.txt")));
-    /// 
+    ///
     /// rule.disable();
     /// assert!(!rule.matches_path(&PathBuf::from("temp/file.txt")));
     /// # Ok::<(), anyhow::Error>(())
@@ -366,8 +365,12 @@ impl PathPermissionRule {
     /// # Ok::<(), anyhow::Error>(())
     /// ```
     pub fn validate_pattern(&self) -> Result<()> {
-        Pattern::new(&self.pattern)
-            .with_context(|| format!("Invalid glob pattern in rule '{}': {}", self.description, self.pattern))?;
+        Pattern::new(&self.pattern).with_context(|| {
+            format!(
+                "Invalid glob pattern in rule '{}': {}",
+                self.description, self.pattern
+            )
+        })?;
         Ok(())
     }
 }
@@ -383,7 +386,7 @@ mod tests {
             permission,
             vec!["read", "write"],
             100,
-            format!("Test rule for {}", pattern),
+            format!("Test rule for {pattern}"),
         )
         .unwrap()
     }
@@ -420,7 +423,10 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unknown operation type"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unknown operation type"));
     }
 
     #[test]
@@ -436,12 +442,12 @@ mod tests {
     #[test]
     fn test_disabled_rule_no_match() {
         let mut rule = create_test_rule("**/*.txt", PermissionLevel::ReadOnly);
-        
+
         assert!(rule.matches_path(&PathBuf::from("test.txt")));
-        
+
         rule.disable();
         assert!(!rule.matches_path(&PathBuf::from("test.txt")));
-        
+
         rule.enable();
         assert!(rule.matches_path(&PathBuf::from("test.txt")));
     }
@@ -458,12 +464,24 @@ mod tests {
         .unwrap();
 
         let read_ops: HashSet<_> = [OperationType::Read].iter().cloned().collect();
-        let write_ops: HashSet<_> = [OperationType::Read, OperationType::Write].iter().cloned().collect();
+        let write_ops: HashSet<_> = [OperationType::Read, OperationType::Write]
+            .iter()
+            .cloned()
+            .collect();
         let delete_ops: HashSet<_> = [OperationType::Delete].iter().cloned().collect();
 
-        assert_eq!(rule.evaluate_for_operations(&read_ops), PermissionLevel::ReadWrite);
-        assert_eq!(rule.evaluate_for_operations(&write_ops), PermissionLevel::ReadWrite);
-        assert_eq!(rule.evaluate_for_operations(&delete_ops), PermissionLevel::None);
+        assert_eq!(
+            rule.evaluate_for_operations(&read_ops),
+            PermissionLevel::ReadWrite
+        );
+        assert_eq!(
+            rule.evaluate_for_operations(&write_ops),
+            PermissionLevel::ReadWrite
+        );
+        assert_eq!(
+            rule.evaluate_for_operations(&delete_ops),
+            PermissionLevel::None
+        );
     }
 
     #[test]
@@ -471,10 +489,10 @@ mod tests {
         let mut rule = create_test_rule("**/*", PermissionLevel::Full);
 
         assert!(rule.is_enabled());
-        
+
         rule.disable();
         assert!(!rule.is_enabled());
-        
+
         rule.enable();
         assert!(rule.is_enabled());
     }
@@ -498,12 +516,12 @@ mod tests {
     #[test]
     fn test_glob_patterns() {
         // Test various glob patterns
-        
+
         // Test exact file match (should only match files in root, not subdirectories)
         let root_only_rule = create_test_rule("main.rs", PermissionLevel::ReadOnly);
         assert!(root_only_rule.matches_path(&PathBuf::from("main.rs")));
         assert!(!root_only_rule.matches_path(&PathBuf::from("src/main.rs")));
-        
+
         // Test wildcard for any .rs file (matches any .rs file at any level due to glob behavior)
         let wildcard_rule = create_test_rule("*.rs", PermissionLevel::ReadOnly);
         assert!(wildcard_rule.matches_path(&PathBuf::from("main.rs")));
@@ -524,7 +542,7 @@ mod tests {
     #[test]
     fn test_rule_serialization() {
         let rule = create_test_rule("src/**/*.rs", PermissionLevel::ReadWrite);
-        
+
         let serialized = serde_json::to_string(&rule).unwrap();
         let deserialized: PathPermissionRule = serde_json::from_str(&serialized).unwrap();
 
