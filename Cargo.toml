@@ -28,21 +28,24 @@ repository = "https://github.com/airsstack/airsstack"
 rust-version = "1.88"
 
 [workspace.dependencies]
-# AIRS MCP Foundation - path dependency
+# Layer 1: AIRS Foundation Crates (MUST be at top)
 airs-mcp = { path = "crates/airs-mcp" }
+airs-mcp-fs = { path = "crates/airs-mcp-fs" }
+airs-memspec = { path = "crates/airs-memspec" }
 
-# Pattern matching for security policies (for airs-mcp-fs)
-globset = { version = "0.4" }
-
-# Core async runtime
+# Layer 2: Core Runtime Dependencies
 tokio = { version = "1.47", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 futures = { version = "0.3" }
 
-# JSON serialization for JSON-RPC messages
+# Layer 3: Serialization and Data Handling
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7" }
+
+# Layer 4: External Dependencies (by category)
+# Pattern matching for security policies (for airs-mcp-fs)
+globset = { version = "0.4" }
 
 # Concurrent collections for request correlation
 dashmap = { version = "5.5" }
@@ -125,6 +128,10 @@ num_cpus = { version = "1.16" }
 tempfile = { version = "3.20.0" }
 assert_cmd = { version = "2.0.17" }
 predicates = { version = "3.1" }
+
+# Security testing utilities (for airs-mcp-fs security audit)
+urlencoding = { version = "2.1" }
+unicode-normalization = { version = "0.1" }
 
 # HTTP mocking for testing
 wiremock = { version = "0.6" }
