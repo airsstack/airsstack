@@ -1,11 +1,14 @@
-//! Integration test runner for path traversal security testing
+//! Integration test runner for comprehensive security testing
 //!
-//! This test runs the comprehensive path traversal security test suite
-//! and generates a detailed security report.
+//! This test runs multiple security test suites and generates detailed reports.
 
 // Import test modules from individual test files
+mod security_input_validation_tests;
 mod security_path_traversal_tests;
 
+use security_input_validation_tests::{
+    InputValidationSecurityReport, InputValidationSecurityTester,
+};
 use security_path_traversal_tests::{PathTraversalSecurityTester, SecurityTestReport};
 
 #[tokio::test]
@@ -241,4 +244,110 @@ async fn test_legitimate_paths_still_work() -> Result<(), Box<dyn std::error::Er
     println!("✅ All legitimate paths properly handled");
 
     Ok(())
+}
+
+#[tokio::test]
+async fn run_comprehensive_input_validation_security_audit(
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🔍 INITIATING COMPREHENSIVE INPUT VALIDATION SECURITY AUDIT");
+    println!("📋 Task 010, Subtask 10.3: Input Validation Security Testing");
+    println!("🎯 Objective: Validate input sanitization against injection and bypass attacks\n");
+
+    // Create input validation security tester
+    let mut tester = InputValidationSecurityTester::new()?;
+
+    // Run comprehensive input validation security tests
+    let start_time = std::time::Instant::now();
+    let report = tester.run_comprehensive_security_tests();
+    let _total_execution_time = start_time.elapsed();
+
+    // Print detailed security report
+    report.print_report();
+
+    // Security assertions for CI/CD pipeline
+    assert_input_validation_security_requirements(&report);
+
+    // Generate markdown report (for future integration with documentation systems)
+    let _markdown_report = generate_input_validation_markdown_report(&report);
+
+    Ok(())
+}
+
+/// Assert input validation security requirements for CI/CD pipeline
+fn assert_input_validation_security_requirements(report: &InputValidationSecurityReport) {
+    // Critical security requirements
+    assert_eq!(
+        report.vulnerabilities_found, 0,
+        "SECURITY FAILURE: {} input validation vulnerabilities found",
+        report.vulnerabilities_found
+    );
+
+    assert!(
+        report.security_score >= 85.0,
+        "SECURITY FAILURE: Input validation security score {:.1} below required 85.0",
+        report.security_score
+    );
+
+    // Ensure all critical and high severity tests passed
+    let critical_high_failures: Vec<_> = report
+        .test_results
+        .iter()
+        .filter(|result| {
+            !result.passed
+                && matches!(
+                    result.severity,
+                    security_input_validation_tests::SeverityLevel::Critical
+                        | security_input_validation_tests::SeverityLevel::High
+                )
+        })
+        .collect();
+
+    assert!(
+        critical_high_failures.is_empty(),
+        "SECURITY FAILURE: Critical/High severity input validation tests failed: {:?}",
+        critical_high_failures
+            .iter()
+            .map(|r| &r.test_name)
+            .collect::<Vec<_>>()
+    );
+}
+
+/// Generate markdown report for input validation security testing
+fn generate_input_validation_markdown_report(report: &InputValidationSecurityReport) -> String {
+    format!(
+        r#"# Input Validation Security Test Report
+
+## Executive Summary
+- **Total Tests**: {}
+- **Passed**: {} ({:.1}%)
+- **Failed**: {} ({:.1}%)
+- **Vulnerabilities Found**: {}
+- **Security Score**: {:.1}/100
+- **Execution Time**: {} ms
+
+## Test Results
+{}
+
+## Recommendations
+{}
+"#,
+        report.total_tests,
+        report.passed_tests,
+        (report.passed_tests as f64 / report.total_tests as f64) * 100.0,
+        report.failed_tests,
+        (report.failed_tests as f64 / report.total_tests as f64) * 100.0,
+        report.vulnerabilities_found,
+        report.security_score,
+        report.execution_time.as_millis(),
+        if report.vulnerabilities_found == 0 {
+            "All input validation tests passed successfully."
+        } else {
+            "Input validation vulnerabilities detected. Immediate remediation required."
+        },
+        if report.vulnerabilities_found == 0 {
+            "✅ Input validation security is robust and production-ready."
+        } else {
+            "⚠️ Implement comprehensive input sanitization framework before production deployment."
+        }
+    )
 }
