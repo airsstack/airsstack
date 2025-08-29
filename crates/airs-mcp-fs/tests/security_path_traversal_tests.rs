@@ -427,7 +427,9 @@ impl PathTraversalSecurityTester {
         &self,
         attack_vector: &PathTraversalAttackVector,
     ) -> Result<PathBuf, anyhow::Error> {
-        self.validator.validate_path(&attack_vector.malicious_path)
+        self.validator
+            .validate_path(&attack_vector.malicious_path)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     /// Generate comprehensive security test report

@@ -238,9 +238,12 @@ impl SettingsBuilder {
                     );
 
                     (
-                        vec!["/**/*".to_string()], // Allow all paths
-                        false,                     // Don't require policies for writes
-                        false,                     // Don't require explicit delete permissions
+                        vec![
+                            "/**/*".to_string(),  // Allow all absolute paths
+                            "**/*".to_string(),   // Allow all relative paths
+                        ],
+                        false,                    // Don't require policies for writes
+                        false,                    // Don't require explicit delete permissions
                     )
                 }
                 SecurityMode::Development => {

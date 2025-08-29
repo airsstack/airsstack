@@ -10,7 +10,10 @@ use globset;
 
 // Layer 3: Internal module imports
 use crate::config::settings::{RiskLevel, SecurityConfig};
-use crate::filesystem::{validation::PathValidator, FileOperation};
+use crate::filesystem::{
+    validation::{PathValidator, SecurityError},
+    FileOperation,
+};
 use crate::mcp::OperationType;
 use crate::security::approval::ApprovalDecision;
 use crate::security::audit::{AuditLogger, CorrelationId};
@@ -101,15 +104,20 @@ impl SecurityManager {
         // 1. Validate basic path security first
         match self.path_validator.validate_path(&operation.path) {
             Ok(_validated_path) => {}
-            Err(e) => {
+            Err(security_error) => {
                 let execution_time_ms = start_time.elapsed().as_millis() as u64;
+                let error_msg = match security_error {
+                    SecurityError::AccessDenied => "Access denied",
+                    SecurityError::InvalidInput => "Invalid input detected",
+                    SecurityError::PolicyViolation => "Security policy violation",
+                };
                 self.audit_logger.log_operation_failed(
                     correlation_id,
                     operation,
-                    &format!("Path validation failed: {e}"),
+                    error_msg,
                     execution_time_ms,
                 );
-                return Err(e);
+                return Err(anyhow::anyhow!("{}", error_msg));
             }
         }
 
@@ -319,15 +327,20 @@ impl SecurityManager {
         // Validate path security
         match self.path_validator.validate_path(&operation.path) {
             Ok(_validated_path) => {}
-            Err(e) => {
+            Err(security_error) => {
                 let execution_time_ms = start_time.elapsed().as_millis() as u64;
+                let error_msg = match security_error {
+                    SecurityError::AccessDenied => "Access denied",
+                    SecurityError::InvalidInput => "Invalid input detected",
+                    SecurityError::PolicyViolation => "Security policy violation",
+                };
                 self.audit_logger.log_operation_failed(
                     correlation_id,
                     operation,
-                    &format!("Path validation failed: {e}"),
+                    error_msg,
                     execution_time_ms,
                 );
-                return Err(e);
+                return Err(anyhow::anyhow!("{}", error_msg));
             }
         }
 
@@ -407,15 +420,20 @@ impl SecurityManager {
         // Validate path security first
         match self.path_validator.validate_path(&operation.path) {
             Ok(_validated_path) => {}
-            Err(e) => {
+            Err(security_error) => {
                 let execution_time_ms = start_time.elapsed().as_millis() as u64;
+                let error_msg = match security_error {
+                    SecurityError::AccessDenied => "Access denied",
+                    SecurityError::InvalidInput => "Invalid input detected",
+                    SecurityError::PolicyViolation => "Security policy violation",
+                };
                 self.audit_logger.log_operation_failed(
                     correlation_id,
                     operation,
-                    &format!("Path validation failed: {e}"),
+                    error_msg,
                     execution_time_ms,
                 );
-                return Err(e);
+                return Err(anyhow::anyhow!("{}", error_msg));
             }
         }
 

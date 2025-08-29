@@ -30,6 +30,19 @@ pub struct FileHandler {
     security_manager: Arc<SecurityManager>,
 }
 
+/// Arguments for write_file operations
+#[derive(serde::Deserialize)]
+struct WriteFileArgs {
+    path: String,
+    content: String,
+    #[serde(default)]
+    encoding: Option<String>,
+    #[serde(default)]
+    create_directories: Option<bool>,
+    #[serde(default)]
+    backup_existing: Option<bool>,
+}
+
 impl FileHandler {
     /// Create a new file handler instance
     pub fn new(security_manager: Arc<SecurityManager>) -> Self {
@@ -80,7 +93,26 @@ impl FileHandler {
             .await
             .map_err(|e| McpError::internal_error(format!("Failed to read file metadata: {e}")))?;
 
-        let max_size = args.max_size_mb.unwrap_or(100) * 1024 * 1024; // Default 100MB
+        let max_size = {
+            // SECURITY FIX: Prevent integer overflow in size calculation
+            const MAX_REASONABLE_SIZE_MB: u64 = 1024; // 1GB max
+            const MB_TO_BYTES: u64 = 1024 * 1024;
+
+            let size_mb = args.max_size_mb.unwrap_or(100);
+
+            // Validate input range to prevent overflow
+            if size_mb > MAX_REASONABLE_SIZE_MB {
+                return Err(McpError::invalid_request(format!(
+                    "File size limit too large: {} MB (max: {} MB)",
+                    size_mb, MAX_REASONABLE_SIZE_MB
+                )));
+            }
+
+            // Safe multiplication with overflow check
+            size_mb.checked_mul(MB_TO_BYTES).ok_or_else(|| {
+                McpError::invalid_request("File size calculation overflow".to_string())
+            })?
+        };
         if metadata.len() > max_size {
             return Err(McpError::invalid_request(format!(
                 "File too large: {} bytes (max: {} bytes)",
@@ -107,20 +139,11 @@ impl FileHandler {
         info!("Processing write_file tool request");
 
         // Parse arguments from JSON
-        #[derive(serde::Deserialize)]
-        struct WriteFileArgs {
-            path: String,
-            content: String,
-            #[serde(default)]
-            encoding: Option<String>,
-            #[serde(default)]
-            create_directories: Option<bool>,
-            #[serde(default)]
-            backup_existing: Option<bool>,
-        }
-
         let args: WriteFileArgs = serde_json::from_value(arguments)
             .map_err(|e| McpError::invalid_request(format!("Invalid write_file arguments: {e}")))?;
+
+        // SECURITY FIX: Input validation for content
+        self.validate_write_input(&args)?;
 
         // Create filesystem operation for security validation
         let operation =
@@ -310,6 +333,59 @@ impl FileHandler {
             bytes.len()
         ))])
     }
+
+    /// SECURITY FIX: Comprehensive input validation for write operations  
+    fn validate_write_input(&self, args: &WriteFileArgs) -> McpResult<()> {
+        // Validate path input
+        if args.path.is_empty() {
+            return Err(McpError::invalid_request(
+                "Path cannot be empty".to_string(),
+            ));
+        }
+
+        // Check for null bytes in path and content
+        if args.path.contains('\0') || args.content.contains('\0') {
+            return Err(McpError::invalid_request(
+                "Null bytes not allowed in input".to_string(),
+            ));
+        }
+
+        // Validate content size to prevent DoS
+        const MAX_CONTENT_SIZE: usize = 100 * 1024 * 1024; // 100 MB
+        if args.content.len() > MAX_CONTENT_SIZE {
+            return Err(McpError::invalid_request(format!(
+                "Content too large: {} bytes (max: {} bytes)",
+                args.content.len(),
+                MAX_CONTENT_SIZE
+            )));
+        }
+
+        // Check for control characters in content (except safe ones)
+        if args
+            .content
+            .chars()
+            .any(|c| c.is_control() && c != '\t' && c != '\n' && c != '\r')
+        {
+            return Err(McpError::invalid_request(
+                "Dangerous control characters detected in content".to_string(),
+            ));
+        }
+
+        // Validate encoding parameter
+        if let Some(ref encoding) = args.encoding {
+            match encoding.as_str() {
+                "utf8" | "text" | "base64" | "binary" => {}
+                _ => {
+                    return Err(McpError::invalid_request(format!(
+                        "Unsupported encoding: {}",
+                        encoding
+                    )))
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Implementation of FileOperations trait for FileHandler
@@ -358,7 +434,9 @@ mod tests {
         temp_file.flush().unwrap();
 
         // Test reading the file
-        let args = serde_json::json!({"path": temp_file.path().to_string_lossy()});
+        let temp_path = temp_file.path().to_string_lossy();
+        println!("Testing with path: {}", temp_path);
+        let args = serde_json::json!({"path": temp_path});
         let result = handler.handle_read_file(args).await.unwrap();
 
         assert_eq!(result.len(), 1);
