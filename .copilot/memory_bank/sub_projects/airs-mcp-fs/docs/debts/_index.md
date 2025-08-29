@@ -1,11 +1,21 @@
 # Technical Debt Registry - airs-mcp-fs
 
 **Last Updated**: 2025-08-29  
-**Total Debt Records**: 4  
-**Active Debt**: 4  
+**Total Debt Records**: 5  
+**Active Debt**: 5  
 **Resolved Debt**: 0
 
+## ⚠️ CRITICAL SECURITY ALERT
+**NEW CRITICAL DEBT:** [DEBT-SECURITY-001: Critical Security Vulnerabilities](./DEBT-SECURITY-001-critical-vulnerabilities.md)  
+**Status:** BLOCKS PRODUCTION DEPLOYMENT  
+**CVSS Scores:** 2 Critical (9.3, 8.1), 3 High (7.8, 7.5, 7.2)  
+**Immediate Action Required**
+
 ## Debt Categories
+
+### Security 🚨 **NEW CATEGORY**
+- **Active**: 1 debt record  
+  - [DEBT-SECURITY-001: Critical Security Vulnerabilities](./DEBT-SECURITY-001-critical-vulnerabilities.md) ⚠️ **CRITICAL - BLOCKS DEPLOYMENT**
 
 ### Code Quality / Reliability
 - **Active**: 1 debt record
@@ -38,8 +48,8 @@
 ## Priority Distribution
 
 ### Critical Priority
-- **Count**: 1
-- **Records**: DEBT-CRITICAL-001
+- **Count**: 2  
+- **Records**: DEBT-SECURITY-001, DEBT-CRITICAL-001
 
 ### High Priority
 - **Count**: 1
@@ -54,6 +64,23 @@
 - **Records**: DEBT-002
 
 ## Active Debt Records
+
+### 🚨 NEW SECURITY DEBT
+
+#### DEBT-SECURITY-001: Critical Security Vulnerabilities ⚠️ **BLOCKS DEPLOYMENT**
+- **Category**: Security
+- **Priority**: Critical
+- **Location**: Multiple files (filesystem/validation.rs, MCP handlers)
+- **Status**: Active - **IMMEDIATE ACTION REQUIRED**
+- **Added**: 2025-08-29  
+- **Effort**: 1-2 weeks (critical vulnerability remediation)
+- **Impact**: **BLOCKS PRODUCTION DEPLOYMENT** - 11 vulnerabilities (2 Critical, 3 High)
+- **CVSS Scores**: Path traversal (9.3), Information leakage (8.1), Input validation (7.8)
+- **Root Cause**: Insufficient security validation during development
+- **Remediation**: Path validation hardening, error sanitization, input validation framework
+- **Business Risk**: Unauthorized file access, system enumeration, potential data breach
+- **Dependencies**: Security architecture review, comprehensive security testing
+- **File**: `docs/debts/DEBT-SECURITY-001-critical-vulnerabilities.md`
 
 ## Detailed Debt Records
 
