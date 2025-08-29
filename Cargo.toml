@@ -24,7 +24,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["rstlix0x0 <rstlix.dev@gmail.com>"]
 license = "MIT"
-repository = "https://github.com/rstlix0x0/airs"
+repository = "https://github.com/airsstack/airsstack"
 rust-version = "1.88"
 
 [workspace.dependencies]

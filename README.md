@@ -1,6 +1,14 @@
-# AIRS - AI & Rust Technology Stack
+# AirsStack - Own Your AI Future
 
-A personal AI technology stack built entirely in Rust, designed as a foundational framework for AI engineering tools and software. AIRS emphasizes type safety, performance, and clean architecture for building AI-powered applications with human-designed architecture and AI-assisted implementation.
+**Privacy-First • Open Source • High Performance**
+
+Build AI applications that work for you, not against you. AirsStack provides composable building blocks that make AI development more accessible, reducing vendor lock-in and giving you more control over your data and workflows.
+
+🎯 **What can you build?**
+• Personal AI assistants  
+• MCP Tools & Extensions  
+• Autonomous Agent Services  
+• Custom Workflow Automations
 
 ## 🎉 Production Achievements
 
@@ -22,71 +30,134 @@ A personal AI technology stack built entirely in Rust, designed as a foundationa
 [**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**  
 [**📖 Read Complete Documentation →**](docs/src/)
 
+## 🎯 Our Vision
+
+"Empower everyone to build their own AI-powered applications and agents"
+
+We provide the essential open-source components that enable individuals, teams, and organizations to create sophisticated AI systems tailored to their specific needs - from simple productivity tools to complex autonomous agents.
+
+## 🧭 Core Philosophy
+
+• 🤝 **Human-AI Collaboration**: Human-driven architecture with AI-accelerated implementation  
+• 🏠 **AI Sovereignty**: More ownership and control of your AI infrastructure  
+• 🔓 **Open Source First**: Apache/MIT licensing ensuring freedom and flexibility  
+• 🛡️ **Privacy by Design**: Keep more of your data under your control  
+• 🔧 **Composable Components**: Building blocks, not black boxes  
+• ⚡ **Performance Focused**: Rust-first with support for multiple technology stacks
+
+## 🔄 Meta-Philosophy: AI Tools Built by AI
+
+We practice what we preach - our AI infrastructure components are themselves built using AI-assisted methodologies. This creates a powerful recursive approach:
+
+**🧠 Human-AI Collaboration**
+• Strategic architecture designed by humans  
+• Implementation accelerated by AI  
+• Continuous validation through both perspectives  
+
+**🔁 Self-Improving Process**
+• AI tools become better by being built with AI assistance  
+• Real-world experience informs better AI development tools  
+• Methodology becomes part of what we offer the community  
+
+**✨ Authentic Understanding**  
+We deeply understand AI development challenges because we use AI to build AI tools. Our components solve real problems we've encountered in our own AI-assisted development.
+
+## 💡 Why AirsStack?
+
+🔒 **More Control, Less Vendor Lock-in**  
+Building personal AI infrastructure is challenging, but AirsStack makes it more accessible. Reduce dependence on external AI services and gain more control over your data and workflows.
+
+🛠️ **Developer-First**  
+Composable components, not black boxes. Use what you need, extend what you want, control what matters to you.
+
+⚡ **Performance & Safety**  
+Built with performance and safety in mind, with Rust as our primary language while supporting integration with other technology stacks.
+
 ## Technology Stack
 
 ### Core Technologies
-- **Language**: Rust 1.88.0+ (MSRV)
-- **Build System**: Cargo with Workspace structure
-- **AI Integration**: Model Context Protocol (MCP) implementation
-- **Development**: GitHub Copilot-assisted development workflow
+- **Primary Language**: Rust 1.88.0+ (MSRV) - Performance and safety focused
+- **Multi-Stack Support**: Integration with Python, Node.js, and other ecosystems
+- **AI Integration**: Model Context Protocol (MCP) implementation and agent frameworks
+- **Build System**: Cargo Workspace for composable, modular development
+- **Development Philosophy**: AI-assisted development with human architectural control
 
-### Dependencies & Tools
-- **Workspace Management**: Cargo Workspace for multi-crate organization
-- **AI Tooling**: Custom Copilot configurations and prompts
-- **Version Control**: Git with structured branching
-- **Documentation**: Markdown-based documentation system
+### Privacy & Control Features
+- **Local Processing**: Keep your data under your control
+- **No Telemetry**: Privacy-first design with transparent data handling
+- **Composable Architecture**: Use only what you need, extend what you want
+- **Open Source**: Apache 2.0 & MIT licensing for maximum freedom
 
 ## Project Architecture
 
-AIRS follows a modular Cargo Workspace architecture designed for scalability and maintainability:
+AirsStack follows a modular Cargo Workspace architecture designed for composability, scalability, and maintainability:
 
 ```
-airs/
+airsstack/
 ├── Cargo.toml              # Workspace configuration
-├── crates/                 # Individual workspace members
+├── crates/                 # Composable building blocks
 │   ├── airs-mcp/          # Model Context Protocol implementation
+│   ├── airs-mcp-fs/       # Filesystem MCP tools  
 │   └── airs-memspec/      # Memory bank specification and tooling
 ├── .copilot/              # AI-assisted development configuration
-│   ├── chatmodes/         # Custom chat interaction modes
-│   ├── instructions.md    # Development guidelines
-│   └── prompts/           # Reusable AI prompts
-├── docs/                  # Comprehensive project documentation
+│   ├── chatmodes/         # Custom AI interaction modes
+│   ├── instructions/      # Development methodologies and standards
+│   └── prompts/           # Reusable AI development prompts
+├── docs/                  # Comprehensive documentation ecosystem
 │   ├── src/               # Documentation source files  
-│   │   ├── technical/     # Technical guides and methodologies
-│   │   ├── projects/      # Individual project overviews
+│   │   ├── technical/     # AI-Rust integration guides and methodologies
+│   │   ├── projects/      # Component overviews and architecture
 │   │   └── resources/     # Getting started and contribution guides
 │   └── book/              # Generated documentation site
 └── target/                # Build artifacts
 ```
 
+## 🛠️ Featured Components
+
+**🔧 Core Libraries** - Essential AI building blocks  
+**🤖 Agent Framework** - Build autonomous AI agents  
+**📊 Data Pipelines** - Privacy-first data processing  
+**🖥️ Model Runtime** - Local AI model execution  
+**🔗 Integrations** - Connect with your favorite tools
+
+### Current Implementation
+- **✅ Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
+- **✅ Working Examples**: Real-world server/client examples with documented usage patterns
+- **✅ Advanced Transport Layer**: Custom transport support with SubprocessTransport example
+- **✅ Type-Safe APIs**: High-level Rust APIs for MCP protocol interactions
+- **✅ Memory Bank System**: Structured AI-assisted development workflow management
+- **✅ Cargo Workspace Structure**: Organized multi-crate development environment
+- **✅ AI-Assisted Development**: Copilot-optimized workflow and prompts
 
 ### Design Principles
-- **Human Architecture, AI Implementation**: Strategic decisions made by humans, code generated with AI assistance
-- **Rust-First Approach**: Leveraging Rust's memory safety and performance for AI infrastructure
-- **Modular Design**: Each crate serves a specific purpose in the AI ecosystem
-- **Type Safety**: Strong typing for reliable AI tool development
+- **Human Architecture, AI Implementation**: Strategic decisions made by humans, code accelerated with AI assistance
+- **Composable Building Blocks**: Each component serves a specific purpose, use what you need
+- **Privacy & Sovereignty**: Local processing, no vendor lock-in, your data stays under your control
+- **Multi-Stack Integration**: Rust-first with seamless integration across technology stacks
+- **Type Safety & Performance**: Leveraging Rust's strengths for reliable, high-performance AI infrastructure
 
-## AI Collaboration & Memory-Bank Management
+## AI-Assisted Development & Memory-Bank Management
 
-This project leverages a robust memory-bank management system to ensure resilient, transparent, and context-driven development. The memory bank is a structured set of Markdown files that track requirements, architecture, technical decisions, implementation plans, and progress for every sub-project and the workspace as a whole.
+AirsStack embodies our philosophy of AI tools built by AI. We leverage a sophisticated memory-bank management system to ensure resilient, transparent, and context-driven development that serves as both a development methodology and a reusable component for the community.
 
 ### Memory-Bank System Overview
-- **Workspace-Level Context**: Shared files define the overall vision, architecture, and standards for all sub-projects.
-- **Sub-Project Memory Bank**: Each sub-project maintains its own set of files for requirements, design, tech context, active decisions, and progress.
-- **Task Management**: Every development task is tracked in detail, with status, subtasks, and progress logs, enabling precise project management and onboarding.
-- **Context Snapshots**: Operational state can be saved and restored at any time, supporting historical analysis and rapid recovery from context loss.
+- **Workspace-Level Context**: Shared files define overall vision, architecture, and standards across all components
+- **Component Memory Banks**: Each component maintains its own requirements, design, technical context, and progress tracking
+- **Task Management**: Detailed tracking with status, subtasks, and progress logs for precise project management
+- **Context Snapshots**: Operational state preservation for onboarding, recovery, and historical analysis
 
-### Human/AI Collaboration
-- **Human Architecture, AI Implementation**: Strategic decisions are made by humans, while code and documentation are generated and maintained with AI assistance.
-- **AI Agent Workflow**: The AI agent operates autonomously, executing tasks, updating documentation, and managing context without requiring confirmation or permission.
-- **Specification-Driven Execution**: All work follows a rigorous, specification-driven workflow, ensuring requirements are clear, designs are validated, and implementations are thoroughly documented and tested.
-- **Transparency & Traceability**: Every action, decision, and change is logged in the memory bank, providing a complete audit trail of human/AI collaboration.
+### Human-AI Collaboration Model
+- **Strategic Human Control**: Architectural decisions and strategic direction remain human-driven
+- **AI-Accelerated Implementation**: Code generation, documentation, and routine tasks enhanced by AI
+- **Transparent Process**: Every action, decision, and change logged for complete audit trail
+- **Specification-Driven**: Rigorous workflow ensuring clear requirements, validated designs, and thorough testing
+- **Community Contribution**: Our methodology becomes part of what we offer to the community
 
-### How to Use the Memory Bank
-1. **Review Context**: Start every session by reading all relevant memory bank files for the workspace and active sub-project.
-2. **Track Tasks**: Use the tasks index and individual task files to monitor progress, update statuses, and document decisions.
-3. **Update Documentation**: After every significant change, update the memory bank to reflect the current state and next steps.
-4. **Save Context Snapshots**: Use context snapshots to preserve operational state for onboarding, recovery, or historical analysis.
+### Practical Usage for Teams
+1. **Context Preservation**: Maintain development state across team members and AI collaborators
+2. **Onboarding Acceleration**: New team members can rapidly understand project state and history
+3. **Quality Assurance**: Comprehensive tracking ensures nothing falls through the cracks
+4. **Knowledge Transfer**: Explicit documentation of decisions and reasoning for long-term maintainability
 5. **Switch Contexts**: For multi-project workspaces, update the active sub-project and re-read all relevant files before proceeding.
 
 For more details, see `.copilot/memory_bank/` and the documentation in `docs/`.
@@ -100,7 +171,7 @@ AIRS provides comprehensive documentation covering philosophy, technical impleme
 - **[Technical Knowledge](docs/src/technical/)**: In-depth guides on development workflow, memory bank architecture, and AI-Rust integration
 - **[Project Overviews](docs/src/projects/)**: Detailed coverage of AIRS-MCP and AIRS-MemSpec implementations
 - **[Getting Started](docs/src/resources/getting_started.md)**: Comprehensive onboarding with multiple user paths
-- **[Contributing Guide](docs/src/resources/contributing.md)**: Complete framework for community participation
+- **[Contributing Guide](https://airsstack.github.io/contributing)**: Complete framework for community participation
 
 ### 🚀 **Quick Access**
 ```bash
@@ -114,7 +185,7 @@ cd docs && mdbook serve --open
 
 ### 📋 **Documentation Features**
 - **Multiple User Paths**: Tailored guidance for AI-enhanced teams, Rust+AI projects, and documentation teams
-- **Real-World Examples**: Authentic examples from actual AIRS development
+- **Real-World Examples**: Authentic examples from actual AirsStack development
 - **Professional Quality**: Enterprise-grade documentation with comprehensive quality validation
 - **Interactive Navigation**: Clear progression from concepts to implementation
 - **Community Ready**: Complete contribution guidelines and getting started resources
@@ -127,14 +198,14 @@ cd docs && mdbook serve --open
 - **Cargo**: Included with Rust installation
 - **Git**: For version control and development workflow
 
-**📖 For detailed setup instructions, see our [Getting Started Guide](docs/src/resources/getting_started.md)**
+**📖 For detailed setup instructions, see our [Getting Started Guide](https://airsstack.github.io/getting-started)**
 
 ### Installation
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/your-username/airs.git
-cd airs
+git clone https://github.com/airsstack/airsstack.git
+cd airsstack
 ```
 
 2. **Build the workspace**:
@@ -181,20 +252,20 @@ cd crates/airs-mcp/examples/simple-mcp-client
 cargo run  # Automatically spawns server and demonstrates all MCP operations
 ```
 
-**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](docs/src/)**
+**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](https://airsstack.github.io/)**
 
 ## Project Structure
 
 ### Workspace Organization
 
 ```
-airs/
+airsstack/
 ├── Cargo.toml                    # Root workspace configuration
-├── crates/                       # All workspace members
+├── crates/                       # Composable building blocks
 │   ├── airs-mcp/                # MCP implementation crate (✅ Production Ready)
 │   │   ├── examples/            # Working examples
 │   │   │   ├── simple-mcp-server/  # Claude Desktop integration verified
-│   │   │   └── simple-mcp-client/  # AIRS library usage demonstration
+│   │   │   └── simple-mcp-client/  # AirsStack library usage demonstration
 │   │   └── Cargo.toml           # Crate-specific configuration
 │   └── airs-memspec/            # Memory bank specification and tooling
 ├── .copilot/                    # AI-assisted development configuration
@@ -326,20 +397,44 @@ cargo test
 - Use property-based testing where appropriate
 - Benchmark performance-critical code
 
+## 🤝 Join the AirsStack Community
+
+🚀 **Get Started**
+
+• [Main Repository](https://github.com/airsstack/airsstack) - Start building with AirsStack  
+• [Documentation](https://airsstack.github.io/) - Guides, tutorials, and API docs  
+• [Community Discussions](https://github.com/orgs/airsstack/discussions) - Support and ideas  
+
+🎯 **Quick Links**
+
+• 📖 [Getting Started Guide](https://airsstack.github.io/getting-started)  
+• 💡 [Example Projects](https://github.com/airsstack/airsstack/tree/main/examples)  
+• 🐛 [Report Issues](https://github.com/airsstack/airsstack/issues)  
+• 💬 [Join Discussions](https://github.com/orgs/airsstack/discussions)
+
 ## Contributing
 
-This is currently a personal project, but contributions and suggestions are welcome!
+AirsStack is a community-driven project that welcomes contributions from developers, AI enthusiasts, and anyone interested in building better AI infrastructure.
 
 ### How to Contribute
-1. **Issues**: Report bugs or suggest features via GitHub Issues
-2. **Discussions**: Join conversations about architecture and design
-3. **Code**: Fork the repository and submit pull requests
+1. **🐛 Issues**: Report bugs or suggest features via [GitHub Issues](https://github.com/airsstack/airsstack/issues)
+2. **💬 Discussions**: Join conversations about architecture and design in [GitHub Discussions](https://github.com/orgs/airsstack/discussions)  
+3. **🔧 Code**: Fork the repository and submit pull requests with improvements
+4. **📖 Documentation**: Help improve guides, examples, and API documentation
+5. **🤝 Community**: Share your AirsStack projects and help others get started
 
 ### Contribution Guidelines
-- Follow the established coding standards
-- Include tests for new functionality
-- Update documentation as needed
-- Respect the AI-assisted development philosophy
+- Follow the established coding standards and workspace conventions
+- Include comprehensive tests for new functionality
+- Update documentation to reflect changes and new features  
+- Embrace the AI-assisted development philosophy and human-AI collaboration
+- Prioritize privacy, sovereignty, and composability in all contributions
+
+### Community Standards
+- **🔓 Open Source Promise**: Apache 2.0 & MIT licensed - forever free and open
+- **🛡️ Privacy First**: No telemetry, local processing, transparent data handling
+- **🤝 Inclusive Environment**: Welcoming to all skill levels and backgrounds
+- **🔧 Quality Focus**: Comprehensive testing, documentation, and code review
 
 ## License
 
@@ -355,10 +450,26 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ## Support and Resources
 
-- **Documentation**: Comprehensive rustdoc available via `cargo doc --open`
-- **Issues**: GitHub Issues for bug reports and feature requests
-- **Discussions**: GitHub Discussions for questions and ideas
-- **AI Development**: Custom Copilot configurations in `.copilot/`
+- **📖 Documentation**: [Complete documentation site](https://airsstack.github.io/) and rustdoc via `cargo doc --open`
+- **🐛 Issues**: [GitHub Issues](https://github.com/airsstack/airsstack/issues) for bug reports and feature requests  
+- **💬 Discussions**: [GitHub Discussions](https://github.com/orgs/airsstack/discussions) for questions and community support
+- **🤖 AI Development**: Custom Copilot configurations and AI-assisted workflows in `.copilot/`
+- **🔧 Examples**: Working examples and integration guides in `crates/*/examples/`
+
+---
+
+## 📄 Open Source Promise
+
+**✅ Forever Free** - Apache 2.0 & MIT licensed  
+**✅ No Vendor Lock-In** - Your code, your control  
+**✅ Privacy First** - No telemetry, local processing  
+**✅ Community Driven** - Transparent governance  
+
+🤖 **Built for Humans** • 🔒 **Privacy-First** • 🦀 **Rust-Powered** • 🔓 **Forever Open**
+
+**Your AI. Your Data. Your Control.**
+
+[Get Started](https://github.com/airsstack/airsstack) • [Documentation](https://airsstack.github.io/) • [Community](https://github.com/orgs/airsstack/discussions)
 
 ---
 
