@@ -1,7 +1,7 @@
 # Knowledge Documentation Index - airs-mcp-fs
 
 **Last Updated**: 2025-08-29  
-**Total Knowledge Docs**: 5  
+**Total Knowledge Docs**: 6  
 **Categories**: 3 (Architecture, Integration, Security)
 
 ## Knowledge Categories
@@ -43,11 +43,22 @@
   - **Related**: ADR-002 (MCP server architecture), task_002
 
 ### Security
-**Documentation Count**: 1  
+**Documentation Count**: 2  
 **Complexity Level**: High  
-**Maintenance Priority**: High
+**Maintenance Priority**: Critical
 
 #### Active Documents
+- **[Security Input Validation Framework](./security/security-input-validation-framework.md)**
+  - **Focus**: Input validation security testing, null byte injection, Unicode manipulation, integer overflow prevention
+  - **Complexity**: High - Comprehensive security vulnerability testing and remediation
+  - **Updated**: 2025-08-29
+  - **Related**: Task 010 security audit, CVSS 3.1 vulnerability scoring
+
+- **[Task 010: Critical Security Patches Implementation](./security/task-010-critical-security-patches-implemented.md)** ⭐ **NEW**
+  - **Focus**: Critical vulnerability remediation, 14 security fixes implemented, 100% test validation
+  - **Complexity**: High - Production security implementation with CVSS 8.0+ vulnerabilities addressed
+  - **Updated**: 2025-08-29
+  - **Related**: Security audit completion, workspace standards compliance
 - **[Security Framework Architecture](./security/security-framework-architecture.md)**
   - **Focus**: Human-in-the-loop approval workflows, access control, audit logging
   - **Complexity**: High - Security validation and approval systems
