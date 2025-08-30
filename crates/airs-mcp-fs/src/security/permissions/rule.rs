@@ -221,7 +221,7 @@ impl PathPermissionRule {
 
         // Use globset for proper ** pattern support
         Glob::new(&self.pattern)
-            .and_then(|glob| Ok(glob.compile_matcher()))
+            .map(|glob| glob.compile_matcher())
             .map(|matcher| matcher.is_match(path))
             .unwrap_or(false)
     }

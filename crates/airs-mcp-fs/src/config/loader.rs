@@ -293,9 +293,8 @@ name = "test-airs-mcp-fs"
 version = "0.1.0"
 
 [binary]
-max_file_size = 52428800  # 50MB
-enable_image_processing = true
-enable_pdf_processing = false
+max_file_size = 52428800  # 50MB for text files only
+binary_processing_disabled = true  # Security hardening - binary processing disabled
 
 [security.filesystem]
 allowed_paths = ["./test/**/*"]
@@ -367,7 +366,7 @@ description = "Test policy for txt files"
         let settings = ConfigurationLoader::load_from_file(&config_path).unwrap();
         assert_eq!(settings.server.name, "test-airs-mcp-fs");
         assert_eq!(settings.binary.max_file_size, 52428800);
-        assert!(!settings.binary.enable_pdf_processing);
+        assert!(settings.binary.binary_processing_disabled); // Security hardening
     }
 
     #[test]

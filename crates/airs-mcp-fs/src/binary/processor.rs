@@ -11,9 +11,12 @@ use crate::binary::format::{FileFormat, FormatDetector};
 use crate::config::settings::BinaryConfig;
 
 /// Main binary file processing coordinator
+/// Security Hardened: Binary processing disabled for security reasons
 #[derive(Debug)]
 pub struct BinaryProcessor {
     format_detector: FormatDetector,
+    /// Configuration kept for API compatibility but binary processing is disabled
+    #[allow(dead_code)]
     config: BinaryConfig,
 }
 
@@ -51,104 +54,80 @@ impl BinaryProcessor {
     }
 
     /// Process binary file data based on format and configuration
-    pub async fn process_file_data(&self, data: &[u8], _path: &Path) -> Result<ProcessingResult> {
-        // Check file size limits
-        if data.len() > self.config.max_file_size as usize {
-            return Err(anyhow::anyhow!(
-                "File size ({} bytes) exceeds limit ({} bytes)",
-                data.len(),
-                self.config.max_file_size
-            ));
-        }
-
-        // Detect file format
+    /// SECURITY HARDENING: All binary processing is disabled for security
+    pub async fn process_file_data(&self, data: &[u8], path: &Path) -> Result<ProcessingResult> {
+        // Detect file format first
         let format = self.format_detector.detect_from_bytes(data);
 
-        // Initialize result
-        let mut result = ProcessingResult {
-            format,
-            size: data.len(),
-            metadata: ProcessingMetadata::default(),
-        };
-
-        // Process based on format and configuration
+        // SECURITY: Reject all binary file processing
         match format {
             FileFormat::Jpeg
             | FileFormat::Png
             | FileFormat::Gif
             | FileFormat::WebP
             | FileFormat::Tiff
-            | FileFormat::Bmp => {
-                if self.config.enable_image_processing {
-                    self.process_image_data(data, &mut result).await?;
-                }
-            }
-            FileFormat::Pdf => {
-                if self.config.enable_pdf_processing {
-                    self.process_pdf_data(data, &mut result).await?;
-                }
-            }
+            | FileFormat::Bmp => Err(anyhow::anyhow!(
+                "Binary file processing disabled for security: {} (detected format: {:?})",
+                path.display(),
+                format
+            )),
+            FileFormat::Pdf => Err(anyhow::anyhow!(
+                "PDF processing disabled for security: {} (detected format: {:?})",
+                path.display(),
+                format
+            )),
             FileFormat::Text => {
-                // Text files are processed directly without binary processing
-                if let Ok(text) = std::str::from_utf8(data) {
-                    result.metadata.text_content = Some(text.to_string());
-                }
+                // Text files are allowed - basic processing only
+                let result = ProcessingResult {
+                    format,
+                    size: data.len(),
+                    metadata: ProcessingMetadata {
+                        text_content: std::str::from_utf8(data).ok().map(|s| s.to_string()),
+                        ..Default::default()
+                    },
+                };
+                Ok(result)
             }
             FileFormat::Unknown => {
-                // Unknown formats are stored as-is
+                // Unknown formats: check if they might be binary
+                if data
+                    .iter()
+                    .any(|&b| b > 127 || (b < 32 && b != b'\n' && b != b'\r' && b != b'\t'))
+                {
+                    Err(anyhow::anyhow!(
+                        "Unknown binary file processing disabled for security: {}",
+                        path.display()
+                    ))
+                } else {
+                    // Likely text content - allow basic processing
+                    let result = ProcessingResult {
+                        format,
+                        size: data.len(),
+                        metadata: ProcessingMetadata {
+                            text_content: std::str::from_utf8(data).ok().map(|s| s.to_string()),
+                            ..Default::default()
+                        },
+                    };
+                    Ok(result)
+                }
             }
         }
-
-        Ok(result)
-    }
-
-    /// Process image data (placeholder implementation)
-    async fn process_image_data(&self, _data: &[u8], result: &mut ProcessingResult) -> Result<()> {
-        // TODO: Implement actual image processing in Phase 2
-        // This would include:
-        // - Loading image with `image` crate
-        // - Extracting dimensions
-        // - Generating thumbnails
-        // - Reading EXIF metadata
-
-        // Placeholder: just mark that image processing was attempted
-        result
-            .metadata
-            .properties
-            .insert("processing_attempted".to_string(), "image".to_string());
-
-        Ok(())
-    }
-
-    /// Process PDF data (placeholder implementation)
-    async fn process_pdf_data(&self, _data: &[u8], result: &mut ProcessingResult) -> Result<()> {
-        // TODO: Implement actual PDF processing in Phase 2
-        // This would include:
-        // - Text extraction from PDF
-        // - Image extraction from PDF
-        // - Metadata reading
-
-        // Placeholder: just mark that PDF processing was attempted
-        result
-            .metadata
-            .properties
-            .insert("processing_attempted".to_string(), "pdf".to_string());
-
-        Ok(())
     }
 
     /// Check if a file format can be processed with current configuration
+    /// SECURITY HARDENING: Only text files are allowed for processing
     pub fn can_process(&self, format: FileFormat) -> bool {
         match format {
+            // All binary formats are disabled for security
             FileFormat::Jpeg
             | FileFormat::Png
             | FileFormat::Gif
             | FileFormat::WebP
             | FileFormat::Tiff
-            | FileFormat::Bmp => self.config.enable_image_processing,
-            FileFormat::Pdf => self.config.enable_pdf_processing,
-            FileFormat::Text => true, // Text is always processable
-            FileFormat::Unknown => false,
+            | FileFormat::Bmp => false,
+            FileFormat::Pdf => false, // PDF processing disabled for security
+            FileFormat::Text => true, // Only text files are allowed
+            FileFormat::Unknown => false, // Unknown formats rejected for security
         }
     }
 }
@@ -162,9 +141,8 @@ mod tests {
 
     fn create_test_config() -> BinaryConfig {
         BinaryConfig {
-            max_file_size: 1024 * 1024, // 1MB
-            enable_image_processing: true,
-            enable_pdf_processing: true,
+            max_file_size: 1024 * 1024,       // 1MB
+            binary_processing_disabled: true, // Security hardening - always disabled
         }
     }
 
@@ -172,7 +150,7 @@ mod tests {
     fn test_binary_processor_creation() {
         let config = create_test_config();
         let processor = BinaryProcessor::new(config);
-        assert!(processor.config.enable_image_processing);
+        assert!(processor.config.binary_processing_disabled);
     }
 
     #[tokio::test]
@@ -196,39 +174,50 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_file_size_limit() {
+    async fn test_binary_file_rejection_over_size_limit() {
         let mut config = create_test_config();
         config.max_file_size = 10; // Very small limit
         let processor = BinaryProcessor::new(config);
 
-        let large_data = vec![0u8; 100]; // Larger than limit
-        let path = PathBuf::from("large.bin");
+        // Create binary data (simulating JPEG content)
+        let large_data = vec![0xFF, 0xD8, 0xFF, 0xE0]; // JPEG header
+        let path = PathBuf::from("large.jpg");
 
         let result = processor.process_file_data(&large_data, &path).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("exceeds limit"));
+        // Should fail due to binary restriction, not size limit
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Binary file processing disabled"));
     }
 
     #[test]
-    fn test_can_process() {
+    fn test_can_process_security_policy() {
         let config = create_test_config();
         let processor = BinaryProcessor::new(config);
 
-        assert!(processor.can_process(FileFormat::Jpeg));
-        assert!(processor.can_process(FileFormat::Pdf));
-        assert!(processor.can_process(FileFormat::Text));
+        // Security hardening: All binary formats should be rejected
+        assert!(!processor.can_process(FileFormat::Jpeg));
+        assert!(!processor.can_process(FileFormat::Pdf));
         assert!(!processor.can_process(FileFormat::Unknown));
+
+        // Only text files are allowed
+        assert!(processor.can_process(FileFormat::Text));
     }
 
     #[test]
-    fn test_can_process_with_disabled_features() {
-        let mut config = create_test_config();
-        config.enable_image_processing = false;
-        config.enable_pdf_processing = false;
+    fn test_can_process_security_hardened() {
+        let config = create_test_config();
         let processor = BinaryProcessor::new(config);
 
+        // All binary formats should be rejected for security
         assert!(!processor.can_process(FileFormat::Jpeg));
+        assert!(!processor.can_process(FileFormat::Png));
         assert!(!processor.can_process(FileFormat::Pdf));
-        assert!(processor.can_process(FileFormat::Text)); // Always processable
+        assert!(!processor.can_process(FileFormat::Unknown));
+
+        // Only text files are allowed
+        assert!(processor.can_process(FileFormat::Text));
     }
 }

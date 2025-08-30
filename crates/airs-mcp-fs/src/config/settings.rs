@@ -83,15 +83,16 @@ pub enum RiskLevel {
     Critical,
 }
 
-/// Binary processing configuration
+/// Binary processing configuration (Security Hardened)
+/// Note: Binary file processing is disabled for security reasons
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinaryConfig {
-    /// Maximum file size in bytes
+    /// Maximum file size in bytes for text files
     pub max_file_size: u64,
-    /// Enable image processing
-    pub enable_image_processing: bool,
-    /// Enable PDF processing
-    pub enable_pdf_processing: bool,
+    /// Binary file processing is permanently disabled for security
+    /// This field is kept for configuration compatibility but ignored
+    #[serde(default = "default_false")]
+    pub binary_processing_disabled: bool,
 }
 
 /// MCP server configuration
@@ -295,9 +296,8 @@ impl SettingsBuilder {
                 policies,
             },
             binary: BinaryConfig {
-                max_file_size: 100 * 1024 * 1024, // 100MB
-                enable_image_processing: true,
-                enable_pdf_processing: true,
+                max_file_size: 100 * 1024 * 1024, // 100MB for text files
+                binary_processing_disabled: true, // Security hardening - always disabled
             },
             server: ServerConfig {
                 name: "airs-mcp-fs".to_string(),
@@ -402,6 +402,11 @@ impl Settings {
     }
 }
 
+/// Helper function for serde default values
+fn default_false() -> bool {
+    false
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -418,8 +423,7 @@ mod tests {
         assert!(settings.security.operations.delete_requires_explicit_allow);
 
         assert_eq!(settings.binary.max_file_size, 100 * 1024 * 1024);
-        assert!(settings.binary.enable_image_processing);
-        assert!(settings.binary.enable_pdf_processing);
+        assert!(settings.binary.binary_processing_disabled); // Security hardening
 
         // Test that security policies are properly configured
         assert!(settings.security.policies.contains_key("source_code"));

@@ -103,8 +103,7 @@ impl FileHandler {
             // Validate input range to prevent overflow
             if size_mb > MAX_REASONABLE_SIZE_MB {
                 return Err(McpError::invalid_request(format!(
-                    "File size limit too large: {} MB (max: {} MB)",
-                    size_mb, MAX_REASONABLE_SIZE_MB
+                    "File size limit too large: {size_mb} MB (max: {MAX_REASONABLE_SIZE_MB} MB)"
                 )));
             }
 
@@ -377,8 +376,7 @@ impl FileHandler {
                 "utf8" | "text" | "base64" | "binary" => {}
                 _ => {
                     return Err(McpError::invalid_request(format!(
-                        "Unsupported encoding: {}",
-                        encoding
+                        "Unsupported encoding: {encoding}"
                     )))
                 }
             }
@@ -435,7 +433,7 @@ mod tests {
 
         // Test reading the file
         let temp_path = temp_file.path().to_string_lossy();
-        println!("Testing with path: {}", temp_path);
+        println!("Testing with path: {temp_path}");
         let args = serde_json::json!({"path": temp_path});
         let result = handler.handle_read_file(args).await.unwrap();
 

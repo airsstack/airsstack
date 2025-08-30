@@ -592,8 +592,7 @@ mod tests {
     fn test_validate_binary_config_zero_size() {
         let config = crate::config::settings::BinaryConfig {
             max_file_size: 0,
-            enable_image_processing: true,
-            enable_pdf_processing: true,
+            binary_processing_disabled: true,
         };
 
         let result = ConfigurationValidator::validate_binary_config(&config);

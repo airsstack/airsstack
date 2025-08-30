@@ -9,6 +9,7 @@ use anyhow::Result;
 use globset;
 
 // Layer 3: Internal module imports
+use crate::binary::format::{FileFormat, FormatDetector};
 use crate::config::settings::{RiskLevel, SecurityConfig};
 use crate::filesystem::{
     validation::{PathValidator, SecurityError},
@@ -29,6 +30,7 @@ pub struct SecurityManager {
     policy_engine: PolicyEngine,
     permission_validator: PathPermissionValidator,
     audit_logger: AuditLogger,
+    format_detector: FormatDetector,
     config: Arc<SecurityConfig>,
 }
 
@@ -82,6 +84,7 @@ impl SecurityManager {
             policy_engine,
             permission_validator,
             audit_logger: AuditLogger::new(),
+            format_detector: FormatDetector::new(),
             config: Arc::new(config),
         })
     }
@@ -100,6 +103,18 @@ impl SecurityManager {
         // Log operation request
         self.audit_logger
             .log_operation_requested(correlation_id, operation);
+
+        // 0. Validate binary file restrictions (security hardening)
+        if let Err(err) = self.validate_binary_file_restriction(&operation.path, correlation_id).await {
+            let execution_time_ms = start_time.elapsed().as_millis() as u64;
+            self.audit_logger.log_operation_failed(
+                correlation_id,
+                operation,
+                &err.to_string(),
+                execution_time_ms,
+            );
+            return Err(err);
+        }
 
         // 1. Validate basic path security first
         match self.path_validator.validate_path(&operation.path) {
@@ -238,6 +253,97 @@ impl SecurityManager {
                 execution_time_ms,
             );
             Err(anyhow::anyhow!("{}", reason))
+        }
+    }
+
+    /// Validate binary file restrictions for security hardening
+    /// This method rejects all binary file operations to prevent security risks
+    async fn validate_binary_file_restriction(
+        &self,
+        path: &std::path::Path,
+        correlation_id: CorrelationId,
+    ) -> Result<()> {
+        // First, try to detect format from file extension (fast check)
+        let format_from_extension = self.format_detector.detect_from_extension(path);
+        
+        // Check if it's a known binary format based on extension
+        if self.is_binary_format(&format_from_extension) {
+            let error_msg = format!(
+                "Binary file access denied for security reasons: {} (detected format: {:?})",
+                path.display(),
+                format_from_extension
+            );
+            
+            // Log security violation for binary file access attempt
+            self.audit_logger.log_security_violation(
+                correlation_id,
+                "binary_file_denied",
+                path,
+                &error_msg,
+                RiskLevel::High,
+            );
+            
+            return Err(anyhow::anyhow!("{}", error_msg));
+        }
+        
+        // For file operations on existing files, read a small sample to verify format
+        // Only check if file exists and we can read it safely
+        if path.exists() && path.is_file() {
+            match std::fs::read(path) {
+                Ok(bytes) if !bytes.is_empty() => {
+                    // Only check first 512 bytes for format detection (efficient)
+                    let sample_size = std::cmp::min(bytes.len(), 512);
+                    let format_from_content = self.format_detector.detect_from_bytes(&bytes[..sample_size]);
+                    
+                    if self.is_binary_format(&format_from_content) {
+                        let error_msg = format!(
+                            "Binary file access denied for security reasons: {} (content analysis: {:?})",
+                            path.display(),
+                            format_from_content
+                        );
+                        
+                        // Log security violation for binary content detection
+                        self.audit_logger.log_security_violation(
+                            correlation_id,
+                            "binary_content_denied",
+                            path,
+                            &error_msg,
+                            RiskLevel::High,
+                        );
+                        
+                        return Err(anyhow::anyhow!("{}", error_msg));
+                    }
+                }
+                Err(_) => {
+                    // If we can't read the file, let the regular file system handle the error
+                    // This avoids false positives for permission issues
+                }
+                Ok(_) => {
+                    // Empty file - allow operation (common for new text files)
+                }
+            }
+        }
+        
+        // File is safe (text or unknown but not detectably binary)
+        Ok(())
+    }
+    
+    /// Helper method to determine if a file format is considered binary
+    fn is_binary_format(&self, format: &FileFormat) -> bool {
+        match format {
+            // All image formats are binary
+            FileFormat::Jpeg | FileFormat::Png | FileFormat::Gif | 
+            FileFormat::WebP | FileFormat::Tiff | FileFormat::Bmp => true,
+            
+            // Document formats are binary
+            FileFormat::Pdf => true,
+            
+            // Text formats are allowed
+            FileFormat::Text => false,
+            
+            // Unknown formats are allowed (benefit of the doubt for text files)
+            // This prevents false positives while maintaining security
+            FileFormat::Unknown => false,
         }
     }
 
@@ -1021,5 +1127,120 @@ mod tests {
                 .delete_requires_explicit_allow
         ); // Permissive
         assert!(restrictive_manager.config.operations.create_dir_allowed);
+    }
+
+    /// Test binary file rejection for security hardening (Task 011)
+    #[tokio::test]
+    async fn test_binary_file_rejection_security_hardening() {
+        let config = create_test_config();
+        let manager = SecurityManager::new(config).expect("Should create security manager");
+
+        // Test various binary file types should be rejected
+        let binary_files = vec![
+            ("/tmp/test.jpg", "JPEG image"),
+            ("/tmp/test.png", "PNG image"),
+            ("/tmp/test.gif", "GIF image"),
+            ("/tmp/test.pdf", "PDF document"),
+            ("/tmp/test.bmp", "BMP image"),
+            ("/tmp/test.tiff", "TIFF image"),
+            ("/tmp/test.webp", "WebP image"),
+        ];
+
+        for (path, description) in binary_files {
+            let operation = FileOperation::new(
+                OperationType::Read,
+                PathBuf::from(path),
+            );
+
+            let result = manager.validate_operation_permission(&operation).await;
+            assert!(
+                result.is_err(),
+                "Binary file {} should be rejected for security", 
+                description
+            );
+            
+            let error_msg = result.unwrap_err().to_string();
+            assert!(
+                error_msg.contains("Binary file access denied") || 
+                error_msg.contains("binary") ||
+                error_msg.contains("security"),
+                "Error message should indicate binary file security restriction: {}", 
+                error_msg
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_text_files_allowed_after_binary_hardening() {
+        let config = create_test_config();
+        let manager = SecurityManager::new(config).expect("Should create security manager");
+
+        // Test that text files are still allowed
+        let text_files = vec![
+            "/tmp/test.txt",
+            "/tmp/test.md", 
+            "/tmp/test.rs",
+            "/tmp/test.py",
+            "/tmp/test.js",
+            "/tmp/test.json",
+            "/tmp/test.toml",
+            "/tmp/test.yml",
+        ];
+
+        for path in text_files {
+            let operation = FileOperation::new(
+                OperationType::Read,
+                PathBuf::from(path),
+            );
+
+            let result = manager.validate_operation_permission(&operation).await;
+            // Should not fail due to binary restriction (may fail for other policy reasons)
+            if let Err(err) = &result {
+                let error_msg = err.to_string();
+                assert!(
+                    !error_msg.contains("Binary file access denied") && 
+                    !error_msg.contains("binary") && 
+                    !error_msg.contains("Binary"),
+                    "Text file {} should not trigger binary file restriction: {}", 
+                    path, error_msg
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_binary_file_content_detection() {
+        use std::fs;
+        use tempfile::TempDir;
+
+        let config = create_test_config();
+        let manager = SecurityManager::new(config).expect("Should create security manager");
+        
+        // Create temporary directory for test files
+        let temp_dir = TempDir::new().expect("Should create temp dir");
+        
+        // Create a file with binary content (fake JPEG header)
+        let binary_file = temp_dir.path().join("fake.txt"); // .txt extension but binary content
+        let jpeg_header = vec![0xFF, 0xD8, 0xFF, 0xE0]; // JPEG magic bytes
+        fs::write(&binary_file, &jpeg_header).expect("Should write binary file");
+        
+        let operation = FileOperation::new(
+            OperationType::Read,
+            binary_file,
+        );
+
+        let result = manager.validate_operation_permission(&operation).await;
+        assert!(
+            result.is_err(),
+            "File with binary content should be rejected regardless of extension"
+        );
+        
+        let error_msg = result.unwrap_err().to_string();
+        assert!(
+            error_msg.contains("Binary file access denied") || 
+            error_msg.contains("content analysis"),
+            "Error should indicate content-based binary detection: {}", 
+            error_msg
+        );
     }
 }

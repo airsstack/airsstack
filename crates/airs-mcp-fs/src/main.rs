@@ -62,15 +62,15 @@ async fn main() -> Result<()> {
         // For MCP server: log to files to keep STDIO clean
         let log_dir = std::env::var("AIRS_MCP_FS_LOG_DIR").unwrap_or_else(|_| {
             let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-            format!("{}/.local/share/airs-mcp-fs/logs", home)
+            format!("{home}/.local/share/airs-mcp-fs/logs")
         });
 
         // Create log directory if it doesn't exist
         if let Err(e) = fs::create_dir_all(&log_dir) {
-            eprintln!("Warning: Failed to create log directory {}: {}", log_dir, e);
+            eprintln!("Warning: Failed to create log directory {log_dir}: {e}");
         }
 
-        let log_file = format!("{}/airs-mcp-fs.log", log_dir);
+        let log_file = format!("{log_dir}/airs-mcp-fs.log");
         let file_appender = match std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -79,8 +79,7 @@ async fn main() -> Result<()> {
             Ok(file) => file,
             Err(e) => {
                 eprintln!(
-                    "Warning: Failed to open log file {}: {}, logging disabled",
-                    log_file, e
+                    "Warning: Failed to open log file {log_file}: {e}, logging disabled"
                 );
                 // If we can't create log file, disable logging completely for MCP mode
                 tracing_subscriber::fmt()
@@ -138,7 +137,7 @@ async fn generate_config(output_dir: PathBuf, env: &str, force: bool) -> Result<
         _ => include_str!("../examples/config/config.toml"),
     };
 
-    let config_file = output_dir.join(format!("{}.toml", env));
+    let config_file = output_dir.join(format!("{env}.toml"));
 
     if config_file.exists() && !force {
         error!(
