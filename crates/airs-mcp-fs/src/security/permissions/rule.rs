@@ -9,7 +9,7 @@ use std::path::Path;
 
 // Layer 2: Third-party crate imports
 use anyhow::{Context, Result};
-use glob::Pattern;
+use globset::Glob;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
@@ -156,7 +156,7 @@ impl PathPermissionRule {
         description: String,
     ) -> Result<Self> {
         // Validate the glob pattern
-        Pattern::new(&pattern).with_context(|| format!("Invalid glob pattern: {pattern}"))?;
+        Glob::new(&pattern).with_context(|| format!("Invalid glob pattern: {pattern}"))?;
 
         let mut allowed_operations = HashSet::new();
 
@@ -219,8 +219,10 @@ impl PathPermissionRule {
             return false;
         }
 
-        Pattern::new(&self.pattern)
-            .map(|pattern| pattern.matches_path(path))
+        // Use globset for proper ** pattern support
+        Glob::new(&self.pattern)
+            .and_then(|glob| Ok(glob.compile_matcher()))
+            .map(|matcher| matcher.is_match(path))
             .unwrap_or(false)
     }
 
@@ -365,7 +367,7 @@ impl PathPermissionRule {
     /// # Ok::<(), anyhow::Error>(())
     /// ```
     pub fn validate_pattern(&self) -> Result<()> {
-        Pattern::new(&self.pattern).with_context(|| {
+        Glob::new(&self.pattern).with_context(|| {
             format!(
                 "Invalid glob pattern in rule '{}': {}",
                 self.description, self.pattern

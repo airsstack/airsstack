@@ -831,6 +831,7 @@ mod tests {
             error_msg.contains("Path validation failed")
                 || error_msg.contains("denied")
                 || error_msg.contains("not allowed")
+                || error_msg.contains("Security policy violation")
         );
     }
 

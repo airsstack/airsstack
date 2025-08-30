@@ -239,11 +239,11 @@ impl SettingsBuilder {
 
                     (
                         vec![
-                            "/**/*".to_string(),  // Allow all absolute paths
-                            "**/*".to_string(),   // Allow all relative paths
+                            "/**/*".to_string(), // Allow all absolute paths
+                            "**/*".to_string(),  // Allow all relative paths
                         ],
-                        false,                    // Don't require policies for writes
-                        false,                    // Don't require explicit delete permissions
+                        false, // Don't require policies for writes
+                        false, // Don't require explicit delete permissions
                     )
                 }
                 SecurityMode::Development => {
@@ -337,21 +337,21 @@ impl Settings {
 
         // Log configuration source information in non-test mode
         if !cfg!(test) {
-            eprintln!(
+            tracing::info!(
                 "📋 Configuration loaded from {} environment",
                 source_info.environment
             );
             if !source_info.files.is_empty() {
-                eprintln!("   Configuration files: {:?}", source_info.files);
+                tracing::info!("   Configuration files: {:?}", source_info.files);
             }
             if !source_info.env_vars.is_empty() {
-                eprintln!(
+                tracing::info!(
                     "   Environment variables: {} overrides",
                     source_info.env_vars.len()
                 );
             }
             if source_info.uses_defaults {
-                eprintln!("   Using built-in defaults as base configuration");
+                tracing::info!("   Using built-in defaults as base configuration");
             }
         }
 
@@ -370,17 +370,17 @@ impl Settings {
 
         // Log warnings if any
         if !validation_result.warnings.is_empty() {
-            eprintln!("Configuration warnings:");
+            tracing::warn!("Configuration warnings:");
             for warning in &validation_result.warnings {
-                eprintln!("  ⚠️  {warning}");
+                tracing::warn!("  ⚠️  {warning}");
             }
         }
 
         // If there are errors, fail the configuration load
         if !validation_result.is_valid {
-            eprintln!("Configuration errors:");
+            tracing::error!("Configuration errors:");
             for error in &validation_result.errors {
-                eprintln!("  ❌ {error}");
+                tracing::error!("  ❌ {error}");
             }
             return Err(anyhow::anyhow!(
                 "Configuration validation failed with {} error(s)",
@@ -390,7 +390,7 @@ impl Settings {
 
         // In non-test mode, also log a success message
         if !cfg!(test) && validation_result.warnings.is_empty() {
-            eprintln!("✅ Configuration validation passed");
+            tracing::info!("✅ Configuration validation passed");
         }
 
         Ok(())

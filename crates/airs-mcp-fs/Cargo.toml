@@ -37,10 +37,12 @@ path-clean.workspace = true
 glob.workspace = true
 walkdir.workspace = true
 regex.workspace = true
+clap.workspace = true
 
 # Security dependencies (workspace managed)
 urlencoding.workspace = true
 unicode-normalization.workspace = true
+dirs.workspace = true
 
 [dev-dependencies]
 # Testing framework (workspace managed)

@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 
 // Layer 2: Third-party crate imports
 use anyhow::Result;
+use dirs;
+use globset::{Glob, GlobSet, GlobSetBuilder};
 use path_clean::PathClean;
 use thiserror::Error;
 use unicode_normalization::UnicodeNormalization;
@@ -24,19 +26,55 @@ pub enum SecurityError {
     PolicyViolation,
 }
 
+/// Expand ~ patterns to actual home directory paths
+fn expand_home_pattern(pattern: &str) -> String {
+    if pattern.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            let home_str = home.to_string_lossy();
+            pattern.replace("~", &home_str)
+        } else {
+            pattern.to_string()
+        }
+    } else {
+        pattern.to_string()
+    }
+}
+
 /// Path validation and security checks
 #[derive(Debug)]
 pub struct PathValidator {
-    allowed_patterns: Vec<String>,
-    denied_patterns: Vec<String>,
+    allowed_patterns: GlobSet,
+    denied_patterns: GlobSet,
+    _raw_allowed: Vec<String>, // Keep for debugging
+    _raw_denied: Vec<String>,  // Keep for debugging
 }
 
 impl PathValidator {
     /// Create a new path validator with patterns
     pub fn new(allowed_patterns: Vec<String>, denied_patterns: Vec<String>) -> Self {
+        let mut allowed_builder = GlobSetBuilder::new();
+        let mut denied_builder = GlobSetBuilder::new();
+
+        // Expand home directory patterns and add them
+        for pattern in &allowed_patterns {
+            let expanded = expand_home_pattern(pattern);
+            if let Ok(glob) = Glob::new(&expanded) {
+                allowed_builder.add(glob);
+            }
+        }
+
+        for pattern in &denied_patterns {
+            let expanded = expand_home_pattern(pattern);
+            if let Ok(glob) = Glob::new(&expanded) {
+                denied_builder.add(glob);
+            }
+        }
+
         Self {
-            allowed_patterns,
-            denied_patterns,
+            allowed_patterns: allowed_builder.build().unwrap_or_else(|_| GlobSet::empty()),
+            denied_patterns: denied_builder.build().unwrap_or_else(|_| GlobSet::empty()),
+            _raw_allowed: allowed_patterns,
+            _raw_denied: denied_patterns,
         }
     }
 
@@ -116,26 +154,12 @@ impl PathValidator {
         }
 
         // Check denied patterns first
-        for pattern in &self.denied_patterns {
-            if let Ok(glob_pattern) = glob::Pattern::new(pattern) {
-                if glob_pattern.matches_path(&cleaned_path) {
-                    return Err(SecurityError::PolicyViolation);
-                }
-            }
+        if self.denied_patterns.is_match(&cleaned_path) {
+            return Err(SecurityError::PolicyViolation);
         }
 
         // Check allowed patterns
-        let mut allowed = false;
-        for pattern in &self.allowed_patterns {
-            if let Ok(glob_pattern) = glob::Pattern::new(pattern) {
-                if glob_pattern.matches_path(&cleaned_path) {
-                    allowed = true;
-                    break;
-                }
-            }
-        }
-
-        if !allowed {
+        if !self.allowed_patterns.is_match(&cleaned_path) {
             return Err(SecurityError::AccessDenied);
         }
 

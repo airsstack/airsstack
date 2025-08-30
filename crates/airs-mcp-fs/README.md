@@ -36,6 +36,40 @@ cargo build --release --bin airs-mcp-fs
 cargo install --path crates/airs-mcp-fs
 ```
 
+### Configuration Setup
+
+**Step 1: Generate Configuration Files**
+```bash
+# Generate development configuration
+airs-mcp-fs generate-config
+
+# Generate for specific environment
+airs-mcp-fs generate-config --env production --output ~/.config/airs-mcp-fs
+
+# Generate with custom output directory
+airs-mcp-fs generate-config --output ./config --env staging
+```
+
+**Step 2: Customize Your Configuration**
+Edit the generated configuration file to match your needs:
+```toml
+[security.filesystem]
+allowed_paths = [
+    "~/projects/**/*",          # Your development projects
+    "~/Documents/**/*.md",      # Documentation files
+]
+
+[security.operations]
+read_allowed = true
+write_requires_policy = false   # Set to true for production
+delete_requires_explicit_allow = true
+```
+
+**Step 3: Test Configuration**
+```bash
+cargo run --example configuration_demo
+```
+
 ### Claude Desktop Integration
 
 Add to your Claude Desktop MCP configuration:
@@ -45,7 +79,9 @@ Add to your Claude Desktop MCP configuration:
   "mcpServers": {
     "airs-mcp-fs": {
       "command": "airs-mcp-fs",
-      "args": ["--config", "./.airs-mcp-fs.toml"]
+      "env": {
+        "AIRS_MCP_FS_ENV": "development"
+      }
     }
   }
 }
