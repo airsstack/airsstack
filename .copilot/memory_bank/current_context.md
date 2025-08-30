@@ -8,11 +8,11 @@
 
 # Current Context
 
-**active_sub_project:** airs-mcp-fs  
-**switched_on:** 2025-08-26T00:00:00Z
-**updated_on:** 2025-08-30T23:00:00Z
-**by:** task_011_binary_file_support_complete_security_enhanced
-**status:** security_hardened_production_deployment_ready
+**active_sub_project:** airs-mcp  
+**switched_on:** 2025-08-30T23:30:00Z
+**updated_on:** 2025-08-30T23:30:00Z
+**by:** context_switch_from_airs_mcp_fs_to_airs_mcp
+**status:** switching_to_airs_mcp_for_development_focus
 
 # 🔒 MEMORY BANK UPDATED: BINARY FILE SECURITY HARDENING COMPLETE - 2025-08-30
 
