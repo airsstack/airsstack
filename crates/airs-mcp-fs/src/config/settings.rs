@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
 // (None needed yet)
+use crate::config::loader::ConfigurationLoader;
 
 /// Main configuration structure for AIRS MCP-FS
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -327,8 +328,6 @@ impl Settings {
 
     /// Load settings from configuration file or use defaults with validation
     pub fn load() -> anyhow::Result<Self> {
-        use crate::config::loader::ConfigurationLoader;
-
         // Use the new configuration loader for real configuration loading
         let loader = ConfigurationLoader::new();
         let (settings, source_info) = loader
