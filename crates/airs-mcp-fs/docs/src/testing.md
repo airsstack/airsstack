@@ -25,34 +25,25 @@ mod tests {
     }
     
     #[tokio::test]
-    async fn test_binary_image_processing() {
+    async fn test_binary_file_rejection() {
         let temp_dir = TempDir::new().unwrap();
         
-        // Create a test image
-        let img = image::RgbImage::new(100, 100);
+        // Create a test binary file (simulated image)
+        let binary_data = vec![0x89, 0x50, 0x4E, 0x47]; // PNG magic number
         let test_image = temp_dir.path().join("test.png");
-        img.save(&test_image).unwrap();
+        std::fs::write(&test_image, binary_data).unwrap();
         
         let fs = AirsMcpFs::new(test_config()).await.unwrap();
-        let options = BinaryProcessingOptions {
-            image_options: ImageProcessingOptions {
-                generate_thumbnail: true,
-                max_dimension: Some(50),
-                extract_metadata: true,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
         
-        let result = fs.read_binary_advanced(
+        // Binary file operations should be rejected for security
+        let result = fs.read_file(
             test_image.to_string_lossy().to_string(),
-            Some(options)
+            None,
+            None
         ).await;
         
-        assert!(result.is_ok());
-        let content = result.unwrap();
-        assert!(content.thumbnail.is_some());
-        assert!(content.metadata.is_some());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("binary file"));
     }
 }
 ```

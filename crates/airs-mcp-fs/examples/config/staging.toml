@@ -31,9 +31,11 @@ denied_paths = [
 write_requires_policy = true
 delete_requires_explicit_allow = false  # Allow deletions for test cleanup
 
-[binary]  
-# Staging file size limits
-max_file_size = 157286400  # 150MB for staging tests
+[security]
+# Binary processing disabled for security across all environments  
+binary_processing_disabled = true
+text_only_mode = true
+max_file_size = 157286400  # 150MB for large text files in staging tests
 
 # Staging-specific policies
 [security.policies.staging_data]

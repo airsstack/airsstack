@@ -3,17 +3,22 @@
 ## **Security Framework**
 
 ### **Defense in Depth**
-1. **Input Validation**: Path sanitization and canonicalization
-2. **Access Control**: Configurable allowlists and denylists
-3. **Human Approval**: Interactive approval for sensitive operations
-4. **Threat Detection**: Basic malware and anomaly detection
-5. **Audit Logging**: Comprehensive operation tracking
-6. **Resource Limits**: Prevention of DoS through resource exhaustion
+1. **Binary File Restriction**: Complete blocking of binary file operations for maximum security
+2. **Input Validation**: Path sanitization and canonicalization
+3. **Access Control**: Configurable allowlists and denylists
+4. **Human Approval**: Interactive approval for sensitive operations
+5. **Threat Detection**: Enhanced security monitoring with binary file rejection
+6. **Audit Logging**: Comprehensive operation tracking
+7. **Resource Limits**: Prevention of DoS through resource exhaustion
 
 ### **Configuration-Driven Security**
 ```toml
 # ~/.config/airs-mcp-fs/security.toml
 [security]
+# Binary processing is completely disabled for security
+binary_processing_disabled = true
+text_only_mode = true
+
 # Paths where read operations are allowed
 allowed_read_paths = [
     "~/Documents/**",
@@ -38,19 +43,42 @@ forbidden_patterns = [
     "/etc/.*"
 ]
 
-# File size limits
+# File size limits (for text files only)
 max_file_size_mb = 100
-max_binary_size_mb = 50
 
 # Approval requirements
 require_approval_for_writes = true
 require_approval_for_deletes = true
-require_approval_for_binary_writes = true
 
-# Threat detection
+# Enhanced threat detection with binary restriction
 enable_threat_detection = true
-scan_binary_files = true
+block_binary_files = true
 ```
+
+## **Binary File Security**
+
+### **Complete Binary Restriction**
+AIRS MCP-FS employs a security-first approach by completely disabling binary file processing:
+
+- **Attack Surface Reduction**: Eliminates entire classes of binary-based security vulnerabilities
+- **Memory Safety**: Prevents buffer overflows and memory corruption from binary parsing
+- **Malware Prevention**: Blocks execution of potentially malicious binary content
+- **Resource Protection**: Eliminates resource exhaustion from complex binary processing
+- **Compliance Enhancement**: Provides clear security boundaries for enterprise deployments
+
+### **Text-Only Operations**
+All file operations are restricted to text-based content:
+- Source code files (`.rs`, `.ts`, `.js`, `.py`, etc.)
+- Configuration files (`.toml`, `.json`, `.yaml`, etc.)
+- Documentation files (`.md`, `.txt`, `.rst`, etc.)
+- Data files with text content (`.csv`, `.log`, etc.)
+
+### **Binary File Detection**
+The system uses multiple detection methods to identify and block binary files:
+- File extension validation
+- Content-based binary detection
+- Magic number analysis
+- Comprehensive audit logging of rejection events
 
 ## **Audit & Compliance**
 ```rust

@@ -40,9 +40,11 @@ denied_paths = [
 write_requires_policy = true
 delete_requires_explicit_allow = true
 
-[binary]
-# Production file size limits
-max_file_size = 268435456  # 256MB for production workloads
+[security]
+# Binary processing completely disabled for maximum production security
+binary_processing_disabled = true
+text_only_mode = true
+max_file_size = 268435456  # 256MB for large text files in production workloads
 
 # Production-specific security policies
 [security.policies.production_data]

@@ -26,27 +26,27 @@ create_directory(path: String, recursive: bool) -> CreateResult
 delete_directory(path: String, recursive: bool) -> DeleteResult
 ```
 
-## 2. **Advanced Binary File Support**
+## 2. **Security-First File Processing**
 
-### **Image Processing Capabilities**
-- **Format Support**: JPEG, PNG, GIF, WebP, TIFF, BMP
-- **Intelligent Resizing**: Automatic dimension optimization for AI processing
-- **Thumbnail Generation**: Quick preview creation for large images
-- **Metadata Extraction**: EXIF data parsing for camera information, GPS, timestamps
-- **Format Conversion**: Cross-format conversion with quality optimization
+### **Binary File Restriction**
+- **Complete Binary Blocking**: All binary file operations are disabled for maximum security
+- **Text-Only Processing**: Focus on development files like source code, configuration, and documentation
+- **Attack Surface Reduction**: Eliminates entire classes of binary-based security vulnerabilities
+- **Memory Safety**: Prevents buffer overflows and memory corruption from binary parsing
+- **Malware Prevention**: Blocks execution of potentially malicious binary content
 
-### **PDF Processing Capabilities**
-- **Text Extraction**: Full document text extraction with page-level granularity
-- **Image Extraction**: Extract embedded images with format preservation
-- **Metadata Analysis**: Document properties, creation date, author information
-- **Page Range Support**: Selective content extraction for large documents
-- **Structure Recognition**: Headers, paragraphs, tables, and formatting preservation
+### **Supported Text File Types**
+- **Source Code**: `.rs`, `.py`, `.js`, `.ts`, `.java`, `.cpp`, `.c`, `.go`, etc.
+- **Configuration**: `.toml`, `.json`, `.yaml`, `.yml`, `.ini`, `.conf`, etc.
+- **Documentation**: `.md`, `.txt`, `.rst`, `.adoc`, `.tex`, etc.
+- **Data Files**: `.csv`, `.log`, `.sql`, `.xml`, `.html`, etc.
+- **Web Files**: `.css`, `.scss`, `.less`, `.vue`, `.svelte`, etc.
 
-### **General Binary Support**
-- **Magic Number Detection**: Accurate file type identification regardless of extension
-- **Compression Handling**: Automatic compression for large files to optimize transfer
-- **Streaming Support**: Chunked reading for files exceeding memory limits
-- **Checksum Validation**: Integrity verification for binary operations
+### **Binary File Detection**
+- **Extension-Based Validation**: Comprehensive list of known binary extensions
+- **Content-Based Detection**: Analysis of file content to identify binary data
+- **Magic Number Recognition**: Detection of binary file signatures
+- **Audit Logging**: Comprehensive logging of all binary file rejection events
 
 ## 3. **Security & Access Control**
 

@@ -16,7 +16,7 @@ Environment Detection → Base Configuration → Policy Application → Environm
 2. **Security Policies**: Named policies for different file types and use cases
 3. **Path Validation**: Glob pattern-based path allowlists and denylists
 4. **Operation Controls**: Fine-grained permissions for read/write/delete operations
-5. **Binary Processing**: Configuration for handling images, PDFs, and other binary files
+5. **Binary File Restriction**: Enhanced security through complete binary file blocking
 
 ## Configuration File Locations
 
@@ -54,11 +54,11 @@ operations = ["read", "write"]
 risk_level = "low"
 description = "Source code files"
 
-# Binary processing settings
-[binary]
-max_file_size = 104857600  # 100MB
-enable_image_processing = true
-enable_pdf_processing = true
+# Security configuration (binary processing disabled)
+[security]
+binary_processing_disabled = true
+text_only_mode = true
+max_file_size = 104857600  # 100MB for text files
 
 # Server configuration
 [server]
@@ -76,7 +76,7 @@ All configuration values can be overridden using environment variables with the 
 | `AIRS_MCP_FS_CONFIG_DIR` | Config directory | `~/.config/airs-mcp-fs` |
 | `AIRS_MCP_FS_LOG_DIR` | Log directory | `~/.local/share/airs-mcp-fs/logs` |
 | `AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS` | Filesystem allowed paths | `~/projects/**/*,~/docs/**/*` |
-| `AIRS_MCP_FS_BINARY_MAX_FILE_SIZE` | Max file size | `52428800` (50MB) |
+| `AIRS_MCP_FS_SECURITY_MAX_FILE_SIZE` | Max file size | `52428800` (50MB) |
 
 ## Security Modes
 
@@ -168,9 +168,11 @@ operations = ["read", "write", "create_dir"]
 risk_level = "low"
 description = "Content creation and blogging files"
 
-[binary]
-enable_image_processing = true
-max_file_size = 209715200  # 200MB for large images
+[security]
+# Binary processing disabled for security
+binary_processing_disabled = true
+text_only_mode = true
+max_file_size = 209715200  # 200MB for large text files
 ```
 
 ### Secure Production Environment

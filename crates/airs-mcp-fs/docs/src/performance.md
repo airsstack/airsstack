@@ -31,7 +31,7 @@ async fn read_large_file_streamed(&self, path: &Path) -> Result<FileStream, FsEr
 pub struct FileCache {
     metadata_cache: LruCache<PathBuf, FileMetadata>,
     content_cache: LruCache<PathBuf, CachedContent>,
-    binary_cache: LruCache<PathBuf, ProcessedBinary>,
+    // Binary caching removed for security - text-only processing
 }
 
 impl FileCache {

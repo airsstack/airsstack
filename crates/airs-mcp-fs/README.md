@@ -10,10 +10,10 @@ A security-first filesystem bridge that enables Claude Desktop and other MCP-com
 
 - **🔐 Security-First Design**: Human-in-the-loop approval workflows with configurable security policies
 - **📁 Complete Filesystem Operations**: Read, write, create, delete, move, and copy files and directories
-- **🖼️ Advanced Binary Processing**: Intelligent handling of images, PDFs, and other binary formats
+- **�️ Binary File Restriction**: Text-only processing with comprehensive binary file blocking for enhanced security
 - **⚡ High Performance**: Sub-100ms response times with efficient memory management
 - **🔧 AIRS Ecosystem Integration**: Seamless compatibility with other AIRS MCP tools
-- **🛡️ Enterprise-Grade Security**: Path validation, audit logging, and threat detection
+- **🛡️ Enterprise-Grade Security**: Path validation, audit logging, threat detection, and binary file protection
 
 ## Quick Start
 
@@ -93,26 +93,20 @@ Claude: *uses write_file tool* → creates the file with approval prompt
 ## Core Capabilities
 
 ### File Operations
-- **read_file**: Read text and binary files with automatic encoding detection
+- **read_file**: Read text files with automatic encoding detection
 - **write_file**: Create or update files with approval workflows
 - **list_directory**: Browse filesystem with metadata and filtering
 - **create_directory**: Create directory structures recursively
 - **delete_file/delete_directory**: Safe deletion with confirmation
 - **move_file/copy_file**: File manipulation with atomic operations
 
-### Binary File Processing
-- **Image Support**: JPEG, PNG, GIF, WebP, TIFF, BMP with resizing and thumbnails
-- **PDF Processing**: Text extraction, image extraction, metadata parsing
-- **Format Detection**: Magic number-based file type identification
-- **EXIF Metadata**: Camera information, GPS coordinates, timestamps
-- **Compression**: Automatic optimization for large file transfers
-
 ### Security Features
+- **Binary File Restriction**: Comprehensive blocking of binary files to eliminate binary-based security risks
 - **Human Approval**: Interactive confirmation for write/delete operations
 - **Path Validation**: Prevent directory traversal and unauthorized access
 - **Access Control**: Configurable allowlists and denylists for file paths
 - **Audit Logging**: Comprehensive operation tracking for compliance
-- **Threat Detection**: Basic malware scanning and suspicious file identification
+- **Threat Detection**: Enhanced security monitoring with binary file rejection
 
 ## Configuration
 
@@ -172,21 +166,21 @@ For comprehensive configuration guidance, see our detailed documentation:
 
 ### Development Workflow Enhancement
 - **Code Analysis**: "Analyze all TypeScript files for potential performance issues"
-- **Documentation Generation**: "Create API docs from my OpenAPI specification"
+- **Documentation Generation**: "Create API docs from my source code comments"
 - **Automated Refactoring**: "Convert React class components to functional components"
 - **Project Setup**: "Create a new Next.js project structure with best practices"
 
-### Content & Asset Management
-- **Image Optimization**: "Resize all product images to 800px width and generate thumbnails"
-- **Document Processing**: "Extract text from all PDF reports in the reports/ folder"
-- **File Organization**: "Organize my Downloads folder by file type and date"
-- **Backup Creation**: "Create a backup of essential project files"
+### Content & Document Management
+- **Configuration Management**: "Update configuration files with new environment settings"
+- **Documentation Processing**: "Extract and organize README files from all project directories"
+- **File Organization**: "Organize source code files by feature and module"
+- **Backup Creation**: "Create a backup of essential project configuration files"
 
 ### Research & Analysis
-- **Data Extraction**: "Extract metadata from all images for a photo catalog"
+- **Code Metadata Extraction**: "Extract function signatures and documentation from source files"
 - **Content Analysis**: "Analyze the structure and content of technical documentation"
-- **Format Conversion**: "Convert all PNG images to optimized WebP format"
-- **Duplicate Detection**: "Find and organize duplicate files across directories"
+- **Text Processing**: "Process and standardize all markdown documentation files"
+- **Duplicate Detection**: "Find and organize duplicate configuration files across directories"
 
 ## Security Best Practices
 
@@ -195,7 +189,7 @@ For comprehensive configuration guidance, see our detailed documentation:
 - Use restrictive path allowlists for sensitive environments
 - Regularly review audit logs for suspicious activity
 - Keep forbidden patterns updated with sensitive file types
-- Enable threat detection for binary file processing
+- Binary file processing is disabled by default for maximum security
 
 ### Path Security
 - Use absolute paths in configuration when possible
@@ -203,34 +197,31 @@ For comprehensive configuration guidance, see our detailed documentation:
 - Regularly audit allowed paths and remove unnecessary access
 - Monitor for path traversal attempts in logs
 
-### Binary File Safety
-- Enable binary file scanning for malware detection
-- Set reasonable file size limits to prevent resource exhaustion
-- Use sandboxed processing for untrusted binary files
-- Validate file formats before processing
+### Binary File Security
+- Binary file processing is completely disabled for enhanced security
+- All binary file operations return security validation errors
+- Focus on text-based file operations for AI-assisted development
+- Eliminates entire classes of binary-based security vulnerabilities
+- Provides clear security boundaries for enterprise deployments
 
 ## Advanced Features
 
-### Binary Processing Options
-```toml
-[binary_processing.image]
-generate_thumbnails = true
-max_dimension = 1920
-compression_quality = 85
-extract_metadata = true
+### Security-First Architecture
+The system prioritizes security through comprehensive binary file restriction and enhanced validation:
 
-[binary_processing.pdf]
-extract_text = true
-extract_images = true
-process_tables = true
+```toml
+[security]
+# Binary processing is completely disabled for security
+binary_processing_disabled = true
+text_only_mode = true
 ```
 
 ### Plugin System
-Extend functionality with custom file processors:
-- Register custom format handlers
-- Add domain-specific processing logic
-- Integrate with external tools and services
-- Create organization-specific workflows
+Extend functionality with custom text file processors:
+- Register custom text format handlers
+- Add domain-specific processing logic for development files
+- Integrate with external tools and services for text processing
+- Create organization-specific workflows for code and documentation
 
 ### AIRS Ecosystem Integration
 - **airs-mcp**: Leverage shared MCP infrastructure

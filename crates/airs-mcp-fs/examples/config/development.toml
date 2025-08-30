@@ -12,9 +12,11 @@ allowed_paths = [
 write_requires_policy = false
 delete_requires_explicit_allow = false
 
-[binary]
-# Smaller file size limit for faster testing
-max_file_size = 52428800  # 50MB
+[security]
+# Binary processing disabled for security across all environments
+binary_processing_disabled = true
+text_only_mode = true
+max_file_size = 52428800  # 50MB for text files
 
 # Additional development-specific policies
 [security.policies.development_files]
