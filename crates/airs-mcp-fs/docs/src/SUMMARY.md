@@ -1,6 +1,13 @@
 # Summary
 
 - [Overview](./overview.md)
+- [Quick Start](./quickstart.md)
+- [Configuration Guide](./configuration.md)
+    - [Configuration Overview](./configuration/overview.md)
+    - [Environment Setup](./configuration/environment.md)
+    - [Security Policies](./configuration/security.md)
+    - [Claude Desktop Integration](./configuration/claude_desktop.md)
+    - [Troubleshooting](./configuration/troubleshooting.md)
 - [Architecture](./architecture.md)
 - [Features](./features.md)
 - [Usecases](./usecases.md)

@@ -36,70 +36,58 @@ cargo build --release --bin airs-mcp-fs
 cargo install --path crates/airs-mcp-fs
 ```
 
-### Configuration Setup
+### Basic Setup
 
-**Step 1: Generate Configuration Files**
+**Step 1: Generate Configuration**
 ```bash
 # Generate development configuration
 airs-mcp-fs generate-config
 
-# Generate for specific environment
-airs-mcp-fs generate-config --env production --output ~/.config/airs-mcp-fs
-
-# Generate with custom output directory
-airs-mcp-fs generate-config --output ./config --env staging
+# This creates ~/.config/airs-mcp-fs/development.toml
 ```
 
-**Step 2: Customize Your Configuration**
-Edit the generated configuration file to match your needs:
-```toml
-[security.filesystem]
-allowed_paths = [
-    "~/projects/**/*",          # Your development projects
-    "~/Documents/**/*.md",      # Documentation files
-]
-
-[security.operations]
-read_allowed = true
-write_requires_policy = false   # Set to true for production
-delete_requires_explicit_allow = true
-```
-
-**Step 3: Test Configuration**
-```bash
-cargo run --example configuration_demo
-```
-
-### Claude Desktop Integration
+**Step 2: Configure Claude Desktop**
 
 Add to your Claude Desktop MCP configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "airs-mcp-fs": {
-      "command": "airs-mcp-fs",
+      "command": "/path/to/airs-mcp-fs",
       "env": {
-        "AIRS_MCP_FS_ENV": "development"
+        "AIRS_MCP_FS_ENV": "development",
+        "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourusername/.config/airs-mcp-fs",
+        "AIRS_MCP_FS_LOG_DIR": "/Users/yourusername/.local/share/airs-mcp-fs/logs"
       }
     }
   }
 }
 ```
 
-### Basic Usage
+**Important**: Replace `/path/to/airs-mcp-fs` with the actual path to your binary and `yourusername` with your actual username.
 
-Once connected, you can interact with your filesystem through Claude Desktop:
+**Step 3: Restart Claude Desktop**
+
+Restart Claude Desktop to load the new MCP server configuration.
+
+### Test Your Setup
+
+Once Claude Desktop restarts, try these commands:
 
 ```
-User: "Read my package.json file and analyze the dependencies"
-Claude: *uses read_file tool* → analyzes dependencies → provides insights
+User: "List the files in my Documents directory"
+Claude: *uses list_directory tool* → shows your Documents contents
 
-User: "Create a new React component for user authentication"
-Claude: *uses write_file tool* → generates component → saves to src/components/Auth.tsx
+User: "Read my project's README.md file"
+Claude: *uses read_file tool* → displays the README content
 
-User: "Optimize all images in my assets folder for web"
-Claude: *processes images* → resizes and compresses → saves optimized versions
+User: "Create a new file called hello.txt with 'Hello World' in my Documents"
+Claude: *uses write_file tool* → creates the file with approval prompt
 ```
 
 ## Core Capabilities
@@ -128,66 +116,57 @@ Claude: *processes images* → resizes and compresses → saves optimized versio
 
 ## Configuration
 
-### Basic Configuration
+AIRS MCP-FS uses a sophisticated multi-layered configuration system that automatically adapts to different environments while maintaining security and flexibility.
 
-Create `.airs-mcp-fs.toml` in your project root:
+### Quick Configuration
 
-```toml
-[security]
-# Paths where read operations are allowed
-allowed_read_paths = [
-    "~/Documents/**",
-    "~/Desktop/**",
-    "./**"
-]
-
-# Paths where write operations are allowed
-allowed_write_paths = [
-    "~/Documents/**",
-    "./src/**",
-    "./docs/**"
-]
-
-# File patterns to never access
-forbidden_patterns = [
-    "\\.env$",
-    "\\.ssh/.*",
-    ".*\\.key$",
-    ".*password.*"
-]
-
-# File size limits (in MB)
-max_file_size_mb = 100
-max_binary_size_mb = 50
-
-# Approval requirements
-require_approval_for_writes = true
-require_approval_for_deletes = true
-
-[performance]
-max_concurrent_operations = 10
-cache_size_mb = 50
-```
-
-### Global Configuration
-
-System-wide settings at `~/.config/airs-mcp-fs/config.toml`:
+For development work, your configuration should include your project directories:
 
 ```toml
-[server]
-name = "airs-mcp-fs"
-version = "1.0.0"
-transport = "stdio"
+# ~/.config/airs-mcp-fs/development.toml
+[security.filesystem]
+allowed_paths = [
+    "~/projects/**/*",           # All your projects
+    "~/Documents/**/*",          # Documents directory (both directory and contents)
+    "~/Desktop/**/*",            # Desktop files
+    "./**/*"                     # Current directory when running from project
+]
 
-[logging]
-level = "info"
-file = "~/.config/airs-mcp-fs/logs/airs-mcp-fs.log"
-max_size_mb = 100
+[security.operations]
+read_allowed = true
+write_requires_policy = false    # Allow writes in development
+delete_requires_explicit_allow = true
 
-[security]
-enable_threat_detection = true
-scan_binary_files = true
+# Named policies for different file types
+[security.policies.journal_files]
+patterns = ["/Users/yourusername/Documents/**/*"]
+operations = ["read", "write", "list"]
+risk_level = "low"
+description = "Personal journal and document files"
 ```
+
+**Important**: When configuring directory access, you need both the directory path itself AND its contents:
+- `~/Documents` - Access to the directory itself
+- `~/Documents/**/*` - Access to files within the directory
+
+### Environment-Specific Configuration
+
+AIRS MCP-FS automatically detects your environment and loads appropriate configurations:
+
+- **Development**: `~/.config/airs-mcp-fs/development.toml` - Permissive settings for productivity
+- **Staging**: `~/.config/airs-mcp-fs/staging.toml` - Production-like settings for testing  
+- **Production**: `~/.config/airs-mcp-fs/production.toml` - Secure settings for deployment
+
+### Configuration Documentation
+
+For comprehensive configuration guidance, see our detailed documentation:
+
+- **[Quick Start Guide](./docs/src/quickstart.md)**: Get up and running in 5 minutes
+- **[Configuration Guide](./docs/src/configuration.md)**: Complete configuration system overview
+- **[Environment Setup](./docs/src/configuration/environment.md)**: Environment detection and management
+- **[Security Policies](./docs/src/configuration/security.md)**: Advanced security configuration
+- **[Claude Desktop Integration](./docs/src/configuration/claude_desktop.md)**: MCP client setup
+- **[Troubleshooting](./docs/src/configuration/troubleshooting.md)**: Common issues and solutions
 
 ## Use Cases
 
@@ -278,24 +257,33 @@ Extend functionality with custom file processors:
 ### Common Issues
 
 #### "Permission Denied" Errors
-- Check file system permissions for the target path
-- Verify path is included in allowed_read_paths or allowed_write_paths
-- Ensure no forbidden patterns match the file path
+- **Cause**: Path not included in `allowed_paths` configuration or blocked by `denied_paths`
+- **Solution**: Update your configuration to include the required directory and its contents:
+  ```toml
+  [security.filesystem]
+  allowed_paths = [
+      "~/Documents",        # Directory itself
+      "~/Documents/**/*"    # Directory contents
+  ]
+  ```
 
-#### "File Too Large" Errors
-- Adjust max_file_size_mb in configuration
-- Use streaming operations for very large files
-- Consider processing files in smaller chunks
+#### "Security validation failed" Errors  
+- **Cause**: Glob patterns not matching the requested path
+- **Solution**: Ensure your patterns include both directory access and content access
+- **Debug**: Check your configuration file and verify the path patterns
 
-#### "Approval Required" Prompts
-- Respond to interactive approval prompts in terminal
-- Configure approval settings in security section
-- Review operation details before approving
+#### "Configuration file not found" Warnings
+- **Cause**: No environment-specific configuration file exists
+- **Solution**: Generate configuration for your environment:
+  ```bash
+  airs-mcp-fs generate-config --env development
+  ```
 
-#### Binary Processing Failures
-- Verify file format is supported
-- Check available memory for large files
-- Enable debug logging for detailed error information
+#### "Invalid server response" in Claude Desktop
+- **Cause**: Incorrect environment variables or binary path in Claude Desktop configuration
+- **Solution**: Verify your Claude Desktop JSON configuration includes correct paths and environment variables
+
+For comprehensive troubleshooting guidance, see **[Configuration Troubleshooting](./docs/src/configuration/troubleshooting.md)**.
 
 ### Debug Mode
 ```bash
@@ -303,7 +291,7 @@ RUST_LOG=debug airs-mcp-fs --config ./debug-config.toml
 ```
 
 ### Log Analysis
-- Check `~/.config/airs-mcp-fs/logs/` for detailed operation logs
+- Check `~/.local/share/airs-mcp-fs/logs/` for detailed operation logs
 - Review audit trail for security-related events
 - Monitor performance metrics for optimization opportunities
 
@@ -337,26 +325,6 @@ cargo run -- --config ./dev-config.toml
 - Document public APIs with rustdoc
 - Follow security best practices for file operations
 
-## Roadmap
-
-### Short-term (v1.1-1.2)
-- Enhanced video file metadata extraction
-- Advanced archive file processing (ZIP, TAR, RAR)
-- OCR text extraction from images
-- Version control integration (Git-aware operations)
-
-### Medium-term (v1.3-1.5)
-- Cloud storage integration (Dropbox, Google Drive)
-- Collaborative multi-user features
-- Advanced content analysis and similarity detection
-- Mobile device synchronization
-
-### Long-term (v2.0+)
-- AI-powered file organization recommendations
-- Cross-platform filesystem synchronization
-- Enterprise SSO and advanced compliance features
-- Plugin marketplace and community extensions
-
 ## Security & Compliance
 
 ### Security Audits
@@ -386,9 +354,32 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
+## Documentation
+
+For comprehensive guides and advanced configuration:
+
+- **📚 [Complete Documentation](./docs/src/SUMMARY.md)** - Full mdbook documentation
+- **🚀 [Quick Start Guide](./docs/src/quickstart.md)** - Get running in 5 minutes
+- **⚙️ [Configuration Guide](./docs/src/configuration.md)** - Complete configuration system
+- **🔒 [Security Policies](./docs/src/configuration/security.md)** - Advanced security configuration
+- **🔧 [Troubleshooting](./docs/src/configuration/troubleshooting.md)** - Common issues and solutions
+
+### Building Documentation
+
+```bash
+# Install mdbook
+cargo install mdbook
+
+# Build and serve documentation
+cd crates/airs-mcp-fs/docs
+mdbook serve
+
+# Open http://localhost:3000 in your browser
+```
+
 ## Support
 
-- **Documentation**: [Full documentation and guides](https://docs.airs.dev/mcp-fs)
+- **Documentation**: [Full documentation and guides](./docs/src/SUMMARY.md)
 - **Issues**: [GitHub Issues](https://github.com/rstlix0x0/airs/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/rstlix0x0/airs/discussions)
 - **Community**: [Discord Server](https://discord.gg/airs-community)
