@@ -3,9 +3,39 @@
 # Active Context: AIRS MCP-FS
 
 **Updated:** 2025-08-30  
-**Phase:** 🎉 **PROJECT COMPLETE** - Claude Desktop integration successful + comprehensive documentation ✅  
-**Status:** **ALL OBJECTIVES ACHIEVED - PRODUCTION READY**  
-**Major Milestone:** Final integration milestone complete → Claude Desktop working + complete documentation system
+**Phase:** 🔒 **SECURITY HARDENING** - Binary file support removal task added  
+**Status:** **NEW TASK PENDING - Binary File Restriction Implementation**  
+**Major Addition:** Task 011 - Disable binary file support for enhanced security posture
+
+## **🔒 NEW SECURITY HARDENING TASK ADDED - TASK 011 - 2025-08-30**
+
+### **Task 011: Disable Binary File Support**
+**Priority:** High Security Hardening  
+**Rationale:** Binary file processing poses significant security risks in MCP context
+
+**Security Risks Addressed:**
+- **Malware Risk**: Binary files (images, PDFs) can contain embedded malicious payloads
+- **Resource Exhaustion**: Binary processing is resource-intensive and can cause DoS
+- **Data Exfiltration**: Large binary files could enable unauthorized data transfer
+- **Attack Surface**: Complex binary parsing increases vulnerability exposure
+
+**Implementation Strategy:**
+1. **Binary Detection Integration**: Extend security validation pipeline with FormatDetector
+2. **Configuration Cleanup**: Remove all binary processing options from BinaryConfig
+3. **Policy Updates**: Add explicit binary file denial policies
+4. **Code Removal**: Remove/disable binary processing modules
+5. **Testing**: Comprehensive binary rejection testing
+6. **Documentation**: Update to reflect text-only file support
+
+**Workspace Standards Compliance:**
+- Will follow all workspace standards (§2.1, §3.2, §4.3, §5.1)
+- Zero warning policy enforcement
+- Proper error handling and security validation patterns
+
+**Next Steps:**
+- Begin with Subtask 11.1: Binary detection integration
+- Focus on security pipeline enhancement
+- Maintain text file processing capabilities
 
 ## **✅ FINAL PROJECT COMPLETION - CLAUDE DESKTOP INTEGRATION SUCCESS - 2025-08-30**
 
