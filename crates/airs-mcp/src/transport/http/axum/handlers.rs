@@ -270,8 +270,10 @@ async fn handle_mcp_get(
     let stream = BroadcastStream::new(receiver).filter_map(move |result| async move {
         match result {
             Ok(sse_event) => {
-                // Filter events for this session (or send to all sessions for now)
-                // TODO: In a full implementation, we might want session-specific filtering
+                // Current implementation: Broadcast to all sessions
+                // This design allows for global events (system status, announcements)
+                // and simplifies the initial implementation. Session-specific filtering
+                // can be added later when per-session event routing is required.
 
                 // Convert SseEvent to SSE Event
                 let event_id = sse_event.id.clone();
