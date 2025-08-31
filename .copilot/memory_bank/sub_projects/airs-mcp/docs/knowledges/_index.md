@@ -1,7 +1,7 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-08-26  
-**Total Knowledge Docs**: 13  
+**Last Updated**: 2025-09-01  
+**Total Knowledge Docs**: 14  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
@@ -37,7 +37,7 @@
   - **Related**: TASK014 (OAuth 2.1 implementation), ADR-007 (MCP protocol architecture)
 
 ### Integration
-**Documentation Count**: 2  
+**Documentation Count**: 3  
 **Complexity Level**: Medium  
 **Maintenance Priority**: High
 
@@ -47,6 +47,12 @@
   - **Complexity**: Medium - Client integration and deployment patterns
   - **Updated**: 2025-08-21
   - **Related**: Production deployment, task_003 completion
+
+- **[HTTP Streamable Examples Implementation Plan](./integration/http-streamable-examples-implementation-plan.md)**
+  - **Focus**: HTTP remote server examples for Claude Desktop, HTTP vs STDIO transport comparison
+  - **Complexity**: Medium - Implementation strategy for HTTP-based MCP servers
+  - **Updated**: 2025-09-01
+  - **Related**: HTTP transport architecture, Claude Desktop integration, streaming capabilities
 
 - **[HTTP SSE Migration Strategy](./integration/http-sse-migration-strategy.md)**
   - **Focus**: Ecosystem transition strategy, migration tools, deprecation management
