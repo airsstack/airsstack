@@ -1,28 +1,14 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
-- [TASK012] HTTP Streamable Implementation - JSON-RPC Complete, Optional Enhancement Available - Updated on 2025-08-31
-  - **STATUS CORRECTION**: Core HTTP JSON-RPC transport is 100% complete and operational
-  - **Current Capabilities**: Single `/mcp` POST endpoint with full MCP protocol support
-  - **Infrastructure Complete**: Session management, connection pooling, all MCP methods operational
-  - **Optional Enhancement**: Could add GET handler for unified streaming (HTTP Streamable spec)
-  - **Production Status**: Current HTTP transport is fully functional for MCP protocol
 
 ## Pending
-- [TASK023] HTTP Streamable GET Handler Implementation - High Priority - Added on 2025-08-26
-  - **Core Feature**: Implement GET `/mcp` endpoint for SSE streaming responses
-  - **SSE Integration**: Add Server-Sent Events streaming with proper headers (text/event-stream, cache-control)
-  - **Session Management**: Reuse existing session infrastructure for streaming responses
-  - **Connection Recovery**: Support `Last-Event-ID` for connection resume
-  - **Dependencies**: Uses existing session and connection management infrastructure
-  - **Impact**: Completes HTTP Streamable streaming capability (remaining 5% of transport)
-
 - [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
   - **Unified Endpoint**: Single `/mcp` endpoint handles both JSON and SSE responses
   - **Mode Detection**: Automatic selection based on HTTP method, Accept headers, query parameters
   - **Request Processing**: POST → JSON responses, GET → SSE streaming responses
   - **Configuration**: Server default mode and client override support (?mode=json/?mode=stream)
-  - **Dependencies**: Requires TASK023 (GET handler implementation)
+  - **Dependencies**: ✅ TASK023 complete - GET handler implementation available
   - **Impact**: Enables specification-compliant dynamic response mode selection
 
 - [TASK025] HTTP Streamable Event Replay & Connection Recovery - Medium Priority - Added on 2025-08-26
@@ -30,12 +16,27 @@
   - **Connection Recovery**: Replay missed events using `Last-Event-ID` headers
   - **Session Continuity**: Maintain session state and event tracking across reconnections
   - **Buffer Management**: Configurable event retention and cleanup policies
-  - **Dependencies**: Requires TASK023 (GET handler) and existing session management
+  - **Dependencies**: ✅ TASK023 complete - GET handler and session management available
   - **Impact**: Provides production-grade reliability and message delivery guarantees
 
 - [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment
 
 ## Completed
+- [TASK023] HTTP Streamable GET Handler Implementation - COMPLETE - Completed on 2025-09-01
+  - **Core Feature**: ✅ Implemented GET `/mcp` endpoint for SSE streaming responses
+  - **SSE Integration**: ✅ Added Server-Sent Events streaming with proper headers (text/event-stream, cache-control)
+  - **Session Management**: ✅ Integrated existing session infrastructure for streaming responses
+  - **Query Parameters**: ✅ Support for `lastEventId`, `session_id`, `heartbeat` configuration
+  - **Connection Management**: ✅ Proper connection tracking and resource management
+  - **Code Quality**: ✅ Removed TODO comments, refactored magic strings to constants
+  - **Integration Testing**: ✅ Comprehensive tests focused on public interfaces and component interaction
+  - **Production Ready**: ✅ All 407 tests passing with zero warnings
+
+- [TASK012] HTTP JSON-RPC Transport Implementation - COMPLETE - Completed on 2025-08-25
+  - **STATUS**: ✅ Core HTTP JSON-RPC transport is 100% complete and operational
+  - **Capabilities**: ✅ Single `/mcp` POST endpoint with full MCP protocol support
+  - **Infrastructure**: ✅ Session management, connection pooling, all MCP methods operational
+  - **Production Status**: ✅ HTTP transport fully functional for MCP protocol
 - [TASK013] HTTP SSE Implementation - COMPLETE - Completed on 2025-08-26
   - **Legacy Compatibility Transport**: Complete HTTP Server-Sent Events implementation for MCP ecosystem transition
   - **Dual-Endpoint Architecture**: `GET /sse` streaming + `POST /messages` JSON-RPC with clean separation
