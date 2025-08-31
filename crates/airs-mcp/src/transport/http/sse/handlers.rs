@@ -16,6 +16,7 @@ use tokio_stream::wrappers::BroadcastStream;
 
 // Internal module imports
 use crate::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
+use crate::integration::mcp::constants::methods as mcp_methods;
 use crate::transport::http::sse::config::MigrationMode;
 use crate::transport::http::sse::constants::{content_types, headers};
 use crate::transport::http::sse::transport::HttpSseTransport;
@@ -210,41 +211,47 @@ pub async fn messages_handler(
 fn process_mcp_request(request: &JsonRpcRequest) -> JsonRpcResponse {
     match request.method.as_str() {
         // Initialization and lifecycle methods
-        "initialize" => create_initialize_response(request),
-        "initialized" => create_notification_response(request),
+        mcp_methods::INITIALIZE => create_initialize_response(request),
+        mcp_methods::INITIALIZED => create_notification_response(request),
 
         // Resource management methods
-        "resources/list" => {
+        mcp_methods::RESOURCES_LIST => {
             create_method_not_found_response(request, "No resource provider configured")
         }
-        "resources/templates/list" => {
+        mcp_methods::RESOURCES_TEMPLATES_LIST => {
             create_method_not_found_response(request, "No resource template provider configured")
         }
-        "resources/read" => {
+        mcp_methods::RESOURCES_READ => {
             create_method_not_found_response(request, "No resource provider configured")
         }
-        "resources/subscribe" => {
+        mcp_methods::RESOURCES_SUBSCRIBE => {
             create_method_not_found_response(request, "Resource subscriptions not supported")
         }
-        "resources/unsubscribe" => {
+        mcp_methods::RESOURCES_UNSUBSCRIBE => {
             create_method_not_found_response(request, "Resource subscriptions not supported")
         }
 
         // Tool management methods
-        "tools/list" => create_method_not_found_response(request, "No tool provider configured"),
-        "tools/call" => create_method_not_found_response(request, "No tool provider configured"),
+        mcp_methods::TOOLS_LIST => {
+            create_method_not_found_response(request, "No tool provider configured")
+        }
+        mcp_methods::TOOLS_CALL => {
+            create_method_not_found_response(request, "No tool provider configured")
+        }
 
         // Prompt management methods
-        "prompts/list" => {
+        mcp_methods::PROMPTS_LIST => {
             create_method_not_found_response(request, "No prompt provider configured")
         }
-        "prompts/get" => create_method_not_found_response(request, "No prompt provider configured"),
+        mcp_methods::PROMPTS_GET => {
+            create_method_not_found_response(request, "No prompt provider configured")
+        }
 
         // Logging methods
-        "logging/setLevel" => create_logging_response(request),
+        mcp_methods::LOGGING_SET_LEVEL => create_logging_response(request),
 
         // Ping/pong for connectivity testing
-        "ping" => create_ping_response(request),
+        mcp_methods::PING => create_ping_response(request),
 
         // Unknown methods
         _ => create_method_not_found_response(
@@ -378,7 +385,7 @@ mod tests {
     #[tokio::test]
     async fn test_mcp_request_processing() {
         let request = JsonRpcRequest::new(
-            "ping",
+            mcp_methods::PING,
             Some(json!({"param": "value"})),
             RequestId::new_string("test-123".to_string()),
         );
@@ -396,7 +403,7 @@ mod tests {
     #[tokio::test]
     async fn test_initialize_request_processing() {
         let request = JsonRpcRequest::new(
-            "initialize",
+            mcp_methods::INITIALIZE,
             Some(json!({"clientInfo": {"name": "test", "version": "1.0"}})),
             RequestId::new_string("init-123".to_string()),
         );
@@ -445,7 +452,7 @@ mod tests {
 
         let message_request: MessageRequest = serde_json::from_value(json_data).unwrap();
 
-        assert_eq!(message_request.request.method, "ping");
+        assert_eq!(message_request.request.method, mcp_methods::PING);
         assert_eq!(message_request.session_id, Some("session-456".to_string()));
     }
 

@@ -30,6 +30,7 @@ use uuid::Uuid;
 // Layer 3: Internal module imports
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
+use crate::integration::mcp::constants::methods as mcp_methods;
 use crate::transport::error::TransportError;
 use crate::transport::http::config::HttpTransportConfig;
 use crate::transport::http::connection_manager::HttpConnectionManager;
@@ -357,8 +358,10 @@ pub async fn process_jsonrpc_request(
     // Route MCP requests to appropriate handlers based on method
     match request.method.as_str() {
         // MCP Initialization
-        "initialize" => process_mcp_initialize(&state.mcp_handlers, session_id, request).await,
-        "initialized" => {
+        mcp_methods::INITIALIZE => {
+            process_mcp_initialize(&state.mcp_handlers, session_id, request).await
+        }
+        mcp_methods::INITIALIZED => {
             // Notification - no response needed, but this shouldn't be called for requests
             Ok(serde_json::json!({
                 "jsonrpc": "2.0",
@@ -368,32 +371,40 @@ pub async fn process_jsonrpc_request(
         }
 
         // Resource Methods
-        "resources/list" => {
+        mcp_methods::RESOURCES_LIST => {
             process_mcp_list_resources(&state.mcp_handlers, session_id, request).await
         }
-        "resources/templates/list" => {
+        mcp_methods::RESOURCES_TEMPLATES_LIST => {
             process_mcp_list_resource_templates(&state.mcp_handlers, session_id, request).await
         }
-        "resources/read" => {
+        mcp_methods::RESOURCES_READ => {
             process_mcp_read_resource(&state.mcp_handlers, session_id, request).await
         }
-        "resources/subscribe" => {
+        mcp_methods::RESOURCES_SUBSCRIBE => {
             process_mcp_subscribe_resource(&state.mcp_handlers, session_id, request).await
         }
-        "resources/unsubscribe" => {
+        mcp_methods::RESOURCES_UNSUBSCRIBE => {
             process_mcp_unsubscribe_resource(&state.mcp_handlers, session_id, request).await
         }
 
         // Tool Methods
-        "tools/list" => process_mcp_list_tools(&state.mcp_handlers, session_id, request).await,
-        "tools/call" => process_mcp_call_tool(&state.mcp_handlers, session_id, request).await,
+        mcp_methods::TOOLS_LIST => {
+            process_mcp_list_tools(&state.mcp_handlers, session_id, request).await
+        }
+        mcp_methods::TOOLS_CALL => {
+            process_mcp_call_tool(&state.mcp_handlers, session_id, request).await
+        }
 
         // Prompt Methods
-        "prompts/list" => process_mcp_list_prompts(&state.mcp_handlers, session_id, request).await,
-        "prompts/get" => process_mcp_get_prompt(&state.mcp_handlers, session_id, request).await,
+        mcp_methods::PROMPTS_LIST => {
+            process_mcp_list_prompts(&state.mcp_handlers, session_id, request).await
+        }
+        mcp_methods::PROMPTS_GET => {
+            process_mcp_get_prompt(&state.mcp_handlers, session_id, request).await
+        }
 
         // Logging Methods
-        "logging/setLevel" => {
+        mcp_methods::LOGGING_SET_LEVEL => {
             process_mcp_set_logging(&state.mcp_handlers, session_id, request).await
         }
 

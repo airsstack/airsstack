@@ -27,6 +27,9 @@ pub mod methods {
 
     /// Logging-related methods
     pub const LOGGING_SET_LEVEL: &str = "logging/setLevel";
+
+    /// Connectivity testing method
+    pub const PING: &str = "ping";
 }
 
 /// JSON-RPC error codes
