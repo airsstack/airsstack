@@ -9,6 +9,6 @@ mod mcp_operations;
 mod server;
 
 // Re-export key types for convenience
-pub use handlers::{ServerState, SseEvent};
+pub use handlers::{create_router, McpSseQueryParams, ServerState, SseEvent};
 pub use mcp_handlers::{McpHandlers, McpHandlersBuilder};
 pub use server::AxumHttpServer;
