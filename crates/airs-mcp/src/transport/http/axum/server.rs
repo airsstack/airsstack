@@ -1,4 +1,4 @@
-//! Axum HTTP Server Implementation
+//! Axum HTTP use crate::transport::http::connection_manager::HttpConnectionManager;
 //!
 //! This module provides the main HTTP server implementation using Axum framework
 //! with clean separation of concerns and proper dependency injection.
@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use tokio::net::TcpListener;
+use tokio::sync::broadcast;
 
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::transport::error::TransportError;
@@ -37,12 +38,16 @@ impl AxumHttpServer {
         mcp_handlers: Arc<McpHandlers>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
+        // Create SSE broadcast channel for HTTP Streamable support
+        let (sse_broadcaster, _receiver) = broadcast::channel(1000);
+
         let state = ServerState {
             connection_manager,
             session_manager,
             jsonrpc_processor,
             mcp_handlers,
             config: config.clone(),
+            sse_broadcaster,
         };
 
         Ok(Self {

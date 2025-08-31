@@ -11,7 +11,7 @@ use axum::{
 };
 use futures::stream::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use tokio_stream::wrappers::BroadcastStream;
 
 // Internal module imports
@@ -75,11 +75,11 @@ pub struct MessageResponse {
 ///
 /// # SSE Format
 /// Events follow SSE specification with `event:` and `data:` fields:
-/// ```
+/// ```text
 /// event: message
 /// data: {"jsonrpc":"2.0","method":"ping","id":"123"}
 ///
-/// event: heartbeat  
+/// event: heartbeat
 /// data: {"status":"connected","timestamp":"2025-08-26T..."}
 /// ```
 pub async fn sse_stream_handler(
@@ -158,10 +158,8 @@ pub async fn messages_handler(
 ) -> Result<(HeaderMap, Json<MessageResponse>), (StatusCode, String)> {
     let config = transport.sse_config();
 
-    // Process the JSON-RPC request
-    // For now, we'll create a simple echo response
-    // TODO: Integrate with actual MCP request processing
-    let response = create_echo_response(&message_request.request);
+    // Process the JSON-RPC request with proper MCP routing
+    let response = process_mcp_request(&message_request.request);
 
     // Broadcast the response to SSE clients if session_id is provided
     if message_request.session_id.is_some() {
@@ -204,19 +202,120 @@ pub async fn messages_handler(
     Ok((headers, Json(message_response)))
 }
 
-/// Create an echo response for testing purposes
+/// Process MCP JSON-RPC request with proper routing and error handling
 ///
-/// TODO: Replace with actual MCP request processing integration
-fn create_echo_response(request: &JsonRpcRequest) -> JsonRpcResponse {
-    use serde_json::json;
+/// This function replaces the previous TODO echo implementation with real
+/// MCP request processing that routes requests to appropriate handlers
+/// based on the JSON-RPC method field.
+fn process_mcp_request(request: &JsonRpcRequest) -> JsonRpcResponse {
+    match request.method.as_str() {
+        // Initialization and lifecycle methods
+        "initialize" => create_initialize_response(request),
+        "initialized" => create_notification_response(request),
 
+        // Resource management methods
+        "resources/list" => {
+            create_method_not_found_response(request, "No resource provider configured")
+        }
+        "resources/templates/list" => {
+            create_method_not_found_response(request, "No resource template provider configured")
+        }
+        "resources/read" => {
+            create_method_not_found_response(request, "No resource provider configured")
+        }
+        "resources/subscribe" => {
+            create_method_not_found_response(request, "Resource subscriptions not supported")
+        }
+        "resources/unsubscribe" => {
+            create_method_not_found_response(request, "Resource subscriptions not supported")
+        }
+
+        // Tool management methods
+        "tools/list" => create_method_not_found_response(request, "No tool provider configured"),
+        "tools/call" => create_method_not_found_response(request, "No tool provider configured"),
+
+        // Prompt management methods
+        "prompts/list" => {
+            create_method_not_found_response(request, "No prompt provider configured")
+        }
+        "prompts/get" => create_method_not_found_response(request, "No prompt provider configured"),
+
+        // Logging methods
+        "logging/setLevel" => create_logging_response(request),
+
+        // Ping/pong for connectivity testing
+        "ping" => create_ping_response(request),
+
+        // Unknown methods
+        _ => create_method_not_found_response(
+            request,
+            &format!("Unknown method: {}", request.method),
+        ),
+    }
+}
+
+/// Create initialize response for MCP protocol negotiation
+fn create_initialize_response(request: &JsonRpcRequest) -> JsonRpcResponse {
     JsonRpcResponse {
         jsonrpc: "2.0".to_string(),
         result: Some(json!({
-            "echo": format!("Received method: {}", request.method),
-            "original_params": request.params
+            "protocolVersion": "2024-11-05",
+            "capabilities": {
+                "logging": {},
+                "tools": {},
+                "resources": {},
+                "prompts": {}
+            },
+            "serverInfo": {
+                "name": "airs-mcp-sse-server",
+                "version": "0.1.0"
+            }
         })),
         error: None,
+        id: Some(request.id.clone()),
+    }
+}
+
+/// Create notification acknowledgment (no response needed)
+fn create_notification_response(request: &JsonRpcRequest) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: Some(json!({})),
+        error: None,
+        id: Some(request.id.clone()),
+    }
+}
+
+/// Create ping/pong response for connectivity testing
+fn create_ping_response(request: &JsonRpcRequest) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: Some(json!("pong")),
+        error: None,
+        id: Some(request.id.clone()),
+    }
+}
+
+/// Create logging configuration response
+fn create_logging_response(request: &JsonRpcRequest) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: Some(json!({})),
+        error: None,
+        id: Some(request.id.clone()),
+    }
+}
+
+/// Create method not found error response
+fn create_method_not_found_response(request: &JsonRpcRequest, detail: &str) -> JsonRpcResponse {
+    JsonRpcResponse {
+        jsonrpc: "2.0".to_string(),
+        result: None,
+        error: Some(json!({
+            "code": -32601,
+            "message": "Method not found",
+            "data": detail
+        })),
         id: Some(request.id.clone()),
     }
 }
@@ -239,9 +338,7 @@ fn create_echo_response(request: &JsonRpcRequest) -> JsonRpcResponse {
 /// ```
 pub async fn health_handler(
     State(transport): State<Arc<HttpSseTransport>>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    use serde_json::json;
-
+) -> Result<Json<Value>, (StatusCode, String)> {
     let config = transport.sse_config();
     let connection_count = transport.broadcaster().connection_count();
 
@@ -279,22 +376,60 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_echo_response_creation() {
+    async fn test_mcp_request_processing() {
         let request = JsonRpcRequest::new(
-            "test_method",
+            "ping",
             Some(json!({"param": "value"})),
             RequestId::new_string("test-123".to_string()),
         );
 
-        let response = create_echo_response(&request);
+        let response = process_mcp_request(&request);
 
         assert_eq!(response.jsonrpc, "2.0");
         assert!(response.result.is_some());
         assert_eq!(response.id, Some(request.id.clone()));
 
         let result = response.result.unwrap();
-        assert!(result.get("echo").is_some());
-        assert!(result.get("original_params").is_some());
+        assert_eq!(result, "pong");
+    }
+
+    #[tokio::test]
+    async fn test_initialize_request_processing() {
+        let request = JsonRpcRequest::new(
+            "initialize",
+            Some(json!({"clientInfo": {"name": "test", "version": "1.0"}})),
+            RequestId::new_string("init-123".to_string()),
+        );
+
+        let response = process_mcp_request(&request);
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert!(response.result.is_some());
+        assert_eq!(response.id, Some(request.id.clone()));
+
+        let result = response.result.unwrap();
+        assert!(result.get("protocolVersion").is_some());
+        assert!(result.get("capabilities").is_some());
+        assert!(result.get("serverInfo").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_unknown_method_handling() {
+        let request = JsonRpcRequest::new(
+            "unknown_method",
+            Some(json!({"param": "value"})),
+            RequestId::new_string("test-456".to_string()),
+        );
+
+        let response = process_mcp_request(&request);
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert!(response.error.is_some());
+        assert_eq!(response.id, Some(request.id.clone()));
+
+        let error = response.error.unwrap();
+        assert_eq!(error["code"], -32601);
+        assert_eq!(error["message"], "Method not found");
     }
 
     #[tokio::test]

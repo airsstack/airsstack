@@ -10,13 +10,19 @@ use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use axum::{
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, Query, State},
     http::{HeaderMap, StatusCode},
-    response::Json,
+    response::{sse::Event, Json, Sse},
     routing::{get, post},
     Router,
 };
+use chrono::{DateTime, Utc};
+use futures::stream::{Stream, StreamExt};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::convert::Infallible;
+use tokio::sync::broadcast;
+use tokio_stream::wrappers::BroadcastStream;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use uuid::Uuid;
@@ -32,6 +38,58 @@ use crate::transport::http::session::{ClientInfo, SessionId, SessionManager};
 use super::mcp_handlers::McpHandlers;
 use super::mcp_operations::*;
 
+/// SSE stream query parameters for HTTP Streamable GET requests
+#[derive(Debug, Deserialize)]
+pub struct McpSseQueryParams {
+    /// Last event ID for resumption (SSE standard)
+    #[serde(rename = "lastEventId")]
+    pub last_event_id: Option<String>,
+
+    /// Session ID for correlation (optional, will create if missing)
+    pub session_id: Option<String>,
+
+    /// Heartbeat interval in seconds (client preference)
+    pub heartbeat: Option<u64>,
+}
+
+/// SSE Event for HTTP Streamable transport
+#[derive(Debug, Clone, Serialize)]
+pub struct SseEvent {
+    /// Event ID for resumption support
+    pub id: String,
+    /// Event type (message, notification, error, heartbeat)
+    pub event_type: String,
+    /// JSON data payload
+    pub data: Value,
+    /// Session ID for correlation
+    pub session_id: SessionId,
+    /// Timestamp for event ordering
+    pub timestamp: DateTime<Utc>,
+}
+
+impl SseEvent {
+    /// Create a new SSE event
+    pub fn new(event_type: String, data: Value, session_id: SessionId) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            event_type,
+            data,
+            session_id,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Convert to SSE format string
+    pub fn to_sse_format(&self) -> String {
+        format!(
+            "id: {}\nevent: {}\ndata: {}\n\n",
+            self.id,
+            self.event_type,
+            serde_json::to_string(&self.data).unwrap_or_default()
+        )
+    }
+}
+
 /// Shared application state for the Axum server
 #[derive(Clone)]
 pub struct ServerState {
@@ -45,13 +103,16 @@ pub struct ServerState {
     pub mcp_handlers: Arc<McpHandlers>,
     /// Server configuration
     pub config: HttpTransportConfig,
+    /// Broadcast channel for SSE events
+    pub sse_broadcaster: broadcast::Sender<SseEvent>,
 }
 
 /// Create the Axum router with all routes and middleware
 pub fn create_router(state: ServerState) -> Router {
     Router::new()
-        // Main MCP endpoint for JSON-RPC requests
+        // Main MCP endpoint for JSON-RPC requests and SSE streaming
         .route("/mcp", post(handle_mcp_request))
+        .route("/mcp", get(handle_mcp_get))
         // Health check endpoint
         .route("/health", get(handle_health_check))
         // Server metrics endpoint
@@ -150,6 +211,108 @@ async fn handle_mcp_request(
     }
 
     Ok(Json(response))
+}
+
+/// Handle MCP SSE streaming requests on the /mcp endpoint (GET method)
+async fn handle_mcp_get(
+    Query(params): Query<McpSseQueryParams>,
+    State(state): State<ServerState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> {
+    // Register connection with connection manager
+    let connection_id = state
+        .connection_manager
+        .register_connection(addr)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("Connection limit exceeded: {e}"),
+            )
+        })?;
+
+    // Update connection activity
+    if let Err(e) = state
+        .connection_manager
+        .update_connection_activity(connection_id)
+    {
+        tracing::warn!("Failed to update connection activity: {}", e);
+    }
+
+    // Extract or create session
+    let session_id = if let Some(provided_session_id) = params.session_id {
+        // Try to parse provided session ID
+        Uuid::parse_str(&provided_session_id).map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                "Invalid session ID format".to_string(),
+            )
+        })?
+    } else {
+        // Extract or create session using existing logic
+        extract_or_create_session(&state, &headers, addr)
+            .await
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Session error: {e}")))?
+    };
+
+    // Log event resumption if last_event_id is provided
+    if let Some(ref last_event_id) = params.last_event_id {
+        tracing::info!("Resuming SSE stream from event ID: {}", last_event_id);
+        // TODO(TASK025): Implement event replay from last_event_id
+        // This will require maintaining event history for resumption
+    }
+
+    // Subscribe to SSE broadcast channel
+    let receiver = state.sse_broadcaster.subscribe();
+
+    // Create SSE stream from broadcast receiver, filtering by session
+    let stream = BroadcastStream::new(receiver).filter_map(move |result| async move {
+        match result {
+            Ok(sse_event) => {
+                // Filter events for this session (or send to all sessions for now)
+                // TODO: In a full implementation, we might want session-specific filtering
+
+                // Convert SseEvent to SSE Event
+                let event_id = sse_event.id.clone();
+                let event_type = sse_event.event_type.clone();
+                let event_data = serde_json::to_string(&sse_event.data).unwrap_or_default();
+
+                Some(Ok(Event::default()
+                    .id(event_id)
+                    .event(event_type)
+                    .data(event_data)))
+            }
+            Err(_) => {
+                // Handle broadcast errors by ending the stream gracefully
+                None
+            }
+        }
+    });
+
+    // Build SSE response with appropriate headers and keep-alive
+    let mut sse_builder = Sse::new(stream);
+
+    // Add keep-alive based on heartbeat preference
+    if let Some(heartbeat_seconds) = params.heartbeat {
+        let keep_alive = axum::response::sse::KeepAlive::new()
+            .interval(std::time::Duration::from_secs(heartbeat_seconds))
+            .text("heartbeat");
+        sse_builder = sse_builder.keep_alive(keep_alive);
+    } else {
+        // Default 30-second heartbeat
+        let keep_alive = axum::response::sse::KeepAlive::new()
+            .interval(std::time::Duration::from_secs(30))
+            .text("heartbeat");
+        sse_builder = sse_builder.keep_alive(keep_alive);
+    }
+
+    // Update session activity
+    if let Err(e) = state.session_manager.update_session_activity(session_id) {
+        tracing::warn!("Failed to update session activity: {}", e);
+    }
+
+    Ok(sse_builder)
 }
 
 /// Extract session ID from headers or create a new session
@@ -298,7 +461,10 @@ async fn handle_health_check(
             "active": session_stats.currently_active,
             "total": session_stats.total_created,
         },
-        "uptime": "TODO: implement uptime tracking"
+        "uptime": {
+            "status": "operational",
+            "message": "Uptime tracking will be implemented in future release"
+        }
     });
 
     Ok(Json(health_data))

@@ -21,7 +21,7 @@ use crate::transport::http::config::HttpTransportConfig;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::transport::http::sse::HttpSseConfig;
+/// use airs_mcp::transport::http::sse::{HttpSseConfig, MigrationMode};
 /// use std::time::Duration;
 ///
 /// // Default SSE configuration with deprecation warnings
@@ -31,8 +31,7 @@ use crate::transport::http::config::HttpTransportConfig;
 /// let config = HttpSseConfig::new()
 ///     .sse_endpoint_path("/events")
 ///     .messages_endpoint_path("/api/messages")
-///     .migration_mode(MigrationMode::Active)
-///     .sunset_date(Some(chrono::Utc::now() + chrono::Duration::days(365)));
+///     .migration_mode(MigrationMode::Active);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct HttpSseConfig {
