@@ -1,17 +1,23 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-09-01  
-**Total Knowledge Docs**: 21  
+**Total Knowledge Docs**: 22  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 8  
+**Documentation Count**: 9  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[Transport Adapter Architecture Plan](./architecture/KNOWLEDGE-004-transport-adapter-architecture-plan.md)** ✅ NEW
+  - **Focus**: Comprehensive transport reorganization plan, adapter pattern for legacy compatibility, MCP compliance strategy
+  - **Complexity**: Critical - Complete architectural evolution plan from legacy to MCP-compliant transport layer
+  - **Updated**: 2025-09-01
+  - **Related**: TASK-005 (MCP transport refactoring), Phase 2+ implementation strategy, transport/adapters/ organization
+
 - **[MCP Transport Architecture Patterns](./architecture/KNOWLEDGE-003-mcp-transport-architecture-patterns.md)** 
   - **Focus**: Official MCP specification transport patterns, event-driven architecture, specification compliance
   - **Complexity**: Critical - Foundation for transport redesign aligned with official MCP standards
