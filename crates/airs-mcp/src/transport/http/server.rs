@@ -73,12 +73,7 @@ pub struct HttpServerTransport {
     is_closed: bool,
 
     // Server components (used for AxumHttpServer construction)
-    #[allow(dead_code)]
-    connection_manager: Arc<HttpConnectionManager>,
-    #[allow(dead_code)]
     session_manager: Arc<SessionManager>,
-    #[allow(dead_code)]
-    jsonrpc_processor: Arc<ConcurrentProcessor>,
 }
 
 impl HttpServerTransport {
@@ -112,9 +107,9 @@ impl HttpServerTransport {
 
         // Create the HTTP server with empty handlers (will be configured later)
         let axum_server = AxumHttpServer::new_with_empty_handlers(
-            connection_manager.clone(),
+            connection_manager,
             session_manager.clone(),
-            jsonrpc_processor.clone(),
+            jsonrpc_processor,
             config.clone(),
         )
         .await
@@ -135,9 +130,7 @@ impl HttpServerTransport {
             outgoing_responses: Arc::new(Mutex::new(HashMap::new())),
             current_session: None,
             is_closed: false,
-            connection_manager,
             session_manager,
-            jsonrpc_processor,
         })
     }
 
