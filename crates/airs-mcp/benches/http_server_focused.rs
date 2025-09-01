@@ -28,10 +28,10 @@ use airs_mcp::shared::protocol::messages::resources::{
     ListResourcesRequest, ListResourcesResponse, Resource,
 };
 use airs_mcp::shared::protocol::messages::tools::{ListToolsRequest, ListToolsResponse, Tool};
-use airs_mcp::transport::http::axum::McpHandlersBuilder;
-use airs_mcp::transport::http::config::HttpTransportConfig;
-use airs_mcp::transport::http::connection_manager::HealthCheckConfig;
-use airs_mcp::transport::http::session::SessionConfig;
+use airs_mcp::transport::adapters::http::axum::McpHandlersBuilder;
+use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+use airs_mcp::transport::adapters::http::connection_manager::HealthCheckConfig;
+use airs_mcp::transport::adapters::http::session::SessionConfig;
 
 /// Benchmark 1: Configuration creation only (no server instances)
 fn benchmark_configuration_creation(c: &mut Criterion) {

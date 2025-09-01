@@ -39,7 +39,7 @@ type OutgoingResponseMap = Arc<Mutex<HashMap<SessionId, oneshot::Sender<Vec<u8>>
 /// # Usage
 ///
 /// ```rust,no_run
-/// use airs_mcp::transport::http::{HttpServerTransport, HttpTransportConfig};
+/// use airs_mcp::transport::adapters::http::{HttpServerTransport, HttpTransportConfig};
 /// use airs_mcp::integration::mcp::McpServerBuilder;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {

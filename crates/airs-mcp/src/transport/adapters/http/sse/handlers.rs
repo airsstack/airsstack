@@ -17,9 +17,9 @@ use tokio_stream::wrappers::BroadcastStream;
 // Internal module imports
 use crate::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
 use crate::integration::mcp::constants::methods as mcp_methods;
-use crate::transport::http::sse::config::MigrationMode;
-use crate::transport::http::sse::constants::{content_types, headers};
-use crate::transport::http::sse::transport::HttpSseTransport;
+use crate::transport::adapters::http::sse::config::MigrationMode;
+use crate::transport::adapters::http::sse::constants::{content_types, headers};
+use crate::transport::adapters::http::sse::transport::HttpSseTransport;
 
 /// SSE stream query parameters for client configuration
 #[derive(Debug, Deserialize)]
@@ -368,8 +368,8 @@ pub async fn health_handler(
 mod tests {
     use super::*;
     use crate::base::jsonrpc::RequestId;
-    use crate::transport::http::config::HttpTransportConfig;
-    use crate::transport::http::sse::config::HttpSseConfig;
+    use crate::transport::adapters::http::config::HttpTransportConfig;
+    use crate::transport::adapters::http::sse::config::HttpSseConfig;
     use serde_json::json;
 
     async fn create_test_transport() -> Arc<HttpSseTransport> {

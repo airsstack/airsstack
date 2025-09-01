@@ -19,7 +19,7 @@ use super::{HttpTransportConfig, RequestParser};
 /// # Usage
 ///
 /// ```rust
-/// use airs_mcp::transport::http::{HttpTransportConfig, HttpClientTransport};
+/// use airs_mcp::transport::adapters::http::{HttpTransportConfig, HttpClientTransport};
 /// use reqwest::Url;
 ///
 /// let config = HttpTransportConfig::new();

@@ -12,7 +12,7 @@ use tower::ServiceExt; // for oneshot
 
 // Layer 3: Internal module imports
 use crate::shared::protocol::core::{McpRequest, McpResponse};
-use crate::transport::http::sse::{
+use crate::transport::adapters::http::sse::{
     config::{DeprecationConfig, HttpSseConfig, MigrationMode},
     handlers::{MessageRequest, MessageResponse, SseQueryParams},
     transport::{HttpSseTransport, SseEvent},
@@ -48,7 +48,7 @@ async fn test_sse_stream_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // Create router with SSE handler
     let app = Router::new().route(
         "/sse",
-        get(crate::transport::http::sse::handlers::sse_stream_handler),
+        get(crate::transport::adapters::http::sse::handlers::sse_stream_handler),
     );
 
     // Test SSE endpoint request
@@ -83,7 +83,7 @@ async fn test_messages_endpoint_post() -> Result<(), Box<dyn std::error::Error>>
     // Create router with messages handler
     let app = Router::new().route(
         "/messages",
-        axum::routing::post(crate::transport::http::sse::handlers::messages_handler),
+        axum::routing::post(crate::transport::adapters::http::sse::handlers::messages_handler),
     );
 
     // Test message request
@@ -118,7 +118,7 @@ async fn test_health_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // Create router with health handler
     let app = Router::new().route(
         "/health",
-        get(crate::transport::http::sse::handlers::health_handler),
+        get(crate::transport::adapters::http::sse::handlers::health_handler),
     );
 
     let request = Request::builder()
@@ -190,7 +190,7 @@ async fn test_deprecation_warnings() -> Result<(), Box<dyn std::error::Error>> {
     // Create router with SSE handler
     let app = Router::new().route(
         "/sse",
-        get(crate::transport::http::sse::handlers::sse_stream_handler),
+        get(crate::transport::adapters::http::sse::handlers::sse_stream_handler),
     );
 
     let request = Request::builder()

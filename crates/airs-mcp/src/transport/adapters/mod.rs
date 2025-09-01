@@ -11,7 +11,7 @@
 //! ## Available Adapters
 //!
 //! - **StdioTransportAdapter**: Bridges legacy StdioTransport with event-driven MCP Transport
-//! - **HTTP Adapters** (Future): HttpServerTransport and HttpClientTransport adapters
+//! - **HTTP Adapters**: HttpServerTransport and HttpClientTransport adapters
 //! - **WebSocket Adapters** (Future): WebSocket transport adapters
 //!
 //! # Design Pattern
@@ -62,7 +62,22 @@
 //! }
 //! ```
 
+pub mod http;
 pub mod stdio;
 
 // Re-exports for convenience
 pub use stdio::StdioTransportAdapter;
+
+// HTTP transport re-exports (maintaining backward compatibility)
+pub use http::{
+    cache_control, content_types, events, extract_last_event_id, extract_session_id, headers,
+    AxumHttpServer, BufferPool, BufferPoolStats, BufferStrategy, ConnectionHealth, ConnectionId,
+    ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot, DeprecationConfig, DeprecationPhase,
+    HealthCheckConfig, HealthCheckResult, HttpClientTransport, HttpConnectionManager,
+    HttpSseConfig, HttpTransportConfig, MigrationMode, PooledBuffer, RequestParser, ServerState,
+    SessionConfig, SessionId, SessionManager, SessionStatsSnapshot, SseEndpointConfig,
+    DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
+};
+
+// Legacy transport re-exports (will be replaced by adapters)
+pub use http::HttpServerTransport;

@@ -20,7 +20,7 @@ use crate::shared::protocol::messages::{
     tools::CallToolRequest,
 };
 use crate::transport::error::TransportError;
-use crate::transport::http::session::SessionId;
+use crate::transport::adapters::http::session::SessionId;
 
 use super::mcp_handlers::McpHandlers;
 

@@ -1,4 +1,4 @@
-//! Axum HTTP use crate::transport::http::connection_manager::HttpConnectionManager;
+//! Axum HTTP use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 //!
 //! This module provides the main HTTP server implementation using Axum framework
 //! with clean separation of concerns and proper dependency injection.
@@ -11,9 +11,9 @@ use tokio::sync::broadcast;
 
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::transport::error::TransportError;
-use crate::transport::http::config::HttpTransportConfig;
-use crate::transport::http::connection_manager::HttpConnectionManager;
-use crate::transport::http::session::SessionManager;
+use crate::transport::adapters::http::config::HttpTransportConfig;
+use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
+use crate::transport::adapters::http::session::SessionManager;
 
 use super::handlers::{create_router, ServerState};
 use super::mcp_handlers::{McpHandlers, McpHandlersBuilder};
@@ -137,8 +137,8 @@ mod tests {
     use super::*;
     use crate::base::jsonrpc::concurrent::ProcessorConfig;
     use crate::correlation::manager::{CorrelationConfig, CorrelationManager};
-    use crate::transport::http::connection_manager::HealthCheckConfig;
-    use crate::transport::http::session::SessionConfig;
+    use crate::transport::adapters::http::connection_manager::HealthCheckConfig;
+    use crate::transport::adapters::http::session::SessionConfig;
 
     async fn create_test_server() -> AxumHttpServer {
         let connection_manager =

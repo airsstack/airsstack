@@ -3,7 +3,7 @@
 //! This test suite validates the HTTP client transport implementation in isolation
 //! and integration scenarios.
 
-use airs_mcp::transport::http::{HttpClientTransport, HttpTransportConfig};
+use airs_mcp::transport::adapters::http::{HttpClientTransport, HttpTransportConfig};
 use airs_mcp::transport::Transport;
 use reqwest::Url;
 use std::time::Duration;

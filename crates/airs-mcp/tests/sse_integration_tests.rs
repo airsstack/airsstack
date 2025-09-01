@@ -1,6 +1,6 @@
 use axum::{routing::get, Router};
 
-use airs_mcp::transport::http::sse::{
+use airs_mcp::transport::adapters::http::sse::{
     handlers::{health_handler, messages_handler, sse_stream_handler, MessageRequest},
 };
 use airs_mcp::base::jsonrpc::{JsonRpcRequest, RequestId};

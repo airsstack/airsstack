@@ -11,7 +11,7 @@ use serde::Serialize;
 use std::time::Duration;
 
 use super::constants::{DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT};
-use crate::transport::http::config::HttpTransportConfig;
+use crate::transport::adapters::http::config::HttpTransportConfig;
 
 /// HTTP SSE Transport Configuration
 ///
@@ -21,7 +21,7 @@ use crate::transport::http::config::HttpTransportConfig;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::transport::http::sse::{HttpSseConfig, MigrationMode};
+/// use airs_mcp::transport::adapters::http::sse::{HttpSseConfig, MigrationMode};
 /// use std::time::Duration;
 ///
 /// // Default SSE configuration with deprecation warnings

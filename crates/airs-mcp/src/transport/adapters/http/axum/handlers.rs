@@ -32,9 +32,9 @@ use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
 use crate::integration::mcp::constants::methods as mcp_methods;
 use crate::transport::error::TransportError;
-use crate::transport::http::config::HttpTransportConfig;
-use crate::transport::http::connection_manager::HttpConnectionManager;
-use crate::transport::http::session::{ClientInfo, SessionId, SessionManager};
+use crate::transport::adapters::http::config::HttpTransportConfig;
+use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
+use crate::transport::adapters::http::session::{ClientInfo, SessionId, SessionManager};
 
 use super::mcp_handlers::McpHandlers;
 use super::mcp_operations::*;

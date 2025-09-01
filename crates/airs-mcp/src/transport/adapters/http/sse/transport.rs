@@ -7,10 +7,10 @@ use tokio::sync::broadcast;
 // Internal module imports - using available modules
 use crate::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification};
 use crate::correlation::manager::CorrelationManager;
-use crate::transport::http::config::HttpTransportConfig;
-use crate::transport::http::session::SessionManager;
-use crate::transport::http::sse::config::HttpSseConfig;
-use crate::transport::http::sse::constants::events;
+use crate::transport::adapters::http::config::HttpTransportConfig;
+use crate::transport::adapters::http::session::SessionManager;
+use crate::transport::adapters::http::sse::config::HttpSseConfig;
+use crate::transport::adapters::http::sse::constants::events;
 
 /// HTTP Server-Sent Events transport for legacy MCP client compatibility
 /// 

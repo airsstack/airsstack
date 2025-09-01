@@ -14,12 +14,12 @@ use uuid::Uuid;
 
 use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
-use airs_mcp::transport::http::axum::{
+use airs_mcp::transport::adapters::http::axum::{
     create_router, McpHandlersBuilder, McpSseQueryParams, ServerState, SseEvent,
 };
-use airs_mcp::transport::http::config::HttpTransportConfig;
-use airs_mcp::transport::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
-use airs_mcp::transport::http::session::{SessionConfig, SessionManager};
+use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
 
 /// Helper to create a test ServerState with all required components
 async fn create_test_server_state() -> ServerState {

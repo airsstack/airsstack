@@ -16,7 +16,7 @@ use std::time::Duration;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::transport::http::HttpTransportConfig;
+/// use airs_mcp::transport::adapters::http::HttpTransportConfig;
 /// use std::time::Duration;
 ///
 /// // Simple default configuration

@@ -10,8 +10,8 @@ use serde_json::Value;
 
 use crate::base::jsonrpc::streaming::{ParsedMessage, StreamingParser};
 use crate::transport::error::TransportError;
-use crate::transport::http::buffer_pool::{BufferPool, BufferStrategy};
-use crate::transport::http::config::{OptimizationStrategy, ParserConfig};
+use crate::transport::adapters::http::buffer_pool::{BufferPool, BufferStrategy};
+use crate::transport::adapters::http::config::{OptimizationStrategy, ParserConfig};
 
 /// Request parser with configurable buffer strategy
 ///
@@ -30,8 +30,8 @@ use crate::transport::http::config::{OptimizationStrategy, ParserConfig};
 ///
 /// ```rust
 /// # tokio_test::block_on(async {
-/// use airs_mcp::transport::http::RequestParser;
-/// use airs_mcp::transport::http::config::ParserConfig;
+/// use airs_mcp::transport::adapters::http::RequestParser;
+/// use airs_mcp::transport::adapters::http::config::ParserConfig;
 ///
 /// let config = ParserConfig::new();
 /// let parser = RequestParser::new(config);
@@ -201,7 +201,7 @@ impl RequestParser {
     }
 
     /// Get buffer pool statistics (if using pooled strategy)
-    pub fn buffer_stats(&self) -> Option<crate::transport::http::buffer_pool::BufferPoolStats> {
+    pub fn buffer_stats(&self) -> Option<crate::transport::adapters::http::buffer_pool::BufferPoolStats> {
         match &self.buffer_strategy {
             BufferStrategy::PerRequest => None,
             BufferStrategy::Pooled(pool) => Some(pool.stats()),
@@ -283,7 +283,7 @@ impl RequestParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::http::config::{BufferPoolConfig, OptimizationStrategy, ParserConfig};
+    use crate::transport::adapters::http::config::{BufferPoolConfig, OptimizationStrategy, ParserConfig};
     use serde_json::json;
 
     #[test]

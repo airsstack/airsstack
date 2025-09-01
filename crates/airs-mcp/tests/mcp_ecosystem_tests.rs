@@ -697,7 +697,7 @@ async fn test_end_to_end_client_server_communication() {
 /// Test HTTP Client Transport configuration and basic functionality
 #[tokio::test]
 async fn test_http_client_transport_ecosystem_integration() {
-    use airs_mcp::transport::http::{HttpClientTransport, HttpTransportConfig};
+    use airs_mcp::transport::adapters::http::{HttpClientTransport, HttpTransportConfig};
     use reqwest::Url;
     use std::time::Duration;
 
@@ -827,7 +827,7 @@ async fn test_http_client_transport_ecosystem_integration() {
 /// Test HTTP Client Transport with MCP Client integration
 #[tokio::test]
 async fn test_http_client_with_mcp_client_integration() {
-    use airs_mcp::transport::http::{HttpClientTransport, HttpTransportConfig};
+    use airs_mcp::transport::adapters::http::{HttpClientTransport, HttpTransportConfig};
     use reqwest::Url;
     use std::time::Duration;
 
@@ -926,10 +926,10 @@ async fn test_axum_http_server_creation() {
     use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
     use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
     use airs_mcp::integration::mcp::server::McpServerConfig;
-    use airs_mcp::transport::http::axum::{AxumHttpServer, McpHandlersBuilder};
-    use airs_mcp::transport::http::config::HttpTransportConfig;
-    use airs_mcp::transport::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
-    use airs_mcp::transport::http::session::{SessionConfig, SessionManager};
+    use airs_mcp::transport::adapters::http::axum::{AxumHttpServer, McpHandlersBuilder};
+    use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+    use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+    use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
 
     println!("Testing AxumHttpServer creation and configuration...");
 
@@ -1009,10 +1009,10 @@ async fn test_axum_http_server_creation() {
 async fn test_axum_http_server_endpoints() {
     use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
     use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
-    use airs_mcp::transport::http::axum::AxumHttpServer;
-    use airs_mcp::transport::http::config::HttpTransportConfig;
-    use airs_mcp::transport::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
-    use airs_mcp::transport::http::session::{SessionConfig, SessionManager};
+    use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+    use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+    use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
 
     println!("Testing AxumHttpServer endpoint architecture...");
 
@@ -1046,7 +1046,7 @@ async fn test_axum_http_server_endpoints() {
         .canonicalize()
         .expect("Failed to canonicalize temp dir path");
 
-    let handlers_builder = airs_mcp::transport::http::axum::McpHandlersBuilder::new()
+    let handlers_builder = airs_mcp::transport::adapters::http::axum::McpHandlersBuilder::new()
         .with_resource_provider(Arc::new(
             FileSystemResourceProvider::new(&canonical_base_path)
                 .expect("Failed to create filesystem provider"),
@@ -1091,10 +1091,10 @@ async fn test_axum_http_server_endpoints() {
 async fn test_http_streamable_capabilities() {
     use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
     use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
-    use airs_mcp::transport::http::axum::{AxumHttpServer, McpHandlersBuilder};
-    use airs_mcp::transport::http::config::HttpTransportConfig;
-    use airs_mcp::transport::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
-    use airs_mcp::transport::http::session::{SessionConfig, SessionManager};
+    use airs_mcp::transport::adapters::http::axum::{AxumHttpServer, McpHandlersBuilder};
+    use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+    use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+    use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
 
     println!("Testing HTTP Streamable capabilities with ACTUAL testing...");
 
@@ -1131,7 +1131,7 @@ async fn test_http_streamable_capabilities() {
 
     // Test session management capabilities
     let test_session = session_manager
-        .create_session(airs_mcp::transport::http::session::ClientInfo {
+        .create_session(airs_mcp::transport::adapters::http::session::ClientInfo {
             user_agent: Some("HTTP-Streamable-Test/1.0".to_string()),
             remote_addr: "127.0.0.1:12345".parse().unwrap(),
             client_capabilities: None,
@@ -1200,7 +1200,7 @@ async fn test_http_streamable_capabilities() {
     println!("  4. Testing streaming infrastructure readiness...");
 
     // Test session management with headers (required for Mcp-Session-Id)
-    use airs_mcp::transport::http::session::{extract_last_event_id, extract_session_id};
+    use airs_mcp::transport::adapters::http::session::{extract_last_event_id, extract_session_id};
     use axum::http::HeaderMap;
 
     let mut headers = HeaderMap::new();

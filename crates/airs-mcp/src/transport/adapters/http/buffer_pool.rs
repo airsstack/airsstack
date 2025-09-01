@@ -6,7 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::transport::http::config::BufferPoolConfig;
+use crate::transport::adapters::http::config::BufferPoolConfig;
 
 /// Thread-safe buffer pool for memory reuse
 ///
@@ -23,8 +23,8 @@ use crate::transport::http::config::BufferPoolConfig;
 /// # Usage
 ///
 /// ```rust
-/// use airs_mcp::transport::http::BufferPool;
-/// use airs_mcp::transport::http::config::BufferPoolConfig;
+/// use airs_mcp::transport::adapters::http::BufferPool;
+/// use airs_mcp::transport::adapters::http::config::BufferPoolConfig;
 ///
 /// let config = BufferPoolConfig::new().max_buffers(100);
 /// let pool = BufferPool::new(config);

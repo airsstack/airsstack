@@ -3,8 +3,8 @@
 //! This example demonstrates how to use the HTTP Client Transport
 //! for JSON-RPC communication over HTTP.
 
-use airs_mcp::transport::http::config::OptimizationStrategy;
-use airs_mcp::transport::http::{HttpClientTransport, HttpTransportConfig};
+use airs_mcp::transport::adapters::http::config::OptimizationStrategy;
+use airs_mcp::transport::adapters::http::{HttpClientTransport, HttpTransportConfig};
 use airs_mcp::transport::Transport;
 use reqwest::Url;
 use std::time::Duration;

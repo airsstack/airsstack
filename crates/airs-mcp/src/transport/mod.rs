@@ -37,11 +37,10 @@
 //! for consistent error handling across the transport layer.
 
 // Export main transport components
-pub mod adapters; // [NEW] Transport adapters for legacy compatibility
+pub mod adapters; // Transport adapters for legacy compatibility and MCP-compliant interfaces
 pub mod buffer;
 pub mod error;
-pub mod http;
-pub mod mcp;
+pub mod mcp; // Pure MCP-specification compliant transport interfaces
 pub mod stdio;
 pub mod streaming;
 pub mod traits;
@@ -64,8 +63,8 @@ pub use mcp::{
     MessageHandler, Transport as McpTransport, TransportError as McpTransportError,
 };
 
-// HTTP transport re-exports (specific to avoid ambiguity)
-pub use http::{
+// HTTP transport re-exports (via adapters for backward compatibility)
+pub use adapters::{
     AxumHttpServer, BufferPool, BufferPoolStats, HttpClientTransport, HttpServerTransport,
     HttpTransportConfig, RequestParser,
 };

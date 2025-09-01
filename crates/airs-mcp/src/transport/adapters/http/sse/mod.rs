@@ -15,7 +15,7 @@
 //!
 //! Built-in migration tools help transition to HTTP Streamable:
 //! ```rust
-//! use airs_mcp::transport::http::sse::HttpSseConfig;
+//! use airs_mcp::transport::adapters::http::sse::HttpSseConfig;
 //!
 //! let config = HttpSseConfig::new()
 //!     .encourage_migration();
@@ -32,7 +32,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use airs_mcp::transport::http::sse::HttpSseConfig;
+//! use airs_mcp::transport::adapters::http::sse::HttpSseConfig;
 //! use std::time::Duration;
 //!
 //! // Basic SSE configuration
