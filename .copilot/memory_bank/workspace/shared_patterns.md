@@ -254,6 +254,135 @@ impl<T> Builder<T> {
 
 **Migration Strategy**: When refactoring existing code, apply these patterns incrementally using the strangler fig pattern to minimize risk.
 
+### §6. Zero-Cost Generic Adapters - Eliminating Dynamic Dispatch
+
+**Principle**: Replace `dyn Trait` objects with generic type parameters and builder patterns to achieve zero-cost abstractions while maintaining ergonomic APIs.
+
+#### Generic Adapter Pattern with Default Types
+```rust
+// ✅ Zero-cost generic adapter with sensible defaults
+pub struct HttpServerTransportAdapter<H = NoHandler>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
+    legacy_transport: Arc<Mutex<HttpServerTransport>>,
+    message_handler: Option<Arc<H>>,
+    shutdown_tx: Option<mpsc::Sender<()>>,
+    session_id: Option<String>,
+    is_connected: bool,
+}
+
+// ✅ No-op default handler for when no behavior is needed
+#[derive(Debug, Clone)]
+pub struct NoHandler;
+
+#[async_trait]
+impl MessageHandler for NoHandler {
+    async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {
+        // No-op: messages are ignored
+    }
+    
+    async fn handle_error(&self, _error: TransportError) {
+        // No-op: errors are ignored  
+    }
+    
+    async fn handle_close(&self) {
+        // No-op: close events are ignored
+    }
+}
+```
+
+#### Builder Pattern for Zero-Cost Type Conversion
+```rust
+// Default constructor creates adapter with NoHandler
+impl HttpServerTransportAdapter<NoHandler> {
+    pub async fn new(config: HttpTransportConfig) -> Result<Self, TransportError> {
+        // Implementation creates adapter with NoHandler default
+    }
+    
+    /// Builder pattern: Convert to typed adapter (zero-cost)
+    pub fn with_handler<H>(self, handler: Arc<H>) -> HttpServerTransportAdapter<H>
+    where
+        H: MessageHandler + Send + Sync + 'static,
+    {
+        HttpServerTransportAdapter {
+            legacy_transport: self.legacy_transport,
+            message_handler: Some(handler),
+            shutdown_tx: self.shutdown_tx,
+            session_id: self.session_id,
+            is_connected: self.is_connected,
+        }
+    }
+}
+
+// Generic implementation for all handler types
+impl<H> HttpServerTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
+    /// Direct constructor with typed handler (maximum performance)
+    pub async fn new_with_handler(
+        config: HttpTransportConfig,
+        handler: Arc<H>,
+    ) -> Result<Self, TransportError> {
+        // Direct construction with specific handler type
+    }
+}
+```
+
+#### Deprecation of Dynamic Dispatch
+```rust
+// ❌ DEPRECATED: Dynamic dispatch with runtime overhead
+impl<H> Transport for HttpServerTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
+    fn set_message_handler(&mut self, _handler: Arc<dyn MessageHandler>) {
+        // Panic for generic adapters - forces migration to builder pattern
+        panic!("set_message_handler is not supported for generic adapters. Use with_handler() or new_with_handler() for zero-cost abstractions.");
+    }
+}
+```
+
+#### Usage Patterns
+
+**For Maximum Performance (Direct Construction)**:
+```rust
+let handler = Arc::new(MyHandler::new());
+let adapter = HttpServerTransportAdapter::new_with_handler(config, handler).await?;
+// Zero dynamic dispatch - all calls are monomorphized
+```
+
+**For Flexible Construction (Builder Pattern)**:
+```rust
+let adapter = HttpServerTransportAdapter::new(config)
+    .await?
+    .with_handler(Arc::new(MyHandler::new()));
+// Type conversion happens at compile time
+```
+
+**For State-Only Testing (NoHandler)**:
+```rust
+let adapter = HttpServerTransportAdapter::new(config).await?;
+// Uses NoHandler default - appropriate for testing adapter state without message handling
+```
+
+#### Performance Benefits
+- **Compile-Time Optimization**: Handler method calls are monomorphized and inlined
+- **Zero vtable Lookups**: No dynamic dispatch overhead
+- **Memory Efficiency**: No trait object allocation overhead
+- **CPU Cache Friendly**: Direct method calls improve cache locality
+
+#### Migration Strategy
+1. **Phase 1**: Add generic type parameter with default NoHandler
+2. **Phase 2**: Implement builder pattern with `with_handler()` method
+3. **Phase 3**: Add `new_with_handler()` for direct construction
+4. **Phase 4**: Deprecate `set_message_handler()` dynamic dispatch method
+5. **Phase 5**: Update all usage sites to builder pattern
+6. **Phase 6**: Remove deprecated dynamic dispatch support
+
+**Enforcement**: All new adapter implementations MUST follow this zero-cost generic pattern. Code reviews MUST verify elimination of unnecessary `dyn Trait` usage.
+
 ### §7. String Literals and Constants - Centralized Management
 
 **Principle**: Eliminate hardcoded string literals through centralized constants modules to prevent typos and improve maintainability.

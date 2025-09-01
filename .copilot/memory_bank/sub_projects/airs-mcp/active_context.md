@@ -2,13 +2,81 @@
 
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: TASK-005 COMPLETE - READY FOR PHASE 3 - 2025-09-01
+## CURRENT FOCUS: TASK-005 PHASE 6-9 REQUIRED - INTEGRATION DEBT OUTSTANDING - 2025-09-01
 
-### 🎉 COMPLETE SUCCESS: MCP TRANSPORT ARCHITECTURE FULLY IMPLEMENTED
+### ⚠️ STATUS CORRECTION: CORE ARCHITECTURE COMPLETE BUT SIGNIFICANT DEBT REMAINING
 
-**IMPLEMENTATION STATUS**: ✅ **TASK-005 PHASE 1 & 2 COMPLETE** - Full MCP-compliant transport architecture with production-ready StdioTransportAdapter and zero warnings code quality.
+**IMPLEMENTATION STATUS**: ✅ **PHASES 1-5 COMPLETE (~70%)** + 🚨 **PHASES 6-9 REQUIRED (~30%)**
 
-**✅ PHASE 1 FOUNDATION COMPLETE**:
+Core zero-cost generic HTTP transport architecture successfully implemented, but significant integration work remains for production readiness.
+
+### **🚨 OUTSTANDING TECHNICAL DEBT: PHASES 6-9**
+
+#### **Phase 6: Authentication System Expansion** - HIGH PRIORITY BLOCKER
+**Current State**: Only OAuth2 authentication implemented  
+**MCP Requirement**: Multiple authentication methods required for ecosystem compatibility
+**Required Work**:
+- **Multi-Method AuthContext**: Extend to support API keys, Basic Auth, Bearer tokens, custom schemes
+- **Authentication Detection**: Method detection and routing in HTTP transport adapters  
+- **Integration Updates**: Update HttpServerTransportAdapter<H> and HttpClientTransportAdapter<H> for multi-auth
+- **Comprehensive Testing**: Authentication integration tests across all supported methods
+- **Backward Compatibility**: Ensure existing OAuth2 integration continues working
+
+#### **Phase 7: McpServerBuilder Integration** - HIGH PRIORITY BLOCKER
+**Current State**: Zero-cost generic adapters exist but not integrated with server infrastructure
+**Integration Gap**: McpServerBuilder doesn't work with generic HttpServerTransportAdapter<H>
+**Required Work**:
+- **Builder Pattern Integration**: Update McpServerBuilder to accept generic adapters
+- **Type System Resolution**: Resolve generic type parameter flow through builder pattern
+- **Server Construction**: Update server creation patterns to use zero-cost adapters
+- **API Consistency**: Maintain ergonomic server builder API while supporting generics
+- **Integration Testing**: End-to-end testing of McpServerBuilder + generic adapters
+
+#### **Phase 8: Documentation & Examples Completions** - MEDIUM PRIORITY
+**Current State**: Examples and docs still show legacy dynamic dispatch patterns
+**User Impact**: Developers cannot adopt zero-cost patterns without updated documentation
+**Required Work**:
+- **Example Updates**: Migrate all HTTP transport examples to generic adapter patterns
+- **Migration Guide**: Step-by-step guide from `dyn MessageHandler` to generics
+- **Performance Documentation**: Before/after performance comparisons and benchmarks
+- **API Documentation**: Update all API docs to reflect builder patterns and generic usage
+- **Best Practices**: Document when to use NoHandler vs custom handlers
+
+#### **Phase 9: Integration Test Migrations** - MEDIUM PRIORITY  
+**Current State**: Integration tests may still use legacy patterns
+**Quality Impact**: Tests not validating actual production usage patterns
+**Required Work**:
+- **Test Audit**: Identify integration tests using dynamic dispatch
+- **Test Migration**: Convert integration tests to use generic adapters
+- **Performance Testing**: Add benchmarks comparing old vs new patterns
+- **Real Client Testing**: Validation with actual MCP client implementations
+- **Regression Prevention**: Ensure new patterns don't break existing functionality
+
+### **✅ COMPLETED: PHASES 1-5 (CORE ARCHITECTURE)**
+
+5. **Zero-Cost Generic HTTP Adapters** - ✅ Complete
+   - ✅ **Dynamic Dispatch Elimination**: 100% removal of `dyn MessageHandler` trait object overhead
+   - ✅ **Generic Type Parameters**: `HttpServerTransportAdapter<H = NoHandler>` and `HttpClientTransportAdapter<H = NoHandler>` with flexible constraints
+   - ✅ **Builder Pattern Integration**: `with_handler()` method for compile-time type conversion with zero cost
+   - ✅ **NoHandler Default**: Sensible no-op default for testing and state management scenarios
+   - ✅ **Direct Construction**: `new_with_handler()` for maximum performance scenarios
+   - ✅ **Deprecation Strategy**: `set_message_handler()` panics to force migration to zero-cost patterns
+   - ✅ **Performance Benefits**: Compile-time optimization, zero vtable lookups, memory efficiency, CPU cache friendly
+
+6. **Test Suite Excellence** - ✅ Complete
+   - ✅ **Behavioral Testing**: `TestMessageHandler` for verifying actual message routing and error handling
+   - ✅ **State Testing**: `NoHandler` for adapter state management without message handling overhead
+   - ✅ **Clear Test Objectives**: 17 server adapter tests + 4 client adapter tests with proper handler usage
+   - ✅ **Test Refactoring**: Complete migration from unclear `NoHandler`-only tests to purposeful test handlers
+   - ✅ **Comprehensive Coverage**: Event loop integration, shutdown signaling, message handler verification
+
+7. **Workspace Standards Integration** - ✅ Complete
+   - ✅ **§6 Zero-Cost Generic Adapters**: New workspace standard established for eliminating dynamic dispatch
+   - ✅ **Migration Pattern**: Phase-by-phase approach for converting existing `dyn` patterns
+   - ✅ **Performance Guidelines**: Compile-time optimization strategies and enforcement policies
+   - ✅ **Code Review Requirements**: Verification of zero-cost abstraction implementation
+
+**✅ PHASES 1-4 FOUNDATION COMPLETE**:
 
 1. **MCP-Compliant Transport Implementation** - ✅ Complete
    - ✅ **Event-Driven Transport Trait**: New `transport::mcp::Transport` trait matching official MCP specification
