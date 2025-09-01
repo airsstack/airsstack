@@ -1,16 +1,14 @@
 # Architecture Decision Record Registry - airs-mcp
 
-# Architecture Decision Record Registry - airs-mcp
-
-**Last Updated**: 2025-08-21  
-**Total ADRs**: 7  
-**Active ADRs**: 7  
+**Last Updated**: 2025-09-01  
+**Total ADRs**: 8  
+**Active ADRs**: 8  
 **Superseded ADRs**: 0
 
 ## Decision Categories
 
 ### System Architecture
-- **Active**: 5 ADRs
+- **Active**: 6 ADRs
 - **Superseded**: 0 ADRs
 
 ### Technology Selection  
@@ -34,27 +32,28 @@
 ### System Architecture
 | ID | Title | Date | Status | Impact | Next Review |
 |----|-------|------|--------|--------|-------------|
-| ADR-001 | Transport Role-Specific Architecture | 2025-08-14 | Accepted | High | 2026-02-14 |
-| ADR-002 | HTTP Transport Architecture Strategy | 2025-08-14 | Accepted | High | 2026-02-14 |
-| ADR-003 | Axum Modular Architecture Refactor | 2025-08-14 | Accepted | High | 2026-02-14 |
-| ADR-005 | MCP Protocol Field Naming Compliance | 2025-08-14 | Accepted | Medium | 2025-11-14 |
-| ADR-007 | MCP Protocol Architecture | 2025-08-14 | Accepted | High | 2026-02-14 |
+| ADR-001 | MCP-Compliant Transport Redesign | 2025-09-01 | Proposed | Critical | TBD |
+| ADR-002 | Transport Role-Specific Architecture | 2025-08-14 | Accepted | High | 2026-02-14 |
+| ADR-003 | HTTP Transport Architecture Strategy | 2025-08-14 | Accepted | High | 2026-02-14 |
+| ADR-004 | Axum Modular Architecture Refactor | 2025-08-14 | Accepted | High | 2026-02-14 |
+| ADR-006 | MCP Protocol Field Naming Compliance | 2025-08-14 | Accepted | Medium | 2025-11-14 |
+| ADR-008 | MCP Protocol Architecture | 2025-08-14 | Accepted | High | 2026-02-14 |
 
 ### Design Patterns
 | ID | Title | Date | Status | Impact | Next Review |
 |----|-------|------|--------|--------|-------------|
-| ADR-004 | Single Responsibility Principle Standard | 2025-08-14 | Accepted | Medium | 2025-11-14 |
+| ADR-005 | Single Responsibility Principle Standard | 2025-08-14 | Accepted | Medium | 2025-11-14 |
 
 ### Performance Strategy
 | ID | Title | Date | Status | Impact | Next Review |
 |----|-------|------|--------|--------|-------------|
-| ADR-006 | Benchmarking Environment Constraints | 2025-08-14 | Accepted | Medium | 2025-11-14 |
+| ADR-007 | Benchmarking Environment Constraints | 2025-08-14 | Accepted | Medium | 2025-11-14 |
 
 ## Proposed Decisions (Under Review)
 
 | ID | Title | Proposed Date | Deciders | Target Decision Date | Discussion |
 |----|-------|---------------|----------|-------------------|------------|
-| - | No decisions currently under review | - | - | - | - |
+| ADR-001 | MCP-Compliant Transport Redesign | 2025-09-01 | Core Team | 2025-09-02 | Critical architecture refactoring |
 
 ## Recently Superseded (Last 6 Months)
 
@@ -71,13 +70,14 @@
 ## Decision Timeline (Chronological)
 
 ### Recent Decisions (Last 3 Months)
-- **2025-08-14**: ADR-007 - MCP Protocol Architecture (Accepted)
-- **2025-08-14**: ADR-006 - Benchmarking Environment Constraints (Accepted)
-- **2025-08-14**: ADR-005 - MCP Protocol Field Naming Compliance (Accepted)
-- **2025-08-14**: ADR-004 - Single Responsibility Principle Standard (Accepted)
-- **2025-08-14**: ADR-003 - Axum Modular Architecture Refactor (Accepted)
-- **2025-08-14**: ADR-002 - HTTP Transport Architecture Strategy (Accepted)  
-- **2025-08-14**: ADR-001 - Transport Role-Specific Architecture (Accepted)
+- **2025-09-01**: ADR-001 - MCP-Compliant Transport Redesign (Proposed)
+- **2025-08-14**: ADR-008 - MCP Protocol Architecture (Accepted)
+- **2025-08-14**: ADR-007 - Benchmarking Environment Constraints (Accepted)
+- **2025-08-14**: ADR-006 - MCP Protocol Field Naming Compliance (Accepted)
+- **2025-08-14**: ADR-005 - Single Responsibility Principle Standard (Accepted)
+- **2025-08-14**: ADR-004 - Axum Modular Architecture Refactor (Accepted)
+- **2025-08-14**: ADR-003 - HTTP Transport Architecture Strategy (Accepted)  
+- **2025-08-14**: ADR-002 - Transport Role-Specific Architecture (Accepted)
 
 ### Historical Decisions (Older than 3 Months)
 - No historical decisions (project started August 2025)

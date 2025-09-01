@@ -3,6 +3,14 @@
 ## In Progress
 
 ## Pending
+- [TASK005] MCP-Compliant Transport Architecture Refactoring - Critical Priority - Added on 2025-09-01
+  - **Specification Alignment**: Redesign Transport trait to match official MCP specification patterns
+  - **Event-Driven Architecture**: Replace sequential receive/send with event-driven message handling
+  - **Transport/Protocol Separation**: Implement MessageHandler trait for clean architecture separation
+  - **HTTP Transport Simplification**: Eliminate oneshot channels and artificial correlation mechanisms
+  - **Dependencies**: ✅ Research complete - MCP specification patterns documented
+  - **Impact**: Resolves fundamental architectural impedance mismatch and enables future transport types
+
 - [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
   - **Unified Endpoint**: Single `/mcp` endpoint handles both JSON and SSE responses
   - **Mode Detection**: Automatic selection based on HTTP method, Accept headers, query parameters

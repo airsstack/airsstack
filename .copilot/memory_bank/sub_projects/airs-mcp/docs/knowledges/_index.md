@@ -1,22 +1,28 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-09-01  
-**Total Knowledge Docs**: 16  
+**Total Knowledge Docs**: 17  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 4  
+**Documentation Count**: 5  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[MCP Transport Architecture Patterns](./architecture/KNOWLEDGE-003-mcp-transport-architecture-patterns.md)** 
+  - **Focus**: Official MCP specification transport patterns, event-driven architecture, specification compliance
+  - **Complexity**: Critical - Foundation for transport redesign aligned with official MCP standards
+  - **Updated**: 2025-09-01
+  - **Related**: ADR-001 (MCP-compliant transport redesign), DEBT-001 (impedance mismatch), TASK-005
+
 - **[Transport Layer Design](./architecture/transport-layer-design.md)** 
   - **Focus**: Transport abstraction patterns, modular architecture, performance optimization
   - **Complexity**: High - Core architectural decisions and transport layer design
   - **Updated**: 2025-08-21
-  - **Related**: ADR-001 (Transport role-specific), ADR-002 (HTTP architecture)
+  - **Related**: ADR-002 (Transport role-specific), ADR-003 (HTTP architecture)
 
 - **[HTTP SSE Transport Architecture](./architecture/http-sse-transport-architecture.md)**
   - **Focus**: HTTP SSE legacy compatibility architecture, shared infrastructure, migration strategy
