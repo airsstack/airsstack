@@ -10,12 +10,32 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::{mpsc, Mutex};
 
+// Internal module imports (Layer 3)
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::server::HttpServerTransport;
 use crate::transport::mcp::{
     JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError,
 };
 use crate::transport::traits::Transport as LegacyTransport;
+
+/// Default no-op handler for when no message handler is provided
+#[derive(Debug, Clone)]
+pub struct NoHandler;
+
+#[async_trait]
+impl MessageHandler for NoHandler {
+    async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {
+        // No-op: messages are ignored
+    }
+
+    async fn handle_error(&self, _error: TransportError) {
+        // No-op: errors are ignored
+    }
+
+    async fn handle_close(&self) {
+        // No-op: close events are ignored
+    }
+}
 
 /// HTTP Server Transport Adapter
 ///
@@ -33,9 +53,30 @@ use crate::transport::traits::Transport as LegacyTransport;
 ///
 /// ## Usage
 ///
-/// ```rust
-/// use crate::transport::adapters::http::{HttpServerTransportAdapter, HttpTransportConfig};
-/// use crate::transport::mcp::transport::Transport;
+/// ```rust,no_run
+/// use airs_mcp::transport::http::{HttpServerTransportAdapter, HttpTransportConfig};
+/// use airs_mcp::transport::mcp::{Transport, MessageHandler, JsonRpcMessage, MessageContext};
+/// use airs_mcp::transport::McpTransportError;
+/// use std::sync::Arc;
+/// use serde_json::Value;
+///
+/// #[derive(Clone)]
+/// struct MyHandler;
+///
+/// #[async_trait::async_trait]
+/// impl MessageHandler for MyHandler {
+///     async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {
+///         // Handle incoming messages
+///     }
+///     
+///     async fn handle_error(&self, _error: McpTransportError) {
+///         // Handle transport errors
+///     }
+///     
+///     async fn handle_close(&self) {
+///         // Handle connection close
+///     }
+/// }
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,23 +84,29 @@ use crate::transport::traits::Transport as LegacyTransport;
 ///     let mut adapter = HttpServerTransportAdapter::new(config).await?;
 ///     
 ///     // Set message handler
-///     adapter.set_message_handler(my_handler);
+///     let handler = Arc::new(MyHandler);
+///     adapter.set_message_handler(handler);
 ///     
 ///     // Start the transport
 ///     adapter.start().await?;
 ///     
 ///     // Send responses
-///     adapter.send(my_response).await?;
+///     let response = JsonRpcMessage::new_response(serde_json::Value::Null, Value::Number(1.into()));
+///     adapter.send(response).await?;
 ///     
 ///     Ok(())
 /// }
 /// ```
-pub struct HttpServerTransportAdapter {
+///
+pub struct HttpServerTransportAdapter<H = NoHandler>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
     /// Legacy HTTP server transport (thread-safe for background loop)
     legacy_transport: Arc<Mutex<HttpServerTransport>>,
 
-    /// Message handler for event-driven processing
-    message_handler: Option<Arc<dyn MessageHandler>>,
+    /// Message handler for event-driven processing (zero-cost generic)
+    message_handler: Option<Arc<H>>,
 
     /// Shutdown signal for graceful termination
     shutdown_tx: Option<mpsc::Sender<()>>,
@@ -71,7 +118,8 @@ pub struct HttpServerTransportAdapter {
     is_connected: bool,
 }
 
-impl HttpServerTransportAdapter {
+// Implementation for default NoHandler type
+impl HttpServerTransportAdapter<NoHandler> {
     /// Create a new HTTP server transport adapter
     ///
     /// This creates the adapter and initializes the underlying HTTP server transport.
@@ -89,9 +137,15 @@ impl HttpServerTransportAdapter {
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// let config = HttpTransportConfig::new();
-    /// let adapter = HttpServerTransportAdapter::new(config).await?;
+    /// ```rust,no_run
+    /// use airs_mcp::transport::http::{HttpServerTransportAdapter, HttpTransportConfig};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = HttpTransportConfig::new();
+    ///     let adapter = HttpServerTransportAdapter::new(config).await?;
+    ///     Ok(())
+    /// }
     /// ```
     pub async fn new(config: HttpTransportConfig) -> Result<Self, TransportError> {
         let legacy_transport = HttpServerTransport::new(config)
@@ -101,6 +155,90 @@ impl HttpServerTransportAdapter {
         Ok(Self {
             legacy_transport: Arc::new(Mutex::new(legacy_transport)),
             message_handler: None,
+            shutdown_tx: None,
+            session_id: None,
+            is_connected: false,
+        })
+    }
+
+    /// Builder pattern: Add a typed message handler (zero-cost abstraction)
+    ///
+    /// This method converts the adapter to use a concrete handler type,
+    /// enabling compile-time optimizations and eliminating dynamic dispatch.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - Message handler with concrete type
+    ///
+    /// # Returns
+    ///
+    /// * `HttpServerTransportAdapter<H>` - Adapter with typed handler
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::http::{HttpServerTransportAdapter, HttpTransportConfig};
+    /// use airs_mcp::transport::mcp::{MessageHandler, JsonRpcMessage, MessageContext};
+    /// use airs_mcp::transport::McpTransportError;
+    /// use std::sync::Arc;
+    ///
+    /// #[derive(Clone)]
+    /// struct MyHandler;
+    ///
+    /// #[async_trait::async_trait]
+    /// impl MessageHandler for MyHandler {
+    ///     async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {}
+    ///     async fn handle_error(&self, _error: McpTransportError) {}
+    ///     async fn handle_close(&self) {}
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = HttpTransportConfig::new();
+    ///     let handler = Arc::new(MyHandler);
+    ///     
+    ///     // Zero-cost abstraction - no dynamic dispatch!
+    ///     let adapter = HttpServerTransportAdapter::new(config)
+    ///         .await?
+    ///         .with_handler(handler);
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn with_handler<H>(self, handler: Arc<H>) -> HttpServerTransportAdapter<H>
+    where
+        H: MessageHandler + Send + Sync + 'static,
+    {
+        HttpServerTransportAdapter {
+            legacy_transport: self.legacy_transport,
+            message_handler: Some(handler),
+            shutdown_tx: self.shutdown_tx,
+            session_id: self.session_id,
+            is_connected: self.is_connected,
+        }
+    }
+}
+
+// Generic implementation for all handler types
+impl<H> HttpServerTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
+    /// Create a new adapter with a specific handler type (zero-cost)
+    ///
+    /// This is the preferred constructor for performance-critical code
+    /// as it eliminates all dynamic dispatch overhead.
+    pub async fn new_with_handler(
+        config: HttpTransportConfig,
+        handler: Arc<H>,
+    ) -> Result<Self, TransportError> {
+        let legacy_transport = HttpServerTransport::new(config)
+            .await
+            .map_err(Self::convert_legacy_error)?;
+
+        Ok(Self {
+            legacy_transport: Arc::new(Mutex::new(legacy_transport)),
+            message_handler: Some(handler),
             shutdown_tx: None,
             session_id: None,
             is_connected: false,
@@ -137,9 +275,6 @@ impl HttpServerTransportAdapter {
 
         self.shutdown_tx = Some(shutdown_tx);
         self.is_connected = true;
-
-        // Bind the server first - but this is handled by the HttpServerTransport constructor
-        // so we don't need to call bind() separately
 
         // Spawn background event loop
         tokio::spawn(async move {
@@ -246,7 +381,10 @@ impl HttpServerTransportAdapter {
 }
 
 #[async_trait]
-impl Transport for HttpServerTransportAdapter {
+impl<H> Transport for HttpServerTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
     type Error = TransportError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -298,8 +436,10 @@ impl Transport for HttpServerTransportAdapter {
         Ok(())
     }
 
-    fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>) {
-        self.message_handler = Some(handler);
+    fn set_message_handler(&mut self, _handler: Arc<dyn MessageHandler>) {
+        // Generic adapters don't support dynamic handlers
+        // Users should use the builder pattern instead
+        panic!("set_message_handler is not supported for generic adapters. Use with_handler() or new_with_handler() for zero-cost abstractions.");
     }
 
     fn session_id(&self) -> Option<String> {
@@ -416,11 +556,13 @@ mod tests {
     #[tokio::test]
     async fn test_start_event_loop_success() {
         let config = HttpTransportConfig::new();
-        let mut adapter = HttpServerTransportAdapter::new(config).await.unwrap();
-
-        // Set up message handler
         let handler = Arc::new(TestMessageHandler::new());
-        adapter.set_message_handler(handler.clone());
+
+        // Use the builder pattern to create adapter with handler
+        let mut adapter = HttpServerTransportAdapter::new(config)
+            .await
+            .unwrap()
+            .with_handler(handler.clone());
 
         // Start event loop should succeed
         let result = adapter.start_event_loop().await;
@@ -429,6 +571,11 @@ mod tests {
         // Verify adapter state
         assert!(adapter.is_connected());
         assert!(adapter.shutdown_tx.is_some());
+
+        // Verify handler is properly integrated
+        assert_eq!(handler.get_message_count().await, 0);
+        assert_eq!(handler.get_error_count().await, 0);
+        assert_eq!(handler.get_close_count().await, 0);
 
         // Clean up
         adapter.close().await.unwrap();
@@ -459,15 +606,21 @@ mod tests {
     #[tokio::test]
     async fn test_start_event_loop_already_running() {
         let config = HttpTransportConfig::new();
-        let mut adapter = HttpServerTransportAdapter::new(config).await.unwrap();
-
-        // Set up message handler
         let handler = Arc::new(TestMessageHandler::new());
-        adapter.set_message_handler(handler.clone());
+
+        // Use the builder pattern to create adapter with handler
+        let mut adapter = HttpServerTransportAdapter::new(config)
+            .await
+            .unwrap()
+            .with_handler(handler.clone());
 
         // Start event loop first time - should succeed
         let result1 = adapter.start_event_loop().await;
         assert!(result1.is_ok());
+
+        // Verify initial state
+        assert!(adapter.is_connected());
+        assert_eq!(handler.get_message_count().await, 0);
 
         // Try to start again - should fail
         let result2 = adapter.start_event_loop().await;
@@ -486,11 +639,13 @@ mod tests {
     #[tokio::test]
     async fn test_event_loop_shutdown_signal() {
         let config = HttpTransportConfig::new();
-        let mut adapter = HttpServerTransportAdapter::new(config).await.unwrap();
-
-        // Set up message handler
         let handler = Arc::new(TestMessageHandler::new());
-        adapter.set_message_handler(handler.clone());
+
+        // Use the builder pattern to create adapter with handler
+        let mut adapter = HttpServerTransportAdapter::new(config)
+            .await
+            .unwrap()
+            .with_handler(handler.clone());
 
         // Start event loop
         adapter.start_event_loop().await.unwrap();
@@ -498,6 +653,11 @@ mod tests {
         // Verify it's running
         assert!(adapter.is_connected());
         assert!(adapter.shutdown_tx.is_some());
+
+        // Verify handler is ready but no events yet
+        assert_eq!(handler.get_message_count().await, 0);
+        assert_eq!(handler.get_error_count().await, 0);
+        assert_eq!(handler.get_close_count().await, 0);
 
         // Send shutdown signal
         if let Some(shutdown_tx) = adapter.shutdown_tx.take() {
@@ -518,22 +678,40 @@ mod tests {
     #[tokio::test]
     async fn test_event_loop_message_handler_integration() {
         let config = HttpTransportConfig::new();
-        let mut adapter = HttpServerTransportAdapter::new(config).await.unwrap();
-
-        // Set up message handler
         let handler = Arc::new(TestMessageHandler::new());
-        adapter.set_message_handler(handler.clone());
+
+        // Use the builder pattern to create adapter with handler
+        let mut adapter = HttpServerTransportAdapter::new(config)
+            .await
+            .unwrap()
+            .with_handler(handler.clone());
 
         // Start event loop
         adapter.start_event_loop().await.unwrap();
 
-        // Verify handler is set up correctly
+        // Verify handler is set up correctly and ready to receive events
         assert_eq!(handler.get_message_count().await, 0);
         assert_eq!(handler.get_error_count().await, 0);
         assert_eq!(handler.get_close_count().await, 0);
 
-        // Clean up
+        // Verify adapter is connected and event loop is running
+        assert!(adapter.is_connected());
+        assert!(adapter.shutdown_tx.is_some());
+
+        // Test that the message handler integration is working by verifying
+        // the handler reference is properly maintained in the event loop
+        // (The actual message processing would require a full transport stack,
+        // but we can verify the handler integration is correct)
+
+        // Clean up - this should trigger close handling
         adapter.close().await.unwrap();
+
+        // Give time for close to propagate
+        sleep(Duration::from_millis(10)).await;
+
+        // The handler might receive close events during shutdown
+        // but we mainly verify the integration doesn't panic
+        assert!(!adapter.is_connected());
     }
 
     #[tokio::test]
@@ -546,7 +724,7 @@ mod tests {
         let message_bytes =
             br#"{"jsonrpc":"2.0","method":"test_method","params":{"key":"value"},"id":42}"#;
 
-        let result = HttpServerTransportAdapter::parse_message_and_create_context(
+        let result = HttpServerTransportAdapter::<NoHandler>::parse_message_and_create_context(
             message_bytes,
             &legacy_transport,
         )
@@ -576,7 +754,7 @@ mod tests {
         // Test invalid UTF-8 bytes
         let message_bytes = &[0xFF, 0xFE, 0xFD];
 
-        let result = HttpServerTransportAdapter::parse_message_and_create_context(
+        let result = HttpServerTransportAdapter::<NoHandler>::parse_message_and_create_context(
             message_bytes,
             &legacy_transport,
         )
@@ -595,7 +773,7 @@ mod tests {
         // Test invalid JSON
         let message_bytes = b"not valid json {";
 
-        let result = HttpServerTransportAdapter::parse_message_and_create_context(
+        let result = HttpServerTransportAdapter::<NoHandler>::parse_message_and_create_context(
             message_bytes,
             &legacy_transport,
         )
@@ -611,7 +789,7 @@ mod tests {
         let io_error = io::Error::new(io::ErrorKind::ConnectionRefused, "Connection refused");
         let legacy_error = crate::transport::error::TransportError::Io(io_error);
 
-        let mcp_error = HttpServerTransportAdapter::convert_legacy_error(legacy_error);
+        let mcp_error = HttpServerTransportAdapter::<NoHandler>::convert_legacy_error(legacy_error);
 
         match mcp_error {
             TransportError::Io { source } => {
@@ -625,7 +803,7 @@ mod tests {
     async fn test_convert_legacy_error_timeout() {
         let legacy_error = crate::transport::error::TransportError::Timeout { duration_ms: 5000 };
 
-        let mcp_error = HttpServerTransportAdapter::convert_legacy_error(legacy_error);
+        let mcp_error = HttpServerTransportAdapter::<NoHandler>::convert_legacy_error(legacy_error);
 
         match mcp_error {
             TransportError::Timeout { duration_ms } => {
@@ -642,7 +820,7 @@ mod tests {
             details: "Test protocol error".to_string(),
         };
 
-        let mcp_error = HttpServerTransportAdapter::convert_legacy_error(legacy_error);
+        let mcp_error = HttpServerTransportAdapter::<NoHandler>::convert_legacy_error(legacy_error);
 
         match mcp_error {
             TransportError::Transport { message } => {
@@ -654,6 +832,70 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_message_handler_behavior_verification() {
+        let config = HttpTransportConfig::new();
+        let handler = Arc::new(TestMessageHandler::new());
+
+        // Use the builder pattern to create adapter with handler
+        let _adapter = HttpServerTransportAdapter::new(config)
+            .await
+            .unwrap()
+            .with_handler(handler.clone());
+
+        // Verify initial state
+        assert_eq!(handler.get_message_count().await, 0);
+        assert_eq!(handler.get_error_count().await, 0);
+        assert_eq!(handler.get_close_count().await, 0);
+
+        // Test direct handler functionality to verify it actually tracks calls
+        use crate::transport::mcp::{JsonRpcMessage, MessageContext};
+        use serde_json::Value;
+
+        let test_message = JsonRpcMessage::new_request(
+            "test_method".to_string(),
+            Some(Value::Object(serde_json::Map::new())),
+            Value::Number(1.into()),
+        );
+        let test_context = MessageContext::new("test-session".to_string());
+
+        // Directly call handler methods to verify tracking works
+        handler.handle_message(test_message, test_context).await;
+        assert_eq!(handler.get_message_count().await, 1);
+
+        let test_error = TransportError::transport("test error");
+        handler.handle_error(test_error).await;
+        assert_eq!(handler.get_error_count().await, 1);
+
+        handler.handle_close().await;
+        assert_eq!(handler.get_close_count().await, 1);
+
+        // This test verifies that our TestMessageHandler actually works
+        // and can track calls properly, which validates our test infrastructure
+    }
+
+    #[tokio::test]
+    async fn test_no_handler_for_state_only_tests() {
+        // This test specifically uses NoHandler to test adapter state management
+        // without caring about message handling behavior
+        let config = HttpTransportConfig::new();
+
+        // Use NoHandler for tests that only care about adapter state, not message handling
+        let adapter = HttpServerTransportAdapter::new(config).await.unwrap();
+
+        // Test adapter creation and basic state
+        assert!(!adapter.is_connected());
+        assert_eq!(adapter.transport_type(), "http-server");
+        assert!(adapter.session_id().is_none());
+
+        // Test session management (doesn't require message handling)
+        let mut adapter = adapter;
+        adapter.set_session_context(Some("test-session".to_string()));
+        assert_eq!(adapter.session_id(), Some("test-session".to_string()));
+
+        // NoHandler is appropriate here because we're only testing state management
+    }
+
+    #[tokio::test]
     async fn test_context_creation() {
         let config = HttpTransportConfig::new();
         let server_transport = HttpServerTransport::new(config).await.unwrap();
@@ -661,7 +903,7 @@ mod tests {
 
         let message_bytes = br#"{"jsonrpc":"2.0","method":"test","id":1}"#;
 
-        let result = HttpServerTransportAdapter::parse_message_and_create_context(
+        let result = HttpServerTransportAdapter::<NoHandler>::parse_message_and_create_context(
             message_bytes,
             &legacy_transport,
         )

@@ -16,6 +16,7 @@ pub mod client;
 pub mod client_adapter;
 pub mod config;
 pub mod connection_manager;
+pub mod engine;
 pub mod parser;
 pub mod server;
 pub mod server_adapter;
@@ -30,6 +31,10 @@ pub use config::HttpTransportConfig;
 pub use connection_manager::{
     ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot,
     HealthCheckConfig, HealthCheckResult, HttpConnectionManager,
+};
+pub use engine::{
+    AuthenticationConfig, AuthenticationContext, HttpEngine, HttpEngineError, HttpMiddleware,
+    HttpResponse, McpRequestHandler, ResponseMode,
 };
 pub use parser::RequestParser;
 pub use server::HttpServerTransport;

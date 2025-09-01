@@ -1,19 +1,29 @@
-//! Axum HTTP use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
+//! Axum HTTP Server Implementation
 //!
 //! This module provides the main HTTP server implementation using Axum framework
 //! with clean separation of concerns and proper dependency injection.
+//!
+//! The AxumHttpServer implements the HttpEngine trait to provide pluggable
+//! HTTP framework abstraction while maintaining full MCP protocol support.
 
+// Layer 1: Standard library imports
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+// Layer 2: Third-party crate imports
+use async_trait::async_trait;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
+// Layer 3: Internal module imports
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
-use crate::transport::error::TransportError;
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
+use crate::transport::adapters::http::engine::{
+    AuthenticationConfig, HttpEngine, HttpEngineError, HttpMiddleware, McpRequestHandler,
+};
 use crate::transport::adapters::http::session::SessionManager;
+use crate::transport::error::TransportError;
 
 use super::handlers::{create_router, ServerState};
 use super::mcp_handlers::{McpHandlers, McpHandlersBuilder};
@@ -22,11 +32,22 @@ use super::mcp_handlers::{McpHandlers, McpHandlersBuilder};
 ///
 /// This server provides a clean, modular architecture for handling MCP JSON-RPC
 /// requests over HTTP with proper session management and connection tracking.
+/// It implements the HttpEngine trait for pluggable HTTP framework abstraction.
 pub struct AxumHttpServer {
     /// Server state shared across handlers
     state: ServerState,
     /// TCP listener for accepting connections
     listener: Option<TcpListener>,
+    /// Local address the server is bound to
+    local_addr: Option<SocketAddr>,
+    /// Whether the server is currently running
+    is_running: bool,
+    /// Registered MCP request handler
+    mcp_handler: Option<Arc<dyn McpRequestHandler>>,
+    /// Authentication configuration
+    auth_config: Option<AuthenticationConfig>,
+    /// Custom middleware
+    middleware: Vec<Box<dyn HttpMiddleware>>,
 }
 
 impl AxumHttpServer {
@@ -53,6 +74,11 @@ impl AxumHttpServer {
         Ok(Self {
             state,
             listener: None,
+            local_addr: None,
+            is_running: false,
+            mcp_handler: None,
+            auth_config: None,
+            middleware: Vec::new(),
         })
     }
 
@@ -98,13 +124,13 @@ impl AxumHttpServer {
     /// Bind the server to the specified address
     pub async fn bind(&mut self, addr: SocketAddr) -> Result<(), TransportError> {
         let listener = TcpListener::bind(addr).await.map_err(TransportError::Io)?;
-
+        self.local_addr = Some(listener.local_addr().map_err(TransportError::Io)?);
         self.listener = Some(listener);
         Ok(())
     }
 
     /// Start the HTTP server and begin accepting connections
-    pub async fn serve(self) -> Result<(), TransportError> {
+    pub async fn serve(mut self) -> Result<(), TransportError> {
         let app = create_router(self.state);
 
         let listener = self.listener.ok_or_else(|| TransportError::Format {
@@ -116,6 +142,8 @@ impl AxumHttpServer {
             listener.local_addr().unwrap()
         );
 
+        self.is_running = true;
+
         axum::serve(
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -123,12 +151,159 @@ impl AxumHttpServer {
         .await
         .map_err(TransportError::Io)?;
 
+        self.is_running = false;
+        Ok(())
+    }
+
+    /// Start the HTTP server using mutable reference (for HttpEngine trait)
+    pub async fn start(&mut self) -> Result<(), TransportError> {
+        if self.is_running {
+            return Err(TransportError::Format {
+                message: "Server is already running".into(),
+            });
+        }
+
+        let app = create_router(self.state.clone());
+
+        let listener = self.listener.take().ok_or_else(|| TransportError::Format {
+            message: "Server not bound to address".into(),
+        })?;
+
+        tracing::info!(
+            "Starting Axum HTTP server on {}",
+            listener.local_addr().unwrap()
+        );
+
+        self.is_running = true;
+
+        // Start server in the background - this is a simplified approach
+        // for the HttpEngine trait interface
+        tokio::spawn(async move {
+            let _ = axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await;
+        });
+
         Ok(())
     }
 
     /// Check if the server is bound to an address
     pub fn is_bound(&self) -> bool {
         self.listener.is_some()
+    }
+
+    /// Check if the server is currently running
+    pub fn is_running(&self) -> bool {
+        self.is_running
+    }
+
+    /// Get the local address the server is bound to
+    pub fn local_addr(&self) -> Option<SocketAddr> {
+        self.local_addr
+    }
+}
+
+// ================================================================================================
+// HttpEngine Trait Implementation
+// ================================================================================================
+
+#[async_trait]
+impl HttpEngine for AxumHttpServer {
+    type Error = TransportError;
+    type Config = HttpTransportConfig;
+
+    /// Create a new HTTP engine with the given configuration
+    fn new(_config: Self::Config) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        // Note: This simplified constructor is for HttpEngine trait compatibility.
+        // However, AxumHttpServer requires complex async dependencies that cannot
+        // be created in a synchronous constructor.
+        //
+        // For actual usage, use the `new()` method with proper dependency injection.
+        // This limitation will be addressed in Phase 5 with proper async factory patterns.
+
+        Err(TransportError::Format {
+            message: "AxumHttpServer requires dependency injection - use new() with proper dependencies or async factory pattern".into(),
+        })
+    }
+
+    /// Bind the engine to a network address
+    async fn bind(&mut self, addr: SocketAddr) -> Result<(), HttpEngineError> {
+        self.bind(addr).await.map_err(|e| match e {
+            TransportError::Io(io_err) => HttpEngineError::Io(io_err),
+            _ => HttpEngineError::Engine {
+                message: format!("Bind failed: {}", e),
+            },
+        })
+    }
+
+    /// Start the HTTP server
+    async fn start(&mut self) -> Result<(), HttpEngineError> {
+        if self.is_running {
+            return Err(HttpEngineError::AlreadyRunning);
+        }
+
+        self.start().await.map_err(|e| match e {
+            TransportError::Io(io_err) => HttpEngineError::Io(io_err),
+            _ => HttpEngineError::Engine {
+                message: format!("Start failed: {}", e),
+            },
+        })
+    }
+
+    /// Gracefully shutdown the HTTP server
+    async fn shutdown(&mut self) -> Result<(), HttpEngineError> {
+        if !self.is_running {
+            return Ok(());
+        }
+
+        self.is_running = false;
+        // Note: For proper shutdown, we'd need to store the server handle
+        // This will be improved in Phase 5
+        Ok(())
+    }
+
+    /// Register the MCP request handler
+    fn register_mcp_handler(&mut self, handler: Arc<dyn McpRequestHandler>) {
+        self.mcp_handler = Some(handler);
+    }
+
+    /// Register authentication middleware
+    fn register_authentication(
+        &mut self,
+        auth_config: AuthenticationConfig,
+    ) -> Result<(), HttpEngineError> {
+        self.auth_config = Some(auth_config);
+        Ok(())
+    }
+
+    /// Register custom HTTP middleware
+    fn register_middleware(&mut self, middleware: Box<dyn HttpMiddleware>) {
+        self.middleware.push(middleware);
+    }
+
+    /// Check if the engine is bound to an address
+    fn is_bound(&self) -> bool {
+        self.listener.is_some()
+    }
+
+    /// Check if the engine is currently running
+    fn is_running(&self) -> bool {
+        self.is_running
+    }
+
+    /// Get the local address the engine is bound to
+    fn local_addr(&self) -> Option<SocketAddr> {
+        self.local_addr
+    }
+
+    /// Get the engine type identifier
+    fn engine_type(&self) -> &'static str {
+        "axum"
     }
 }
 

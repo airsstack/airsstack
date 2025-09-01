@@ -46,6 +46,12 @@ pub mod streaming;
 pub mod traits;
 pub mod zero_copy;
 
+// Re-export http module for backward compatibility
+// This provides access to transport::http::* paths used by tests and examples
+pub mod http {
+    pub use crate::transport::adapters::http::*;
+}
+
 // Re-export key types for convenient access
 pub use buffer::*;
 pub use error::*;

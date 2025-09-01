@@ -17,6 +17,25 @@ use crate::transport::mcp::{
 };
 use crate::transport::traits::Transport as LegacyTransport;
 
+/// Default no-op handler for when no message handler is provided
+#[derive(Debug, Clone)]
+pub struct NoHandler;
+
+#[async_trait]
+impl MessageHandler for NoHandler {
+    async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {
+        // No-op: messages are ignored
+    }
+
+    async fn handle_error(&self, _error: TransportError) {
+        // No-op: errors are ignored
+    }
+
+    async fn handle_close(&self) {
+        // No-op: close events are ignored
+    }
+}
+
 /// HTTP Client Transport Adapter
 ///
 /// Bridges the legacy HttpClientTransport to the new MCP-compliant Transport interface.
@@ -33,9 +52,30 @@ use crate::transport::traits::Transport as LegacyTransport;
 ///
 /// ## Usage
 ///
-/// ```rust
-/// use crate::transport::adapters::http::{HttpClientTransportAdapter, HttpTransportConfig};
-/// use crate::transport::mcp::transport::Transport;
+/// ```rust,no_run
+/// use airs_mcp::transport::http::{HttpClientTransportAdapter, HttpTransportConfig};
+/// use airs_mcp::transport::mcp::{Transport, MessageHandler, JsonRpcMessage, MessageContext};
+/// use airs_mcp::transport::McpTransportError;
+/// use std::sync::Arc;
+/// use serde_json::Value;
+///
+/// #[derive(Clone)]
+/// struct MyHandler;
+///
+/// #[async_trait::async_trait]
+/// impl MessageHandler for MyHandler {
+///     async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {
+///         // Handle incoming messages
+///     }
+///     
+///     async fn handle_error(&self, _error: McpTransportError) {
+///         // Handle transport errors
+///     }
+///     
+///     async fn handle_close(&self) {
+///         // Handle connection close
+///     }
+/// }
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,23 +83,28 @@ use crate::transport::traits::Transport as LegacyTransport;
 ///     let mut adapter = HttpClientTransportAdapter::new(config).await?;
 ///     
 ///     // Set message handler
-///     adapter.set_message_handler(my_handler);
+///     let handler = Arc::new(MyHandler);
+///     adapter.set_message_handler(handler);
 ///     
 ///     // Start the transport
 ///     adapter.start().await?;
 ///     
 ///     // Send messages
-///     adapter.send(my_message).await?;
+///     let message = JsonRpcMessage::new_request("test_method", None, Value::Number(1.into()));
+///     adapter.send(message).await?;
 ///     
 ///     Ok(())
 /// }
 /// ```
-pub struct HttpClientTransportAdapter {
+pub struct HttpClientTransportAdapter<H = NoHandler>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
     /// Legacy HTTP client transport (thread-safe for background loop)
     legacy_transport: Arc<Mutex<HttpClientTransport>>,
 
-    /// Message handler for event-driven processing
-    message_handler: Option<Arc<dyn MessageHandler>>,
+    /// Message handler for event-driven processing (zero-cost generic)
+    message_handler: Option<Arc<H>>,
 
     /// Shutdown signal for graceful termination
     shutdown_tx: Option<mpsc::Sender<()>>,
@@ -71,12 +116,16 @@ pub struct HttpClientTransportAdapter {
     is_connected: bool,
 }
 
-impl HttpClientTransportAdapter {
-    /// Create a new HTTP client transport adapter
+// Implementation for default NoHandler type
+impl HttpClientTransportAdapter<NoHandler> {
+    /// Create a new HTTP client transport adapter with no message handler
     ///
     /// This creates the adapter and initializes the underlying HTTP client transport.
     /// The legacy transport is wrapped in Arc<Mutex<>> to enable safe access from
     /// the background event loop.
+    ///
+    /// For zero-cost abstractions, prefer using `with_handler()` to specify
+    /// a concrete handler type at compile time.
     ///
     /// # Arguments
     ///
@@ -89,9 +138,15 @@ impl HttpClientTransportAdapter {
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// let config = HttpTransportConfig::new();
-    /// let adapter = HttpClientTransportAdapter::new(config).await?;
+    /// ```rust,no_run
+    /// use airs_mcp::transport::http::{HttpClientTransportAdapter, HttpTransportConfig};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = HttpTransportConfig::new();
+    ///     let adapter = HttpClientTransportAdapter::new(config).await?;
+    ///     Ok(())
+    /// }
     /// ```
     pub async fn new(config: HttpTransportConfig) -> Result<Self, TransportError> {
         let legacy_transport = HttpClientTransport::new(config);
@@ -99,6 +154,88 @@ impl HttpClientTransportAdapter {
         Ok(Self {
             legacy_transport: Arc::new(Mutex::new(legacy_transport)),
             message_handler: None,
+            shutdown_tx: None,
+            session_id: None,
+            is_connected: false,
+        })
+    }
+
+    /// Builder pattern: Add a typed message handler (zero-cost abstraction)
+    ///
+    /// This method converts the adapter to use a concrete handler type,
+    /// enabling compile-time optimizations and eliminating dynamic dispatch.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - Message handler with concrete type
+    ///
+    /// # Returns
+    ///
+    /// * `HttpClientTransportAdapter<H>` - Adapter with typed handler
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::http::{HttpClientTransportAdapter, HttpTransportConfig};
+    /// use airs_mcp::transport::mcp::{MessageHandler, JsonRpcMessage, MessageContext};
+    /// use airs_mcp::transport::McpTransportError;
+    /// use std::sync::Arc;
+    ///
+    /// #[derive(Clone)]
+    /// struct MyHandler;
+    ///
+    /// #[async_trait::async_trait]
+    /// impl MessageHandler for MyHandler {
+    ///     async fn handle_message(&self, _message: JsonRpcMessage, _context: MessageContext) {}
+    ///     async fn handle_error(&self, _error: McpTransportError) {}
+    ///     async fn handle_close(&self) {}
+    /// }
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let config = HttpTransportConfig::new();
+    ///     let handler = Arc::new(MyHandler);
+    ///     
+    ///     // Zero-cost abstraction - no dynamic dispatch!
+    ///     let adapter = HttpClientTransportAdapter::new(config)
+    ///         .await?
+    ///         .with_handler(handler);
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn with_handler<H>(self, handler: Arc<H>) -> HttpClientTransportAdapter<H>
+    where
+        H: MessageHandler + Send + Sync + 'static,
+    {
+        HttpClientTransportAdapter {
+            legacy_transport: self.legacy_transport,
+            message_handler: Some(handler),
+            shutdown_tx: self.shutdown_tx,
+            session_id: self.session_id,
+            is_connected: self.is_connected,
+        }
+    }
+}
+
+// Generic implementation for all handler types
+impl<H> HttpClientTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
+    /// Create a new adapter with a specific handler type (zero-cost)
+    ///
+    /// This is the preferred constructor for performance-critical code
+    /// as it eliminates all dynamic dispatch overhead.
+    pub async fn new_with_handler(
+        config: HttpTransportConfig,
+        handler: Arc<H>,
+    ) -> Result<Self, TransportError> {
+        let legacy_transport = HttpClientTransport::new(config);
+
+        Ok(Self {
+            legacy_transport: Arc::new(Mutex::new(legacy_transport)),
+            message_handler: Some(handler),
             shutdown_tx: None,
             session_id: None,
             is_connected: false,
@@ -235,7 +372,10 @@ impl HttpClientTransportAdapter {
 }
 
 #[async_trait]
-impl Transport for HttpClientTransportAdapter {
+impl<H> Transport for HttpClientTransportAdapter<H>
+where
+    H: MessageHandler + Send + Sync + 'static,
+{
     type Error = TransportError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -286,8 +426,10 @@ impl Transport for HttpClientTransportAdapter {
         Ok(())
     }
 
-    fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>) {
-        self.message_handler = Some(handler);
+    fn set_message_handler(&mut self, _handler: Arc<dyn MessageHandler>) {
+        // Generic adapters don't support dynamic handlers
+        // Users should use the builder pattern instead
+        panic!("set_message_handler is not supported for generic adapters. Use with_handler() or new_with_handler() for zero-cost abstractions.");
     }
 
     fn session_id(&self) -> Option<String> {
@@ -363,7 +505,7 @@ mod tests {
 
         let message_bytes = br#"{"jsonrpc":"2.0","method":"test","id":1}"#;
 
-        let result = HttpClientTransportAdapter::parse_message_and_create_context(
+        let result = HttpClientTransportAdapter::<NoHandler>::parse_message_and_create_context(
             message_bytes,
             &legacy_transport,
         )
