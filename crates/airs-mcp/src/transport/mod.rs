@@ -6,8 +6,11 @@
 //!
 //! # Architecture
 //!
-//! The transport layer is built around the `Transport` trait, which defines
-//! the core operations for sending and receiving messages:
+//! The transport layer is built around two different approaches:
+//!
+//! ## Legacy Transport (Current)
+//! The current `Transport` trait defines core operations for sending and receiving
+//! messages using a blocking sequential pattern:
 //!
 //! ```rust
 //! use airs_mcp::transport::Transport;
@@ -22,6 +25,34 @@
 //!     // Close the connection
 //!     transport.close().await?;
 //!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## MCP-Compliant Transport (New)
+//! The new MCP-compliant transport layer provides event-driven message handling
+//! aligned with the official MCP specification:
+//!
+//! ```rust
+//! use airs_mcp::transport::mcp::{Transport, MessageHandler, JsonRpcMessage};
+//! use std::sync::Arc;
+//!
+//! # struct MyHandler;
+//! # use async_trait::async_trait;
+//! # #[async_trait]
+//! # impl MessageHandler for MyHandler {
+//! #     async fn handle_message(&self, message: JsonRpcMessage, context: airs_mcp::transport::mcp::MessageContext) {}
+//! #     async fn handle_error(&self, error: airs_mcp::transport::mcp::TransportError) {}
+//! #     async fn handle_close(&self) {}
+//! # }
+//!
+//! async fn mcp_example() -> Result<(), Box<dyn std::error::Error>> {
+//!     let handler = Arc::new(MyHandler);
+//!     // let mut transport = HttpServerTransport::new(config).await?;
+//!     // transport.set_message_handler(handler);
+//!     // transport.start().await?;
+//!     
+//!     // Transport calls handler.handle_message() for each incoming message
 //!     Ok(())
 //! }
 //! ```
@@ -77,6 +108,7 @@
 pub mod buffer;
 pub mod error;
 pub mod http;
+pub mod mcp;
 pub mod stdio;
 pub mod streaming;
 pub mod traits;
@@ -89,6 +121,12 @@ pub use stdio::*;
 pub use streaming::*;
 pub use traits::*;
 pub use zero_copy::*;
+
+// MCP-compliant transport re-exports
+pub use mcp::{
+    JsonRpcError as McpJsonRpcError, JsonRpcMessage as McpJsonRpcMessage, MessageContext,
+    MessageHandler, Transport as McpTransport, TransportError as McpTransportError,
+};
 
 // HTTP transport re-exports (specific to avoid ambiguity)
 pub use http::{

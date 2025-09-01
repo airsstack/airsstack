@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-09-01  
-**Total Knowledge Docs**: 17  
+**Total Knowledge Docs**: 21  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 5  
+**Documentation Count**: 8  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -41,6 +41,18 @@
   - **Complexity**: High - Production-ready session coordination with multi-client support
   - **Updated**: 2025-09-01
   - **Related**: HttpServerTransport completion, Transport trait adapter pattern, MCP integration
+
+- **[HTTP Transport Session Management](./architecture/KNOWLEDGE-001-http-transport-session-management.md)** ✅ NEW
+  - **Focus**: Comprehensive analysis of HTTP transport session coordination patterns, mpsc/oneshot channels
+  - **Complexity**: High - Deep technical analysis of coordination mechanisms and performance implications
+  - **Updated**: 2025-09-01
+  - **Related**: Session coordination patterns, correlation mechanisms, WebSocket vs HTTP session management
+
+- **[HTTP Engine Abstraction Architecture](./architecture/KNOWLEDGE-004-http-engine-abstraction-architecture.md)** ✅ NEW
+  - **Focus**: Pluggable HTTP engine design supporting Axum, Rocket, Warp with consistent Transport interface
+  - **Complexity**: Critical - Framework abstraction enabling team choice while maintaining MCP protocol compliance
+  - **Updated**: 2025-09-01
+  - **Related**: ADR-001 (MCP-compliant transport redesign), OAuth2 integration, framework flexibility
 
 ### Domain
 **Documentation Count**: 1  
@@ -79,7 +91,7 @@
   - **Related**: TASK013 (HTTP SSE implementation), ecosystem transition planning
 
 ### Patterns
-**Documentation Count**: 5  
+**Documentation Count**: 6  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -114,6 +126,12 @@
   - **Updated**: 2025-08-21
   - **Related**: TASK013 (HTTP SSE legacy support), HTTP transport
 
+- **[MCP Specification Event-Driven Patterns](./patterns/KNOWLEDGE-002-mcp-specification-event-driven-patterns.md)** ✅ NEW
+  - **Focus**: Official MCP specification analysis, event-driven vs sequential patterns, SDK compliance
+  - **Complexity**: Critical - Foundation patterns for MCP specification alignment and transport redesign
+  - **Updated**: 2025-09-01
+  - **Related**: ADR-001 (MCP-compliant transport redesign), official SDK research, Transport trait redesign
+
 ### Performance
 **Documentation Count**: 1  
 **Complexity Level**: High  
@@ -127,7 +145,7 @@
   - **Related**: ADR-006 (Benchmarking environment), performance validation
 
 ### Security
-**Documentation Count**: 2  
+**Documentation Count**: 3  
 **Complexity Level**: Critical  
 **Maintenance Priority**: Critical
 
@@ -144,41 +162,68 @@
   - **Updated**: 2025-08-25
   - **Related**: Human-in-the-loop design, security strategy, client behavior analysis
 
+- **[OAuth2 Integration Strategy](./security/KNOWLEDGE-005-oauth2-integration-strategy.md)** ✅ NEW
+  - **Focus**: Framework-agnostic OAuth2 integration, provider configurations, role-based authorization
+  - **Complexity**: Critical - Comprehensive authentication/authorization strategy across all HTTP engines
+  - **Updated**: 2025-09-01
+  - **Related**: HTTP engine abstraction, AuthContext integration, security best practices
+
 ## Documentation by Complexity
 
-### Critical Complexity (2 documents)
+### Critical Complexity (5 documents)
 - MCP Official Specification Protocol
 - OAuth2.1 Middleware Specification
+- MCP Specification Event-Driven Patterns
+- HTTP Engine Abstraction Architecture
+- OAuth2 Integration Strategy
 
-### High Complexity (7 documents)
+### High Complexity (14 documents)
 - Transport Layer Design
+- HTTP SSE Transport Architecture
+- HTTP Transport Adapter Pattern Analysis
+- Phase 2 Session Coordination Implementation
+- HTTP Transport Session Management
 - Async Error Handling
+- HTTP SSE Development Phases
+- Static Dispatch Optimization
+- Rust Lifetime Bounds Fundamentals
 - HTTP SSE Message Patterns
 - Benchmarking Methodology
 - User Behavior Logging Strategy
-- Static Dispatch Optimization
-- Rust Lifetime Bounds Fundamentals
+- HTTP Streamable Examples Implementation Plan
+- HTTP SSE Migration Strategy
 
-### Medium Complexity (1 document)
+### Medium Complexity (2 documents)
 - Claude Desktop Integration Patterns
+- HTTP SSE Migration Strategy
 
 ### Low Complexity (0 documents)
 *No low complexity documents yet*
 
 ## Documentation by Priority
 
-### Critical Priority (2 documents)
+### Critical Priority (5 documents)
 - MCP Official Specification Protocol (Domain knowledge)
 - OAuth2.1 Middleware Specification (Security implementation)
+- MCP Specification Event-Driven Patterns (Foundation patterns)
+- HTTP Engine Abstraction Architecture (Framework abstraction)
+- OAuth2 Integration Strategy (Authentication/authorization)
 
-### High Priority (7 documents)
+### High Priority (16 documents)
 - Transport Layer Design (Core architecture)
+- HTTP SSE Transport Architecture (SSE compatibility)
+- HTTP Transport Adapter Pattern Analysis (Architectural analysis)
+- Phase 2 Session Coordination Implementation (Production implementation)
+- HTTP Transport Session Management (Session coordination)
 - Claude Desktop Integration Patterns (Production deployment)
 - Async Error Handling (Core patterns)
-- HTTP SSE Message Patterns (Real-time features)
-- User Behavior Logging Strategy (Security strategy)
+- HTTP SSE Development Phases (Development methodology)
 - Static Dispatch Optimization (Performance patterns)
 - Rust Lifetime Bounds Fundamentals (Language fundamentals)
+- HTTP SSE Message Patterns (Real-time features)
+- User Behavior Logging Strategy (Security strategy)
+- HTTP Streamable Examples Implementation Plan (Integration strategy)
+- HTTP SSE Migration Strategy (Ecosystem transition)
 
 ### Medium Priority (1 document)
 - Benchmarking Methodology (Performance validation)
