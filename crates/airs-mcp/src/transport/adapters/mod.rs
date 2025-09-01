@@ -68,6 +68,9 @@ pub mod stdio;
 // Re-exports for convenience
 pub use stdio::StdioTransportAdapter;
 
+// HTTP transport adapters (MCP-compliant event-driven interfaces)
+pub use http::{HttpClientTransportAdapter, HttpServerTransportAdapter};
+
 // HTTP transport re-exports (maintaining backward compatibility)
 pub use http::{
     cache_control, content_types, events, extract_last_event_id, extract_session_id, headers,
