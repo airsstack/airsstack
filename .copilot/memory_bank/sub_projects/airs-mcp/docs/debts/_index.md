@@ -1,15 +1,15 @@
 # Technical Debt Registry - airs-mcp
 
 **Last Updated**: 2025-09-01  
-**Total Debt Items**: 4  
-**High Priority Items**: 2  
+**Total Debt Items**: 5  
+**High Priority Items**: 3  
 **In Progress**: 0
 
 ## Summary by Category
 
 ### Architecture Debt
 - **Critical**: 0 items
-- **High**: 2 items  
+- **High**: 3 items  
 - **Medium**: 0 items
 - **Low**: 0 items
 
@@ -42,6 +42,7 @@
 ### Medium Priority
 | ID | Description | Category | Created | Estimated Effort | Owner | GitHub Issue |  
 |----|-------------|----------|---------|------------------|-------|--------------|
+| DEBT-001 | HTTP Transport Trait Impedance Mismatch | Architecture | 2025-09-01 | 2-3 weeks | Core Team | TBD |
 | DEBT-002 | HTTP transport performance optimization | Performance | 2025-08-21 | 1-2 days | Core Team | TBD |
 | DEBT-003 | Deprecated HttpStreamableTransport cleanup | Code Quality | 2025-08-21 | 4 hours | Core Team | TBD |
 
@@ -52,6 +53,12 @@
 | - | No resolved debt items yet | - | - | - | - |
 
 ## Technical Debt Details
+
+### DEBT-001: HTTP Transport Trait Impedance Mismatch  
+**Reference**: `docs/debts/DEBT-001-http-transport-trait-impedance-mismatch.md`  
+**Impact**: Complex debugging, limited HTTP feature extensibility, architectural confusion  
+**Root Cause**: Fundamental semantic mismatch between Transport trait (single connection) and HTTP (multi-session)  
+**Remediation**: 2-3 week architectural redesign with HTTP-native interface or multi-session Transport trait
 
 ### DEBT-004: HttpServerTransport Adapter Pattern Incomplete  
 **Reference**: `docs/debts/DEBT-004-http-server-transport-adapter-incomplete.md`  
