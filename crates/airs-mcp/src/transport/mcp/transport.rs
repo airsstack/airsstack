@@ -234,8 +234,8 @@ pub trait Transport: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use async_trait::async_trait;
+    use std::sync::Arc;
     use tokio::sync::Mutex;
 
     // Mock implementations for testing
