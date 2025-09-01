@@ -1,37 +1,63 @@
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: HTTP TRANSPORT ADAPTER PATTERN PHASE 2 COMPLETE - 2025-09-01
+## CURRENT FOCUS: TASK-005 MODULE REFACTORING REQUIRED - 2025-09-01
 
-### 🎉 PHASE 2 COMPLETE: HTTP SERVER TRANSPORT SESSION COORDINATION - ✅ COMPLETE
+### 🔧 CRITICAL REFACTORING PHASE: MCP MODULE STRUCTURE REORGANIZATION
 
-**IMPLEMENTATION STATUS**: Phase 2 session-aware HTTP transport adapter fully implemented and tested.
+**IMPLEMENTATION STATUS**: Phase 1 Foundation Architecture complete, but module structure requires refactoring before Phase 2.
 
-**✅ MAJOR ARCHITECTURAL ACHIEVEMENT**:
+**✅ PHASE 1 FOUNDATION COMPLETE**:
 
-1. **HTTP Transport Adapter Pattern** - ✅ Phase 2 Complete
-   - ✅ **Session Coordination Architecture**: Multi-session HTTP request/response correlation through Transport trait
-   - ✅ **Adapter Pattern Implementation**: HttpServerTransport properly bridges AxumHttpServer to Transport trait
-   - ✅ **Session-Aware Message Flow**: `receive()` correlates with session ID, `send()` delivers to correct session
-   - ✅ **Channel-Based Coordination**: `mpsc::unbounded_channel` for requests, `HashMap<SessionId, oneshot::Sender>` for responses
-   - ✅ **HTTP Handler Integration**: Complete interfaces for HTTP handlers to coordinate with MCP ecosystem
+1. **MCP-Compliant Transport Implementation** - ✅ Complete
+   - ✅ **Event-Driven Transport Trait**: New `transport::mcp::Transport` trait matching official MCP specification
+   - ✅ **JsonRpcMessage Types**: Flat message structure aligned with MCP TypeScript/Python SDKs
+   - ✅ **MessageHandler Interface**: Clean separation between transport (delivery) and protocol (MCP logic)
+   - ✅ **MessageContext Management**: Session and metadata handling for multi-session transports
+   - ✅ **Error Handling**: TransportError enum with standard JSON-RPC error codes
+   - ✅ **Compatibility Bridges**: Legacy message conversion for gradual migration
 
-2. **Production-Ready Implementation** - ✅ Complete
-   - ✅ **All Tests Passing**: 6/6 HTTP server transport tests including Phase 2 session coordination test
-   - ✅ **Zero Warnings**: Full compliance with workspace standards (§2.1 imports, §3.2 chrono, zero warning policy)
-   - ✅ **Clean Compilation**: No lint errors or compilation issues across workspace
-   - ✅ **Memory Safety**: Proper channel management, resource cleanup, and session isolation
+2. **Quality Validation** - ✅ Complete
+   - ✅ **All Tests Passing**: 419 unit tests + 32 integration tests + 188 doctests
+   - ✅ **Zero Warnings**: Full workspace standards compliance (§2.1, §3.2, §4.3, §5.1)
+   - ✅ **Production Ready**: Clean compilation across entire workspace
 
-**TECHNICAL IMPLEMENTATION DELIVERED**:
-```rust
-// Phase 2 Session Coordination Interface:
-pub fn get_request_sender(&self) -> mpsc::UnboundedSender<(SessionId, Vec<u8>)>
-pub async fn handle_http_request(&self, session_id: SessionId, request_data: Vec<u8>) -> Result<Vec<u8>, TransportError>
-pub fn get_session_manager(&self) -> &Arc<SessionManager>
+**🚨 CRITICAL MODULE STRUCTURE ISSUE IDENTIFIED**:
 
-// Transport Trait with Session Awareness:
-async fn receive(&mut self) -> Result<Vec<u8>, Self::Error> // Sets current_session context
-async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> // Sends to current session
+**Problem**: The `transport/mcp.rs` file has grown to 1,000+ lines with multiple distinct responsibilities:
+- Core message types (JsonRpcMessage, JsonRpcError) ~200 lines
+- Transport abstractions (Transport, MessageHandler traits) ~150 lines  
+- Context management (MessageContext) ~100 lines
+- Compatibility layer ~50 lines
+- Tests and mocks ~500+ lines
+
+**Impact**: 
+- Single Responsibility Principle violation
+- Difficult maintenance and navigation
+- Complex mental model for developers
+- Blocks Phase 2 implementation progress
+
+**REQUIRED REFACTORING STRATEGY**:
 ```
+src/transport/mcp/
+├── mod.rs              # Re-exports and module documentation
+├── message.rs          # JsonRpcMessage, JsonRpcError + serialization
+├── transport.rs        # Transport trait, MessageHandler trait  
+├── context.rs          # MessageContext and session management
+├── error.rs            # TransportError enum and implementations
+├── compat.rs           # Legacy compatibility bridges
+└── tests/
+    ├── mod.rs          # Test utilities and shared fixtures
+    ├── message_tests.rs
+    ├── transport_tests.rs
+    └── integration_tests.rs
+```
+
+**BENEFITS**:
+- **Single Responsibility**: Each module has one clear purpose
+- **Better Maintainability**: Smaller files easier to navigate and modify
+- **Phase 2 Preparation**: Clean foundation for StdioTransport compatibility adapter
+- **Workspace Standards**: Proper module architecture (§4.3)
+- **Future Growth**: Clear structure for additional transport implementations
 
 ### 🚀 NEXT PHASE OPTIONS:
 
