@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-09-01  
-**Total Knowledge Docs**: 14  
+**Total Knowledge Docs**: 15  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 2  
+**Documentation Count**: 3  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -23,6 +23,12 @@
   - **Complexity**: High - Complete SSE transport design with dual-endpoint architecture
   - **Updated**: 2025-08-26
   - **Related**: TASK013 (HTTP SSE implementation), HTTP Streamable foundation
+
+- **[HTTP Transport Adapter Pattern Analysis](./architecture/http-transport-adapter-pattern-analysis.md)**
+  - **Focus**: HttpServerTransport adapter pattern, AxumHttpServer integration, Phase 3 implementation scope
+  - **Complexity**: High - Critical architectural analysis for HTTP transport completion
+  - **Updated**: 2025-09-01
+  - **Related**: DEBT-004 (HttpServerTransport incomplete), Phase 3 implementation planning
 
 ### Domain
 **Documentation Count**: 1  

@@ -1,15 +1,15 @@
 # Technical Debt Registry - airs-mcp
 
-**Last Updated**: 2025-08-21  
-**Total Debt Items**: 3  
-**High Priority Items**: 1  
+**Last Updated**: 2025-09-01  
+**Total Debt Items**: 4  
+**High Priority Items**: 2  
 **In Progress**: 0
 
 ## Summary by Category
 
 ### Architecture Debt
 - **Critical**: 0 items
-- **High**: 1 items  
+- **High**: 2 items  
 - **Medium**: 0 items
 - **Low**: 0 items
 
@@ -37,12 +37,27 @@
 | ID | Description | Category | Created | Estimated Effort | Owner | GitHub Issue |
 |----|-------------|----------|---------|------------------|-------|--------------|
 | DEBT-001 | Correlation error handling inconsistency | Architecture | 2025-08-21 | 2-3 days | Core Team | TBD |
+| DEBT-004 | HttpServerTransport adapter pattern incomplete | Architecture | 2025-09-01 | 3 weeks | Core Team | TBD |
 
 ### Medium Priority
 | ID | Description | Category | Created | Estimated Effort | Owner | GitHub Issue |  
 |----|-------------|----------|---------|------------------|-------|--------------|
 | DEBT-002 | HTTP transport performance optimization | Performance | 2025-08-21 | 1-2 days | Core Team | TBD |
 | DEBT-003 | Deprecated HttpStreamableTransport cleanup | Code Quality | 2025-08-21 | 4 hours | Core Team | TBD |
+
+## Resolved Debt
+
+| ID | Description | Category | Created | Resolved | Resolution |
+|----|-------------|----------|---------|----------|------------|
+| - | No resolved debt items yet | - | - | - | - |
+
+## Technical Debt Details
+
+### DEBT-004: HttpServerTransport Adapter Pattern Incomplete  
+**Reference**: `docs/debts/DEBT-004-http-server-transport-adapter-incomplete.md`  
+**Impact**: Blocks HTTP transport usage with McpServerBuilder, forces StdioTransport workarounds  
+**Root Cause**: Incomplete adapter implementation between AxumHttpServer and Transport trait  
+**Remediation**: 3-week phased implementation to complete adapter pattern
 
 ## In Progress
 
