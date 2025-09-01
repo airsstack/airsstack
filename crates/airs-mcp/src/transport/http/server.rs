@@ -4,16 +4,16 @@
 //! It handles receiving requests from MCP clients and sending responses.
 
 // Layer 1: Standard library imports (per workspace standards §2.1)
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{mpsc, oneshot, Mutex};
 
 // Layer 3: Internal module imports
 use super::connection_manager::HttpConnectionManager;
-use super::session::SessionManager;
+use super::session::{SessionId, SessionManager};
 use super::{AxumHttpServer, HttpTransportConfig, RequestParser};
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::correlation::manager::CorrelationManager;
@@ -61,9 +61,16 @@ pub struct HttpServerTransport {
     // Core HTTP server component
     axum_server: Option<AxumHttpServer>,
 
-    // Request/Response coordination
-    incoming_requests: Arc<Mutex<VecDeque<Vec<u8>>>>,
-    response_sender: Option<oneshot::Sender<Vec<u8>>>,
+    // Phase 2: Session-aware message coordination
+    incoming_requests: Arc<Mutex<mpsc::UnboundedReceiver<(SessionId, Vec<u8>)>>>,
+    incoming_sender: mpsc::UnboundedSender<(SessionId, Vec<u8>)>,
+    outgoing_responses: Arc<Mutex<HashMap<SessionId, oneshot::Sender<Vec<u8>>>>>,
+
+    // Current session context for Transport trait operations
+    current_session: Option<SessionId>,
+
+    // Transport state
+    is_closed: bool,
 
     // Server components (used for AxumHttpServer construction)
     #[allow(dead_code)]
@@ -115,13 +122,19 @@ impl HttpServerTransport {
             details: format!("Failed to create Axum server: {}", e),
         })?;
 
+        // Create session coordination channels for Phase 2
+        let (incoming_sender, incoming_receiver) = mpsc::unbounded_channel();
+
         Ok(Self {
             bind_address,
             config,
             request_parser,
             axum_server: Some(axum_server),
-            incoming_requests: Arc::new(Mutex::new(VecDeque::new())),
-            response_sender: None,
+            incoming_requests: Arc::new(Mutex::new(incoming_receiver)),
+            incoming_sender,
+            outgoing_responses: Arc::new(Mutex::new(HashMap::new())),
+            current_session: None,
+            is_closed: false,
             connection_manager,
             session_manager,
             jsonrpc_processor,
@@ -155,6 +168,52 @@ impl HttpServerTransport {
             .map_or(false, |server| server.is_bound())
     }
 
+    /// Get a sender for incoming HTTP requests (for HTTP handlers to use)
+    ///
+    /// This allows HTTP handlers to send incoming requests into the Transport coordination system.
+    /// Each request is tagged with its session ID for proper correlation.
+    pub fn get_request_sender(&self) -> mpsc::UnboundedSender<(SessionId, Vec<u8>)> {
+        self.incoming_sender.clone()
+    }
+
+    /// Handle incoming HTTP request with session correlation
+    ///
+    /// This method is called by HTTP handlers to coordinate with the Transport interface.
+    /// It sends the request through the coordination system and waits for the response.
+    pub async fn handle_http_request(
+        &self,
+        session_id: SessionId,
+        request_data: Vec<u8>,
+    ) -> Result<Vec<u8>, TransportError> {
+        // Create response channel
+        let (response_tx, response_rx) = oneshot::channel();
+
+        // Store response channel
+        {
+            let mut responses = self.outgoing_responses.lock().await;
+            responses.insert(session_id, response_tx);
+        }
+
+        // Send request through coordination system
+        self.incoming_sender
+            .send((session_id, request_data))
+            .map_err(|_| TransportError::Other {
+                details: "Failed to send request - transport receiver dropped".to_string(),
+            })?;
+
+        // Wait for response
+        let response = response_rx.await.map_err(|_| TransportError::Other {
+            details: "Failed to receive response - sender dropped".to_string(),
+        })?;
+
+        Ok(response)
+    }
+
+    /// Get the session manager for HTTP handlers to use
+    pub fn get_session_manager(&self) -> &Arc<SessionManager> {
+        &self.session_manager
+    }
+
     /// Start the HTTP server and bind to the configured address
     ///
     /// This must be called before using the transport for communication.
@@ -176,53 +235,79 @@ impl Transport for HttpServerTransport {
     type Error = TransportError;
 
     async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> {
-        // For Phase 1: Basic implementation - queue response for current session
-        // TODO: Implement proper session correlation in Phase 2
+        // Phase 2: Session-aware response sending
+        if self.is_closed {
+            return Err(TransportError::Other {
+                details: "Transport is closed".to_string(),
+            });
+        }
 
-        if let Some(sender) = self.response_sender.take() {
-            sender
-                .send(message.to_vec())
-                .map_err(|_| TransportError::Other {
-                    details: "Failed to send response - receiver dropped".to_string(),
-                })?;
-            Ok(())
+        if let Some(session_id) = self.current_session {
+            // Remove the response sender for this session
+            let sender = {
+                let mut responses = self.outgoing_responses.lock().await;
+                responses.remove(&session_id)
+            };
+
+            if let Some(sender) = sender {
+                sender
+                    .send(message.to_vec())
+                    .map_err(|_| TransportError::Other {
+                        details: "Failed to send response - receiver dropped".to_string(),
+                    })?;
+
+                // Clear current session after successful send
+                self.current_session = None;
+
+                tracing::debug!("Sent response to session {}", session_id);
+                Ok(())
+            } else {
+                Err(TransportError::Other {
+                    details: format!("No response channel for session {}", session_id),
+                })
+            }
         } else {
-            // No active request to respond to - this is a limitation of the current adapter
-            tracing::warn!("send() called without active request - message queued");
-
-            // For now, we'll ignore the message since there's no active HTTP request to respond to
-            // In a full implementation, this would require a different approach
-            Ok(())
+            Err(TransportError::Other {
+                details: "No active session for sending response".to_string(),
+            })
         }
     }
 
     async fn receive(&mut self) -> Result<Vec<u8>, Self::Error> {
-        // For Phase 1: Basic implementation - simulate receiving HTTP requests
-        // TODO: Integrate with actual AxumHttpServer request handling in Phase 2
-
-        // Check if we have queued requests
-        {
-            let mut queue = self.incoming_requests.lock().await;
-            if let Some(request) = queue.pop_front() {
-                // Create a channel for the response
-                let (tx, _rx) = oneshot::channel();
-                self.response_sender = Some(tx);
-
-                return Ok(request);
-            }
+        // Phase 2: Session-aware request receiving
+        if self.is_closed {
+            return Err(TransportError::Other {
+                details: "Transport channel closed".to_string(),
+            });
         }
 
-        // No queued requests - in a real implementation, this would block
-        // waiting for HTTP requests from AxumHttpServer
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        let message = {
+            let mut receiver = self.incoming_requests.lock().await;
+            receiver.recv().await
+        };
 
-        Err(TransportError::Other {
-            details: "No incoming requests available - Phase 1 implementation limitation"
-                .to_string(),
-        })
+        match message {
+            Some((session_id, request_data)) => {
+                // Set current session context
+                self.current_session = Some(session_id);
+
+                tracing::debug!("Received request from session {}", session_id);
+                Ok(request_data)
+            }
+            None => {
+                // Channel closed - transport is shutting down
+                self.is_closed = true;
+                Err(TransportError::Other {
+                    details: "Transport channel closed".to_string(),
+                })
+            }
+        }
     }
 
     async fn close(&mut self) -> Result<(), Self::Error> {
+        // Mark transport as closed
+        self.is_closed = true;
+
         // Cleanup HTTP server and resources
         if let Some(_server) = self.axum_server.take() {
             tracing::info!("HTTP server transport closed");
@@ -230,12 +315,19 @@ impl Transport for HttpServerTransport {
             // This would be implemented in a complete solution
         }
 
-        // Clear any pending messages
+        // Clear current session context
+        self.current_session = None;
+
+        // Clear any pending response channels
         {
-            let mut queue = self.incoming_requests.lock().await;
-            queue.clear();
+            let mut responses = self.outgoing_responses.lock().await;
+            responses.clear();
         }
 
+        // Note: incoming_sender will be dropped when the transport is dropped,
+        // which will close the channel and cause receive() to return None
+
+        tracing::info!("HTTP server transport session coordination shutdown complete");
         Ok(())
     }
 }
@@ -312,11 +404,46 @@ mod tests {
 
         let mut transport = HttpServerTransport::new(config).await.unwrap();
 
-        // Test close operation
+        // Test receive with no messages (should block until channel closed)
+        // We'll test that the channel closes properly after close() is called
+
+        // First close the transport
         transport.close().await.unwrap();
 
-        // Test receive with no messages (should return error in Phase 1)
+        // Now receive should return an error because channel is closed
         let result = transport.receive().await;
         assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Transport channel closed"));
+    }
+
+    #[tokio::test]
+    async fn test_phase2_session_coordination() {
+        use uuid::Uuid;
+
+        let config = HttpTransportConfig::new().bind_address("127.0.0.1:0".parse().unwrap());
+        let transport = HttpServerTransport::new(config).await.unwrap();
+
+        // Test the session coordination interfaces
+        let session_id = Uuid::new_v4();
+        let test_request = b"test request data";
+
+        // Test that we can get the coordination components
+        let request_sender = transport.get_request_sender();
+        let session_manager = transport.get_session_manager();
+
+        // Test request queuing (this sends into the channel)
+        request_sender
+            .send((session_id, test_request.to_vec()))
+            .unwrap();
+
+        // Test basic transport state
+        assert!(!transport.is_server_ready()); // Not bound yet
+        assert_eq!(transport.bind_address().ip().to_string(), "127.0.0.1");
+
+        // Verify session manager is available
+        assert!(session_manager.get_session(session_id).is_none()); // Session not created through normal flow
     }
 }
