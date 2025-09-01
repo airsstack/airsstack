@@ -19,6 +19,10 @@ use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::correlation::manager::CorrelationManager;
 use crate::transport::{error::TransportError, Transport};
 
+// Type aliases to reduce complexity
+type IncomingRequestReceiver = Arc<Mutex<mpsc::UnboundedReceiver<(SessionId, Vec<u8>)>>>;
+type OutgoingResponseMap = Arc<Mutex<HashMap<SessionId, oneshot::Sender<Vec<u8>>>>>;
+
 /// HTTP Server Transport - Transport Trait Adapter for AxumHttpServer
 ///
 /// This transport implements the adapter pattern to bridge the AxumHttpServer
@@ -62,9 +66,9 @@ pub struct HttpServerTransport {
     axum_server: Option<AxumHttpServer>,
 
     // Phase 2: Session-aware message coordination
-    incoming_requests: Arc<Mutex<mpsc::UnboundedReceiver<(SessionId, Vec<u8>)>>>,
+    incoming_requests: IncomingRequestReceiver,
     incoming_sender: mpsc::UnboundedSender<(SessionId, Vec<u8>)>,
-    outgoing_responses: Arc<Mutex<HashMap<SessionId, oneshot::Sender<Vec<u8>>>>>,
+    outgoing_responses: OutgoingResponseMap,
 
     // Current session context for Transport trait operations
     current_session: Option<SessionId>,
@@ -87,7 +91,7 @@ impl HttpServerTransport {
 
         // Create required components for AxumHttpServer
         let connection_manager = Arc::new(HttpConnectionManager::new(
-            config.max_connections as usize,
+            config.max_connections,
             Default::default(),
         ));
 
@@ -96,7 +100,7 @@ impl HttpServerTransport {
             CorrelationManager::new(Default::default())
                 .await
                 .map_err(|e| TransportError::Other {
-                    details: format!("Failed to create correlation manager: {}", e),
+                    details: format!("Failed to create correlation manager: {e}"),
                 })?,
         );
 
@@ -114,7 +118,7 @@ impl HttpServerTransport {
         )
         .await
         .map_err(|e| TransportError::Other {
-            details: format!("Failed to create Axum server: {}", e),
+            details: format!("Failed to create Axum server: {e}"),
         })?;
 
         // Create session coordination channels for Phase 2
@@ -158,7 +162,7 @@ impl HttpServerTransport {
     pub fn is_server_ready(&self) -> bool {
         self.axum_server
             .as_ref()
-            .map_or(false, |server| server.is_bound())
+            .is_some_and(|server| server.is_bound())
     }
 
     /// Get a sender for incoming HTTP requests (for HTTP handlers to use)
@@ -256,7 +260,7 @@ impl Transport for HttpServerTransport {
                 Ok(())
             } else {
                 Err(TransportError::Other {
-                    details: format!("No response channel for session {}", session_id),
+                    details: format!("No response channel for session {session_id}"),
                 })
             }
         } else {

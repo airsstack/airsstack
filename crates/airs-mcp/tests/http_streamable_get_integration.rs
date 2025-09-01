@@ -69,10 +69,11 @@ async fn test_server_state_creation() {
     let state = create_test_server_state().await;
 
     // Verify all components are properly initialized
-    assert!(state.connection_manager.as_ref() as *const _ != std::ptr::null());
-    assert!(state.session_manager.as_ref() as *const _ != std::ptr::null());
-    assert!(state.jsonrpc_processor.as_ref() as *const _ != std::ptr::null());
-    assert!(state.mcp_handlers.as_ref() as *const _ != std::ptr::null());
+    // Instead of null pointer checks, just verify they exist by using Arc::strong_count
+    assert!(Arc::strong_count(&state.connection_manager) > 0);
+    assert!(Arc::strong_count(&state.session_manager) > 0);
+    assert!(Arc::strong_count(&state.jsonrpc_processor) > 0);
+    assert!(Arc::strong_count(&state.mcp_handlers) > 0);
     assert_eq!(state.config.bind_address.port(), 3000); // Default port
 }
 
@@ -158,7 +159,6 @@ async fn test_router_creation_with_get_endpoint() {
     // Router should be created successfully
     // Note: We can't easily test route registration in unit tests,
     // but we can verify the router was created without panics
-    assert!(true, "Router creation should succeed");
 }
 
 /// Test connection manager configuration
@@ -169,13 +169,10 @@ async fn test_connection_manager_configuration() {
 
     // Should be able to create connection manager with various configurations
     let _connection_manager = HttpConnectionManager::new(100, health_config.clone());
-    assert!(true, "Connection manager creation should succeed");
+    // Connection manager creation should succeed (no panic)
 
     let _zero_connection_manager = HttpConnectionManager::new(0, health_config);
-    assert!(
-        true,
-        "Connection manager with 0 connections should still be creatable"
-    );
+    // Connection manager with 0 connections should still be creatable (no panic)
 }
 
 /// Test SSE event unique ID generation

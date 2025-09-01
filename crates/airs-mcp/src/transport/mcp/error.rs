@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn test_error_display() {
         let error = TransportError::connection("Connection refused");
-        let error_string = format!("{}", error);
+        let error_string = format!("{error}");
         assert!(error_string.contains("Connection error"));
         assert!(error_string.contains("Connection refused"));
     }

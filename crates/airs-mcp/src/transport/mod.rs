@@ -6,105 +6,38 @@
 //!
 //! # Architecture
 //!
-//! The transport layer is built around two different approaches:
+//! The transport layer is organized around three key components:
 //!
-//! ## Legacy Transport (Current)
-//! The current `Transport` trait defines core operations for sending and receiving
-//! messages using a blocking sequential pattern:
+//! ## MCP-Compliant Transport
+//! Pure MCP-specification compliant interfaces providing event-driven message handling.
 //!
-//! ```rust
-//! use airs_mcp::transport::Transport;
+//! ## Transport Adapters
+//! Adapters that bridge legacy transport implementations with MCP-compliant interfaces.
 //!
-//! async fn example_usage<T: Transport>(mut transport: T) -> Result<(), T::Error> {
-//!     // Send a message
-//!     transport.send(b"Hello, world!").await?;
-//!
-//!     // Receive a response
-//!     let response = transport.receive().await?;
-//!
-//!     // Close the connection
-//!     transport.close().await?;
-//!
-//!     Ok(())
-//! }
-//! ```
-//!
-//! ## MCP-Compliant Transport (New)
-//! The new MCP-compliant transport layer provides event-driven message handling
-//! aligned with the official MCP specification:
-//!
-//! ```rust
-//! use airs_mcp::transport::mcp::{Transport, MessageHandler, JsonRpcMessage};
-//! use std::sync::Arc;
-//!
-//! # struct MyHandler;
-//! # use async_trait::async_trait;
-//! # #[async_trait]
-//! # impl MessageHandler for MyHandler {
-//! #     async fn handle_message(&self, message: JsonRpcMessage, context: airs_mcp::transport::mcp::MessageContext) {}
-//! #     async fn handle_error(&self, error: airs_mcp::transport::mcp::TransportError) {}
-//! #     async fn handle_close(&self) {}
-//! # }
-//!
-//! async fn mcp_example() -> Result<(), Box<dyn std::error::Error>> {
-//!     let handler = Arc::new(MyHandler);
-//!     // let mut transport = HttpServerTransport::new(config).await?;
-//!     // transport.set_message_handler(handler);
-//!     // transport.start().await?;
-//!     
-//!     // Transport calls handler.handle_message() for each incoming message
-//!     Ok(())
-//! }
-//! ```
+//! ## Legacy Transport
+//! The current Transport trait for backward compatibility.
 //!
 //! # Design Principles
 //!
 //! - **Async-native**: All operations return futures for integration with Tokio
 //! - **Error flexibility**: Associated Error type for transport-specific error handling
-//! - **Generic messages**: Uses `&[u8]` for maximum flexibility and zero-copy potential
-//! - **Resource management**: Explicit `close()` method for proper cleanup
+//! - **Generic messages**: Uses byte arrays for maximum flexibility and zero-copy potential
+//! - **Resource management**: Explicit close method for proper cleanup
 //! - **Performance-optimized**: Advanced buffer management for high-throughput scenarios
-//! - **Thread safety**: All implementations must be `Send + Sync`
+//! - **Thread safety**: All implementations must be Send + Sync
 //!
-//! # Buffer Management
+//! # Available Transports
 //!
-//! The transport layer includes advanced buffer management features:
-//!
-//! - **Buffer Pooling**: Reusable buffer allocation to minimize GC pressure
-//! - **Zero-Copy Operations**: Avoid unnecessary data copying where possible
-//! - **Streaming Support**: Efficient handling of partial reads and writes
-//! - **Backpressure Management**: Flow control to prevent memory exhaustion
-//!
-//! ```rust
-//! use airs_mcp::transport::buffer::{BufferManager, BufferConfig};
-//!
-//! async fn buffer_example() -> Result<(), Box<dyn std::error::Error>> {
-//!     let config = BufferConfig::default();
-//!     let buffer_manager = BufferManager::new(config);
-//!     
-//!     let mut buffer = buffer_manager.acquire_read_buffer().await?;
-//!     // Use buffer for I/O operations...
-//!     // Buffer automatically returns to pool when dropped
-//!     Ok(())
-//! }
-//! ```
-//!
-//! # Transports
-//!
-//! Currently implemented transports:
 //! - **STDIO**: Standard input/output for MCP communication (primary)
-//! - **HTTP**: HTTP Streamable Transport for MCP remote servers (Phase 1 complete)
+//! - **HTTP**: HTTP Streamable Transport for MCP remote servers
 //!
 //! # Error Handling
 //!
-//! Each transport defines its own error type that must implement:
-//! - `std::error::Error`
-//! - `Send + Sync + 'static`
-//!
-//! This allows for transport-specific error variants while maintaining
-//! a consistent interface.
+//! Each transport defines its own error type that must implement standard error traits
+//! for consistent error handling across the transport layer.
 
 // Export main transport components
+pub mod adapters; // [NEW] Transport adapters for legacy compatibility
 pub mod buffer;
 pub mod error;
 pub mod http;
@@ -121,6 +54,9 @@ pub use stdio::*;
 pub use streaming::*;
 pub use traits::*;
 pub use zero_copy::*;
+
+// Adapter re-exports for convenience
+pub use adapters::StdioTransportAdapter;
 
 // MCP-compliant transport re-exports
 pub use mcp::{
