@@ -10,6 +10,15 @@
   - **Technical Debt**: 🚨 Authentication methods, server builder integration, examples updates, integration tests
   - **Impact**: Core architecture complete, integration work required for production readiness
 
+## Pending
+- [TASK026] Authentication Strategy Implementation - High Priority - Added on 2025-09-02
+  - **Phase 6A**: OAuth2 strategy migration to new authentication architecture
+  - **Phase 6B**: API Key strategy implementation for MCP ecosystem compatibility  
+  - **Phase 6C**: Authentication middleware integration with HTTP request pipeline
+  - **Foundation**: ✅ Authentication core architecture complete (AuthenticationManager, Strategy pattern)
+  - **Dependencies**: Authentication system foundation (COMPLETE), existing OAuth2 implementation
+  - **Impact**: Complete authentication system with multiple strategies and HTTP integration
+
 - [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
   - **Unified Endpoint**: Single `/mcp` endpoint handles both JSON and SSE responses
   - **Mode Detection**: Automatic selection based on HTTP method, Accept headers, query parameters
