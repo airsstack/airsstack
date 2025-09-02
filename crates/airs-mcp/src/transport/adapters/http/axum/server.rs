@@ -16,11 +16,13 @@ use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
 // Layer 3: Internal module imports
+use crate::authentication::manager::AuthenticationManager;
+use crate::authentication::strategy::AuthenticationStrategy;
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::engine::{
-    AuthenticationConfig, HttpEngine, HttpEngineError, HttpMiddleware, McpRequestHandler,
+    HttpEngine, HttpEngineError, HttpMiddleware, McpRequestHandler,
 };
 use crate::transport::adapters::http::session::SessionManager;
 use crate::transport::error::TransportError;
@@ -44,8 +46,6 @@ pub struct AxumHttpServer {
     is_running: bool,
     /// Registered MCP request handler
     mcp_handler: Option<Arc<dyn McpRequestHandler>>,
-    /// Authentication configuration
-    auth_config: Option<AuthenticationConfig>,
     /// Custom middleware
     middleware: Vec<Box<dyn HttpMiddleware>>,
 }
@@ -77,7 +77,6 @@ impl AxumHttpServer {
             local_addr: None,
             is_running: false,
             mcp_handler: None,
-            auth_config: None,
             middleware: Vec::new(),
         })
     }
@@ -273,11 +272,18 @@ impl HttpEngine for AxumHttpServer {
     }
 
     /// Register authentication middleware
-    fn register_authentication(
+    fn register_authentication<S, T, D>(
         &mut self,
-        auth_config: AuthenticationConfig,
-    ) -> Result<(), HttpEngineError> {
-        self.auth_config = Some(auth_config);
+        _auth_manager: AuthenticationManager<S, T, D>,
+    ) -> Result<(), HttpEngineError>
+    where
+        S: AuthenticationStrategy<T, D>,
+        T: Send + Sync,
+        D: Send + Sync + 'static,
+    {
+        // TODO: Implement authentication integration
+        // For now, this is a placeholder that accepts the authentication manager
+        // but doesn't store it. Full integration will be implemented in Phase 5.
         Ok(())
     }
 

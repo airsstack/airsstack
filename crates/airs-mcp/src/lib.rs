@@ -189,6 +189,9 @@ pub mod integration;
 // OAuth 2.1 authentication module
 pub mod oauth2;
 
+// Multi-method authentication module
+pub mod authentication;
+
 // Providers layer modules
 pub mod providers;
 

@@ -43,7 +43,8 @@ use std::sync::Arc;
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
 
-// Layer 3: Internal module imports (currently placeholder for Phase 5)
+// Layer 3: Internal module imports
+use crate::authentication::{AuthenticationManager, AuthenticationStrategy};
 
 /// Error type for HTTP engine operations
 #[derive(Debug, thiserror::Error)]
@@ -102,7 +103,7 @@ impl HttpResponse {
     pub fn json(body: Vec<u8>) -> Self {
         let mut headers = std::collections::HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
-        
+
         Self {
             body,
             status: 200,
@@ -117,7 +118,7 @@ impl HttpResponse {
         headers.insert("content-type".to_string(), "text/event-stream".to_string());
         headers.insert("cache-control".to_string(), "no-cache".to_string());
         headers.insert("connection".to_string(), "keep-alive".to_string());
-        
+
         Self {
             body,
             status: 200,
@@ -131,7 +132,7 @@ impl HttpResponse {
         let body = format!(r#"{{"error": "{}"}}"#, message).into_bytes();
         let mut headers = std::collections::HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
-        
+
         Self {
             body,
             status,
@@ -167,7 +168,7 @@ pub trait McpRequestHandler: Send + Sync {
 }
 
 /// Placeholder authentication context trait
-/// 
+///
 /// This will be replaced with the actual authentication implementation
 /// in Phase 5 (Multi-Method Authentication Enhancement)
 #[derive(Debug, Clone)]
@@ -191,7 +192,7 @@ pub trait HttpMiddleware: Send + Sync {
 pub trait HttpEngine: Send + Sync {
     /// Engine-specific error type
     type Error: std::error::Error + Send + Sync + 'static;
-    
+
     /// Engine configuration type
     type Config: Clone + Send + Sync;
 
@@ -247,20 +248,33 @@ pub trait HttpEngine: Send + Sync {
     /// * `handler` - MCP request handler implementation
     fn register_mcp_handler(&mut self, handler: Arc<dyn McpRequestHandler>);
 
-    /// Register authentication middleware (placeholder for Phase 5)
+    /// Register authentication manager
     ///
-    /// This method will be enhanced in Phase 5 to support multiple
-    /// authentication methods through the AuthenticationManager.
+    /// This method allows registering an authentication manager with the HTTP engine.
+    /// The manager handles authentication for all incoming requests.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Authentication strategy type
+    /// * `T` - Request type (typically HttpAuthRequest)
+    /// * `D` - Authentication data type
     ///
     /// # Arguments
     ///
-    /// * `auth_config` - Authentication configuration (currently OAuth2 only)
+    /// * `auth_manager` - Authentication manager with configured strategy
     ///
     /// # Returns
     ///
-    /// * `Ok(())` - Authentication middleware registered
+    /// * `Ok(())` - Authentication manager registered
     /// * `Err(HttpEngineError)` - Registration failed
-    fn register_authentication(&mut self, auth_config: AuthenticationConfig) -> Result<(), HttpEngineError>;
+    fn register_authentication<S, T, D>(
+        &mut self,
+        auth_manager: AuthenticationManager<S, T, D>,
+    ) -> Result<(), HttpEngineError>
+    where
+        S: AuthenticationStrategy<T, D>,
+        T: Send + Sync,
+        D: Send + Sync + 'static;
 
     /// Register custom HTTP middleware
     ///
@@ -280,31 +294,4 @@ pub trait HttpEngine: Send + Sync {
 
     /// Get the engine type identifier
     fn engine_type(&self) -> &'static str;
-}
-
-/// Placeholder authentication configuration
-/// 
-/// This will be replaced with the actual authentication configuration
-/// in Phase 5 (Multi-Method Authentication Enhancement)
-#[derive(Debug, Clone)]
-pub struct AuthenticationConfig {
-    /// Authentication method (oauth2, api_key, basic, custom)
-    pub method: String,
-    /// Method-specific configuration
-    pub config: std::collections::HashMap<String, String>,
-}
-
-impl AuthenticationConfig {
-    /// Create OAuth2 authentication configuration (temporary)
-    pub fn oauth2(jwks_url: String, audience: String, issuer: String) -> Self {
-        let mut config = std::collections::HashMap::new();
-        config.insert("jwks_url".to_string(), jwks_url);
-        config.insert("audience".to_string(), audience);
-        config.insert("issuer".to_string(), issuer);
-        
-        Self {
-            method: "oauth2".to_string(),
-            config,
-        }
-    }
 }
