@@ -17,6 +17,7 @@ pub mod metadata;
 pub mod method;
 pub mod request;
 pub mod strategy;
+pub mod strategies;
 
 // Re-exports
 pub use context::AuthContext;
