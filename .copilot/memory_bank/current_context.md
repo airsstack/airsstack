@@ -139,6 +139,167 @@ OAuth2Error → AuthError → HttpAuthError → AxumAuthError
 
 **READY FOR**: OAuth2 authentication strategy implementation following the finalized architecture.
 
+## 🎯 **DETAILED DEVELOPMENT PLAN: OAUTH2 AUTHENTICATION STRATEGY**
+
+### **Phase 1: Authentication Layer Foundation** 🥇 **First Priority**
+
+#### **Step 1.1: OAuth2 Strategy Module Structure**
+- **Create**: `authentication/strategies/` directory
+- **Create**: `authentication/strategies/oauth2/mod.rs` with clean re-exports
+- **Update**: `authentication/mod.rs` to include strategies module
+- **Standards**: Follow workspace §4.3 module architecture patterns
+
+#### **Step 1.2: OAuth2Request Types** (`authentication/strategies/oauth2/request.rs`)
+```rust
+pub struct OAuth2Request {
+    pub bearer_token: String,
+    pub method: Option<String>,      // For scope validation
+    pub metadata: HashMap<String, String>,
+}
+
+pub struct OAuth2AuthRequest {
+    oauth2_request: OAuth2Request,
+}
+
+impl AuthRequest<OAuth2Request> for OAuth2AuthRequest {
+    // Bridge implementation for authentication trait
+}
+```
+
+#### **Step 1.3: OAuth2Strategy Implementation** (`authentication/strategies/oauth2/strategy.rs`)
+```rust
+pub struct OAuth2Strategy<J, S> 
+where J: JwtValidator, S: ScopeValidator
+{
+    validator: oauth2::validator::Validator<J, S>,  // Direct usage - no wrapper!
+}
+
+impl<J, S> AuthenticationStrategy<OAuth2Request, oauth2::context::AuthContext> for OAuth2Strategy<J, S> {
+    async fn authenticate(&self, request: &impl AuthRequest<OAuth2Request>) -> AuthResult<AuthContext<oauth2::context::AuthContext>> {
+        // Token + method validation performed together
+    }
+}
+```
+
+### **Phase 2: HTTP Transport Integration** 🥈 **Second Priority**
+
+#### **Step 2.1: HTTP Auth Directory Structure**
+- **Create**: `transport/http/auth/` directory
+- **Create**: `transport/http/auth/adapters/` for strategy adapters
+- **Create**: `transport/http/auth/errors.rs` for HTTP-specific errors
+- **Create**: `transport/http/auth/mod.rs` with proper re-exports
+
+#### **Step 2.2: HttpAuthError Definitions** (`transport/http/auth/errors.rs`)
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum HttpAuthError {
+    #[error("Missing authorization header")]
+    MissingAuthHeader,
+    #[error("Invalid authorization header format")]
+    InvalidAuthHeader,
+    #[error("Authentication failed: {0}")]
+    AuthenticationFailed(#[from] AuthError),
+}
+```
+
+#### **Step 2.3: OAuth2StrategyAdapter** (`transport/http/auth/adapters/oauth2.rs`)
+```rust
+pub struct OAuth2StrategyAdapter<J, S> {
+    strategy: OAuth2Strategy<J, S>,
+}
+
+impl<J, S> OAuth2StrategyAdapter<J, S> {
+    pub async fn authenticate_http(&self, http_request: &HttpAuthRequest) -> Result<AuthContext<oauth2::context::AuthContext>, HttpAuthError> {
+        // 1. Extract bearer token from Authorization header
+        // 2. Extract MCP method from request attributes
+        // 3. Create OAuth2Request and OAuth2AuthRequest
+        // 4. Delegate to pure strategy
+    }
+}
+```
+
+### **Phase 3: Framework Middleware Integration** 🥉 **Third Priority**
+
+#### **Step 3.1: Axum Middleware Directory**
+- **Create**: `transport/http/auth/middleware/` directory
+- **Create**: `transport/http/auth/middleware/axum.rs` for Axum-specific middleware
+
+#### **Step 3.2: AxumAuthError Definitions**
+```rust
+#[derive(Debug, thiserror::Error)]
+pub enum AxumAuthError {
+    #[error("Request conversion failed: {0}")]
+    RequestConversion(String),
+    #[error("Authentication failed: {0}")]
+    Authentication(#[from] HttpAuthError),
+    #[error("Next handler failed: {0}")]
+    NextHandler(String),
+}
+```
+
+#### **Step 3.3: AxumOAuth2Middleware Implementation**
+```rust
+pub struct AxumOAuth2Middleware<J, S> {
+    adapter: OAuth2StrategyAdapter<J, S>,
+}
+
+impl<J, S> AxumOAuth2Middleware<J, S> {
+    pub async fn handle(&self, request: Request<Body>, next: Next) -> Result<Response, AxumAuthError> {
+        // 1. Convert Axum request to HttpAuthRequest
+        // 2. Authenticate via HTTP adapter
+        // 3. Add auth context to request extensions
+        // 4. Continue with authenticated request
+    }
+}
+```
+
+### **Phase 4: Integration & Testing Suite** 🎯 **Final Priority**
+
+#### **Step 4.1: Unit Testing Strategy**
+- **Layer 1 Tests**: Mock `JwtValidator` and `ScopeValidator` for pure business logic testing
+- **Layer 2 Tests**: Mock HTTP requests for transport adapter testing  
+- **Layer 3 Tests**: Mock Axum requests for middleware testing
+- **Error Tests**: Validate error conversion chain across all layers
+
+#### **Step 4.2: Integration Testing Strategy**
+- **Full Chain Tests**: Real OAuth2 token validation through complete stack
+- **Performance Tests**: Benchmark authentication overhead
+- **Compatibility Tests**: Validate with existing OAuth2 infrastructure
+
+#### **Step 4.3: Workspace Standards Validation**
+- **Import Organization**: Verify §2.1 3-layer import structure
+- **Time Management**: Confirm §3.2 chrono DateTime<Utc> usage
+- **Zero Warnings**: Ensure §5.1 zero warning policy compliance
+- **Module Architecture**: Validate §4.3 clean module organization
+
+### **🎯 KEY VALIDATION CHECKPOINTS**
+
+#### **Architecture Validation**
+- ✅ **No HTTP Dependencies in Core**: Authentication layer must remain transport-agnostic
+- ✅ **Direct OAuth2 Validator Usage**: No unnecessary wrapper abstractions
+- ✅ **Clean Error Conversion**: OAuth2Error → AuthError → HttpAuthError → AxumAuthError
+- ✅ **Workspace Standards**: All workspace standards must be followed
+
+#### **Integration Validation**  
+- ✅ **Existing Infrastructure Reuse**: Must leverage all existing OAuth2 work
+- ✅ **Framework Agnostic Core**: Authentication strategies work with any transport
+- ✅ **Performance Preservation**: No degradation compared to direct OAuth2 usage
+- ✅ **Test Coverage**: Comprehensive coverage across all layers
+
+### **🚀 EXPECTED OUTCOMES POST-IMPLEMENTATION**
+
+#### **Architecture Achievement**
+- **Clean OAuth2 Strategy**: Fully integrated with authentication system architecture
+- **HTTP Transport Ready**: Adapters prepared for Axum and future frameworks
+- **Comprehensive Testing**: Full test coverage across business logic and integration layers
+- **Foundation Established**: Ready for API Key strategy and additional authentication methods
+
+#### **Integration Benefits**
+- **Existing OAuth2 Compatibility**: 100% reuse of existing validation infrastructure
+- **Framework Flexibility**: Easy extension to other HTTP frameworks (Warp, Tide, etc.)
+- **Clean Architecture**: Clear separation of concerns across transport layers
+- **Production Ready**: Robust error handling and comprehensive testing suite
+
 #### **Phase 6C: Authentication Middleware Integration** - HIGH PRIORITY
 **Current Gap**: Authentication manager exists but not integrated into HTTP request pipeline
 **Required Work**:
