@@ -29,6 +29,10 @@ pub enum HttpAuthError {
     #[error("Malformed authorization header: {message}")]
     MalformedAuth { message: String },
 
+    /// Missing API key in request
+    #[error("Missing API key in request")]
+    MissingApiKey,
+
     /// HTTP engine error
     #[error("HTTP engine error: {0}")]
     EngineError(#[from] HttpEngineError),
@@ -53,6 +57,9 @@ impl From<HttpAuthError> for AuthError {
             }
             HttpAuthError::MalformedAuth { message } => {
                 AuthError::InvalidCredentials(format!("Malformed authorization: {message}"))
+            }
+            HttpAuthError::MissingApiKey => {
+                AuthError::MissingCredentials("Missing API key in request".to_string())
             }
             HttpAuthError::EngineError(engine_error) => {
                 AuthError::Internal(format!("HTTP engine error: {engine_error}"))
@@ -122,6 +129,24 @@ mod tests {
         match auth_error {
             AuthError::MissingCredentials(msg) => {
                 assert_eq!(msg, "Missing HTTP header: Authorization");
+            }
+            _ => panic!("Expected MissingCredentials variant"),
+        }
+    }
+
+    #[test]
+    fn test_missing_api_key_error() {
+        let error = HttpAuthError::MissingApiKey;
+        assert_eq!(format!("{error}"), "Missing API key in request");
+    }
+
+    #[test]
+    fn test_missing_api_key_conversion() {
+        let http_error = HttpAuthError::MissingApiKey;
+        let auth_error: AuthError = http_error.into();
+        match auth_error {
+            AuthError::MissingCredentials(msg) => {
+                assert_eq!(msg, "Missing API key in request");
             }
             _ => panic!("Expected MissingCredentials variant"),
         }

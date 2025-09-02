@@ -19,6 +19,7 @@ homepage = "https://github.com/rstlix0x0/airs/tree/main/crates/airs-mcp"
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
+urlencoding.workspace = true
 
 # Future dependencies (now enabled for development and future use)
 tokio.workspace = true

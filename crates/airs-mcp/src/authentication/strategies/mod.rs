@@ -9,7 +9,12 @@
 
 // Layer 3: Internal module imports
 
+pub mod apikey;
 pub mod oauth2;
 
 // Re-exports for convenience
+pub use apikey::{
+    ApiKeyAuthData, ApiKeyRequest, ApiKeySource, ApiKeyStrategy, ApiKeyValidator,
+    InMemoryApiKeyValidator,
+};
 pub use oauth2::{OAuth2AuthRequest, OAuth2Request, OAuth2Strategy};
