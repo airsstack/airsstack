@@ -2,25 +2,65 @@
 
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: TASK-005 PHASE 6-9 REQUIRED - INTEGRATION DEBT OUTSTANDING - 2025-09-01
+## CURRENT FOCUS: AUTHENTICATION STRATEGY IMPLEMENTATION - 2025-09-02
 
-### ⚠️ STATUS CORRECTION: CORE ARCHITECTURE COMPLETE BUT SIGNIFICANT DEBT REMAINING
+### ✅ AUTHENTICATION FOUNDATION COMPLETE - STRATEGY IMPLEMENTATION NEXT
 
-**IMPLEMENTATION STATUS**: ✅ **PHASES 1-5 COMPLETE (~70%)** + 🚨 **PHASES 6-9 REQUIRED (~30%)**
+**IMPLEMENTATION STATUS**: ✅ **Authentication Core (100%)** + 🎯 **Strategy Implementation (Next Phase)**
 
-Core zero-cost generic HTTP transport architecture successfully implemented, but significant integration work remains for production readiness.
+Core authentication architecture successfully implemented with zero-cost abstractions, generic design, and full workspace standards compliance. Ready for OAuth2 and API Key strategy implementations.
 
-### **🚨 OUTSTANDING TECHNICAL DEBT: PHASES 6-9**
+### **🎯 NEXT PRIORITIES: AUTHENTICATION STRATEGY IMPLEMENTATION**
 
-#### **Phase 6: Authentication System Expansion** - HIGH PRIORITY BLOCKER
-**Current State**: Only OAuth2 authentication implemented  
-**MCP Requirement**: Multiple authentication methods required for ecosystem compatibility
+#### **Phase 6A: OAuth2 Strategy Migration** - IMMEDIATE PRIORITY
+**Current State**: Existing OAuth2 implementation in `oauth2/` module needs migration to new strategy pattern
+**Architecture Gap**: OAuth2 code exists but not integrated with new `AuthenticationStrategy<T, D>` trait
 **Required Work**:
-- **Multi-Method AuthContext**: Extend to support API keys, Basic Auth, Bearer tokens, custom schemes
-- **Authentication Detection**: Method detection and routing in HTTP transport adapters  
-- **Integration Updates**: Update HttpServerTransportAdapter<H> and HttpClientTransportAdapter<H> for multi-auth
-- **Comprehensive Testing**: Authentication integration tests across all supported methods
-- **Backward Compatibility**: Ensure existing OAuth2 integration continues working
+- **Strategy Implementation**: Create `OAuth2Strategy` implementing `AuthenticationStrategy<HttpRequest, OAuth2Data>`
+- **Module Migration**: Move existing oauth2 code to `authentication/strategies/oauth2/` structure
+- **Data Type Mapping**: Map existing OAuth2Context to new AuthContext<OAuth2Data> pattern
+- **Integration Testing**: Verify OAuth2Strategy works with AuthenticationManager
+- **HTTP Integration**: Update HTTP handlers to use OAuth2Strategy through authentication manager
+
+**Implementation Path**:
+```rust
+// Target architecture for OAuth2 strategy
+authentication/strategies/oauth2/
+├── mod.rs              // OAuth2 strategy exports  
+├── strategy.rs         // OAuth2Strategy: AuthenticationStrategy<HttpRequest, OAuth2Data>
+├── data.rs             // OAuth2Data for AuthContext<OAuth2Data>
+└── config.rs           // OAuth2Config migration from existing oauth2 module
+```
+
+#### **Phase 6B: API Key Strategy Implementation** - HIGH PRIORITY
+**Current State**: No API Key authentication exists, required for MCP ecosystem compatibility
+**MCP Requirement**: API key authentication commonly used for client-server MCP connections
+**Required Work**:
+- **Strategy Creation**: Implement `ApiKeyStrategy` for header and query parameter authentication
+- **Module Structure**: Create `authentication/strategies/apikey/` module following established pattern
+- **Multiple Patterns**: Support Authorization header, X-API-Key header, and query parameter patterns
+- **Validation Logic**: API key format validation and lookup mechanism
+- **Testing Suite**: Comprehensive testing for different API key authentication patterns
+
+**Implementation Path**:
+```rust
+// Target architecture for API Key strategy
+authentication/strategies/apikey/
+├── mod.rs              // API Key strategy exports
+├── strategy.rs         // ApiKeyStrategy: AuthenticationStrategy<HttpRequest, ApiKeyData>
+├── data.rs             // ApiKeyData for AuthContext<ApiKeyData>
+└── config.rs           // API key configuration and validation patterns
+```
+
+#### **Phase 6C: Authentication Middleware Integration** - HIGH PRIORITY
+**Current State**: Authentication manager exists but not integrated into HTTP request pipeline
+**Integration Gap**: No middleware connecting authentication to actual HTTP request processing
+**Required Work**:
+- **Axum Middleware**: Create authentication middleware for HTTP request interception
+- **Request State**: Add authentication context to HTTP request state for downstream handlers
+- **Error Handling**: Proper 401/403 responses for authentication failures
+- **Router Integration**: Update `create_router()` to include authentication middleware
+- **Session Management**: Coordinate authentication with existing session management system
 
 #### **Phase 7: McpServerBuilder Integration** - HIGH PRIORITY BLOCKER
 **Current State**: Zero-cost generic adapters exist but not integrated with server infrastructure
