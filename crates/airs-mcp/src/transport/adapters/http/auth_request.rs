@@ -43,7 +43,7 @@ impl HttpAuthRequest {
         
         // Add all query params with "query:" prefix
         for (key, value) in &query_params {
-            custom_attributes.insert(format!("query:{}", key), value.clone());
+            custom_attributes.insert(format!("query:{key}"), value.clone());
         }
         
         Self {

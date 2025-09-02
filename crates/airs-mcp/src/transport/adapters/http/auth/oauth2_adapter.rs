@@ -1,7 +1,18 @@
-//! OAuth2 Strategy HTTP Adapter
+//! OAuth2 HTTP Authentication Adapter (Deprecated)
 //!
-//! HTTP transport adapter for OAuth2 authentication strategy, providing seamless integration
-//! between the generic OAuth2Strategy and HTTP-specific authentication requirements.
+//! This module has been refactored into a modular structure.
+//! Please use the components in the `oauth2` module instead:
+//!
+//! - `oauth2::adapter::OAuth2StrategyAdapter` - Main adapter implementation
+//! - `oauth2::error::HttpAuthError` - HTTP-specific error types  
+//! - `oauth2::extractor::HttpExtractor` - Token and method extraction
+//! - `oauth2::HttpAuthRequest` - Request data structure
+//!
+//! This file is maintained for backwards compatibility and will be removed
+//! in a future version.
+
+// Re-export the refactored components
+pub use super::oauth2::{HttpAuthError, HttpAuthRequest, HttpExtractor, OAuth2StrategyAdapter};
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;

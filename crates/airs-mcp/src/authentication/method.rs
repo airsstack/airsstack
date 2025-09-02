@@ -91,6 +91,6 @@ mod tests {
     #[test]
     fn test_auth_method_display() {
         let method = AuthMethod::new("custom-auth");
-        assert_eq!(format!("{}", method), "custom-auth");
+        assert_eq!(format!("{method}"), "custom-auth");
     }
 }

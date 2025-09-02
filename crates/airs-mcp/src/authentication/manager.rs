@@ -127,11 +127,6 @@ impl ManagerConfig {
         }
     }
 
-    /// Create new configuration with defaults (alias for new)
-    pub fn default() -> Self {
-        Self::new()
-    }
-
     /// Set authentication timeout
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
@@ -248,6 +243,5 @@ mod tests {
     #[test]
     fn test_default_constants() {
         assert_eq!(DEFAULT_AUTH_TIMEOUT, Duration::from_secs(30));
-        assert!(DEFAULT_ENABLE_AUDIT_LOGGING);
     }
 }

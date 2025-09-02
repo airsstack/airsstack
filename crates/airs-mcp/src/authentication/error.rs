@@ -49,7 +49,7 @@ mod tests {
     fn test_auth_error_display() {
         let error = AuthError::MissingCredentials("Authorization header required".to_string());
         assert_eq!(
-            format!("{}", error),
+            format!("{error}"),
             "Missing credentials: Authorization header required"
         );
     }

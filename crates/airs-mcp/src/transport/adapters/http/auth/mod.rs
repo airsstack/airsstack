@@ -1,8 +1,9 @@
 //! HTTP Authentication Adapters
 //!
-//! This module provides HTTP transport-specific authentication adapters that bridge
-//! the generic authentication strategies with HTTP transport requirements.
+//! This module provides authentication adapters for HTTP transport,
+//! bridging various authentication strategies to HTTP request handling.
 
-pub mod oauth2_adapter;
+pub mod oauth2;
 
-pub use oauth2_adapter::OAuth2StrategyAdapter;
+// Re-export main types for convenience
+pub use oauth2::{HttpAuthError, HttpAuthRequest, HttpExtractor, OAuth2StrategyAdapter};

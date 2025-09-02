@@ -235,7 +235,7 @@ impl HttpEngine for AxumHttpServer {
         self.bind(addr).await.map_err(|e| match e {
             TransportError::Io(io_err) => HttpEngineError::Io(io_err),
             _ => HttpEngineError::Engine {
-                message: format!("Bind failed: {}", e),
+                message: format!("Bind failed: {e}"),
             },
         })
     }
@@ -249,7 +249,7 @@ impl HttpEngine for AxumHttpServer {
         self.start().await.map_err(|e| match e {
             TransportError::Io(io_err) => HttpEngineError::Io(io_err),
             _ => HttpEngineError::Engine {
-                message: format!("Start failed: {}", e),
+                message: format!("Start failed: {e}"),
             },
         })
     }

@@ -129,7 +129,7 @@ impl HttpResponse {
 
     /// Create an error response
     pub fn error(status: u16, message: &str) -> Self {
-        let body = format!(r#"{{"error": "{}"}}"#, message).into_bytes();
+        let body = format!(r#"{{"error": "{message}"}}"#).into_bytes();
         let mut headers = std::collections::HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
 
