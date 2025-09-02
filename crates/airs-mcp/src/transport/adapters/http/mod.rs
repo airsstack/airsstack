@@ -10,6 +10,7 @@
 //! - **HTTP SSE** (Legacy): Server-Sent Events for ecosystem compatibility
 //! - **MCP Transport Adapters** (New): Event-driven MCP-compliant interfaces
 
+pub mod auth;
 pub mod auth_request;
 pub mod axum;
 pub mod buffer_pool;
@@ -24,6 +25,7 @@ pub mod server_adapter;
 pub mod session;
 pub mod sse;
 
+pub use auth::OAuth2StrategyAdapter;
 pub use auth_request::HttpAuthRequest;
 pub use axum::{AxumHttpServer, ServerState};
 pub use buffer_pool::{BufferPool, BufferPoolStats, BufferStrategy, PooledBuffer};
@@ -35,8 +37,8 @@ pub use connection_manager::{
     HealthCheckConfig, HealthCheckResult, HttpConnectionManager,
 };
 pub use engine::{
-    AuthenticationContext, HttpEngine, HttpEngineError, HttpMiddleware,
-    HttpResponse, McpRequestHandler, ResponseMode,
+    AuthenticationContext, HttpEngine, HttpEngineError, HttpMiddleware, HttpResponse,
+    McpRequestHandler, ResponseMode,
 };
 pub use parser::RequestParser;
 pub use server::HttpServerTransport;
