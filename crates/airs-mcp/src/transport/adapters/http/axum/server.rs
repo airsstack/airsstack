@@ -18,7 +18,9 @@ use tokio::sync::broadcast;
 // Layer 3: Internal module imports
 use crate::authentication::manager::AuthenticationManager;
 use crate::authentication::strategy::AuthenticationStrategy;
+use crate::authentication::AuthContext;
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
+use crate::transport::adapters::http::auth::middleware::{HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::engine::{
@@ -30,14 +32,59 @@ use crate::transport::error::TransportError;
 use super::handlers::{create_router, ServerState};
 use super::mcp_handlers::{McpHandlers, McpHandlersBuilder};
 
+/// Zero-cost no authentication adapter for default server behavior
+///
+/// This type serves as the default authentication strategy for AxumHttpServer,
+/// providing a zero-cost abstraction when no authentication is required.
+/// It implements HttpAuthStrategyAdapter with no-op behavior.
+#[derive(Debug, Clone, Default)]
+pub struct NoAuth;
+
+#[async_trait]
+impl HttpAuthStrategyAdapter for NoAuth {
+    type RequestType = ();
+    type AuthData = ();
+
+    fn auth_method(&self) -> &'static str {
+        "none"
+    }
+
+    async fn authenticate_http_request(
+        &self,
+        _request: &HttpAuthRequest,
+    ) -> Result<AuthContext<Self::AuthData>, crate::transport::adapters::http::auth::oauth2::error::HttpAuthError> {
+        // NoAuth always returns a successful authentication with empty data
+        use crate::authentication::AuthMethod;
+        Ok(AuthContext::new(AuthMethod::new("none"), ()))
+    }
+
+    fn should_skip_path(&self, _path: &str) -> bool {
+        true // NoAuth skips authentication for all paths
+    }
+}
+
 /// HTTP server implementation using Axum framework
 ///
 /// This server provides a clean, modular architecture for handling MCP JSON-RPC
 /// requests over HTTP with proper session management and connection tracking.
 /// It implements the HttpEngine trait for pluggable HTTP framework abstraction.
-pub struct AxumHttpServer {
+///
+/// # Type Parameters
+/// * `A` - Authentication strategy adapter (defaults to NoAuth for backward compatibility)
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+/// // Default server with no authentication
+/// // let server = AxumHttpServer::new(...).await?;
+/// ```
+pub struct AxumHttpServer<A = NoAuth>
+where
+    A: HttpAuthStrategyAdapter,
+{
     /// Server state shared across handlers
-    state: ServerState,
+    state: ServerState<A>,
     /// TCP listener for accepting connections
     listener: Option<TcpListener>,
     /// Local address the server is bound to
@@ -50,8 +97,11 @@ pub struct AxumHttpServer {
     middleware: Vec<Box<dyn HttpMiddleware>>,
 }
 
-impl AxumHttpServer {
+impl AxumHttpServer<NoAuth> {
     /// Create a new Axum HTTP server with the specified configuration and handlers
+    /// 
+    /// Creates a server with NoAuth (no authentication) as the default.
+    /// Use with_authentication() to add authentication to the server.
     pub async fn new(
         connection_manager: Arc<HttpConnectionManager>,
         session_manager: Arc<SessionManager>,
@@ -69,6 +119,7 @@ impl AxumHttpServer {
             mcp_handlers,
             config: config.clone(),
             sse_broadcaster,
+            auth_middleware: None, // NoAuth has no middleware
         };
 
         Ok(Self {
@@ -120,6 +171,75 @@ impl AxumHttpServer {
         .await
     }
 
+    /// Add authentication to the server (zero-cost type conversion)
+    ///
+    /// Converts the server from NoAuth to a specific authentication strategy.
+    /// This is a zero-cost conversion that happens at compile time.
+    ///
+    /// # Type Parameters
+    /// * `A` - Authentication strategy adapter
+    ///
+    /// # Arguments
+    /// * `adapter` - Authentication strategy adapter
+    /// * `config` - Authentication middleware configuration
+    ///
+    /// # Returns
+    /// * AxumHttpServer with the specified authentication strategy
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use std::sync::Arc;
+    /// use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    /// 
+    /// // Example usage (requires proper setup)
+    /// // let server = AxumHttpServer::new(
+    /// //     connection_manager,
+    /// //     session_manager, 
+    /// //     jsonrpc_processor,
+    /// //     mcp_handlers,
+    /// //     config,
+    /// // ).await?
+    /// // .with_authentication(oauth_adapter, HttpAuthConfig::default());
+    /// ```
+    pub fn with_authentication<A>(
+        self,
+        adapter: A,
+        auth_config: HttpAuthConfig,
+    ) -> AxumHttpServer<A>
+    where
+        A: HttpAuthStrategyAdapter,
+    {
+        let auth_middleware = HttpAuthMiddleware::new(adapter, auth_config);
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: Some(auth_middleware),
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+
+}
+
+/// Generic implementation for AxumHttpServer with any authentication strategy
+impl<A> AxumHttpServer<A>
+where
+    A: HttpAuthStrategyAdapter,
+{
     /// Bind the server to the specified address
     pub async fn bind(&mut self, addr: SocketAddr) -> Result<(), TransportError> {
         let listener = TcpListener::bind(addr).await.map_err(TransportError::Io)?;
@@ -209,7 +329,10 @@ impl AxumHttpServer {
 // ================================================================================================
 
 #[async_trait]
-impl HttpEngine for AxumHttpServer {
+impl<A> HttpEngine for AxumHttpServer<A>
+where
+    A: HttpAuthStrategyAdapter,
+{
     type Error = TransportError;
     type Config = HttpTransportConfig;
 
@@ -321,7 +444,7 @@ mod tests {
     use crate::transport::adapters::http::connection_manager::HealthCheckConfig;
     use crate::transport::adapters::http::session::SessionConfig;
 
-    async fn create_test_server() -> AxumHttpServer {
+    async fn create_test_server() -> AxumHttpServer<NoAuth> {
         let connection_manager =
             Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
         let correlation_manager = Arc::new(

@@ -27,7 +27,7 @@ pub trait ApiKeyValidator: Send + Sync {
 }
 
 /// Simple in-memory API key validator for testing and simple use cases
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InMemoryApiKeyValidator {
     valid_keys: HashMap<String, AuthContext<ApiKeyAuthData>>,
 }

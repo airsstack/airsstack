@@ -8,9 +8,12 @@ use std::collections::HashMap;
 use std::fmt;
 
 // Layer 2: Third-party crate imports
+use async_trait::async_trait;
 use axum::http::{HeaderMap, Uri};
+use urlencoding;
 
 // Layer 3: Internal module imports
+use super::super::middleware::{HttpAuthRequest as MiddlewareHttpAuthRequest, HttpAuthStrategyAdapter};
 use super::super::oauth2::error::HttpAuthError;
 use crate::authentication::{
     strategies::apikey::{
@@ -81,14 +84,18 @@ impl Default for ApiKeyConfig {
 }
 
 /// HTTP adapter for API key authentication strategies
-pub struct ApiKeyStrategyAdapter<V> {
+#[derive(Clone)]
+pub struct ApiKeyStrategyAdapter<V> 
+where
+    V: Clone,
+{
     strategy: ApiKeyStrategy<V>,
     config: ApiKeyConfig,
 }
 
 impl<V> ApiKeyStrategyAdapter<V>
 where
-    V: ApiKeyValidator + 'static,
+    V: ApiKeyValidator + Clone + 'static,
 {
     /// Create a new API key strategy adapter
     pub fn new(strategy: ApiKeyStrategy<V>, config: ApiKeyConfig) -> Self {
@@ -182,13 +189,89 @@ where
     }
 }
 
-impl<V> fmt::Display for ApiKeyStrategyAdapter<V> {
+/// Implementation of zero-cost generic HttpAuthStrategyAdapter for API Key
+///
+/// This implementation bridges the ApiKeyStrategyAdapter to the new generic middleware
+/// architecture while maintaining full backward compatibility with existing code.
+/// Uses associated types to eliminate dynamic dispatch and achieve zero-cost abstractions.
+#[async_trait]
+impl<V> HttpAuthStrategyAdapter for ApiKeyStrategyAdapter<V>
+where
+    V: ApiKeyValidator + Clone + Send + Sync + 'static,
+{
+    /// API Key requests use ApiKeyRequest from the authentication strategy
+    type RequestType = ApiKeyRequest;
+    
+    /// API Key authentication data uses ApiKeyAuthData
+    type AuthData = ApiKeyAuthData;
+
+    /// Return the authentication method identifier
+    fn auth_method(&self) -> &'static str {
+        "apikey"
+    }
+
+    /// Authenticate HTTP request using API key strategy
+    ///
+    /// Converts the generic HttpAuthRequest to API key extraction format and
+    /// delegates to the existing authenticate_http method. This maintains
+    /// full compatibility while providing the new generic interface.
+    async fn authenticate_http_request(
+        &self,
+        request: &MiddlewareHttpAuthRequest,
+    ) -> Result<AuthContext<Self::AuthData>, HttpAuthError> {
+        // Convert generic HttpAuthRequest to Axum types for extraction
+        let mut header_map = HeaderMap::new();
+        for (key, value) in &request.headers {
+            if let (Ok(header_name), Ok(header_value)) = (
+                axum::http::HeaderName::from_bytes(key.as_bytes()),
+                axum::http::HeaderValue::from_str(value),
+            ) {
+                header_map.insert(header_name, header_value);
+            }
+        }
+
+        // Construct URI from path and query parameters
+        let uri_string = if request.query_params.is_empty() {
+            request.path.clone()
+        } else {
+            let query_string: Vec<String> = request.query_params
+                .iter()
+                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
+                .collect();
+            format!("{}?{}", request.path, query_string.join("&"))
+        };
+        
+        let uri: Uri = uri_string.parse()
+            .map_err(|e| HttpAuthError::InvalidRequest {
+                message: format!("Invalid URI: {e}"),
+            })?;
+
+        // Delegate to existing authenticate_http method
+        self.authenticate_http(&header_map, &uri).await
+    }
+
+    /// API Key adapter does not skip any paths by default
+    ///
+    /// Path-based skipping is handled by the middleware configuration.
+    /// API Key requires authentication for all requests unless explicitly skipped.
+    fn should_skip_path(&self, _path: &str) -> bool {
+        false
+    }
+}
+
+impl<V> fmt::Display for ApiKeyStrategyAdapter<V>
+where
+    V: Clone,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ApiKeyStrategyAdapter")
     }
 }
 
-impl<V> fmt::Debug for ApiKeyStrategyAdapter<V> {
+impl<V> fmt::Debug for ApiKeyStrategyAdapter<V>
+where
+    V: Clone,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ApiKeyStrategyAdapter")
             .field("config", &self.config)

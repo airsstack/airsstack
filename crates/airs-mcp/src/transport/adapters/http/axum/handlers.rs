@@ -31,10 +31,11 @@ use uuid::Uuid;
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
 use crate::integration::mcp::constants::methods as mcp_methods;
-use crate::transport::error::TransportError;
+use crate::transport::adapters::http::auth::middleware::{HttpAuthMiddleware, HttpAuthStrategyAdapter};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::session::{ClientInfo, SessionId, SessionManager};
+use crate::transport::error::TransportError;
 
 use super::mcp_handlers::McpHandlers;
 use super::mcp_operations::*;
@@ -92,8 +93,14 @@ impl SseEvent {
 }
 
 /// Shared application state for the Axum server
+///
+/// # Type Parameters
+/// * `A` - Authentication strategy adapter (defaults to NoAuth)
 #[derive(Clone)]
-pub struct ServerState {
+pub struct ServerState<A = super::server::NoAuth>
+where
+    A: HttpAuthStrategyAdapter,
+{
     /// Connection manager for tracking HTTP connections
     pub connection_manager: Arc<HttpConnectionManager>,
     /// Session manager for handling user sessions
@@ -106,37 +113,56 @@ pub struct ServerState {
     pub config: HttpTransportConfig,
     /// Broadcast channel for SSE events
     pub sse_broadcaster: broadcast::Sender<SseEvent>,
+    /// Optional authentication middleware
+    pub auth_middleware: Option<HttpAuthMiddleware<A>>,
 }
 
 /// Create the Axum router with all routes and middleware
-pub fn create_router(state: ServerState) -> Router {
-    Router::new()
+///
+/// # Type Parameters
+/// * `A` - Authentication strategy adapter for the server state
+pub fn create_router<A>(state: ServerState<A>) -> Router
+where
+    A: HttpAuthStrategyAdapter + 'static,
+{
+    let mut router = Router::new()
         // Main MCP endpoint for JSON-RPC requests and SSE streaming
-        .route("/mcp", post(handle_mcp_request))
-        .route("/mcp", get(handle_mcp_get))
+        .route("/mcp", post(handle_mcp_request::<A>))
+        .route("/mcp", get(handle_mcp_get::<A>))
         // Health check endpoint
-        .route("/health", get(handle_health_check))
+        .route("/health", get(handle_health_check::<A>))
         // Server metrics endpoint
-        .route("/metrics", get(handle_metrics))
+        .route("/metrics", get(handle_metrics::<A>))
         // Server status endpoint
-        .route("/status", get(handle_status))
+        .route("/status", get(handle_status::<A>))
         // Add shared state
-        .with_state(state)
-        // Add middleware layers
-        .layer(
-            ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http())
-                .layer(CorsLayer::permissive()),
-        )
+        .with_state(state.clone());
+
+    // Conditionally apply authentication middleware if present
+    if let Some(auth_middleware) = &state.auth_middleware {
+        use crate::transport::adapters::http::auth::axum_middleware::AxumHttpAuthLayer;
+        let auth_layer = AxumHttpAuthLayer::from_middleware(auth_middleware.clone());
+        router = router.layer(auth_layer);
+    }
+
+    // Add standard middleware layers (applied after authentication)
+    router.layer(
+        ServiceBuilder::new()
+            .layer(TraceLayer::new_for_http())
+            .layer(CorsLayer::permissive()),
+    )
 }
 
 /// Handle MCP JSON-RPC requests on the /mcp endpoint
-async fn handle_mcp_request(
-    State(state): State<ServerState>,
+async fn handle_mcp_request<A>(
+    State(state): State<ServerState<A>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     body: String,
-) -> Result<Json<Value>, (StatusCode, String)> {
+) -> Result<Json<Value>, (StatusCode, String)> 
+where
+    A: HttpAuthStrategyAdapter + 'static,
+{
     // Register connection with connection manager
     let connection_id = state
         .connection_manager
@@ -215,12 +241,15 @@ async fn handle_mcp_request(
 }
 
 /// Handle MCP SSE streaming requests on the /mcp endpoint (GET method)
-async fn handle_mcp_get(
+async fn handle_mcp_get<A>(
     Query(params): Query<McpSseQueryParams>,
-    State(state): State<ServerState>,
+    State(state): State<ServerState<A>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
-) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> {
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> 
+where
+    A: HttpAuthStrategyAdapter + 'static,
+{
     // Register connection with connection manager
     let connection_id = state
         .connection_manager
@@ -319,11 +348,14 @@ async fn handle_mcp_get(
 }
 
 /// Extract session ID from headers or create a new session
-pub async fn extract_or_create_session(
-    state: &ServerState,
+pub async fn extract_or_create_session<A>(
+    state: &ServerState<A>,
     headers: &HeaderMap,
     peer_addr: SocketAddr,
-) -> Result<SessionId, TransportError> {
+) -> Result<SessionId, TransportError>
+where
+    A: HttpAuthStrategyAdapter,
+{
     // Try to extract existing session ID from headers
     if let Some(session_header) = headers.get("X-Session-ID") {
         if let Ok(session_str) = session_header.to_str() {
@@ -350,11 +382,14 @@ pub async fn extract_or_create_session(
 }
 
 /// Process JSON-RPC request with MCP protocol support
-pub async fn process_jsonrpc_request(
-    state: &ServerState,
+pub async fn process_jsonrpc_request<A>(
+    state: &ServerState<A>,
     session_id: SessionId,
     request: JsonRpcRequest,
-) -> Result<Value, TransportError> {
+) -> Result<Value, TransportError>
+where
+    A: HttpAuthStrategyAdapter,
+{
     // Route MCP requests to appropriate handlers based on method
     match request.method.as_str() {
         // MCP Initialization
@@ -422,11 +457,14 @@ pub async fn process_jsonrpc_request(
 }
 
 /// Process JSON-RPC notification (no response expected)
-async fn process_jsonrpc_notification(
-    _state: &ServerState,
+async fn process_jsonrpc_notification<A>(
+    _state: &ServerState<A>,
     _session_id: SessionId,
     _notification: JsonRpcNotification,
-) -> Result<(), TransportError> {
+) -> Result<(), TransportError>
+where
+    A: HttpAuthStrategyAdapter,
+{
     // For now, just log the notification
     // In Phase 3C, we'll integrate with the actual MCP handlers
     tracing::info!("Processed notification: {}", _notification.method);
@@ -434,9 +472,12 @@ async fn process_jsonrpc_notification(
 }
 
 /// Handle server status requests
-async fn handle_status(
-    State(state): State<ServerState>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+async fn handle_status<A>(
+    State(state): State<ServerState<A>>,
+) -> Result<Json<Value>, (StatusCode, String)>
+where
+    A: HttpAuthStrategyAdapter,
+{
     let status = serde_json::json!({
         "service": "airs-mcp-http-server",
         "version": env!("CARGO_PKG_VERSION"),
@@ -456,9 +497,12 @@ async fn handle_status(
 }
 
 /// Handle health check requests
-async fn handle_health_check(
-    State(state): State<ServerState>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+async fn handle_health_check<A>(
+    State(state): State<ServerState<A>>,
+) -> Result<Json<Value>, (StatusCode, String)>
+where
+    A: HttpAuthStrategyAdapter,
+{
     let connection_stats = state.connection_manager.get_stats();
     let session_stats = state.session_manager.get_stats();
 
@@ -484,9 +528,12 @@ async fn handle_health_check(
 }
 
 /// Handle metrics requests
-async fn handle_metrics(
-    State(state): State<ServerState>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+async fn handle_metrics<A>(
+    State(state): State<ServerState<A>>,
+) -> Result<Json<Value>, (StatusCode, String)>
+where
+    A: HttpAuthStrategyAdapter,
+{
     let connection_stats = state.connection_manager.get_stats();
     let session_stats = state.session_manager.get_stats();
     let health_result = state.connection_manager.health_check();

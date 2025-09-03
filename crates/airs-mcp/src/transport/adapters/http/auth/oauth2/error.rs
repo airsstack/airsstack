@@ -100,7 +100,7 @@ mod tests {
 
         assert_eq!(
             format!("{error}"),
-            "Malformed authorization: Invalid format"
+            "Malformed authorization header: Invalid format"
         );
     }
 

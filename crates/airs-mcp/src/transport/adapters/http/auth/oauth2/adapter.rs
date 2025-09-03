@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 // Layer 3: Internal module imports
 use super::error::HttpAuthError;
 use super::extractor::HttpExtractor;
+use super::super::middleware::{HttpAuthRequest as MiddlewareHttpAuthRequest, HttpAuthStrategyAdapter};
 use crate::authentication::{
     strategies::oauth2::{OAuth2Request, OAuth2Strategy},
     AuthContext, AuthRequest, AuthenticationStrategy,
@@ -69,8 +70,8 @@ impl AuthRequest<OAuth2Request> for OAuth2RequestWrapper {
 #[derive(Debug, Clone)]
 pub struct OAuth2StrategyAdapter<J, S>
 where
-    J: JwtValidator + Send + Sync + 'static,
-    S: ScopeValidator + Send + Sync + 'static,
+    J: JwtValidator + Send + Sync + Clone + 'static,
+    S: ScopeValidator + Send + Sync + Clone + 'static,
 {
     /// Underlying OAuth2 authentication strategy
     strategy: OAuth2Strategy<J, S>,
@@ -78,8 +79,8 @@ where
 
 impl<J, S> OAuth2StrategyAdapter<J, S>
 where
-    J: JwtValidator + Send + Sync + 'static,
-    S: ScopeValidator + Send + Sync + 'static,
+    J: JwtValidator + Send + Sync + Clone + 'static,
+    S: ScopeValidator + Send + Sync + Clone + 'static,
 {
     /// Create a new OAuth2 strategy adapter
     ///
@@ -148,6 +149,59 @@ where
     /// * Reference to the underlying OAuth2Strategy
     pub fn strategy(&self) -> &OAuth2Strategy<J, S> {
         &self.strategy
+    }
+}
+
+/// Implementation of zero-cost generic HttpAuthStrategyAdapter for OAuth2
+///
+/// This implementation bridges the OAuth2StrategyAdapter to the new generic middleware
+/// architecture while maintaining full backward compatibility with existing code.
+/// Uses associated types to eliminate dynamic dispatch and achieve zero-cost abstractions.
+#[async_trait::async_trait]
+impl<J, S> HttpAuthStrategyAdapter for OAuth2StrategyAdapter<J, S>
+where
+    J: JwtValidator + Send + Sync + Clone + 'static,
+    S: ScopeValidator + Send + Sync + Clone + 'static,
+{
+    /// OAuth2 requests use OAuth2Request from the authentication strategy
+    type RequestType = OAuth2Request;
+    
+    /// OAuth2 authentication data uses the OAuth2 AuthContext
+    type AuthData = crate::oauth2::context::AuthContext;
+
+    /// Return the authentication method identifier
+    fn auth_method(&self) -> &'static str {
+        "oauth2"
+    }
+
+    /// Authenticate HTTP request using OAuth2 strategy
+    ///
+    /// Converts the generic HttpAuthRequest to OAuth2-specific format and
+    /// delegates to the existing authenticate_http method. This maintains
+    /// full compatibility while providing the new generic interface.
+    async fn authenticate_http_request(
+        &self,
+        request: &MiddlewareHttpAuthRequest,
+    ) -> Result<AuthContext<Self::AuthData>, HttpAuthError> {
+        // Convert generic HttpAuthRequest to OAuth2-specific HttpAuthRequest
+        let oauth2_http_request = HttpAuthRequest {
+            headers: request.headers.clone(),
+            path: request.path.clone(),
+            client_id: request.client_id.clone(),
+            metadata: request.metadata.clone(),
+        };
+
+        // Delegate to existing authenticate_http method
+        // The existing method already returns the correct type: AuthContext<oauth2::context::AuthContext>
+        self.authenticate_http(&oauth2_http_request).await
+    }
+
+    /// OAuth2 adapter does not skip any paths by default
+    ///
+    /// Path-based skipping is handled by the middleware configuration.
+    /// OAuth2 requires authentication for all requests unless explicitly skipped.
+    fn should_skip_path(&self, _path: &str) -> bool {
+        false
     }
 }
 

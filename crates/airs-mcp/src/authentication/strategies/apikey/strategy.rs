@@ -16,13 +16,17 @@ use crate::authentication::{
 };
 
 /// Simple API key strategy that validates keys using a provided validator
-pub struct ApiKeyStrategy<V> {
+#[derive(Clone)]
+pub struct ApiKeyStrategy<V>
+where
+    V: Clone,
+{
     validator: V,
 }
 
 impl<V> ApiKeyStrategy<V>
 where
-    V: ApiKeyValidator + 'static,
+    V: ApiKeyValidator + Clone + 'static,
 {
     /// Create a new API key strategy with the given validator
     pub fn new(validator: V) -> Self {
@@ -33,7 +37,7 @@ where
 #[async_trait]
 impl<V> AuthenticationStrategy<ApiKeyRequest, ApiKeyAuthData> for ApiKeyStrategy<V>
 where
-    V: ApiKeyValidator + 'static,
+    V: ApiKeyValidator + Clone + 'static,
 {
     fn method(&self) -> AuthMethod {
         AuthMethod::new("apikey")

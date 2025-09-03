@@ -25,13 +25,18 @@ use crate::authentication::method::AuthMethod;
 /// // OAuth2 strategy defines its own data structure
 /// #[derive(Debug, Clone)]
 /// struct OAuth2Data {
-///     claims: JwtClaims,
+///     user_id: String,
 ///     scopes: Vec<String>,
 /// }
 ///
+/// let oauth2_data = OAuth2Data {
+///     user_id: "user123".to_string(),
+///     scopes: vec!["read".to_string(), "write".to_string()],
+/// };
+///
 /// let context = AuthContext::new(
 ///     AuthMethod::new("oauth2"),
-///     OAuth2Data { claims, scopes },
+///     oauth2_data,
 /// );
 ///
 /// // API Key strategy defines its own data structure
@@ -41,9 +46,14 @@ use crate::authentication::method::AuthMethod;
 ///     permissions: Vec<String>,
 /// }
 ///
+/// let api_data = ApiKeyData {
+///     key_id: "key_123".to_string(),
+///     permissions: vec!["admin".to_string()],
+/// };
+///
 /// let context = AuthContext::new(
 ///     AuthMethod::new("apikey"),
-///     ApiKeyData { key_id, permissions },
+///     api_data,
 /// );
 /// ```
 #[derive(Debug, Clone)]

@@ -47,6 +47,7 @@ async fn create_test_server_state() -> ServerState {
         mcp_handlers,
         config,
         sse_broadcaster,
+        auth_middleware: None,
     }
 }
 
