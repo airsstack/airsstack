@@ -58,12 +58,30 @@ cargo build --release
 
 ### Documentation
 ```bash
-# Serve documentation locally
+# Serve workspace documentation locally
 cd docs && mdbook serve --open
 # Access at: http://localhost:3000
 
-# Build documentation
+# Build workspace documentation
 cd docs && mdbook build
+
+# Serve individual crate documentation
+cd crates/airs-mcp/docs && mdbook serve --open --port 3001
+cd crates/airs-mcp-fs/docs && mdbook serve --open --port 3002
+cd crates/airs-memspec/docs && mdbook serve --open --port 3003
+
+# Build individual crate documentation
+cd crates/airs-mcp/docs && mdbook build
+cd crates/airs-mcp-fs/docs && mdbook build
+cd crates/airs-memspec/docs && mdbook build
+
+# Build all crate documentation at once
+for crate in crates/*/docs; do
+  if [ -f "$crate/book.toml" ]; then
+    echo "Building documentation for $crate"
+    (cd "$crate" && mdbook build)
+  fi
+done
 ```
 
 ### Benchmarking
@@ -164,6 +182,50 @@ The project follows a 6-phase development cycle:
 - **Transparent Process**: Every action and decision logged
 - **Specification-Driven**: Clear requirements, validated designs, thorough testing
 
+## Memory Bank Integration (Mandatory for Warp Agents)
+
+This project uses an advanced Multi-Project Memory Bank system for context-aware AI assistance. **CRITICAL**: Every Warp agent MUST consult both this `WARP.md` file AND the memory bank context before any development work.
+
+### Memory Bank Custom Instructions
+**Reference**: `.copilot/instructions/multi_project_memory_bank.instructions.md`
+
+This file contains comprehensive instructions for:
+- Multi-project context management
+- Workspace-aware development workflows
+- Technical documentation frameworks
+- Task management and progress tracking
+- Context snapshots and operational continuity
+
+### Integration Requirements for Warp Agents
+
+**MANDATORY WORKFLOW**: When `WARP.md` is parsed by any Warp agent, the agent MUST:
+
+1. **Read Memory Bank Context**: Always consult `.copilot/instructions/multi_project_memory_bank.instructions.md`
+2. **Check Current Context**: Read `.copilot/memory_bank/current_context.md` for active sub-project
+3. **Load Workspace Context**: Review all files in `.copilot/memory_bank/workspace/`
+4. **Load Sub-Project Context**: Review all relevant files in `.copilot/memory_bank/sub_projects/[active_project]/`
+5. **Verify Standards Compliance**: Ensure all work follows workspace standards defined in both documents
+
+### Memory Bank Structure Integration
+
+The memory bank operates alongside this `WARP.md` file to provide:
+- **Context Preservation**: Maintains development state across sessions
+- **Task Management**: Structured tracking with progress logs and status
+- **Technical Documentation**: ADRs, technical debt records, and knowledge capture
+- **Workspace Standards Enforcement**: Compliance verification and evidence tracking
+- **Multi-Project Coordination**: Shared patterns and cross-crate dependencies
+
+### Workspace Standards Compliance
+
+Both `WARP.md` and the memory bank system enforce:
+- **Zero Warning Policy**: All code must compile cleanly
+- **Mandatory Code Quality**: Clippy compliance, proper error handling
+- **Documentation Requirements**: Comprehensive rustdoc and technical docs
+- **Technical Debt Management**: Structured tracking and remediation
+- **Testing Standards**: Unit, integration, and property-based testing
+
+**Agent Responsibility**: Verify compliance evidence is documented in both the memory bank AND follows the standards defined in this `WARP.md` file.
+
 ## Development Standards (Mandatory)
 
 ### Zero Warning Policy
@@ -251,11 +313,51 @@ Categories: `DEBT-ARCH`, `DEBT-QUALITY`, `DEBT-DOCS`, `DEBT-TEST`, `DEBT-PERF`
 - **API Documentation**: Comprehensive rustdoc for all public items
 - **Examples**: Working examples with comprehensive comments
 
-### Documentation Standards
-- Use MDBook for comprehensive guides (`docs/src/`)
+### Documentation Architecture
+
+**Workspace-Level Documentation** (`docs/`):
+- Comprehensive project overview and architecture guides
+- Cross-crate integration patterns and workflows
+- High-level user journeys and getting started guides
+- Workspace standards and development processes
+
+**Per-Crate Documentation** (`crates/<project>/docs/`):
+- Each crate maintains its own MDBook documentation
+- Crate-specific technical guides, API references, and tutorials
+- Implementation details, performance characteristics, and usage patterns
+- Examples, testing strategies, and troubleshooting guides
+
+### MDBook Documentation Standards
+
+**Structure Requirements**:
+- Each crate MUST maintain a `docs/` directory with `book.toml`
+- Documentation structure: `src/SUMMARY.md`, organized chapters
+- Cross-references between workspace and crate documentation
+- Consistent styling and navigation patterns
+
+**Content Standards**:
+- Use MDBook for comprehensive guides (both workspace and per-crate)
 - Maintain separate technical guides, project overviews, and resource guides
 - Include real-world examples from actual development
 - Provide multiple user paths (AI teams, Rust+AI projects, documentation teams)
+- Ensure documentation is buildable and serves correctly on different ports
+
+**Per-Crate Documentation Responsibilities**:
+- **Engineers**: Maintain crate-specific documentation alongside code changes
+- **Users**: Can access individual crate documentation at different ports (3001, 3002, 3003, etc.)
+- **Integration**: Cross-link between workspace docs and relevant crate docs
+- **Maintenance**: Regular review and updates as part of development workflow
+
+**Documentation Commands**:
+```bash
+# Access workspace documentation
+http://localhost:3000
+
+# Access individual crate documentation
+http://localhost:3001  # airs-mcp
+http://localhost:3002  # airs-mcp-fs  
+http://localhost:3003  # airs-memspec
+```
 
 ## Privacy and Security
 
