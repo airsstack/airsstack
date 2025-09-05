@@ -4,6 +4,15 @@
 
 ## Pending
 
+- [TASK_MCP_INSPECTOR_HTTP_TESTING] MCP Inspector Testing for HTTP Remote Server - HIGH Priority - Added on 2025-09-05
+  - **Integration Testing**: Verify HTTP remote server works with MCP Inspector using ApiKey authentication
+  - **Functionality Validation**: Test all MCP capabilities (Resources, Tools, Prompts) over authenticated HTTP
+  - **Authentication Testing**: Validate ApiKey authentication integration with MCP ecosystem tooling
+  - **Error Handling**: Verify proper error handling and edge case management
+  - **Documentation Validation**: Ensure example documentation matches actual behavior
+  - **Dependencies**: TASK005 Zero-Cost Authentication implementation (complete), MCP Inspector knowledge base
+  - **Impact**: Ensures our HTTP MCP server implementation is ecosystem-compatible and production-ready
+
 - [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
   - **Unified Endpoint**: Single `/mcp` endpoint handles both JSON and SSE responses
   - **Mode Detection**: Automatic selection based on HTTP method, Accept headers, query parameters
