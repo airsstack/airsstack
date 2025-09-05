@@ -18,6 +18,7 @@
     - [Migration Guide](./usages/migration_guide.md)
     - [Authentication Middleware Migration](./usages/auth_middleware_migration.md)
     - [Zero-Cost Authentication Guide](./usages/zero_cost_authentication.md)
+    - [MCP Inspector Authentication Tests](./usages/mcp_inspector_auth_tests.md)
 - [Protocol](./protocol.md)
     - [Architecture](./protocol/architecture.md)
     - [Server](./protocol/server.md)
