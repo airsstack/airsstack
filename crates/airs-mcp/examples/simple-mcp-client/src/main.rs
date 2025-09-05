@@ -118,7 +118,7 @@ impl Transport for SubprocessTransport {
                 .map_err(|e| TransportError::other(format!("Failed to read line: {}", e)))?;
             
             if bytes_read == 0 {
-                return Err(TransportError::connection_closed());
+                return Err(TransportError::closed());
             }
 
             // Remove trailing newline

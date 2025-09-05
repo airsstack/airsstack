@@ -109,23 +109,52 @@ The AIRS MCP library supports zero-cost generic authentication middleware that e
 
 ```rust
 use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
-use airs_mcp::transport::adapters::http::auth::middleware::{HttpAuthConfig, NoAuth};
-use airs_mcp::transport::adapters::http::auth::apikey::{ApiKeyStrategyAdapter, InMemoryApiKeyValidator, ApiKeyStrategy};
-use airs_mcp::integration::mcp::McpServerBuilder;
-use std::net::SocketAddr;
+use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
+use airs_mcp::transport::adapters::http::auth::apikey::ApiKeyStrategyAdapter;
+use airs_mcp::authentication::strategies::apikey::{ApiKeyStrategy, InMemoryApiKeyValidator, ApiKeyAuthData};
+use airs_mcp::authentication::{AuthMethod, AuthContext};
+use airs_mcp::authentication::strategies::apikey::types::ApiKeySource;
+use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
+use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
+use airs_mcp::transport::adapters::http::connection_manager::HttpConnectionManager;
+use airs_mcp::transport::adapters::http::session::SessionManager;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create infrastructure components (simplified - see examples for full setup)
+    let connection_manager = Arc::new(HttpConnectionManager::new(10, Default::default()));
+    let session_manager = Arc::new(SessionManager::new(
+        // ... correlation manager setup
+    ));
+    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(
+        ProcessorConfig::default()
+    ));
+    let config = HttpTransportConfig::new();
+    
     // Option 1: Server without authentication (default)
-    let server = AxumHttpServer::new(
-        connection_manager,
-        session_manager,
-        jsonrpc_processor,
-        config,
+    let server = AxumHttpServer::new_with_empty_handlers(
+        connection_manager.clone(),
+        session_manager.clone(),
+        jsonrpc_processor.clone(),
+        config.clone(),
     ).await?;
     
     // Option 2: Server with API key authentication (zero-cost generic)
-    let validator = InMemoryApiKeyValidator::new(vec!["your-api-key".to_string()]);
+    let mut api_keys = HashMap::new();
+    api_keys.insert(
+        "your-api-key".to_string(),
+        AuthContext::new(
+            AuthMethod::new("apikey"),
+            ApiKeyAuthData {
+                key_id: "user_123".to_string(),
+                source: ApiKeySource::AuthorizationBearer,
+            },
+        ),
+    );
+    
+    let validator = InMemoryApiKeyValidator::new(api_keys);
     let strategy = ApiKeyStrategy::new(validator);
     let adapter = ApiKeyStrategyAdapter::new(strategy, Default::default());
     let auth_config = HttpAuthConfig {
@@ -137,9 +166,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let auth_server = server.with_authentication(adapter, auth_config);
     
-    // Bind and serve (same API for both authenticated and non-authenticated)
-    auth_server.bind("127.0.0.1:3000".parse()?).await?;
-    auth_server.serve().await?;
+    // Note: This example shows setup - actual binding/serving requires more infrastructure
+    // See examples/axum_server_with_handlers.rs for complete working example
     
     Ok(())
 }
@@ -155,6 +183,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Next Steps
 
 - [Basic Examples](./basic_examples.md) - Learn common patterns
-- [Authentication Middleware Migration](./auth_middleware_migration.md) - Upgrade to zero-cost authentication
+- [Zero-Cost Authentication](./zero_cost_authentication.md) - Complete guide to authentication patterns
 - [Claude Integration](./claude_integration.md) - Connect to Claude Desktop
 - [Advanced Patterns](./advanced_patterns.md) - High-performance usage
