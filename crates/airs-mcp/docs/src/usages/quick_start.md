@@ -103,8 +103,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## HTTP Server with Zero-Cost Authentication
+
+The AIRS MCP library supports zero-cost generic authentication middleware that eliminates runtime dispatch overhead:
+
+```rust
+use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+use airs_mcp::transport::adapters::http::auth::middleware::{HttpAuthConfig, NoAuth};
+use airs_mcp::transport::adapters::http::auth::apikey::{ApiKeyStrategyAdapter, InMemoryApiKeyValidator, ApiKeyStrategy};
+use airs_mcp::integration::mcp::McpServerBuilder;
+use std::net::SocketAddr;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Option 1: Server without authentication (default)
+    let server = AxumHttpServer::new(
+        connection_manager,
+        session_manager,
+        jsonrpc_processor,
+        config,
+    ).await?;
+    
+    // Option 2: Server with API key authentication (zero-cost generic)
+    let validator = InMemoryApiKeyValidator::new(vec!["your-api-key".to_string()]);
+    let strategy = ApiKeyStrategy::new(validator);
+    let adapter = ApiKeyStrategyAdapter::new(strategy, Default::default());
+    let auth_config = HttpAuthConfig {
+        include_error_details: false,
+        auth_realm: "MCP API".to_string(),
+        request_timeout_secs: 30,
+        skip_paths: vec!["/health".to_string(), "/metrics".to_string()],
+    };
+    
+    let auth_server = server.with_authentication(adapter, auth_config);
+    
+    // Bind and serve (same API for both authenticated and non-authenticated)
+    auth_server.bind("127.0.0.1:3000".parse()?).await?;
+    auth_server.serve().await?;
+    
+    Ok(())
+}
+```
+
+**Key Benefits:**
+- ✅ **Zero Runtime Overhead**: No `Box<dyn>` trait objects or vtable lookups
+- ✅ **Compile-Time Optimization**: Authentication methods inlined by compiler
+- ✅ **Type Safety**: Different authentication strategies create different server types
+- ✅ **Builder Pattern**: Ergonomic `.with_authentication()` for zero-cost type conversion
+- ✅ **Backward Compatibility**: Existing code continues to work unchanged
+
 ## Next Steps
 
 - [Basic Examples](./basic_examples.md) - Learn common patterns
+- [Authentication Middleware Migration](./auth_middleware_migration.md) - Upgrade to zero-cost authentication
 - [Claude Integration](./claude_integration.md) - Connect to Claude Desktop
 - [Advanced Patterns](./advanced_patterns.md) - High-performance usage

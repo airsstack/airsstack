@@ -429,12 +429,110 @@ const rateLimiter = rateLimit({
 });
 ```
 
+## AIRS MCP Zero-Cost OAuth2 Integration
+
+The AIRS MCP library provides a complete zero-cost generic OAuth2 authentication implementation that follows the official MCP specification while eliminating runtime dispatch overhead:
+
+### OAuth2StrategyAdapter Implementation
+
+```rust
+use airs_mcp::transport::adapters::http::auth::oauth2::OAuth2StrategyAdapter;
+use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+use airs_mcp::oauth2::{OAuth2Config, JwtValidator, ScopeValidator};
+
+// Configure OAuth2 with enterprise IdP
+let oauth2_config = OAuth2Config {
+    client_id: env::var("OAUTH2_CLIENT_ID")?,
+    client_secret: env::var("OAUTH2_CLIENT_SECRET")?,
+    auth_url: "https://auth.enterprise.com/oauth/authorize".to_string(),
+    token_url: "https://auth.enterprise.com/oauth/token".to_string(),
+    scopes: vec!["mcp:read".to_string(), "mcp:write".to_string()],
+    redirect_url: "https://mcp.enterprise.com/callback".to_string(),
+};
+
+// Create zero-cost OAuth2 adapter
+let oauth2_adapter = OAuth2StrategyAdapter::new(oauth2_config);
+
+// Configure authentication middleware
+let auth_config = HttpAuthConfig {
+    include_error_details: false,
+    auth_realm: "MCP Enterprise API".to_string(),
+    request_timeout_secs: 30,
+    skip_paths: vec!["/health".to_string(), "/metrics".to_string()],
+};
+
+// Create server with zero-cost generic authentication
+let base_server = AxumHttpServer::new(deps).await?;
+let oauth_server = base_server.with_authentication(oauth2_adapter, auth_config);
+
+// Type: AxumHttpServer<OAuth2StrategyAdapter<JwtValidator, ScopeValidator>>
+// Zero runtime overhead - all authentication calls inlined
+```
+
+### Zero-Cost Generic Benefits
+
+**Performance Advantages:**
+- ✅ **Zero Runtime Dispatch**: Direct method calls instead of vtable lookups
+- ✅ **Compile-Time Optimization**: JWT validation methods inlined by compiler
+- ✅ **Stack Allocation**: No heap allocations for authentication middleware
+- ✅ **Type Safety**: OAuth2 configuration errors caught at compile time
+- ✅ **CPU Cache Friendly**: No indirect function calls improve performance
+
+**Architecture Compliance:**
+- ✅ **RFC 6750 Compliant**: Proper WWW-Authenticate headers with Bearer scheme
+- ✅ **RFC 9728 Integration**: Protected Resource Metadata support
+- ✅ **MCP Specification**: Full compliance with MCP OAuth requirements
+- ✅ **Workspace Standard §6**: Zero-cost abstractions following workspace standards
+
+### Enterprise Deployment Pattern
+
+```rust
+// Enterprise OAuth2 configuration with zero-cost generics
+async fn create_oauth2_server() -> Result<AxumHttpServer<OAuth2StrategyAdapter<JwtValidator, ScopeValidator>>, ServerError> {
+    let base_server = AxumHttpServer::new(enterprise_deps).await?;
+    
+    // Enterprise IdP integration
+    let jwt_validator = JwtValidator::new(
+        "https://auth.enterprise.com/.well-known/jwks".to_string(),
+        "https://auth.enterprise.com".to_string(), // issuer
+        "https://mcp.enterprise.com".to_string(),  // audience
+    ).await?;
+    
+    let scope_validator = ScopeValidator::new(vec![
+        "mcp:tools:read".to_string(),
+        "mcp:tools:execute".to_string(),
+        "mcp:resources:read".to_string(),
+    ]);
+    
+    let oauth2_config = OAuth2Config::from_well_known(
+        "https://auth.enterprise.com/.well-known/openid_configuration"
+    ).await?;
+    
+    let oauth2_adapter = OAuth2StrategyAdapter::with_validators(
+        oauth2_config, 
+        jwt_validator, 
+        scope_validator
+    );
+    
+    let auth_config = HttpAuthConfig {
+        include_error_details: false,  // Production security
+        auth_realm: "MCP Enterprise Production".to_string(),
+        request_timeout_secs: 10,      // Fast timeout for production
+        skip_paths: vec!["/health".to_string()],
+    };
+    
+    Ok(base_server.with_authentication(oauth2_adapter, auth_config))
+}
+```
+
 ## Implementation roadmap for airs-mcp OAuth integration
 
 **Immediate actions**: Implement audience validation to ensure all tokens include and validate the `aud` claim. Deploy PKCE for all OAuth flows. Enable comprehensive logging for all authentication and authorization events. Integrate with existing enterprise IdPs as authorization servers. Implement rate limiting to protect against abuse and DoS attacks.
 
 **Architecture recommendations**: Use the separation of concerns pattern with external IdP as authorization server and MCP server as resource server only. Implement Protected Resource Metadata (RFC 9728) for proper discovery. Use Dynamic Client Registration (RFC 7591) for scalable client onboarding. Enforce Resource Indicators (RFC 8707) for token binding and phishing protection.
 
+**Zero-Cost Implementation**: Leverage the AIRS MCP `OAuth2StrategyAdapter` for maximum performance with zero runtime dispatch overhead. Use the `AxumHttpServer<OAuth2StrategyAdapter>` generic server type for compile-time optimization and type safety.
+
 **Security priorities**: Mandatory PKCE implementation, token audience validation, comprehensive audit logging, multi-tenant isolation verification, incident response playbooks, security monitoring and alerting configuration, and regular security assessments.
 
-The official MCP repositories demonstrate that OAuth 2.1 integration requires careful attention to security specifications, proper separation of concerns, and comprehensive monitoring. These patterns provide the foundation for enterprise-grade MCP OAuth implementations that meet both security and scalability requirements.
+The official MCP repositories demonstrate that OAuth 2.1 integration requires careful attention to security specifications, proper separation of concerns, and comprehensive monitoring. The AIRS MCP zero-cost generic implementation provides these patterns with maximum performance and type safety for enterprise-grade MCP OAuth implementations.

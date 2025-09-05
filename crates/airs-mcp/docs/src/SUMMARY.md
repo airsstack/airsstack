@@ -16,6 +16,8 @@
     - [Performance Optimization](./usages/performance_optimization.md)
     - [Troubleshooting](./usages/troubleshooting.md)
     - [Migration Guide](./usages/migration_guide.md)
+    - [Authentication Middleware Migration](./usages/auth_middleware_migration.md)
+    - [Zero-Cost Authentication Guide](./usages/zero_cost_authentication.md)
 - [Protocol](./protocol.md)
     - [Architecture](./protocol/architecture.md)
     - [Server](./protocol/server.md)
