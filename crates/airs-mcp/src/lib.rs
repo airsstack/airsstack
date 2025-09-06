@@ -192,6 +192,9 @@ pub mod oauth2;
 // Multi-method authentication module
 pub mod authentication;
 
+// Zero-cost generic authorization module
+pub mod authorization;
+
 // Providers layer modules
 pub mod providers;
 

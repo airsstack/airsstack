@@ -192,41 +192,12 @@ where
         }
     }
 
-    /// Extract method name from HTTP request
-    ///
-    /// Uses path-based method extraction for MCP protocol compliance.
-    /// Expects paths like "/mcp/tools/call" or "/api/v1/resources/list".
-    ///
-    /// # Arguments
-    /// * `path` - HTTP request path
-    ///
-    /// # Returns
-    /// * Method name extracted from path, or None if not extractable
-    pub fn extract_method(&self, path: &str) -> Option<String> {
-        // Handle MCP-style paths: /mcp/tools/call -> tools/call
-        if let Some(mcp_path) = path.strip_prefix("/mcp/") {
-            return Some(mcp_path.to_string());
-        }
-
-        // Handle API-style paths: /api/v1/tools/call -> tools/call
-        if let Some(api_path) = path.strip_prefix("/api/v1/") {
-            return Some(api_path.to_string());
-        }
-
-        // Handle root-level paths: /tools/call -> tools/call
-        if let Some(root_path) = path.strip_prefix('/') {
-            if !root_path.is_empty() {
-                return Some(root_path.to_string());
-            }
-        }
-
-        None
-    }
 
     /// Convert HTTP request to OAuth2 request
     ///
-    /// Extracts bearer token, method, and metadata from HTTP request,
+    /// Extracts bearer token and metadata from HTTP request,
     /// creating an OAuth2Request suitable for authentication.
+    /// Method extraction is handled by the authorization layer.
     ///
     /// # Arguments
     /// * `http_request` - HTTP authentication request
@@ -241,20 +212,15 @@ where
         // Extract bearer token from Authorization header
         let bearer_token = self.extract_bearer_token(&http_request.headers)?;
 
-        // Extract method from request path
-        let method = self.extract_method(&http_request.path);
-
-        // Build OAuth2 request with metadata
+        // Build OAuth2 request with token only - no method extraction
+        // Method extraction should happen in the authorization layer from JSON-RPC payload
         let mut oauth2_request = OAuth2Request::new(bearer_token);
-
-        if let Some(method) = method {
-            oauth2_request = oauth2_request.with_method(method);
-        }
 
         // Add HTTP-specific metadata
         oauth2_request = oauth2_request
             .with_metadata("http_method", &http_request.method)
-            .with_metadata("http_path", &http_request.path);
+            .with_metadata("http_path", &http_request.path)
+            .with_metadata("transport", "http");
 
         if let Some(client_ip) = &http_request.client_ip {
             oauth2_request = oauth2_request.with_metadata("client_ip", client_ip);
@@ -585,55 +551,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_extract_method_mcp_path() {
-        let adapter = create_test_adapter(false, false);
-
-        assert_eq!(
-            adapter.extract_method("/mcp/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            adapter.extract_method("/mcp/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_api_path() {
-        let adapter = create_test_adapter(false, false);
-
-        assert_eq!(
-            adapter.extract_method("/api/v1/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            adapter.extract_method("/api/v1/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_root_path() {
-        let adapter = create_test_adapter(false, false);
-
-        assert_eq!(
-            adapter.extract_method("/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            adapter.extract_method("/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_empty_path() {
-        let adapter = create_test_adapter(false, false);
-
-        assert_eq!(adapter.extract_method(""), None);
-        assert_eq!(adapter.extract_method("/"), None);
-    }
 
     #[test]
     fn test_convert_http_request_success() {
@@ -645,7 +562,8 @@ mod tests {
 
         let oauth2_request = result.unwrap();
         assert_eq!(oauth2_request.bearer_token, "valid_token_123");
-        assert_eq!(oauth2_request.method, Some("tools/call".to_string()));
+        // Method extraction removed - should be None
+        assert_eq!(oauth2_request.method, None);
         assert_eq!(
             oauth2_request.metadata.get("http_method"),
             Some(&"POST".to_string())
@@ -653,6 +571,11 @@ mod tests {
         assert_eq!(
             oauth2_request.metadata.get("client_ip"),
             Some(&"192.168.1.1".to_string())
+        );
+        // Verify transport metadata was added
+        assert_eq!(
+            oauth2_request.metadata.get("transport"),
+            Some(&"http".to_string())
         );
     }
 

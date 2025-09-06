@@ -63,10 +63,15 @@ impl AuthRequest<OAuth2Request> for OAuth2RequestWrapper {
 ///
 /// # Authentication Flow
 /// 1. Extract bearer token from HTTP Authorization header
-/// 2. Parse method from HTTP request path  
-/// 3. Convert to OAuth2Request with metadata preservation
-/// 4. Delegate to underlying OAuth2 strategy
+/// 2. Create OAuth2Request with token only (method extraction handled by authorization layer)
+/// 3. Add HTTP-specific metadata for debugging and logging
+/// 4. Delegate to underlying OAuth2 strategy for token validation
 /// 5. Convert results back to HTTP-appropriate format
+///
+/// # OAuth2 Bug Fix
+/// This adapter no longer extracts method names from HTTP paths to fix the critical
+/// JSON-RPC method extraction bug. Method extraction is now properly handled by the
+/// authorization layer using JsonRpcMethodExtractor for JSON-RPC over HTTP requests.
 #[derive(Debug, Clone)]
 pub struct OAuth2StrategyAdapter<J, S>
 where
@@ -95,8 +100,8 @@ where
 
     /// Authenticate HTTP request using OAuth2 strategy
     ///
-    /// Extracts authentication data from HTTP request, converts to OAuth2 format,
-    /// and delegates to the underlying authentication strategy.
+    /// Extracts bearer token from HTTP request and performs token-only authentication.
+    /// Method extraction is now handled by the authorization layer to fix the JSON-RPC bug.
     ///
     /// # Arguments
     /// * `request` - HTTP authentication request data
@@ -112,18 +117,13 @@ where
         // Extract bearer token from headers
         let token = HttpExtractor::extract_bearer_token(&request.headers)?;
 
-        // Extract method from path (optional)
-        let method = HttpExtractor::extract_method(&request.path);
-
-        // Create OAuth2Request using the builder pattern
+        // Create OAuth2Request with token only - no method extraction
+        // Method extraction should happen in the authorization layer from JSON-RPC payload
         let mut oauth2_request = OAuth2Request::new(token);
 
-        if let Some(method) = method {
-            oauth2_request = oauth2_request.with_method(method);
-        }
-
-        // Add HTTP-specific metadata
+        // Add HTTP-specific metadata for debugging/logging
         oauth2_request = oauth2_request.with_metadata("http_path", &request.path);
+        oauth2_request = oauth2_request.with_metadata("transport", "http");
 
         if let Some(client_id) = &request.client_id {
             oauth2_request = oauth2_request.with_metadata("client_id", client_id);
@@ -132,7 +132,7 @@ where
         // Wrap the request to implement AuthRequest trait
         let request_wrapper = OAuth2RequestWrapper::new(oauth2_request);
 
-        // Delegate to OAuth2 strategy
+        // Delegate to OAuth2 strategy for token-only authentication
         self.strategy
             .authenticate(&request_wrapper)
             .await

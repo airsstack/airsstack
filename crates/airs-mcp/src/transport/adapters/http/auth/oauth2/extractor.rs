@@ -1,7 +1,8 @@
 //! HTTP Request Data Extraction
 //!
-//! Utilities for extracting OAuth2-relevant data from HTTP requests,
-//! including bearer tokens and MCP method names.
+//! Utilities for extracting OAuth2-relevant data from HTTP requests.
+//! This module focuses on authentication data extraction (bearer tokens)
+//! and delegates method extraction to the authorization layer.
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;
@@ -11,7 +12,11 @@ use std::collections::HashMap;
 // Layer 3: Internal module imports
 use super::error::HttpAuthError;
 
-/// HTTP data extraction utilities
+/// HTTP authentication data extraction utilities
+///
+/// Provides utilities for extracting authentication data from HTTP requests.
+/// Method extraction is handled by the authorization layer to maintain proper
+/// separation of concerns and fix the OAuth2 JSON-RPC method extraction bug.
 pub struct HttpExtractor;
 
 impl HttpExtractor {
@@ -60,36 +65,6 @@ impl HttpExtractor {
         }
     }
 
-    /// Extract method name from HTTP request path
-    ///
-    /// Uses path-based method extraction for MCP protocol compliance.
-    /// Expects paths like "/mcp/tools/call" or "/api/v1/resources/list".
-    ///
-    /// # Arguments
-    /// * `path` - HTTP request path
-    ///
-    /// # Returns
-    /// * Method name extracted from path, or None if not extractable
-    pub fn extract_method(path: &str) -> Option<String> {
-        // Handle MCP-style paths: /mcp/tools/call -> tools/call
-        if let Some(mcp_path) = path.strip_prefix("/mcp/") {
-            return Some(mcp_path.to_string());
-        }
-
-        // Handle API-style paths: /api/v1/tools/call -> tools/call
-        if let Some(api_path) = path.strip_prefix("/api/v1/") {
-            return Some(api_path.to_string());
-        }
-
-        // Handle root-level paths: /tools/call -> tools/call
-        if let Some(root_path) = path.strip_prefix('/') {
-            if !root_path.is_empty() {
-                return Some(root_path.to_string());
-            }
-        }
-
-        None
-    }
 }
 
 #[cfg(test)]
@@ -154,45 +129,4 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_extract_method_mcp_path() {
-        assert_eq!(
-            HttpExtractor::extract_method("/mcp/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            HttpExtractor::extract_method("/mcp/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_api_path() {
-        assert_eq!(
-            HttpExtractor::extract_method("/api/v1/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            HttpExtractor::extract_method("/api/v1/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_root_path() {
-        assert_eq!(
-            HttpExtractor::extract_method("/tools/call"),
-            Some("tools/call".to_string())
-        );
-        assert_eq!(
-            HttpExtractor::extract_method("/resources/list"),
-            Some("resources/list".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_method_empty_path() {
-        assert_eq!(HttpExtractor::extract_method(""), None);
-        assert_eq!(HttpExtractor::extract_method("/"), None);
-    }
 }
