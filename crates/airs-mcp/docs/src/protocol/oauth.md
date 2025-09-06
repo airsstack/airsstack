@@ -431,7 +431,91 @@ const rateLimiter = rateLimit({
 
 ## AIRS MCP Zero-Cost OAuth2 Integration
 
-The AIRS MCP library provides a complete zero-cost generic OAuth2 authentication implementation that follows the official MCP specification while eliminating runtime dispatch overhead:
+The AIRS MCP library provides a complete zero-cost generic OAuth2 authentication implementation that follows the official MCP specification while eliminating runtime dispatch overhead.
+
+### Important: JSON-RPC Method Extraction vs HTTP Path Extraction
+
+**Critical Architecture Fix (2025-09-06)**: The AIRS MCP library has implemented a critical architectural improvement for OAuth2 authentication with JSON-RPC over HTTP. This addresses a fundamental issue where method names were incorrectly extracted from URL paths instead of JSON-RPC payloads.
+
+#### The Problem
+
+MCP uses JSON-RPC over HTTP, meaning that all requests go to a single endpoint (typically `/mcp`), with the actual method name specified in the JSON payload as the `method` field:
+
+```json
+// POST /mcp with JSON body:
+{
+  "jsonrpc": "2.0",
+  "method": "initialize",
+  "params": {"protocolVersion": "2024-11-05"},
+  "id": 1
+}
+```
+
+The previous implementation incorrectly extracted the method from the URL path (`/mcp`), leading to scope validation requiring `mcp:mcp:*` scopes instead of the correct `mcp:*` or `mcp:initialize:*` scopes.
+
+#### The Solution: Layer Separation with Method Extractors
+
+AIRS MCP now uses a proper layered authorization architecture:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   HTTP Layer    │    │  JSON-RPC Layer │    │   MCP Layer     │
+│                 │    │                 │    │                 │
+│ • Bearer Token  │───▶│ • Parse Message │───▶│ • Method Auth   │
+│ • Authentication│    │ • Extract Method│    │ • Scope Check   │
+│                 │    │ (Generic)       │    │ (Zero-Cost)     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+1. **HTTP Layer**: Handles only bearer token extraction and validation
+2. **JSON-RPC Layer**: Parses the JSON payload and extracts the method name
+3. **MCP Layer**: Performs authorization based on the extracted method
+
+#### Implementation with JsonRpcMethodExtractor
+
+```rust
+use airs_mcp::authorization::{AuthorizationMiddleware, JsonRpcMethodExtractor, ScopeBasedPolicy};
+use airs_mcp::transport::adapters::http::auth::oauth2::OAuth2StrategyAdapter;
+
+// Create OAuth2 adapter for authentication
+let oauth2_adapter = create_oauth2_adapter().await?;
+
+// Create authorization middleware with proper method extraction
+let auth_middleware = AuthorizationMiddleware::new(
+    oauth2_adapter,                // Authentication ("Who are you?")
+    ScopeBasedPolicy::mcp(),       // Authorization policy ("What can you do?")
+    JsonRpcMethodExtractor::new(), // Method extraction from JSON-RPC payload
+);
+
+// Integrate with server
+let server = AxumHttpServer::new(deps).await?
+    .with_authentication(oauth2_adapter, HttpAuthConfig::default())
+    .with_scope_authorization(ScopeBasedPolicy::mcp());
+```
+
+### Troubleshooting OAuth2 Authentication
+
+#### Common Error: "OAuth2 validation failed: Insufficient scope"
+
+**Error**: `OAuth2 validation failed: Insufficient scope: required 'mcp:mcp:*', provided 'mcp:*'`
+
+**Cause**: Method extraction from URL path instead of JSON-RPC payload
+
+**Solution**: Update to use the `JsonRpcMethodExtractor` with `AuthorizationMiddleware`
+
+#### Common Error: "Bearer token missing or malformed"
+
+**Error**: `OAuth2 authentication failed: Bearer token missing or malformed`
+
+**Solution**: Check that your client is correctly sending the `Authorization` header with format `Bearer <token>`
+
+#### Common Error: "Token validation failed: Invalid audience"
+
+**Error**: `Token validation failed: Invalid audience`
+
+**Solution**: Ensure your OAuth tokens include the correct `aud` claim matching your MCP server
+
+## Zero-Cost OAuth2 Implementation
 
 ### OAuth2StrategyAdapter Implementation
 
