@@ -4,6 +4,14 @@
 
 ## Pending
 
+- [TASK-027] Fix OAuth2 HTTP JSON-RPC Method Extraction Bug - CRITICAL Priority - Added on 2025-09-06
+  - **Critical Architecture Bug**: OAuth2 HTTP authentication incorrectly extracts method from URL paths instead of JSON-RPC payloads
+  - **Impact**: 100% OAuth2 authentication failure for JSON-RPC over HTTP (MCP Inspector, Claude Desktop)
+  - **Root Cause**: Layer violation - HTTP transport performing MCP protocol authorization instead of authentication only
+  - **Solution**: Phase 1 quick fix (30min) + Phase 2 architectural refactoring (8-12 hours)
+  - **Technical Debt**: DEBT-ARCH-003 - OAuth2 HTTP JSON-RPC Method Extraction Bug
+  - **Status**: Critical blocker for OAuth2 example server testing and production deployment
+
 - [TASK_MCP_INSPECTOR_HTTP_TESTING] MCP Inspector Testing for HTTP Remote Server - HIGH Priority - Added on 2025-09-05
   - **Integration Testing**: Verify HTTP remote server works with MCP Inspector using ApiKey authentication
   - **Functionality Validation**: Test all MCP capabilities (Resources, Tools, Prompts) over authenticated HTTP
