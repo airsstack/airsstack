@@ -50,46 +50,39 @@ RIGHT: JSON-RPC Layer extracts "initialize" from payload → OAuth2 checks initi
 
 ## Solution Strategy
 
-### Phase 1: Immediate Fix (Quick Deployment)
+**ARCHITECTURAL DECISION**: Based on ADR-009 Zero-Cost Generic Authorization Architecture, we will implement a comprehensive refactoring that fixes the layer violation while establishing a production-ready authentication/authorization foundation.
 
-**Objective**: Unblock OAuth2 testing immediately with minimal code changes.
+**Key Decision**: Skip quick fixes to avoid technical debt - implement proper architecture directly.
 
-**Approach**: Skip method extraction for JSON-RPC endpoints.
+### Architecture Overview
 
-```rust
-// In HttpExtractor::extract_method()
-pub fn extract_method(path: &str) -> Option<String> {
-    // Skip method extraction for JSON-RPC endpoints
-    if path == "/mcp" || path.starts_with("/mcp?") {
-        return None;  // Let MCP layer handle method authorization
-    }
-    
-    // Keep existing REST-style extraction for other endpoints
-    // ... existing code ...
-}
+**Objective**: Implement Zero-Cost Generic Authorization Architecture (ADR-009)
+
+**Module Structure**:
+```
+src/
+├── authentication/     # ✅ "Who are you?" - Identity verification
+├── authorization/      # 🆕 "What can you do?" - Permission checking  
+├── oauth2/            # ✅ OAuth2 protocol implementation
+└── transport/.../auth/ # ✅ HTTP-specific token extraction only
 ```
 
-**Benefits**:
-- ✅ Immediate fix - OAuth2 authentication will work
-- ✅ Minimal code change - low risk of regression
-- ✅ Unblocks testing and development
-- ✅ Preserves REST-style method extraction for other use cases
-
-### Phase 2: Architectural Fix (Proper Implementation)
-
-**Objective**: Implement correct layered architecture separating authentication from authorization.
-
-**Architecture Redesign**:
-
+**Zero-Cost Architecture**:
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   HTTP Layer    │    │  JSON-RPC Layer │    │   MCP Layer     │
 │                 │    │                 │    │                 │
 │ • Bearer Token  │───▶│ • Parse Message │───▶│ • Method Auth   │
 │ • Authentication│    │ • Extract Method│    │ • Scope Check   │
-│                 │    │ • Route Request │    │ • Execute       │
+│                 │    │ (Generic)       │    │ (Zero-Cost)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
+
+**Core Principles**:
+- **Zero Runtime Dispatch**: Pure generics, no `dyn` traits
+- **Compile-Time Specialization**: Each auth/authz combo creates unique server type
+- **Optional Authorization**: Development/internal use needs no authorization overhead
+- **Type Safety**: Impossible to mix incompatible combinations
 
 **Implementation Tasks**:
 
@@ -115,64 +108,68 @@ pub fn extract_method(path: &str) -> Option<String> {
 
 ## Implementation Plan
 
-### Subtask 27.1: Immediate Quick Fix
+**Reference**: ADR-009 Zero-Cost Generic Authorization Architecture
+
+### Phase 1: Authorization Framework (4 hours)
 - **Priority**: CRITICAL
-- **Effort**: 30 minutes
-- **Goal**: Unblock OAuth2 testing immediately
+- **Goal**: Create zero-cost generic authorization abstractions
 
 **Actions**:
-- [ ] Update `HttpExtractor::extract_method()` to skip `/mcp` endpoints
-- [ ] Test with MCP Inspector to verify authentication works
-- [ ] Update OAuth2 example server documentation
+- [ ] Create `src/authorization/` module with generic traits
+- [ ] Implement concrete context types (OAuth2AuthContext, ApiKeyAuthContext, NoAuthContext)
+- [ ] Create authorization policies (NoAuthorizationPolicy, ScopeBasedPolicy, BinaryAuthorizationPolicy)
+- [ ] Build generic authorization middleware with `MethodExtractor` trait
+- [ ] Ensure all abstractions use pure generics (no `dyn` traits)
 
-### Subtask 27.2: Integration Test Coverage
-- **Priority**: HIGH  
-- **Effort**: 2 hours
-- **Goal**: Prevent regression and validate fix
-
-**Actions**:
-- [ ] Add JSON-RPC over HTTP OAuth2 integration tests
-- [ ] Test complete authentication flow with real JSON-RPC messages
-- [ ] Validate both successful and failure authentication scenarios
-- [ ] Add continuous integration for OAuth2 authentication testing
-
-### Subtask 27.3: Architectural Refactoring
+### Phase 2: Transport Layer Cleanup (2 hours)
 - **Priority**: HIGH
-- **Effort**: 8-12 hours  
-- **Goal**: Implement proper layered architecture
+- **Goal**: Remove authorization logic from HTTP transport layer
 
 **Actions**:
-- [ ] Design new OAuth2 middleware architecture
-- [ ] Create MCP-level OAuth2 authorization middleware
-- [ ] Update HTTP OAuth2 adapter to token-only validation
-- [ ] Add configuration options for different authorization modes
-- [ ] Migration guide for existing OAuth2 integrations
+- [ ] Remove method extraction from HTTP OAuth2 adapter
+- [ ] Focus HTTP auth adapters on token extraction and authentication only
+- [ ] Return concrete authentication context types (no heap allocation)
+- [ ] Deprecate incorrect `HttpExtractor::extract_method()` pattern
+- [ ] Update all HTTP auth adapters to follow authentication-only pattern
 
-### Subtask 27.4: Documentation and Examples
+### Phase 3: Server Integration (3 hours)
+- **Priority**: HIGH
+- **Goal**: Integrate generic auth/authz with server architecture
+
+**Actions**:
+- [ ] Create generic server types with compile-time specialization
+- [ ] Implement builder pattern for type-safe auth/authz configuration
+- [ ] Update `McpServer<AuthAdapter, AuthzPolicy, AuthContext>` generic structure
+- [ ] Ensure each configuration creates unique server type (zero runtime dispatch)
+- [ ] Update example servers to use new builder pattern
+
+### Phase 4: Testing & Documentation (1 hour)
 - **Priority**: MEDIUM
-- **Effort**: 2 hours
-- **Goal**: Update all OAuth2 documentation
+- **Goal**: Validate zero-cost abstractions and provide migration guides
 
 **Actions**:
-- [ ] Update OAuth2 integration guides
-- [ ] Fix example server documentation
-- [ ] Add architectural decision records
-- [ ] Create troubleshooting guides for OAuth2 authentication
+- [ ] Integration tests for JSON-RPC over HTTP OAuth2 authentication
+- [ ] Performance benchmarks to verify zero-cost abstractions
+- [ ] Validate with `cargo expand` that NoAuth compiles to zero code
+- [ ] Update documentation with new authentication/authorization patterns
+- [ ] Create migration guide from current OAuth2 usage
 
 ## Acceptance Criteria
 
-### Phase 1 Success Criteria
+### Functional Requirements
+- [ ] OAuth2 authentication works correctly with JSON-RPC over HTTP
+- [ ] Method extraction happens at the correct protocol layer (JSON-RPC payload, not URL path)
+- [ ] Authorization is optional and configurable per server
+- [ ] All existing authentication strategies continue to work
 - [ ] MCP Inspector successfully authenticates with OAuth2 server
 - [ ] `initialize` method calls succeed with `mcp:*` scope tokens
-- [ ] All existing OAuth2 unit tests continue to pass
-- [ ] REST-style method extraction still works for non-JSON-RPC endpoints
 
-### Phase 2 Success Criteria  
-- [ ] Clear separation between HTTP authentication and MCP authorization
-- [ ] Support for both REST and JSON-RPC authentication patterns
-- [ ] Comprehensive integration test coverage
-- [ ] Zero regression in existing OAuth2 functionality
-- [ ] Performance impact analysis completed and acceptable
+### Performance Requirements (Zero-Cost Abstractions)
+- [ ] Zero runtime dispatch - all calls inlined at compile time
+- [ ] No heap allocations for authentication contexts
+- [ ] Development mode (NoAuth) has zero authorization overhead
+- [ ] Performance benchmarks show no regression vs current implementation
+- [ ] `cargo expand` verification: NoAuth authorization compiles to zero code
 
 ### Quality Gates
 - [ ] All tests pass (unit + integration)
@@ -196,17 +193,30 @@ pub fn extract_method(path: &str) -> Option<String> {
 
 ## Success Metrics
 
-### Immediate Success (Phase 1)
+### Authentication Success
 - OAuth2 authentication success rate: 0% → 100% for JSON-RPC requests
 - MCP Inspector integration: Non-functional → Fully functional
-- Example server usability: Broken → Working
+- Example server usability: Broken → Working with clean builder pattern
 
-### Long-term Success (Phase 2)
-- Architecture clarity: Clear separation of authentication vs authorization layers
-- Test coverage: Comprehensive JSON-RPC over HTTP authentication testing
-- Developer experience: Clear patterns for OAuth2 integration
+### Architecture Quality (ADR-009 Compliance)
+- Layer separation: Clean authentication vs authorization boundaries
+- Zero-cost abstractions: All authorization logic inlined at compile time  
+- Type safety: Compile-time verification of auth/authz combinations
+- Performance: NoAuth development mode has literally zero overhead
+- Flexibility: Optional authorization works with any authentication strategy
+
+### Developer Experience
+- Simple configuration: Builder pattern for all auth/authz combinations
+- Clear documentation: Migration guides and usage examples
+- Test coverage: Comprehensive integration testing for real-world scenarios
 
 ## Related Work
+
+### Architecture Decision Records
+- **ADR-009**: Zero-Cost Generic Authorization Architecture (accepted 2025-09-06)
+  - Establishes the architectural foundation for this implementation
+  - Defines pure generic design without `dyn` patterns
+  - Specifies optional authorization with compile-time optimization
 
 ### Technical Debt
 - **DEBT-ARCH-003**: OAuth2 HTTP JSON-RPC Method Extraction Bug (this task resolves)
@@ -214,11 +224,13 @@ pub fn extract_method(path: &str) -> Option<String> {
 ### Dependencies
 - **TASK005**: Zero-Cost Authentication Architecture (completed)
 - **OAuth2 Infrastructure**: Existing OAuth2 validator and scope checking
+- **ADR-009**: Architecture decisions and implementation guidelines
 
 ### Follow-up Tasks
-- Performance optimization for JSON-RPC parsing in authentication path
+- Performance benchmarking to validate zero-cost abstractions
 - Enhanced OAuth2 configuration options and patterns
 - Advanced scope mapping and method authorization patterns
+- WebSocket and STDIO transport authorization support
 
 ## Notes
 

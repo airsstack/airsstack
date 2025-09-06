@@ -1,14 +1,14 @@
 # Architecture Decision Record Registry - airs-mcp
 
-**Last Updated**: 2025-09-01  
-**Total ADRs**: 8  
-**Active ADRs**: 8  
+**Last Updated**: 2025-09-06  
+**Total ADRs**: 9  
+**Active ADRs**: 9
 **Superseded ADRs**: 0
 
 ## Decision Categories
 
 ### System Architecture
-- **Active**: 6 ADRs
+- **Active**: 7 ADRs
 - **Superseded**: 0 ADRs
 
 ### Technology Selection  
@@ -38,6 +38,7 @@
 | ADR-004 | Axum Modular Architecture Refactor | 2025-08-14 | Accepted | High | 2026-02-14 |
 | ADR-006 | MCP Protocol Field Naming Compliance | 2025-08-14 | Accepted | Medium | 2025-11-14 |
 | ADR-008 | MCP Protocol Architecture | 2025-08-14 | Accepted | High | 2026-02-14 |
+| ADR-009 | Zero-Cost Generic Authorization Architecture | 2025-09-06 | Accepted | Critical | 2026-03-06 |
 
 ### Design Patterns
 | ID | Title | Date | Status | Impact | Next Review |
@@ -70,6 +71,7 @@
 ## Decision Timeline (Chronological)
 
 ### Recent Decisions (Last 3 Months)
+- **2025-09-06**: ADR-009 - Zero-Cost Generic Authorization Architecture (Accepted)
 - **2025-09-01**: ADR-001 - MCP-Compliant Transport Redesign (Proposed)
 - **2025-08-14**: ADR-008 - MCP Protocol Architecture (Accepted)
 - **2025-08-14**: ADR-007 - Benchmarking Environment Constraints (Accepted)
@@ -89,11 +91,15 @@
 - **ADR-004** → supports → **ADR-001, ADR-003** (SRP enables clean architectural separation)
 - **ADR-005** → supports → **ADR-007** (field naming supports protocol architecture)
 - **ADR-006** → supports → **performance optimization** (benchmarking enables optimization)
+- **ADR-009** → resolves → **TASK-027, DEBT-ARCH-003** (fixes OAuth2 authorization architecture)
 
 ### Conflict Resolution
 - No conflicts identified between current decisions
 
 ## Impact Analysis
+
+### Critical Impact Decisions (Production Blocking)
+- **ADR-009**: Zero-Cost Generic Authorization Architecture - Fixes OAuth2 authentication layer violation, enables production OAuth2 deployment
 
 ### High Impact Decisions (Affect Multiple Modules)
 - **ADR-001**: Transport Role-Specific Architecture - Affects all transport usage, establishes pattern for future transports
@@ -103,8 +109,8 @@
 
 ### Technology Decisions
 - **Current Stack**: HTTP-based transport with Axum server framework, role-specific transport separation
-- **Performance Strategy**: Benchmarking environment constraints defined (ADR-006)
-- **Security Approach**: To be defined (pending OAuth2 and security ADRs)
+- **Performance Strategy**: Zero-cost generic abstractions with compile-time optimization (ADR-009)
+- **Security Approach**: Generic authentication/authorization architecture with OAuth2 support (ADR-009)
 
 ## Review Schedule
 
@@ -114,6 +120,7 @@
 | ADR-004 | Single Responsibility Principle | 2025-11-14 | Quarterly | Core Team |
 | ADR-005 | MCP Protocol Field Naming | 2025-11-14 | Quarterly | Core Team |
 | ADR-006 | Benchmarking Environment | 2025-11-14 | Quarterly | Core Team |
+| ADR-009 | Zero-Cost Authorization Architecture | 2026-03-06 | Annual | Core Team |
 
 ### Overdue Reviews (Requires Attention)
 | ADR ID | Title | Original Review Date | Days Overdue | Action Required |
@@ -123,7 +130,7 @@
 ## Success Metrics
 
 ### Decision Quality
-- **Implementation Success Rate**: 100% (7/7 decisions successfully implemented)
+- **Implementation Success Rate**: 100% (8/8 decisions successfully implemented or in progress)
 - **Average Time to Implementation**: Same-day implementation for most decisions
 - **Reversal Rate**: 0% (no decisions reversed within 6 months)
 
@@ -134,6 +141,7 @@
 
 ## Action Items
 - [ ] Schedule quarterly reviews for all decisions approaching review dates
-- [ ] Create ADRs for upcoming OAuth2 security architecture decisions
+- [x] Create ADR for OAuth2 security architecture decisions (ADR-009 completed)
 - [ ] Document performance optimization strategy decisions
 - [ ] Plan ADR for Phase 3 server implementation architecture
+- [ ] Implement ADR-009 authorization architecture (TASK-027)

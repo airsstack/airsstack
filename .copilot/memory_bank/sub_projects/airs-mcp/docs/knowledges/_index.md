@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-01  
-**Total Knowledge Docs**: 22  
+**Last Updated**: 2025-09-06  
+**Total Knowledge Docs**: 23  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 9  
+**Documentation Count**: 10  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -59,6 +59,12 @@
   - **Complexity**: Critical - Framework abstraction enabling team choice while maintaining MCP protocol compliance
   - **Updated**: 2025-09-01
   - **Related**: ADR-001 (MCP-compliant transport redesign), OAuth2 integration, framework flexibility
+
+- **[Task 027 Zero-Cost Authorization Architecture Design](./KNOWLEDGE-001-task027-zero-cost-authorization-design.md)** ✅ NEW
+  - **Focus**: Zero-cost generic authorization architecture, OAuth2 layer violation fix, authentication/authorization separation
+  - **Complexity**: Critical - Production-ready authentication/authorization foundation with compile-time optimization
+  - **Updated**: 2025-09-06
+  - **Related**: TASK-027, ADR-009, OAuth2 authentication, zero-cost abstractions
 
 ### Domain
 **Documentation Count**: 1  
