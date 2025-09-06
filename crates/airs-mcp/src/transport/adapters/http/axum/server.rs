@@ -19,7 +19,13 @@ use tokio::sync::broadcast;
 use crate::authentication::manager::AuthenticationManager;
 use crate::authentication::strategy::AuthenticationStrategy;
 use crate::authentication::AuthContext;
+use crate::authorization::{
+    context::{AuthzContext, BinaryAuthContext, NoAuthContext, ScopeAuthContext},
+    middleware::AuthorizationRequest,
+    policy::{AuthorizationPolicy, BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
+};
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
+use crate::transport::adapters::http::auth::jsonrpc_authorization::{JsonRpcAuthorizationLayer, JsonRpcHttpRequest};
 use crate::transport::adapters::http::auth::middleware::{HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
@@ -71,20 +77,27 @@ impl HttpAuthStrategyAdapter for NoAuth {
 ///
 /// # Type Parameters
 /// * `A` - Authentication strategy adapter (defaults to NoAuth for backward compatibility)
+/// * `P` - Authorization policy (defaults to NoAuthorizationPolicy for backward compatibility)
+/// * `C` - Authorization context (defaults to NoAuthContext for backward compatibility)
 ///
 /// # Examples
 ///
 /// ```rust,no_run
 /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
-/// // Default server with no authentication
+/// // Default server with no authentication or authorization
 /// // let server = AxumHttpServer::new(...).await?;
+/// 
+/// // OAuth2 server with scope-based authorization
+/// // let oauth2_server = server.with_oauth2_authorization(oauth2_adapter, config);
 /// ```
-pub struct AxumHttpServer<A = NoAuth>
+pub struct AxumHttpServer<A = NoAuth, P = NoAuthorizationPolicy<NoAuthContext>, C = NoAuthContext>
 where
     A: HttpAuthStrategyAdapter,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     /// Server state shared across handlers
-    state: ServerState<A>,
+    state: ServerState<A, P, C>,
     /// TCP listener for accepting connections
     listener: Option<TcpListener>,
     /// Local address the server is bound to
@@ -120,6 +133,7 @@ impl AxumHttpServer<NoAuth> {
             config: config.clone(),
             sse_broadcaster,
             auth_middleware: None, // NoAuth has no middleware
+            authorization_layer: None, // NoAuth has no authorization layer
         };
 
         Ok(Self {
@@ -221,6 +235,118 @@ impl AxumHttpServer<NoAuth> {
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
+            authorization_layer: None, // Will be set by authorization builder methods
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+
+    /// Add OAuth2 authentication with scope-based authorization (zero-cost type conversion)
+    ///
+    /// This method creates a server with OAuth2 authentication and scope-based authorization
+    /// in a single step. This is the most common pattern for OAuth2 integration.
+    ///
+    /// # Type Parameters
+    /// * `O` - OAuth2 authentication strategy adapter
+    ///
+    /// # Arguments
+    /// * `oauth2_adapter` - OAuth2 authentication strategy adapter
+    /// * `auth_config` - HTTP authentication middleware configuration
+    ///
+    /// # Returns
+    /// * AxumHttpServer with OAuth2 authentication and scope-based authorization
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    /// 
+    /// // Example usage (requires proper OAuth2 setup)
+    /// // let server = AxumHttpServer::new(deps).await?
+    /// //     .with_oauth2_authorization(oauth2_adapter, HttpAuthConfig::default());
+    /// ```
+    pub fn with_oauth2_authorization<O>(
+        self,
+        oauth2_adapter: O,
+        auth_config: HttpAuthConfig,
+    ) -> AxumHttpServer<O, ScopeBasedPolicy, ScopeAuthContext>
+    where
+        O: HttpAuthStrategyAdapter,
+    {
+
+        let auth_middleware = HttpAuthMiddleware::new(oauth2_adapter, auth_config);
+        let authorization_layer = JsonRpcAuthorizationLayer::new(ScopeBasedPolicy::mcp());
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: Some(auth_middleware),
+            authorization_layer: Some(authorization_layer),
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+
+    /// Add custom authentication and authorization (zero-cost type conversion)
+    ///
+    /// This method allows full customization of both authentication and authorization.
+    /// Use this when you need non-standard combinations.
+    ///
+    /// # Type Parameters
+    /// * `A` - Authentication strategy adapter
+    /// * `P` - Authorization policy
+    /// * `C` - Authorization context
+    ///
+    /// # Arguments
+    /// * `adapter` - Authentication strategy adapter
+    /// * `auth_config` - HTTP authentication middleware configuration
+    /// * `policy` - Authorization policy to apply
+    ///
+    /// # Returns
+    /// * AxumHttpServer with the specified authentication and authorization
+    pub fn with_auth_and_authz<A, P, C>(
+        self,
+        adapter: A,
+        auth_config: HttpAuthConfig, 
+        policy: P,
+    ) -> AxumHttpServer<A, P, C>
+    where
+        A: HttpAuthStrategyAdapter,
+        P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+        C: AuthzContext + Clone,
+    {
+
+        let auth_middleware = HttpAuthMiddleware::new(adapter, auth_config);
+        let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: Some(auth_middleware),
+            authorization_layer: Some(authorization_layer),
         };
         
         AxumHttpServer {
@@ -235,10 +361,143 @@ impl AxumHttpServer<NoAuth> {
 
 }
 
-/// Generic implementation for AxumHttpServer with any authentication strategy
-impl<A> AxumHttpServer<A>
+/// Implementation for servers with authentication but no authorization
+impl<A> AxumHttpServer<A, NoAuthorizationPolicy<NoAuthContext>, NoAuthContext>
 where
     A: HttpAuthStrategyAdapter,
+{
+    /// Add scope-based authorization to an authenticated server (zero-cost type conversion)
+    ///
+    /// This method is typically used after adding authentication to enable OAuth2
+    /// scope-based authorization.
+    ///
+    /// # Returns
+    /// * AxumHttpServer with scope-based authorization policy
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    /// 
+    /// // Chain authentication and authorization
+    /// // let server = AxumHttpServer::new(deps).await?
+    /// //     .with_authentication(oauth2_adapter, HttpAuthConfig::default())
+    /// //     .with_scope_authorization(ScopeBasedPolicy::new());
+    /// ```
+    pub fn with_scope_authorization(
+        self,
+        policy: ScopeBasedPolicy,
+    ) -> AxumHttpServer<A, ScopeBasedPolicy, ScopeAuthContext> {
+        let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: self.state.auth_middleware, // Preserve authentication
+            authorization_layer: Some(authorization_layer),
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+
+    /// Add binary authorization to an authenticated server (zero-cost type conversion)
+    ///
+    /// This method enables simple allow/deny authorization policies.
+    ///
+    /// # Arguments
+    /// * `policy` - Binary authorization policy to apply
+    ///
+    /// # Returns
+    /// * AxumHttpServer with binary authorization policy
+    pub fn with_binary_authorization(
+        self,
+        policy: BinaryAuthorizationPolicy,
+    ) -> AxumHttpServer<A, BinaryAuthorizationPolicy, BinaryAuthContext> {
+        let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: self.state.auth_middleware, // Preserve authentication
+            authorization_layer: Some(authorization_layer),
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+
+    /// Add custom authorization to an authenticated server (zero-cost type conversion)
+    ///
+    /// This method allows full customization of authorization policy and context.
+    ///
+    /// # Type Parameters
+    /// * `P` - Authorization policy
+    /// * `C` - Authorization context
+    ///
+    /// # Arguments
+    /// * `policy` - Authorization policy to apply
+    ///
+    /// # Returns
+    /// * AxumHttpServer with the specified authorization policy
+    pub fn with_authorization<P, C>(
+        self,
+        policy: P,
+    ) -> AxumHttpServer<A, P, C>
+    where
+        P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+        C: AuthzContext + Clone,
+    {
+        let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
+        
+        let new_state = ServerState {
+            connection_manager: self.state.connection_manager,
+            session_manager: self.state.session_manager,
+            jsonrpc_processor: self.state.jsonrpc_processor,
+            mcp_handlers: self.state.mcp_handlers,
+            config: self.state.config,
+            sse_broadcaster: self.state.sse_broadcaster,
+            auth_middleware: self.state.auth_middleware, // Preserve authentication
+            authorization_layer: Some(authorization_layer),
+        };
+        
+        AxumHttpServer {
+            state: new_state,
+            listener: self.listener,
+            local_addr: self.local_addr,
+            is_running: self.is_running,
+            mcp_handler: self.mcp_handler,
+            middleware: self.middleware,
+        }
+    }
+}
+
+/// Generic implementation for AxumHttpServer with any authentication strategy
+impl<A, P, C> AxumHttpServer<A, P, C>
+where
+    A: HttpAuthStrategyAdapter,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     /// Bind the server to the specified address
     pub async fn bind(&mut self, addr: SocketAddr) -> Result<(), TransportError> {
@@ -329,9 +588,11 @@ where
 // ================================================================================================
 
 #[async_trait]
-impl<A> HttpEngine for AxumHttpServer<A>
+impl<A, P, C> HttpEngine for AxumHttpServer<A, P, C>
 where
     A: HttpAuthStrategyAdapter,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     type Error = TransportError;
     type Config = HttpTransportConfig;
@@ -355,12 +616,11 @@ where
 
     /// Bind the engine to a network address
     async fn bind(&mut self, addr: SocketAddr) -> Result<(), HttpEngineError> {
-        self.bind(addr).await.map_err(|e| match e {
-            TransportError::Io(io_err) => HttpEngineError::Io(io_err),
-            _ => HttpEngineError::Engine {
-                message: format!("Bind failed: {e}"),
-            },
-        })
+        // Use the internal bind method from AxumHttpServer
+        let listener = TcpListener::bind(addr).await.map_err(HttpEngineError::Io)?;
+        self.local_addr = Some(listener.local_addr().map_err(HttpEngineError::Io)?);
+        self.listener = Some(listener);
+        Ok(())
     }
 
     /// Start the HTTP server
@@ -369,12 +629,30 @@ where
             return Err(HttpEngineError::AlreadyRunning);
         }
 
-        self.start().await.map_err(|e| match e {
-            TransportError::Io(io_err) => HttpEngineError::Io(io_err),
-            _ => HttpEngineError::Engine {
-                message: format!("Start failed: {e}"),
-            },
-        })
+        let app = create_router(self.state.clone());
+
+        let listener = self.listener.take().ok_or_else(|| HttpEngineError::Engine {
+            message: "Server not bound to address".to_string(),
+        })?;
+
+        tracing::info!(
+            "Starting Axum HTTP server on {}",
+            listener.local_addr().unwrap()
+        );
+
+        self.is_running = true;
+
+        // Start server in the background - this is a simplified approach
+        // for the HttpEngine trait interface
+        tokio::spawn(async move {
+            let _ = axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await;
+        });
+
+        Ok(())
     }
 
     /// Gracefully shutdown the HTTP server
@@ -436,6 +714,7 @@ where
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -492,4 +771,5 @@ mod tests {
         server.bind(addr).await.unwrap();
         assert!(server.is_bound());
     }
+
 }

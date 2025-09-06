@@ -118,8 +118,22 @@ where
     }
 }
 
-// Clone implementation removed temporarily due to private field access
-// This can be re-implemented when authorization middleware exposes necessary methods
+impl<A, C, P> Clone for JsonRpcAuthorizationLayer<A, C, P>
+where
+    A: HttpAuthStrategyAdapter,
+    C: AuthzContext,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            authorization_middleware: AuthorizationMiddleware::new(
+                self.authorization_middleware.policy().clone(),
+                JsonRpcMethodExtractor::new()
+            ),
+            _phantom: PhantomData,
+        }
+    }
+}
 
 /// Axum middleware function for JSON-RPC authorization
 ///

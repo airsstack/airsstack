@@ -48,6 +48,7 @@ async fn create_test_server_state() -> ServerState {
         config,
         sse_broadcaster,
         auth_middleware: None,
+        authorization_layer: None,
     }
 }
 

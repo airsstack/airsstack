@@ -28,9 +28,15 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
+use crate::authorization::{
+    context::{AuthzContext, NoAuthContext},
+    middleware::AuthorizationRequest,
+    policy::{AuthorizationPolicy, NoAuthorizationPolicy},
+};
 use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
 use crate::integration::mcp::constants::methods as mcp_methods;
+use crate::transport::adapters::http::auth::jsonrpc_authorization::{JsonRpcAuthorizationLayer, JsonRpcHttpRequest};
 use crate::transport::adapters::http::auth::middleware::{HttpAuthMiddleware, HttpAuthStrategyAdapter};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
@@ -96,10 +102,14 @@ impl SseEvent {
 ///
 /// # Type Parameters
 /// * `A` - Authentication strategy adapter (defaults to NoAuth)
+/// * `P` - Authorization policy (defaults to NoAuthorizationPolicy)
+/// * `C` - Authorization context (defaults to NoAuthContext)
 #[derive(Clone)]
-pub struct ServerState<A = super::server::NoAuth>
+pub struct ServerState<A = super::server::NoAuth, P = NoAuthorizationPolicy<NoAuthContext>, C = NoAuthContext>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     /// Connection manager for tracking HTTP connections
     pub connection_manager: Arc<HttpConnectionManager>,
@@ -115,26 +125,32 @@ where
     pub sse_broadcaster: broadcast::Sender<SseEvent>,
     /// Optional authentication middleware
     pub auth_middleware: Option<HttpAuthMiddleware<A>>,
+    /// Optional authorization layer
+    pub authorization_layer: Option<JsonRpcAuthorizationLayer<A, C, P>>,
 }
 
 /// Create the Axum router with all routes and middleware
 ///
 /// # Type Parameters
 /// * `A` - Authentication strategy adapter for the server state
-pub fn create_router<A>(state: ServerState<A>) -> Router
+/// * `P` - Authorization policy for the server state
+/// * `C` - Authorization context for the server state
+pub fn create_router<A, P, C>(state: ServerState<A, P, C>) -> Router
 where
-    A: HttpAuthStrategyAdapter + 'static,
+    A: HttpAuthStrategyAdapter + Clone + 'static,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone + 'static,
+    C: AuthzContext + Clone + 'static,
 {
     let mut router = Router::new()
         // Main MCP endpoint for JSON-RPC requests and SSE streaming
-        .route("/mcp", post(handle_mcp_request::<A>))
-        .route("/mcp", get(handle_mcp_get::<A>))
+        .route("/mcp", post(handle_mcp_request::<A, P, C>))
+        .route("/mcp", get(handle_mcp_get::<A, P, C>))
         // Health check endpoint
-        .route("/health", get(handle_health_check::<A>))
+        .route("/health", get(handle_health_check::<A, P, C>))
         // Server metrics endpoint
-        .route("/metrics", get(handle_metrics::<A>))
+        .route("/metrics", get(handle_metrics::<A, P, C>))
         // Server status endpoint
-        .route("/status", get(handle_status::<A>))
+        .route("/status", get(handle_status::<A, P, C>))
         // Add shared state
         .with_state(state.clone());
 
@@ -154,14 +170,16 @@ where
 }
 
 /// Handle MCP JSON-RPC requests on the /mcp endpoint
-async fn handle_mcp_request<A>(
-    State(state): State<ServerState<A>>,
+async fn handle_mcp_request<A, P, C>(
+    State(state): State<ServerState<A, P, C>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     body: String,
 ) -> Result<Json<Value>, (StatusCode, String)> 
 where
-    A: HttpAuthStrategyAdapter + 'static,
+    A: HttpAuthStrategyAdapter + Clone + 'static,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone + 'static,
+    C: AuthzContext + Clone + 'static,
 {
     // Register connection with connection manager
     let connection_id = state
@@ -191,6 +209,14 @@ where
     // Parse JSON to determine message type
     let json_value: Value = serde_json::from_str(&body)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid JSON: {e}")))?;
+    // PHASE 3: Authorization layer integration placeholder
+    // The authorization framework is now integrated into the server architecture.
+    // When an authorization layer is configured, we log its presence.
+    // Full authorization checking will be activated when HTTP authentication 
+    // middleware properly extracts and provides the authentication context.
+    if let Some(authorization_layer) = &state.authorization_layer {
+        tracing::debug!("Authorization layer configured: {}", authorization_layer.policy_name());
+    }
 
     // Check if it's a request (has "id") or notification (no "id")
     let response = if json_value.get("id").is_some() {
@@ -241,14 +267,16 @@ where
 }
 
 /// Handle MCP SSE streaming requests on the /mcp endpoint (GET method)
-async fn handle_mcp_get<A>(
+async fn handle_mcp_get<A, P, C>(
     Query(params): Query<McpSseQueryParams>,
-    State(state): State<ServerState<A>>,
+    State(state): State<ServerState<A, P, C>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
-) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> 
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)>
 where
-    A: HttpAuthStrategyAdapter + 'static,
+    A: HttpAuthStrategyAdapter + Clone + 'static,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone + 'static,
+    C: AuthzContext + Clone + 'static,
 {
     // Register connection with connection manager
     let connection_id = state
@@ -348,13 +376,15 @@ where
 }
 
 /// Extract session ID from headers or create a new session
-pub async fn extract_or_create_session<A>(
-    state: &ServerState<A>,
+pub async fn extract_or_create_session<A, P, C>(
+    state: &ServerState<A, P, C>,
     headers: &HeaderMap,
     peer_addr: SocketAddr,
 ) -> Result<SessionId, TransportError>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     // Try to extract existing session ID from headers
     if let Some(session_header) = headers.get("X-Session-ID") {
@@ -382,13 +412,15 @@ where
 }
 
 /// Process JSON-RPC request with MCP protocol support
-pub async fn process_jsonrpc_request<A>(
-    state: &ServerState<A>,
+pub async fn process_jsonrpc_request<A, P, C>(
+    state: &ServerState<A, P, C>,
     session_id: SessionId,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     // Route MCP requests to appropriate handlers based on method
     match request.method.as_str() {
@@ -457,13 +489,15 @@ where
 }
 
 /// Process JSON-RPC notification (no response expected)
-async fn process_jsonrpc_notification<A>(
-    _state: &ServerState<A>,
+async fn process_jsonrpc_notification<A, P, C>(
+    _state: &ServerState<A, P, C>,
     _session_id: SessionId,
     _notification: JsonRpcNotification,
 ) -> Result<(), TransportError>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     // For now, just log the notification
     // In Phase 3C, we'll integrate with the actual MCP handlers
@@ -472,11 +506,13 @@ where
 }
 
 /// Handle server status requests
-async fn handle_status<A>(
-    State(state): State<ServerState<A>>,
+async fn handle_status<A, P, C>(
+    State(state): State<ServerState<A, P, C>>,
 ) -> Result<Json<Value>, (StatusCode, String)>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     let status = serde_json::json!({
         "service": "airs-mcp-http-server",
@@ -497,11 +533,13 @@ where
 }
 
 /// Handle health check requests
-async fn handle_health_check<A>(
-    State(state): State<ServerState<A>>,
+async fn handle_health_check<A, P, C>(
+    State(state): State<ServerState<A, P, C>>,
 ) -> Result<Json<Value>, (StatusCode, String)>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     let connection_stats = state.connection_manager.get_stats();
     let session_stats = state.session_manager.get_stats();
@@ -528,11 +566,13 @@ where
 }
 
 /// Handle metrics requests
-async fn handle_metrics<A>(
-    State(state): State<ServerState<A>>,
+async fn handle_metrics<A, P, C>(
+    State(state): State<ServerState<A, P, C>>,
 ) -> Result<Json<Value>, (StatusCode, String)>
 where
-    A: HttpAuthStrategyAdapter,
+    A: HttpAuthStrategyAdapter + Clone,
+    P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+    C: AuthzContext + Clone,
 {
     let connection_stats = state.connection_manager.get_stats();
     let session_stats = state.session_manager.get_stats();

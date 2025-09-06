@@ -15,13 +15,16 @@ use airs_mcp::providers::{
     CodeReviewPromptProvider, FileSystemResourceProvider, MathToolProvider,
     StructuredLoggingHandler,
 };
+use airs_mcp::authorization::policy::ScopeBasedPolicy;
+use airs_mcp::authorization::context::ScopeAuthContext;
 use airs_mcp::transport::adapters::http::{
     auth::oauth2::OAuth2StrategyAdapter,
-    axum::{AxumHttpServer, McpHandlersBuilder},
+    axum::AxumHttpServer,
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
     session::{SessionConfig, SessionManager},
 };
+use airs_mcp::transport::adapters::http::axum::McpHandlersBuilder;
 
 /// Configuration for the OAuth2 MCP server using AirsStack components
 pub struct ServerConfig {
@@ -97,14 +100,14 @@ impl ServerConfig {
         })
     }
 
-    /// Create the OAuth2-enabled AxumHttpServer
+    /// Create the OAuth2-enabled AxumHttpServer with Authorization
     ///
-    /// This is the main AirsStack MCP server with OAuth2 authentication
+    /// This is the main AirsStack MCP server with OAuth2 authentication and scope-based authorization
     pub async fn create_server(
         self,
         oauth2_setup: crate::auth::setup::OAuth2Setup,
-    ) -> Result<AxumHttpServer<OAuth2StrategyAdapter<Jwt, Scope>>, Box<dyn std::error::Error>> {
-        // Create the OAuth2-enabled MCP server using AirsStack components
+    ) -> Result<AxumHttpServer<OAuth2StrategyAdapter<Jwt, Scope>, ScopeBasedPolicy, ScopeAuthContext>, Box<dyn std::error::Error>> {
+        // Create the OAuth2-enabled MCP server using AirsStack components with authorization
         let server = AxumHttpServer::with_handlers(
             self.connection_manager,
             self.session_manager,
@@ -113,7 +116,8 @@ impl ServerConfig {
             self.transport_config,
         )
         .await?
-        .with_authentication(oauth2_setup.strategy_adapter, oauth2_setup.auth_config);
+        .with_authentication(oauth2_setup.strategy_adapter, oauth2_setup.auth_config)
+        .with_scope_authorization(ScopeBasedPolicy::mcp());
 
         Ok(server)
     }

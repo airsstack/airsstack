@@ -95,6 +95,11 @@ where
     pub fn extractor_name(&self) -> &'static str {
         self.extractor.extractor_name()
     }
+
+    /// Get a reference to the policy (needed for cloning)
+    pub fn policy(&self) -> &P {
+        &self.policy
+    }
 }
 
 /// Authorization request wrapper
