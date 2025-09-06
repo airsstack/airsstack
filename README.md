@@ -15,6 +15,7 @@ Build AI applications that work for you, not against you. AirsStack provides com
 
 **✅ Claude Desktop Integration Verified**  
 **✅ Complete MCP Server/Client Implementation**  
+**✅ Production-Ready ApiKey MCP Server (NEW!)**  
 **✅ Production Filesystem MCP Server (airs-mcp-fs)**  
 **✅ 100% Schema Compliance (MCP 2024-11-05)**  
 **✅ Enterprise-Grade Security (97.5/100 audit score)**  
@@ -23,6 +24,7 @@ Build AI applications that work for you, not against you. AirsStack provides com
 
 ### 🚀 **Real-World Success**
 - **MCP Server Framework**: Successfully integrated with Claude Desktop - resources, tools, and prompts working in production
+- **ApiKey MCP Server**: **✅ NEW! FULLY WORKING** - Production-ready authentication server with MCP Inspector compatibility
 - **Filesystem Bridge (airs-mcp-fs)**: **✅ PRODUCTION COMPLETE** - Security-first filesystem operations for AI collaboration
 - **MCP Client**: High-level Rust API with automatic subprocess management and real protocol interactions  
 - **Type Safety**: Full Rust type safety throughout MCP protocol implementation
@@ -32,9 +34,10 @@ Build AI applications that work for you, not against you. AirsStack provides com
 📖 **[Complete Documentation Available](docs/src/)** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
 
 [**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
+[**See ApiKey MCP Server (Production) →**](crates/airs-mcp/examples/mcp-remote-server-apikey/)  
 [**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**  
 [**See Filesystem MCP Server (Production) →**](crates/airs-mcp-fs/)**  
-[**📖 Read Complete Documentation →**](docs/src/)
+[**📆 Read Complete Documentation →**](docs/src/)
 
 ## 🎯 Our Vision
 
@@ -131,6 +134,7 @@ airsstack/
 
 ### Current Implementation
 - **✅ Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
+- **✅ Production ApiKey MCP Server**: **NEW!** Fully working authentication server with MCP Inspector compatibility
 - **✅ Production Filesystem Server (airs-mcp-fs)**: Security-first filesystem bridge with Claude Desktop integration
 - **✅ Working Examples**: Real-world server/client examples with documented usage patterns
 - **✅ Advanced Transport Layer**: Custom transport support with SubprocessTransport example
@@ -248,6 +252,21 @@ cargo test --workspace
 
 ### Quick Start Examples
 
+**Try the production ApiKey MCP server (NEW!):**
+```bash
+cd crates/airs-mcp/examples/mcp-remote-server-apikey
+cargo build --release
+./target/release/mcp-remote-server-apikey
+
+# Test with MCP Inspector or curl:
+curl -H "X-API-Key: mcp_dev_key_12345" \
+     -H "Content-Type: application/json" \
+     -X POST http://127.0.0.1:3001/mcp \
+     -d '{"jsonrpc": "2.0", "id": 1, "method": "resources/list"}'
+
+# Features: Authentication, Resources, Tools, Prompts, MCP Inspector compatible
+```
+
 **Try the MCP server with Claude Desktop:**
 ```bash
 cd crates/airs-mcp/examples/simple-mcp-server
@@ -287,8 +306,9 @@ airsstack/
 ├── crates/                       # Composable building blocks
 │   ├── airs-mcp/                # MCP implementation crate (✅ Production Ready)
 │   │   ├── examples/            # Working examples
-│   │   │   ├── simple-mcp-server/  # Claude Desktop integration verified
-│   │   │   └── simple-mcp-client/  # AirsStack library usage demonstration
+│   │   │   ├── simple-mcp-server/     # Claude Desktop integration verified
+│   │   │   ├── mcp-remote-server-apikey/ # Production ApiKey server (✅ NEW!)
+│   │   │   └── simple-mcp-client/     # AirsStack library usage demonstration
 │   │   └── Cargo.toml           # Crate-specific configuration
 │   ├── airs-mcp-fs/             # Filesystem MCP server (✅ Production Ready)
 │   │   ├── examples/            # Configuration examples
@@ -315,9 +335,10 @@ airsstack/
 - **`airs-mcp`**: **✅ Production-Ready** Model Context Protocol implementation
   - Complete MCP server/client functionality
   - **Claude Desktop integration verified** with working examples
+  - **NEW: Production ApiKey Server** - Fully working with MCP Inspector compatibility
   - High-level type-safe APIs for both server and client
   - Advanced transport layer with custom transport support
-  - [Server Example](crates/airs-mcp/examples/simple-mcp-server/) | [Client Example](crates/airs-mcp/examples/simple-mcp-client/)
+  - [Server Example](crates/airs-mcp/examples/simple-mcp-server/) | [ApiKey Server](crates/airs-mcp/examples/mcp-remote-server-apikey/) | [Client Example](crates/airs-mcp/examples/simple-mcp-client/)
 
 - **`airs-mcp-fs`**: **✅ Production-Ready** Filesystem bridge for AI collaboration
   - **Complete filesystem MCP server** with Claude Desktop integration
