@@ -58,6 +58,11 @@ impl FileSystemResourceProvider {
             )));
         }
 
+        // Canonicalize the base path to ensure consistent path comparisons
+        let base_path = base_path.canonicalize().map_err(|e| {
+            McpError::internal_error(format!("Failed to canonicalize base path: {e}"))
+        })?;
+
         Ok(Self {
             base_path,
             allowed_extensions: vec![

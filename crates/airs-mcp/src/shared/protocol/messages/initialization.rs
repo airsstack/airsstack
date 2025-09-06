@@ -198,7 +198,7 @@ impl InitializeResponse {
     ///         name: "my-server".to_string(),
     ///         version: "1.0.0".to_string(),
     ///     },
-    ///     None
+    ///     Some("Welcome to my server!".to_string())
     /// );
     /// ```
     pub fn new(

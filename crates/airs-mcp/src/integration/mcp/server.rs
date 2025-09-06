@@ -498,11 +498,13 @@ impl<T: Transport + 'static> McpServer<T> {
         // Store client capabilities
         *client_capabilities.write().await = Some(init_request.capabilities);
 
-        // Create initialization response
+        // Create initialization response with instructions
+        let instructions = Some("API key authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use X-API-Key header or Authorization Bearer token for authentication.".to_string());
+        
         let response = InitializeResponse::new(
             config.capabilities,
             config.server_info,
-            None, // No instructions
+            instructions,
         );
 
         // Mark as initialized

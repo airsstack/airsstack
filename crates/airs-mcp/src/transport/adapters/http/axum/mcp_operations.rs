@@ -40,6 +40,10 @@ pub async fn process_mcp_initialize(
 
     // In a full implementation, we would store client capabilities and validate protocol version
     // For now, return initialize response with protocol negotiation
+    
+    // Provide instructions as required by MCP specification
+    let instructions = "API key authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use X-API-Key header or Authorization Bearer token for authentication.";
+    
     let response = serde_json::json!({
         "jsonrpc": "2.0",
         "id": request.id,
@@ -47,7 +51,7 @@ pub async fn process_mcp_initialize(
             "protocolVersion": ProtocolVersion::current(),
             "capabilities": mcp_handlers.config.capabilities,
             "serverInfo": mcp_handlers.config.server_info,
-            "instructions": null
+            "instructions": instructions
         }
     });
 
