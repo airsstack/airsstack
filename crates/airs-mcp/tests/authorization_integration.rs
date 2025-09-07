@@ -13,22 +13,20 @@ use std::sync::Arc;
 use chrono::Duration as ChronoDuration;
 
 // Layer 3: Internal module imports
-use airs_mcp::{
-    authorization::{
-        context::{BinaryAuthContext, NoAuthContext, ScopeAuthContext},
-        policy::{BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
-    },
-    base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig},
-    correlation::manager::{CorrelationConfig, CorrelationManager},
-    transport::adapters::http::{
-        auth::middleware::{HttpAuthConfig, HttpAuthRequest, HttpAuthStrategyAdapter},
-        axum::{AxumHttpServer, McpHandlersBuilder},
-        config::HttpTransportConfig,
-        connection_manager::{HealthCheckConfig, HttpConnectionManager},
-        session::{SessionConfig, SessionManager},
-    },
-    authentication::{AuthContext, AuthMethod},
-    transport::adapters::http::auth::oauth2::error::HttpAuthError,
+use airs_mcp::authentication::{AuthContext, AuthMethod};
+use airs_mcp::authorization::{
+    context::{BinaryAuthContext, NoAuthContext, ScopeAuthContext},
+    policy::{BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
+};
+use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
+use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
+use airs_mcp::transport::adapters::http::auth::oauth2::error::HttpAuthError;
+use airs_mcp::transport::adapters::http::{
+    auth::middleware::{HttpAuthConfig, HttpAuthRequest, HttpAuthStrategyAdapter},
+    axum::{AxumHttpServer, McpHandlersBuilder},
+    config::HttpTransportConfig,
+    connection_manager::{HealthCheckConfig, HttpConnectionManager},
+    session::{SessionConfig, SessionManager},
 };
 
 // ================================================================================================
@@ -44,7 +42,10 @@ struct TestAuthAdapter {
 
 impl TestAuthAdapter {
     fn new(auth_method: &'static str, should_succeed: bool) -> Self {
-        Self { auth_method, should_succeed }
+        Self {
+            auth_method,
+            should_succeed,
+        }
     }
 }
 
@@ -74,10 +75,7 @@ impl HttpAuthStrategyAdapter for TestAuthAdapter {
             .map(|s| s.split(',').map(|scope| scope.trim().to_string()).collect())
             .unwrap_or_else(|| vec!["mcp:full".to_string()]);
 
-        Ok(AuthContext::new(
-            AuthMethod::new(self.auth_method),
-            scopes,
-        ))
+        Ok(AuthContext::new(AuthMethod::new(self.auth_method), scopes))
     }
 
     fn should_skip_path(&self, path: &str) -> bool {
@@ -96,7 +94,10 @@ async fn create_test_server() -> AxumHttpServer<TestAuthAdapter> {
             .await
             .unwrap(),
     );
-    let session_manager = Arc::new(SessionManager::new(correlation_manager, SessionConfig::default()));
+    let session_manager = Arc::new(SessionManager::new(
+        correlation_manager,
+        SessionConfig::default(),
+    ));
 
     let processor_config = ProcessorConfig {
         worker_count: 2,
@@ -194,7 +195,10 @@ async fn test_oauth2_server_builder_architecture() {
             .await
             .unwrap(),
     );
-    let session_manager = Arc::new(SessionManager::new(correlation_manager, SessionConfig::default()));
+    let session_manager = Arc::new(SessionManager::new(
+        correlation_manager,
+        SessionConfig::default(),
+    ));
 
     let processor_config = ProcessorConfig {
         worker_count: 2,
@@ -219,8 +223,8 @@ async fn test_oauth2_server_builder_architecture() {
     .await
     .unwrap()
     .with_oauth2_authorization(
-        TestAuthAdapter::new("oauth2_test", true), 
-        HttpAuthConfig::default()
+        TestAuthAdapter::new("oauth2_test", true),
+        HttpAuthConfig::default(),
     );
 
     // Verify server properties
@@ -239,12 +243,14 @@ async fn test_oauth2_server_builder_architecture() {
 fn test_zero_cost_generic_compilation() {
     // This test validates that the zero-cost generic architecture compiles correctly
     // and enforces type safety at compile time.
-    
+
     // Test different server type configurations (using local type aliases for testing)
-    type NoAuthServer = AxumHttpServer<TestAuthAdapter, NoAuthorizationPolicy<NoAuthContext>, NoAuthContext>;
+    type NoAuthServer =
+        AxumHttpServer<TestAuthAdapter, NoAuthorizationPolicy<NoAuthContext>, NoAuthContext>;
     type ScopeAuthServer = AxumHttpServer<TestAuthAdapter, ScopeBasedPolicy, ScopeAuthContext>;
-    type BinaryAuthServer = AxumHttpServer<TestAuthAdapter, BinaryAuthorizationPolicy, BinaryAuthContext>;
-    
+    type BinaryAuthServer =
+        AxumHttpServer<TestAuthAdapter, BinaryAuthorizationPolicy, BinaryAuthContext>;
+
     // These should all be different types at compile time
     assert_ne!(
         std::any::TypeId::of::<NoAuthServer>(),
@@ -256,9 +262,18 @@ fn test_zero_cost_generic_compilation() {
     );
 
     // Verify sizes are reasonable for stack allocation
-    println!("NoAuthServer size: {} bytes", std::mem::size_of::<NoAuthServer>());
-    println!("ScopeAuthServer size: {} bytes", std::mem::size_of::<ScopeAuthServer>());
-    println!("BinaryAuthServer size: {} bytes", std::mem::size_of::<BinaryAuthServer>());
+    println!(
+        "NoAuthServer size: {} bytes",
+        std::mem::size_of::<NoAuthServer>()
+    );
+    println!(
+        "ScopeAuthServer size: {} bytes",
+        std::mem::size_of::<ScopeAuthServer>()
+    );
+    println!(
+        "BinaryAuthServer size: {} bytes",
+        std::mem::size_of::<BinaryAuthServer>()
+    );
 
     println!("✅ Zero-cost generic compilation and type safety validated");
 }
@@ -270,19 +285,19 @@ fn test_zero_cost_generic_compilation() {
 #[test]
 fn test_workspace_standards_compliance() {
     // Document compliance with workspace standards for authorization framework
-    
+
     // 1. Zero-cost abstractions (ADR-009)
     // - Generic specialization at compile time
     // - No dynamic dispatch in authorization path
     // - Stack allocation for all authorization state
-    
+
     // 2. Error handling
     // - Custom error types with proper context
     // - Structured error propagation
-    
+
     // 3. Import organization
     // - Consistent layered imports throughout module
-    
+
     // All verified through compilation and integration testing
     println!("✅ Workspace standards compliance documented and verified");
 }
