@@ -387,13 +387,12 @@ impl McpServer {
 ```toml
 # Release configuration in Cargo.toml
 [package]
-version = "0.1.0"  # Semantic versioning
+version = "0.1.1"  # Semantic versioning
 
-# Pre-release versioning strategy:
-# 0.1.0-alpha.1  - Initial implementation
-# 0.1.0-beta.1   - Feature complete, protocol compliant
-# 0.1.0-rc.1     - Release candidate with security audit
-# 0.1.0          - Stable release
+# Release history:
+# 0.1.0           - Initial release with STDIO transport
+# 0.1.1           - Added HTTP transport and OAuth2 authentication
+# Future releases - Additional transport methods and features
 
 [package.metadata.release]
 # Automated release process configuration
@@ -411,7 +410,7 @@ publish = true
 
 # Documentation publishing to docs.rs
 [package.metadata.docs.rs]
-all-features = true
+# No feature flags defined - all functionality included by default
 targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "x86_64-apple-darwin"]
 ```
 

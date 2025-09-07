@@ -10,6 +10,7 @@
 
 **✅ Complete MCP Implementation**  
 **✅ Full Claude Desktop Integration Verified**  
+**✅ OAuth2 Authentication + MCP Inspector Integration Validated**  
 **✅ 100% Schema Compliance (MCP 2024-11-05)**  
 **✅ Enterprise-Grade Architecture & Testing**
 
@@ -192,6 +193,27 @@ cargo run  # Automatically spawns and connects to server!
 - ✅ Automatic server process lifecycle management
 - ✅ Real client ↔ server communication patterns
 - ✅ Production error handling and state management
+
+### 🔐 **OAuth2 MCP Server Examples** - [Enterprise Authentication](examples/)
+
+**Production-ready OAuth2 authentication with MCP Inspector validation:**
+
+```bash
+# API Key Authentication
+cd examples/mcp-remote-server-apikey
+cargo run  # Bearer token + X-API-Key authentication
+
+# OAuth2 Authentication (Latest)
+cd examples/mcp-remote-server-oauth2
+cargo run  # Full OAuth2 + PKCE + JWT authentication
+```
+
+**OAuth2 Integration Features:**
+- ✅ **Complete OAuth2 Flow**: Authorization code + PKCE + JWT tokens
+- ✅ **MCP Inspector Validated**: Full compatibility with official MCP testing tools
+- ✅ **Three-Server Architecture**: Smart proxy server with clean separation of concerns
+- ✅ **Enterprise Security**: Scope-based authorization, token validation, audit logging
+- ✅ **Production Ready**: Comprehensive error handling, monitoring, and observability
 
 ## Usage
 

@@ -6,32 +6,48 @@
 ## Technology Stack (Implemented)
 
 ```toml
-// Production dependencies - all actively used
+# All dependencies are included by default - no optional features
 [dependencies]
-tokio = { version = "1.40", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-uuid = { version = "1.10", features = ["v4"] }
-url = "2.5"
-dashmap = "6.0"  // Concurrent HashMap for request tracking
-thiserror = "1.0"  // Structured error handling
-bytes = "1.7"      // Zero-copy buffer management
-async-trait = "0.1"  // Trait-based async patterns
+# Core serialization for JSON-RPC messages
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
+urlencoding.workspace = true
 
-// Optional dependencies (feature-gated)
-[dependencies.oauth2]
-version = "4.4"
-optional = true
+# Async runtime and utilities
+tokio.workspace = true
+tokio-stream.workspace = true
+futures.workspace = true
+tokio-util.workspace = true
+async-trait.workspace = true
 
-[dependencies.rustls]  
-version = "0.23"
-optional = true
+# Concurrent data structures and utilities
+dashmap.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+bytes.workspace = true
+tracing.workspace = true
 
-[features]
-default = ["stdio-transport"]
-stdio-transport = []
-http-transport = ["oauth2", "rustls"]
-security-audit = []
+# HTTP transport dependencies
+axum.workspace = true
+hyper.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+deadpool.workspace = true
+reqwest.workspace = true
+
+# Provider implementation dependencies
+regex.workspace = true
+serde_yml.workspace = true
+
+# OAuth 2.1 authentication dependencies (fully implemented)
+jsonwebtoken.workspace = true
+oauth2.workspace = true
+base64.workspace = true
+url.workspace = true
+
+# No feature flags - all functionality included by default
 ```
 
 ## API Design Principles

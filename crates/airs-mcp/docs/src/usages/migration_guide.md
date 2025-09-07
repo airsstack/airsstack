@@ -6,7 +6,7 @@ Comprehensive guide for migrating between AIRS MCP versions, handling breaking c
 
 AIRS MCP follows semantic versioning with careful API design for future compatibility:
 
-### Current Version: 0.1.0
+### Current Version: 0.1.1
 
 The library is currently in initial development phase. While we maintain high code quality and production readiness, API stability guarantees will begin with version 1.0.0.
 
@@ -94,17 +94,21 @@ println!("Server supports: {:?}", server_caps);
 ```toml
 [dependencies]
 # Pin to specific version for stability
-airs-mcp = "=0.1.0"
+airs-mcp = "=0.1.1"
 
 # Or use compatible range for patch updates
-airs-mcp = "~0.1.0"
+airs-mcp = "~0.1.1"
 ```
 
-### 2. Feature Flag Migration
+### 2. Version Pinning for Stability
 
 ```toml
 [dependencies]
-airs-mcp = { version = "0.1", features = ["legacy-api"] }
+# Pin to exact version for production stability
+airs-mcp = "=0.1.1"
+
+# Or use tilde for patch-level updates only
+airs-mcp = "~0.1.1"
 ```
 
 ### 3. Gradual Migration Pattern
@@ -341,10 +345,10 @@ airs-mcp-migrate --from 0.1 --to 0.2 src/
 
 ```toml
 # Production systems - pin exact version
-airs-mcp = "=0.1.0"
+airs-mcp = "=0.1.1"
 
 # Development - allow patch updates
-airs-mcp = "~0.1.0"
+airs-mcp = "~0.1.1"
 
 # Bleeding edge - latest features (higher risk)
 airs-mcp = "0.1"

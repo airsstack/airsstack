@@ -15,6 +15,7 @@ AIRS MCP supports multiple usage patterns depending on your needs:
 
 ### **Production Integration** 
 - [Claude Desktop Integration](./usages/claude_integration.md) - Complete Claude Desktop setup
+- [OAuth2 Integration](./usages/oauth2_integration.md) - Enterprise authentication with MCP Inspector validation
 - [Advanced Patterns](./usages/advanced_patterns.md) - High-performance implementations
 - [Performance Optimization](./usages/performance_optimization.md) - Tuning for production
 
@@ -26,6 +27,7 @@ AIRS MCP supports multiple usage patterns depending on your needs:
 
 **Choose AIRS MCP when you need:**
 - ✅ **Production-grade MCP implementation** with Claude Desktop integration
+- ✅ **Enterprise OAuth2 authentication** validated with MCP Inspector
 - ✅ **High-performance JSON-RPC 2.0** with streaming and buffer optimization  
 - ✅ **Type-safe Rust implementation** with comprehensive error handling
 - ✅ **Bidirectional communication** for server-to-client requests

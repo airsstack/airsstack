@@ -28,7 +28,7 @@ members = [
 # Actual Cargo.toml (PRODUCTION IMPLEMENTATION)
 [package]
 name = "airs-mcp"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Rstlix0x0 <rstlix.dev@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -193,10 +193,11 @@ src/
 
 Based on production validation, future enhancements will maintain the simplified architecture:
 
-### Next Release Features
-- **HTTP Transport**: Add to existing transport module (not separate crate)
-- **OAuth 2.1 Security**: Feature-gated security module extension
-- **Additional Examples**: More complex server implementations
+### Recently Completed Features ✅
+- **HTTP Transport**: Fully implemented with Axum server support
+- **OAuth 2.1 Security**: Production-ready OAuth2 authentication system
+- **Complex Examples**: OAuth2 MCP server example with MCP Inspector validation
+- **MCP Inspector Compatibility**: Verified compatibility with official MCP tooling
 
 ### Long-term Architecture Evolution
 - **Plugin Interface**: Dynamic provider loading through existing trait system

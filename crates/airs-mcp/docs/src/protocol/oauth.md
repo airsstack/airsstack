@@ -1,6 +1,51 @@
 # MCP OAuth 2.1 Implementation Guide: Complete Technical Reference
 
-The Model Context Protocol has evolved comprehensive OAuth 2.1 support with **mandatory security enhancements** that represent the current gold standard for AI agent authentication. This technical analysis reveals critical implementation patterns, security requirements, and production-ready code examples from official Anthropic repositories that directly inform enterprise MCP OAuth deployments.
+The Model Context Protocol has evolved comprehensive OAuth 2.1 support with **mandatory security enhancements** that represent the current gold standard for AI agent authentication. This technical analysis reveals critical implementation patterns, security requirements, and production-ready code examples from official Anthropic repositories and the **AIRS MCP production-validated OAuth2 integration**.
+
+## 🎉 AIRS MCP OAuth2 Integration: Production-Validated Implementation
+
+**Status**: Production-Ready ✅ | **Validation**: MCP Inspector Compatible ✅ | **Updated**: 2025-09-07
+
+AIRS MCP provides a **complete, production-ready OAuth2 implementation** that has been successfully validated with MCP Inspector, demonstrating enterprise-grade authentication integration with the MCP protocol.
+
+### Key Achievements
+
+- ✅ **Complete OAuth2 Flow**: Authorization code + PKCE + JWT token validation
+- ✅ **MCP Inspector Validated**: Full compatibility with official MCP testing tools
+- ✅ **Three-Server Architecture**: Smart proxy server with clean separation of concerns
+- ✅ **Production Security**: Scope-based authorization, audit logging, comprehensive error handling
+- ✅ **Enterprise Ready**: Scalable architecture supporting multiple MCP servers
+
+### AIRS Implementation Highlights
+
+```rust
+use airs_mcp::{
+    authentication::strategies::oauth2::OAuth2Strategy,
+    oauth2::{config::OAuth2Config, validator::create_default_validator},
+    transport::adapters::http::auth::oauth2::OAuth2StrategyAdapter,
+};
+
+// Production-ready OAuth2 configuration
+let oauth2_config = OAuth2Config {
+    issuer: "https://auth.example.com".to_string(),
+    audience: "mcp-server".to_string(),
+    jwks_url: Some(jwks_url),
+    // Additional production settings...
+};
+
+let validator = create_default_validator(oauth2_config)?;
+let oauth2_strategy = OAuth2Strategy::new(validator);
+let oauth2_adapter = OAuth2StrategyAdapter::new(oauth2_strategy);
+
+// Build server with OAuth2 authentication
+let server = AxumHttpServer::new(deps)
+    .with_authentication(oauth2_adapter, auth_config)
+    .serve().await?;
+```
+
+**[See complete OAuth2 integration guide →](../usages/oauth2_integration.md)**
+
+---
 
 ## OAuth 2.1 specification enforces mandatory PKCE and resource indicators
 

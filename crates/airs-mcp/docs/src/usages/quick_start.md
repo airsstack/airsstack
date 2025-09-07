@@ -8,8 +8,8 @@ Add AIRS MCP to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-airs-mcp = "0.1.0"
-tokio = { version = "1.40", features = ["full"] }
+airs-mcp = "0.1.1"
+tokio = { version = "1.35", features = ["full"] }
 serde_json = "1.0"
 ```
 
@@ -180,9 +180,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - ✅ **Builder Pattern**: Ergonomic `.with_authentication()` for zero-cost type conversion
 - ✅ **Backward Compatibility**: Existing code continues to work unchanged
 
+## OAuth2 MCP Server (Enterprise Authentication) 🔐
+
+**Latest Addition**: Production-ready OAuth2 authentication with MCP Inspector validation.
+
+```bash
+# Quick start with OAuth2 example
+cd examples/mcp-remote-server-oauth2
+cargo run
+
+# Server starts on three ports:
+# - Proxy Server: http://127.0.0.1:3002 (public endpoint)
+# - OAuth2 Endpoints: http://127.0.0.1:3003 (authentication)
+# - MCP Server: http://127.0.0.1:3004 (protocol implementation)
+```
+
+**Test with MCP Inspector:**
+```bash
+npm install -g @modelcontextprotocol/inspector
+npx @modelcontextprotocol/inspector
+
+# Configure OAuth2 server:
+# Endpoint: http://127.0.0.1:3002/mcp
+# Authentication: OAuth2
+# Discovery: http://127.0.0.1:3002/.well-known/oauth-authorization-server
+# Client ID: mcp-inspector-client
+```
+
+**Features Demonstrated:**
+- ✅ Complete OAuth2 flow (authorization code + PKCE + JWT)
+- ✅ MCP Inspector compatibility validation
+- ✅ Three-server architecture with smart proxy routing
+- ✅ Scope-based authorization for MCP operations
+- ✅ Production-ready error handling and audit logging
+
 ## Next Steps
 
 - [Basic Examples](./basic_examples.md) - Learn common patterns
+- [OAuth2 Integration](./oauth2_integration.md) - Complete OAuth2 guide with MCP Inspector
 - [Zero-Cost Authentication](./zero_cost_authentication.md) - Complete guide to authentication patterns
 - [Claude Integration](./claude_integration.md) - Connect to Claude Desktop
 - [Advanced Patterns](./advanced_patterns.md) - High-performance usage

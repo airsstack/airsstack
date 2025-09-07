@@ -95,22 +95,22 @@ client.notify("ping", None).await?;
 ### Receiving Notifications
 
 ```rust
-use airs_mcp::integration::handler::RequestHandler;
+use airs_mcp::integration::handler::NotificationHandler;
+use airs_mcp::base::jsonrpc::JsonRpcNotification;
 use async_trait::async_trait;
 
 #[derive(Debug)]
-struct NotificationHandler;
+struct StatusNotificationHandler;
 
 #[async_trait]
-impl RequestHandler for NotificationHandler {
+impl NotificationHandler for StatusNotificationHandler {
     async fn handle_notification(
         &self,
-        method: &str,
-        params: Option<serde_json::Value>,
+        notification: &JsonRpcNotification,
     ) -> Result<(), airs_mcp::integration::error::IntegrationError> {
-        match method {
+        match notification.method.as_str() {
             "status/update" => {
-                if let Some(params) = params {
+                if let Some(params) = &notification.params {
                     println!("Status update: {}", params);
                 }
             }
@@ -118,7 +118,7 @@ impl RequestHandler for NotificationHandler {
                 println!("Received ping notification");
             }
             _ => {
-                println!("Unknown notification: {}", method);
+                println!("Unknown notification: {}", notification.method);
             }
         }
         Ok(())
@@ -132,7 +132,9 @@ impl RequestHandler for NotificationHandler {
 
 ```rust
 use airs_mcp::integration::error::IntegrationError;
-use airs_mcp::base::jsonrpc::message::ErrorCode;
+use airs_mcp::integration::JsonRpcClient;
+use airs_mcp::transport::StdioTransport;
+use serde_json::json;
 
 async fn robust_client_example() -> Result<(), Box<dyn std::error::Error>> {
     let transport = StdioTransport::new().await?;
@@ -142,30 +144,23 @@ async fn robust_client_example() -> Result<(), Box<dyn std::error::Error>> {
         Ok(result) => {
             println!("Success: {}", result);
         }
-        Err(IntegrationError::JsonRpc { code, message, .. }) => {
-            match code {
-                ErrorCode::InvalidRequest => {
-                    eprintln!("Invalid request format: {}", message);
-                }
-                ErrorCode::MethodNotFound => {
-                    eprintln!("Method not supported: {}", message);
-                }
-                ErrorCode::InvalidParams => {
-                    eprintln!("Invalid parameters: {}", message);
-                }
-                ErrorCode::InternalError => {
-                    eprintln!("Server error: {}", message);
-                }
-                _ => {
-                    eprintln!("JSON-RPC error {}: {}", code as i32, message);
-                }
-            }
+        Err(IntegrationError::Transport(transport_error)) => {
+            eprintln!("Transport error: {}", transport_error);
         }
-        Err(IntegrationError::Transport { source, .. }) => {
-            eprintln!("Transport error: {}", source);
+        Err(IntegrationError::Correlation(correlation_error)) => {
+            eprintln!("Correlation error: {}", correlation_error);
         }
-        Err(IntegrationError::Timeout { duration }) => {
-            eprintln!("Request timed out after {:?}", duration);
+        Err(IntegrationError::Json(json_error)) => {
+            eprintln!("JSON parsing error: {}", json_error);
+        }
+        Err(IntegrationError::Timeout { timeout_ms }) => {
+            eprintln!("Request timed out after {}ms", timeout_ms);
+        }
+        Err(IntegrationError::UnexpectedResponse { details }) => {
+            eprintln!("Unexpected response format: {}", details);
+        }
+        Err(IntegrationError::Shutdown) => {
+            eprintln!("Client has been shutdown");
         }
         Err(e) => {
             eprintln!("Unexpected error: {}", e);
@@ -181,19 +176,21 @@ async fn robust_client_example() -> Result<(), Box<dyn std::error::Error>> {
 ### Router Configuration
 
 ```rust
-use airs_mcp::integration::router::RequestRouter;
-use airs_mcp::integration::handler::RequestHandler;
+use airs_mcp::integration::router::{MessageRouter, RouteConfig};
+use airs_mcp::integration::handler::{RequestHandler, NotificationHandler};
+use std::sync::Arc;
 
-let mut router = RequestRouter::new();
+let config = RouteConfig::default();
+let mut router = MessageRouter::new(config);
 
-// Register method handlers
-router.register_method("math/add", Box::new(AddHandler));
-router.register_method("math/subtract", Box::new(SubtractHandler));
-router.register_method("string/reverse", Box::new(ReverseHandler));
+// Register request handlers
+router.register_request_handler("math/add", Arc::new(AddHandler))?;
+router.register_request_handler("math/subtract", Arc::new(SubtractHandler))?;
+router.register_request_handler("string/reverse", Arc::new(ReverseHandler))?;
 
 // Register notification handlers
-router.register_notification("status/*", Box::new(StatusHandler));
-router.register_notification("log/*", Box::new(LogHandler));
+router.register_notification_handler("status/update", Arc::new(StatusHandler))?;
+router.register_notification_handler("log/info", Arc::new(LogHandler))?;
 ```
 
 ## Handler Registration
@@ -203,6 +200,9 @@ router.register_notification("log/*", Box::new(LogHandler));
 ```rust
 use async_trait::async_trait;
 use serde_json::{json, Value};
+use airs_mcp::integration::handler::RequestHandler;
+use airs_mcp::integration::error::IntegrationError;
+use airs_mcp::base::jsonrpc::JsonRpcRequest;
 
 #[derive(Debug)]
 struct AddHandler;
@@ -211,25 +211,18 @@ struct AddHandler;
 impl RequestHandler for AddHandler {
     async fn handle_request(
         &self,
-        _method: &str,
-        params: Option<Value>,
+        request: &JsonRpcRequest,
     ) -> Result<Value, IntegrationError> {
-        let params = params.ok_or_else(|| {
-            IntegrationError::InvalidParams {
-                message: "Parameters required".to_string(),
-            }
+        let params = request.params.as_ref().ok_or_else(|| {
+            IntegrationError::other("Parameters required")
         })?;
         
         let a = params["a"].as_f64().ok_or_else(|| {
-            IntegrationError::InvalidParams {
-                message: "Parameter 'a' must be a number".to_string(),
-            }
+            IntegrationError::other("Parameter 'a' must be a number")
         })?;
         
         let b = params["b"].as_f64().ok_or_else(|| {
-            IntegrationError::InvalidParams {
-                message: "Parameter 'b' must be a number".to_string(),
-            }
+            IntegrationError::other("Parameter 'b' must be a number")
         })?;
         
         Ok(json!({"result": a + b}))
@@ -242,16 +235,18 @@ impl RequestHandler for AddHandler {
 ### Custom Transport Setup
 
 ```rust
-use airs_mcp::transport::stdio::StdioTransport;
+use airs_mcp::transport::StdioTransport;
 use airs_mcp::base::jsonrpc::streaming::StreamingConfig;
 
-let config = StreamingConfig::builder()
-    .buffer_size(16384)
-    .enable_compression(true)
-    .max_message_size(1024 * 1024) // 1MB
-    .build();
+// Configure streaming parser settings
+let config = StreamingConfig {
+    read_buffer_size: 16384,        // 16KB read buffer
+    max_message_size: 1024 * 1024,  // 1MB max message size
+    strict_validation: true,         // Enable strict JSON validation
+};
 
-let transport = StdioTransport::with_config(config).await?;
+// Use default transport (most common case)
+let transport = StdioTransport::new().await?;
 ```
 
 ### Connection Management
