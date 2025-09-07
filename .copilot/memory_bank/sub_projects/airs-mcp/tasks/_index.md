@@ -33,6 +33,15 @@
 
 - [TASK006] Authentication & Authorization Systems - Advanced security features for enterprise deployment
 
+- [TASK-028] Module Consolidation Refactoring - HIGH Priority - Added on 2025-09-07
+  - **Architecture Refactoring**: Consolidate overlapping `src/base/jsonrpc`, `src/shared/protocol`, `src/transport/mcp` into single `src/protocol/` module
+  - **Code Deduplication**: Eliminate identical serialization methods and compatibility layers
+  - **API Simplification**: Single import path instead of three overlapping ones
+  - **Quality Improvement**: Zero warnings compliance, reduced maintenance burden, cleaner architecture
+  - **Related Documentation**: ADR-010 (Module Consolidation Architecture), DEBT-ARCH-004 (Refactoring Technical Debt)
+  - **Estimated Effort**: 8-12 hours across 4 implementation phases
+  - **Impact**: Eliminates code duplication, simplifies user experience, maintains full backward compatibility
+
 ## Completed
 
 - [TASK-027] OAuth2 HTTP MCP Server Integration & MCP Inspector Validation - COMPLETE ✅ - Completed on 2025-09-07

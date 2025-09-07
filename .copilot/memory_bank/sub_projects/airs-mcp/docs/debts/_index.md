@@ -1,8 +1,8 @@
 # Technical Debt Registry - airs-mcp
 
-**Last Updated**: 2025-09-01  
-**Total Debt Items**: 5  
-**High Priority Items**: 3  
+**Last Updated**: 2025-09-07  
+**Total Debt Items**: 6  
+**High Priority Items**: 4  
 **In Progress**: 0
 
 ## Summary by Category

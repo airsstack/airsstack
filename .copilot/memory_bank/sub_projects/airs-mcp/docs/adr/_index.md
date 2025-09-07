@@ -1,14 +1,14 @@
 # Architecture Decision Record Registry - airs-mcp
 
-**Last Updated**: 2025-09-06  
-**Total ADRs**: 9  
-**Active ADRs**: 9
+**Last Updated**: 2025-09-07  
+**Total ADRs**: 10  
+**Active ADRs**: 10
 **Superseded ADRs**: 0
 
 ## Decision Categories
 
 ### System Architecture
-- **Active**: 7 ADRs
+- **Active**: 8 ADRs
 - **Superseded**: 0 ADRs
 
 ### Technology Selection  

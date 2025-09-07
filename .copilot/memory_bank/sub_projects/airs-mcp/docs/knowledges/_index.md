@@ -1,13 +1,13 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-06  
-**Total Knowledge Docs**: 23  
+**Last Updated**: 2025-09-07  
+**Total Knowledge Docs**: 24  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 10  
+**Documentation Count**: 11  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
@@ -65,6 +65,12 @@
   - **Complexity**: Critical - Production-ready authentication/authorization foundation with compile-time optimization
   - **Updated**: 2025-09-06
   - **Related**: TASK-027, ADR-009, OAuth2 authentication, zero-cost abstractions
+
+- **[Module Overlap Analysis Methodology](./KNOWLEDGE-002-module-overlap-analysis-methodology.md)** ✅ NEW
+  - **Focus**: Architecture review methodology, code duplication detection, module consolidation decision framework
+  - **Complexity**: High - Systematic approach to identifying and resolving module overlap and architectural debt
+  - **Updated**: 2025-09-07
+  - **Related**: ADR-010, DEBT-ARCH-004, TASK-028, architecture review best practices
 
 ### Domain
 **Documentation Count**: 1  
