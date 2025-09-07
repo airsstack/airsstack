@@ -96,6 +96,8 @@ pub struct McpServerConfig {
     pub strict_validation: bool,
     /// Whether to log all MCP operations
     pub log_operations: bool,
+    /// Optional instructions to provide to clients during initialization
+    pub instructions: Option<String>,
 }
 
 impl Default for McpServerConfig {
@@ -109,6 +111,7 @@ impl Default for McpServerConfig {
             protocol_version: ProtocolVersion::current(),
             strict_validation: defaults::STRICT_VALIDATION,
             log_operations: defaults::LOG_OPERATIONS,
+            instructions: Some("MCP server with configurable capabilities. Use appropriate authentication method.".to_string()),
         }
     }
 }
@@ -498,13 +501,11 @@ impl<T: Transport + 'static> McpServer<T> {
         // Store client capabilities
         *client_capabilities.write().await = Some(init_request.capabilities);
 
-        // Create initialization response with instructions
-        let instructions = Some("API key authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use X-API-Key header or Authorization Bearer token for authentication.".to_string());
-        
+        // Create initialization response with configured instructions
         let response = InitializeResponse::new(
             config.capabilities,
             config.server_info,
-            instructions,
+            config.instructions,
         );
 
         // Mark as initialized

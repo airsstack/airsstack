@@ -13,7 +13,7 @@ use serde_json::Value;
 // Layer 3: Internal module imports
 use crate::base::jsonrpc::message::JsonRpcRequest;
 use crate::shared::protocol::messages::{
-    initialization::InitializeRequest,
+    initialization::{InitializeRequest, InitializeResponse},
     logging::SetLoggingRequest,
     prompts::GetPromptRequest,
     resources::{ReadResourceRequest, SubscribeResourceRequest, UnsubscribeResourceRequest},
@@ -30,8 +30,6 @@ pub async fn process_mcp_initialize(
     _session_id: SessionId,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
-    use crate::shared::protocol::types::common::ProtocolVersion;
-
     // Parse InitializeRequest from request.params
     let _init_request: InitializeRequest =
         serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
@@ -39,20 +37,21 @@ pub async fn process_mcp_initialize(
         })?;
 
     // In a full implementation, we would store client capabilities and validate protocol version
-    // For now, return initialize response with protocol negotiation
+    // For now, return initialize response with protocol negotiation using proper MCP protocol layer
     
-    // Provide instructions as required by MCP specification
-    let instructions = "API key authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use X-API-Key header or Authorization Bearer token for authentication.";
+    // Use proper MCP protocol layer instead of manual JSON construction
+    let mcp_response = InitializeResponse::new(
+        mcp_handlers.config.capabilities.clone(),
+        mcp_handlers.config.server_info.clone(),
+        mcp_handlers.config.instructions.clone(),
+    );
     
     let response = serde_json::json!({
         "jsonrpc": "2.0",
         "id": request.id,
-        "result": {
-            "protocolVersion": ProtocolVersion::current(),
-            "capabilities": mcp_handlers.config.capabilities,
-            "serverInfo": mcp_handlers.config.server_info,
-            "instructions": instructions
-        }
+        "result": serde_json::to_value(mcp_response).map_err(|e| {
+            TransportError::serialization_error(format!("Failed to serialize MCP response: {e}"))
+        })?
     });
 
     Ok(response)

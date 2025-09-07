@@ -493,7 +493,12 @@ mod tests {
     async fn test_file_system_provider_creation() {
         let temp_dir = TempDir::new().unwrap();
         let provider = FileSystemResourceProvider::new(temp_dir.path()).unwrap();
-        assert_eq!(provider.base_path, temp_dir.path());
+        
+        // On macOS, paths like /var/folders get canonicalized to /private/var/folders
+        // So we need to canonicalize both paths for comparison
+        let expected_path = temp_dir.path().canonicalize().unwrap();
+        let actual_path = provider.base_path.canonicalize().unwrap();
+        assert_eq!(actual_path, expected_path);
     }
 
     #[tokio::test]
