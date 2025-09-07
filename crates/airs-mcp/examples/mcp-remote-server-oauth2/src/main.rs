@@ -16,14 +16,21 @@ use std::{
 
 // Layer 2: Third-party crate imports
 use axum::{
-    extract::{Query, State},
-    http::{StatusCode, header::LOCATION},
+    body::Body,
+    extract::{ConnectInfo, Query, Request, State},
+    http::{StatusCode, Method, header::LOCATION},
+    middleware::{self, Next},
     response::{Json, Redirect, Response},
     routing::{get, post},
     Form, Router,
 };
 use serde_json::{json, Value};
-use tracing::{error, info, warn};
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
+use tracing::{debug, error, info, warn};
 use url::Url;
 use uuid::Uuid;
 
@@ -47,6 +54,11 @@ use airs_mcp::{
         MathToolProvider,
         CodeReviewPromptProvider,
     },
+    shared::protocol::{
+        ServerInfo, ServerCapabilities, ProtocolVersion,
+        capabilities::{ResourceCapabilities, ToolCapabilities, PromptCapabilities},
+    },
+    integration::mcp::server::McpServerConfig,
     transport::{
         adapters::http::{
             auth::{
@@ -168,6 +180,110 @@ struct AppState {
     start_time: std::time::Instant,
 }
 
+/// Comprehensive access logging middleware with body logging
+async fn access_logging_middleware(
+    req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let start_time = std::time::Instant::now();
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let headers = req.headers().clone();
+    
+    // Extract and log request body for POST requests
+    let (parts, body) = req.into_parts();
+    let body_bytes = match axum::body::to_bytes(body, usize::MAX).await {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            error!(target: "access_log", error = %e, "Failed to read request body");
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    };
+    
+    if method == Method::POST && !body_bytes.is_empty() {
+        let body_str = String::from_utf8_lossy(&body_bytes);
+        info!(
+            target: "access_log",
+            method = %method,
+            uri = %uri,
+            body_size = body_bytes.len(),
+            request_body = %body_str,
+            "=== REQUEST BODY ==="
+        );
+    }
+    
+    // Reconstruct the request
+    let req = Request::from_parts(parts, Body::from(body_bytes));
+    
+    // Log incoming request with all details
+    info!(
+        target: "access_log",
+        method = %method,
+        uri = %uri,
+        remote_addr = ?req.extensions().get::<std::net::SocketAddr>(),
+        user_agent = ?headers.get("user-agent").map(|h| h.to_str().unwrap_or("invalid")),
+        content_type = ?headers.get("content-type").map(|h| h.to_str().unwrap_or("invalid")),
+        content_length = ?headers.get("content-length").map(|h| h.to_str().unwrap_or("invalid")),
+        authorization = ?headers.get("authorization").map(|_| "[REDACTED]"),
+        x_api_key = ?headers.get("x-api-key").map(|_| "[REDACTED]"),
+        "=== INCOMING REQUEST ==="
+    );
+    
+    // Log all headers (with sensitive ones redacted)
+    debug!(
+        target: "access_log", 
+        "Request headers:"
+    );
+    for (name, value) in headers.iter() {
+        let header_name = name.as_str().to_lowercase();
+        let header_value = if header_name.contains("auth") || header_name.contains("key") {
+            "[REDACTED]"
+        } else {
+            value.to_str().unwrap_or("[INVALID_UTF8]")
+        };
+        debug!(
+            target: "access_log",
+            header_name = %name,
+            header_value = %header_value,
+            "Request header"
+        );
+    }
+    
+    // Process the request
+    let response = next.run(req).await;
+    
+    let duration = start_time.elapsed();
+    let status = response.status();
+    
+    // Log response with timing
+    info!(
+        target: "access_log",
+        method = %method,
+        uri = %uri,
+        status_code = %status.as_u16(),
+        status_text = %status.canonical_reason().unwrap_or("unknown"),
+        duration_ms = %duration.as_millis(),
+        duration_us = %duration.as_micros(),
+        "=== RESPONSE SENT ==="
+    );
+    
+    // Log response headers
+    debug!(
+        target: "access_log",
+        "Response headers:"
+    );
+    for (name, value) in response.headers().iter() {
+        debug!(
+            target: "access_log",
+            header_name = %name,
+            header_value = %value.to_str().unwrap_or("[INVALID_UTF8]"),
+            "Response header"
+        );
+    }
+    
+    Ok(response)
+}
+
 /// Generate RSA keypair for development JWT signing
 fn generate_dev_keypair() -> Result<DevKeyPair, Box<dyn std::error::Error>> {
     info!("Generating RSA keypair for development JWT tokens...");
@@ -266,18 +382,232 @@ fn create_dev_jwt_token_with_scope(keypair: &DevKeyPair, scope: &str) -> Result<
     Ok(token)
 }
 
+/// Proxy server state for routing and logging
+#[derive(Clone)]
+struct ProxyState {
+    /// HTTP client for forwarding requests
+    client: reqwest::Client,
+    /// MCP server URL (port 3004)
+    mcp_server_url: String,
+    /// Custom routes server URL (port 3003)
+    custom_routes_url: String,
+    /// Server startup time for metrics
+    start_time: std::time::Instant,
+}
+
+/// Smart proxy server that routes requests between MCP and custom routes servers
+async fn proxy_handler(
+    State(state): State<ProxyState>,
+    ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
+    req: Request,
+) -> Result<Response, StatusCode> {
+    let start_time = std::time::Instant::now();
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let path = uri.path();
+    let query = uri.query().unwrap_or("");
+    let headers = req.headers().clone();
+    
+    // Log incoming request with full details
+    info!(
+        target: "proxy_log",
+        method = %method,
+        uri = %uri,
+        path = %path,
+        query = %query,
+        client_ip = %client_addr.ip(),
+        client_port = %client_addr.port(),
+        "=== PROXY: INCOMING REQUEST ==="
+    );
+    
+    // Log all headers
+    for (name, value) in headers.iter() {
+        debug!(
+            target: "proxy_log",
+            header_name = %name,
+            header_value = %value.to_str().unwrap_or("[INVALID_UTF8]"),
+            "Request header"
+        );
+    }
+    
+    // Determine target server based on path
+    let (target_url, target_name) = if path.starts_with("/mcp") {
+        (&state.mcp_server_url, "MCP_SERVER")
+    } else {
+        (&state.custom_routes_url, "CUSTOM_ROUTES")
+    };
+    
+    info!(
+        target: "proxy_log",
+        target_server = target_name,
+        target_url = target_url,
+        "Routing request"
+    );
+    
+    // Extract request body
+    let body = axum::body::to_bytes(req.into_body(), usize::MAX)
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    
+    // Log request body if present
+    if !body.is_empty() {
+        debug!(
+            target: "proxy_log",
+            body_size = body.len(),
+            body = %String::from_utf8_lossy(&body),
+            "Request body"
+        );
+    }
+    
+    // Build target URL with query parameters
+    let full_target_url = if query.is_empty() {
+        format!("{}{}", target_url, path)
+    } else {
+        format!("{}{}?{}", target_url, path, query)
+    };
+    
+    // Forward request to target server
+    let mut request_builder = state.client
+        .request(method.clone(), &full_target_url);
+    
+    // Copy headers (excluding host)
+    for (name, value) in headers.iter() {
+        if name.as_str().to_lowercase() != "host" {
+            request_builder = request_builder.header(name, value);
+        }
+    }
+    
+    // Add body if present
+    if !body.is_empty() {
+        request_builder = request_builder.body(body);
+    }
+    
+    // Execute request
+    let response = match request_builder.send().await {
+        Ok(resp) => resp,
+        Err(e) => {
+            error!(
+                target: "proxy_log",
+                error = %e,
+                target_url = full_target_url,
+                "Failed to forward request"
+            );
+            return Err(StatusCode::BAD_GATEWAY);
+        }
+    };
+    
+    let response_status = response.status();
+    let response_headers = response.headers().clone();
+    let response_body = match response.bytes().await {
+        Ok(body) => body,
+        Err(e) => {
+            error!(
+                target: "proxy_log",
+                error = %e,
+                "Failed to read response body"
+            );
+            return Err(StatusCode::BAD_GATEWAY);
+        }
+    };
+    
+    let duration = start_time.elapsed();
+    
+    // Log response
+    info!(
+        target: "proxy_log",
+        method = %method,
+        uri = %uri,
+        target_server = target_name,
+        status_code = %response_status.as_u16(),
+        duration_ms = %duration.as_millis(),
+        body_size = response_body.len(),
+        "=== PROXY: RESPONSE SENT ==="
+    );
+    
+    // Log response headers
+    for (name, value) in response_headers.iter() {
+        debug!(
+            target: "proxy_log",
+            header_name = %name,
+            header_value = %value.to_str().unwrap_or("[INVALID_UTF8]"),
+            "Response header"
+        );
+    }
+    
+    // Log response body for debugging
+    if !response_body.is_empty() {
+        debug!(
+            target: "proxy_log",
+            body = %String::from_utf8_lossy(&response_body),
+            "Response body"
+        );
+    }
+    
+    // Build Axum response
+    let mut axum_response = Response::builder()
+        .status(response_status);
+    
+    // Copy response headers
+    for (name, value) in response_headers.iter() {
+        axum_response = axum_response.header(name, value);
+    }
+    
+    axum_response
+        .body(axum::body::Body::from(response_body))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// Create proxy router with comprehensive logging and CORS
+fn create_proxy_router(state: ProxyState) -> Router {
+    Router::new()
+        .fallback(proxy_handler)
+        .with_state(state)
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http()
+                    .make_span_with(tower_http::trace::DefaultMakeSpan::new()
+                        .level(tracing::Level::INFO)
+                        .include_headers(true))
+                    .on_request(tower_http::trace::DefaultOnRequest::new()
+                        .level(tracing::Level::INFO))
+                    .on_response(tower_http::trace::DefaultOnResponse::new()
+                        .level(tracing::Level::INFO)
+                        .latency_unit(tower_http::LatencyUnit::Micros))
+                    .on_failure(tower_http::trace::DefaultOnFailure::new()
+                        .level(tracing::Level::ERROR))
+                )
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Any)
+                        .allow_methods(Any)
+                        .allow_headers(Any)
+                        .allow_credentials(false)
+                        .expose_headers(Any)
+                        .max_age(std::time::Duration::from_secs(86400)) // 24 hours
+                ),
+        )
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize structured logging
+    // Initialize structured logging with enhanced proxy and access logging
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env()
             .add_directive("airs_mcp=debug".parse().expect("Valid log directive"))
-            .add_directive("mcp_oauth2_server=info".parse().expect("Valid log directive"))
+            .add_directive("mcp_oauth2_server=debug".parse().expect("Valid log directive"))
+            .add_directive("tower_http::trace=info".parse().expect("Valid log directive"))
+            .add_directive("axum=debug".parse().expect("Valid log directive"))
+            .add_directive("access_log=info".parse().expect("Valid log directive"))
+            .add_directive("proxy_log=info".parse().expect("Valid log directive"))
         )
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_file(true)
+        .with_line_number(true)
         .init();
     
     let server_id = Uuid::new_v4().to_string();
-    info!(server_id = %server_id, "Starting production OAuth2 MCP server");
+    info!(server_id = %server_id, "Starting OAuth2-based MCP server");
     
     // Generate development RSA keypair for JWT tokens
     let keypair = generate_dev_keypair()?;
@@ -324,9 +654,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build MCP server with production providers
     let temp_dir = tempfile::tempdir()
         .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+
+    // Create sample files for demonstration (mirrors API key example)
+    let temp_path = temp_dir.path();
+    tokio::fs::write(temp_path.join("welcome.txt"),
+        "Welcome to the OAuth2 MCP Server!\n\nThis server provides:\n- Filesystem resources\n- Mathematical tools\n- Code review prompts\n\nAuthenticate via OAuth2: Use Authorization: Bearer <token>.\nObtain tokens using the authorization code + PKCE flow.")
+        .await
+        .map_err(|e| format!("Failed to create welcome.txt: {}", e))?;
+
+    tokio::fs::write(temp_path.join("config.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "server": {
+                "name": "OAuth2 MCP Server",
+                "version": "1.0.0",
+                "authentication": "oauth2"
+            },
+            "capabilities": {
+                "resources": true,
+                "tools": true,
+                "prompts": true
+            },
+            "endpoints": {
+                "mcp": "http://127.0.0.1:3002/mcp",
+                "health": "http://127.0.0.1:3002/health",
+                "oauth2_discovery": "http://127.0.0.1:3002/.well-known/oauth-authorization-server"
+            }
+        }))?)
+        .await
+        .map_err(|e| format!("Failed to create config.json: {}", e))?;
+
+    tokio::fs::write(temp_path.join("sample.md"),
+        "# MCP Server Resources (OAuth2)\n\n## Available Resources\n\n- **welcome.txt**: Server introduction\n- **config.json**: Server configuration\n- **sample.md**: This markdown file\n- **oauth2-config.yaml**: OAuth2 flow information\n\n## Authentication\n\nUse OAuth2 Authorization Code Flow with PKCE.\nThe server expects: Authorization: Bearer <access_token>\n")
+        .await
+        .map_err(|e| format!("Failed to create sample.md: {}", e))?;
+
+    tokio::fs::write(temp_path.join("oauth2-config.yaml"),
+        "# OAuth2 Configuration\noauth2:\n  flow: authorization_code\n  pkce: S256\n  discovery: http://127.0.0.1:3002/.well-known/oauth-authorization-server\n  endpoints:\n    authorize: http://127.0.0.1:3003/authorize\n    token: http://127.0.0.1:3003/token\n  scopes:\n    - mcp:tools:execute\n    - mcp:resources:read\n    - mcp:prompts:read\n    - mcp:resources:list\n    - mcp:tools:read\n    - mcp:prompts:list\n")
+        .await
+        .map_err(|e| format!("Failed to create oauth2-config.yaml: {}", e))?;
+
     let fs_provider = FileSystemResourceProvider::new(temp_dir.path())
         .map_err(|e| format!("Failed to create filesystem provider: {}", e))?;
-    info!(path = %temp_dir.path().display(), "Added filesystem resource provider");
+    info!(path = %temp_dir.path().display(), file_count = 4, "Added filesystem resource provider with sample files");
 
     let math_provider = MathToolProvider::new();
     info!("Added math tool provider");
@@ -334,13 +703,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prompt_provider = CodeReviewPromptProvider::new();
     info!("Added code review prompt provider");
     
-    // Create MCP handlers directly from the providers
+    // Create MCP handlers with custom server configuration
+    let server_info = ServerInfo {
+        name: "OAuth2 MCP Server".to_string(),
+        version: "1.0.0".to_string(),
+    };
+    
+    // Create server capabilities based on our providers
+    let server_capabilities = ServerCapabilities {
+        resources: Some(ResourceCapabilities {
+            subscribe: Some(false),
+            list_changed: Some(false),
+        }),
+        tools: Some(ToolCapabilities::default()),
+        prompts: Some(PromptCapabilities {
+            list_changed: Some(false),
+        }),
+        logging: None,
+        experimental: None,
+    };
+    
+    // Create custom MCP server configuration with OAuth2-specific instructions
+    let mcp_config = McpServerConfig {
+        server_info,
+        capabilities: server_capabilities,
+        protocol_version: ProtocolVersion::current(),
+        strict_validation: true,
+        log_operations: true,
+        instructions: Some("OAuth2 authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use Authorization: Bearer <token> header for authentication. Obtain tokens via OAuth2 authorization flow.".to_string()),
+    };
+    
+    // Create MCP handlers builder with configuration
     let mcp_handlers_builder = McpHandlersBuilder::new()
         .with_resource_provider(Arc::new(fs_provider))
         .with_tool_provider(Arc::new(math_provider))
-        .with_prompt_provider(Arc::new(prompt_provider));
+        .with_prompt_provider(Arc::new(prompt_provider))
+        .with_config(mcp_config);
     
-    info!("MCP handlers built with filesystem, math, and code review providers");
+    info!("MCP handlers built with custom configuration, filesystem, math, and code review providers");
 
     // Create HTTP transport infrastructure
     let health_config = HealthCheckConfig {
@@ -389,7 +789,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create HTTP transport configuration
     let http_config = HttpTransportConfig::new()
-        .bind_address("127.0.0.1:3002".parse().unwrap())
+        .bind_address("127.0.0.1:3004".parse().unwrap()) // MCP server now on port 3004
         .max_connections(1000)
         .session_timeout(std::time::Duration::from_secs(3600))
         .request_timeout(std::time::Duration::from_secs(30))
@@ -402,6 +802,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/auth/token".to_string(),
             "/auth/info".to_string(),
             "/server/info".to_string(),
+            // OAuth2 discovery endpoints (bypassed for MCP Inspector compatibility)
+            "/.well-known/oauth-authorization-server".to_string(),
+            "/.well-known/oauth-authorization-server/mcp".to_string(),
+            "/.well-known/openid-configuration".to_string(),
+            "/.well-known/openid-configuration/mcp".to_string(),
+            "/.well-known/oauth-protected-resource".to_string(),
+            "/.well-known/oauth-protected-resource/mcp".to_string(),
+            "/mcp/.well-known/openid-configuration".to_string(),
         ],
         include_error_details: false, // Set to true for development
         auth_realm: "MCP Server".to_string(),
@@ -430,46 +838,94 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         start_time: std::time::Instant::now(),
     };
     
-    // Start AxumHttpServer for MCP functionality (in background)
-    let bind_addr: SocketAddr = http_config.bind_address;
-    oauth2_server.bind(bind_addr).await
-        .map_err(|e| format!("Failed to bind MCP server to {}: {}", bind_addr, e))?;
+    // === NEW PROXY ARCHITECTURE ===
+    // Port 3002: Smart Proxy Server (public-facing)
+    // Port 3003: Custom Routes Server (OAuth2, dev tools)
+    // Port 3004: MCP Server (pure MCP functionality)
     
-    info!(bind_addr = %bind_addr, "MCP server bound to address");
+    // Start MCP server on port 3004 (in background)
+    let mcp_bind_addr: SocketAddr = http_config.bind_address; // 3004
+    oauth2_server.bind(mcp_bind_addr).await
+        .map_err(|e| format!("Failed to bind MCP server to {}: {}", mcp_bind_addr, e))?;
     
-    // Start MCP server in background
+    info!(mcp_addr = %mcp_bind_addr, "MCP server bound to address");
+    
     tokio::spawn(async move {
         if let Err(e) = oauth2_server.serve().await {
             error!(error = %e, "MCP server error");
         }
     });
     
-    info!("MCP server started in background");
+    info!("MCP server started in background on port 3004");
     
-    // Start custom routes server on a different port
+    // Start custom routes server on port 3003 (in background)
     let custom_routes_addr: SocketAddr = "127.0.0.1:3003".parse().unwrap();
     let custom_routes_app = create_custom_routes(app_state)
         .layer(
-            tower::ServiceBuilder::new()
-                .layer(tower_http::trace::TraceLayer::new_for_http())
-                .layer(tower_http::cors::CorsLayer::permissive()),
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(access_logging_middleware))
+                .layer(TraceLayer::new_for_http()
+                    .make_span_with(tower_http::trace::DefaultMakeSpan::new()
+                        .level(tracing::Level::INFO)
+                        .include_headers(true))
+                    .on_request(tower_http::trace::DefaultOnRequest::new()
+                        .level(tracing::Level::INFO))
+                    .on_response(tower_http::trace::DefaultOnResponse::new()
+                        .level(tracing::Level::INFO)
+                        .latency_unit(tower_http::LatencyUnit::Micros))
+                    .on_failure(tower_http::trace::DefaultOnFailure::new()
+                        .level(tracing::Level::ERROR))
+                )
+                .layer(
+                    CorsLayer::new()
+                        .allow_origin(Any)
+                        .allow_methods(Any)
+                        .allow_headers(Any)
+                        .allow_credentials(false)
+                        .expose_headers(Any)
+                        .max_age(std::time::Duration::from_secs(86400)) // 24 hours
+                ),
         );
     
     let custom_listener = tokio::net::TcpListener::bind(custom_routes_addr).await
         .map_err(|e| format!("Failed to bind custom routes server to {}: {}", custom_routes_addr, e))?;
     
-    info!(custom_addr = %custom_routes_addr, mcp_addr = %bind_addr, "OAuth2 MCP Server ready");
-    info!("- MCP JSON-RPC endpoint: http://{}/mcp", bind_addr);
-    info!("- Development token endpoint: http://{}/auth/token", custom_routes_addr);
-    info!("- OAuth2 authorization endpoint: http://{}/authorize", custom_routes_addr);
-    info!("- OAuth2 token exchange endpoint: http://{}/token", custom_routes_addr);
-    info!("- Health check endpoint: http://{}/health", custom_routes_addr);
-    info!("- JWKS endpoint: http://{}/.well-known/jwks.json", custom_routes_addr);
+    tokio::spawn(async move {
+        if let Err(e) = axum::serve(custom_listener, custom_routes_app).await {
+            error!(error = %e, "Custom routes server error");
+        }
+    });
     
-    // Run custom routes server (this will block)
-    axum::serve(custom_listener, custom_routes_app)
+    info!("Custom routes server started in background on port 3003");
+    
+    // Create and start proxy server on port 3002 (public-facing)
+    let proxy_addr: SocketAddr = "127.0.0.1:3002".parse().unwrap();
+    let proxy_state = ProxyState {
+        client: reqwest::Client::new(),
+        mcp_server_url: "http://127.0.0.1:3004".to_string(),
+        custom_routes_url: "http://127.0.0.1:3003".to_string(),
+        start_time: std::time::Instant::now(),
+    };
+    
+    let proxy_app = create_proxy_router(proxy_state);
+    let proxy_listener = tokio::net::TcpListener::bind(proxy_addr).await
+        .map_err(|e| format!("Failed to bind proxy server to {}: {}", proxy_addr, e))?;
+    
+    info!("=== 🚀 PROXY ARCHITECTURE READY ===");
+    info!("📡 Proxy server (public): http://{}", proxy_addr);
+    info!("🔧 Custom routes server: http://{}", custom_routes_addr);
+    info!("⚡ MCP server: http://{}", mcp_bind_addr);
+    info!("");
+    info!("🎯 MCP Inspector should connect to: http://{}/mcp", proxy_addr);
+    info!("🔑 Get dev token from: http://{}/auth/token", proxy_addr);
+    info!("🔍 OAuth2 discovery at: http://{}/.well-known/oauth-authorization-server", proxy_addr);
+    info!("💊 Health check: http://{}/health", proxy_addr);
+    info!("");
+    
+    // Start proxy server (this will block and handle all traffic)
+    axum::serve(proxy_listener, proxy_app.into_make_service_with_connect_info::<SocketAddr>())
         .await
-        .map_err(|e| format!("Custom routes server error: {}", e))?;
+        .map_err(|e| format!("Proxy server error: {}", e))?;
     
     Ok(())
 }
@@ -482,6 +938,9 @@ fn create_custom_routes(app_state: AppState) -> Router {
         .route("/auth/info", get(auth_info_handler))
         .route("/server/info", get(server_info_handler))
         .route("/.well-known/jwks.json", get(jwks_handler))
+        // OAuth2 Discovery endpoints (RFC 8414)
+        .route("/.well-known/oauth-authorization-server", get(oauth2_metadata_handler))
+        .route("/.well-known/openid-configuration", get(oauth2_metadata_handler))
         // OAuth2 Authorization Code Flow endpoints
         .route("/authorize", get(authorize_handler))
         .route("/token", post(oauth_token_handler))
@@ -795,6 +1254,36 @@ async fn oauth_token_handler(
         "note": "JWT token via OAuth2 authorization code flow with PKCE",
         "algorithm": "RS256",
         "key_id": keypair.kid
+    })))
+}
+
+/// OAuth2 Authorization Server Metadata endpoint (RFC 8414)
+/// Returns OAuth2 server configuration for client discovery
+async fn oauth2_metadata_handler() -> Result<Json<Value>, StatusCode> {
+    info!("OAuth2 metadata discovery endpoint accessed");
+    
+    Ok(Json(json!({
+        "issuer": "https://auth.example.com",
+        "authorization_endpoint": "http://127.0.0.1:3003/authorize",
+        "token_endpoint": "http://127.0.0.1:3003/token", 
+        "jwks_uri": "http://127.0.0.1:3003/.well-known/jwks.json",
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code"],
+        "code_challenge_methods_supported": ["S256", "plain"],
+        "scopes_supported": [
+            "mcp:tools:execute",
+            "mcp:resources:read",
+            "mcp:resources:write", 
+            "mcp:resources:list",
+            "mcp:tools:read",
+            "mcp:prompts:read",
+            "mcp:prompts:list",
+            "mcp:server:admin"
+        ],
+        "token_endpoint_auth_methods_supported": ["none"],
+        "subject_types_supported": ["public"],
+        "id_token_signing_alg_values_supported": ["RS256"],
+        "claims_supported": ["sub", "aud", "iss", "exp", "iat", "scope"]
     })))
 }
 

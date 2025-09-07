@@ -310,13 +310,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         experimental: None,
     };
     
-    // Create custom MCP server configuration
+    // Create custom MCP server configuration with ApiKey-specific instructions
     let mcp_config = McpServerConfig {
         server_info,
         capabilities: server_capabilities,
         protocol_version: ProtocolVersion::current(),
         strict_validation: true,
         log_operations: true,
+        instructions: Some("API key authenticated MCP server with filesystem resources, mathematical tools, and code review prompts. Use X-API-Key header or Authorization: Bearer <api_key> for authentication.".to_string()),
     };
     
     // Create MCP handlers with custom configuration
