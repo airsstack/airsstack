@@ -40,28 +40,47 @@ pub enum ProtocolError {
     /// JSON-RPC related errors
     #[error("JSON-RPC error: {message}")]
     JsonRpc { message: String },
-    
+
     /// MCP protocol specific errors
     #[error("MCP protocol error: {message}")]
     Mcp { message: String },
-    
+
     /// Transport layer errors
     #[error("Transport error: {message}")]
     Transport { message: String },
-    
+
     /// Serialization/deserialization errors
     #[error("Serialization error: {message}")]
     Serialization { message: String },
-    
+
     /// Invalid message format errors
     #[error("Invalid message: {message}")]
     InvalidMessage { message: String },
+
+    /// Invalid protocol version
+    #[error("Invalid protocol version: {0}")]
+    InvalidProtocolVersion(String),
+
+    /// Invalid URI format
+    #[error("Invalid URI: {0}")]
+    InvalidUri(String),
+
+    /// Invalid MIME type format
+    #[error("Invalid MIME type: {0}")]
+    InvalidMimeType(String),
+
+    /// Invalid Base64 data
+    #[error("Invalid Base64 data")]
+    InvalidBase64Data,
 }
+
+/// Convenient result type for protocol operations
+pub type ProtocolResult<T> = Result<T, ProtocolError>;
 
 impl From<serde_json::Error> for ProtocolError {
     fn from(err: serde_json::Error) -> Self {
-        Self::Serialization { 
-            message: err.to_string() 
+        Self::Serialization {
+            message: err.to_string(),
         }
     }
 }
@@ -73,23 +92,23 @@ pub enum JsonRpcError {
     /// Parse error (-32700)
     #[error("Parse error: {message}")]
     ParseError { message: String },
-    
+
     /// Invalid request (-32600)
     #[error("Invalid request: {message}")]
     InvalidRequest { message: String },
-    
+
     /// Method not found (-32601)
     #[error("Method not found: {method}")]
     MethodNotFound { method: String },
-    
+
     /// Invalid parameters (-32602)
     #[error("Invalid parameters: {message}")]
     InvalidParams { message: String },
-    
+
     /// Internal error (-32603)
     #[error("Internal error: {message}")]
     InternalError { message: String },
-    
+
     /// Server error (custom error codes)
     #[error("Server error {code}: {message}")]
     ServerError { code: i32, message: String },
@@ -102,23 +121,23 @@ pub enum McpError {
     /// Protocol version mismatch
     #[error("Protocol version mismatch: expected {expected}, got {actual}")]
     VersionMismatch { expected: String, actual: String },
-    
+
     /// Capability not supported
     #[error("Unsupported capability: {capability}")]
     UnsupportedCapability { capability: String },
-    
+
     /// Resource not found
     #[error("Resource not found: {uri}")]
     ResourceNotFound { uri: String },
-    
+
     /// Authorization failed
     #[error("Authorization failed: {reason}")]
     AuthorizationFailed { reason: String },
-    
+
     /// Invalid URI format
     #[error("Invalid URI: {uri} - {reason}")]
     InvalidUri { uri: String, reason: String },
-    
+
     /// Request timeout
     #[error("Request timeout after {timeout_ms}ms")]
     RequestTimeout { timeout_ms: u64 },
@@ -132,7 +151,7 @@ impl JsonRpcError {
     pub const METHOD_NOT_FOUND: i32 = -32601;
     pub const INVALID_PARAMS: i32 = -32602;
     pub const INTERNAL_ERROR: i32 = -32603;
-    
+
     /// Get the JSON-RPC error code for this error
     pub fn error_code(&self) -> i32 {
         match self {
@@ -144,35 +163,48 @@ impl JsonRpcError {
             JsonRpcError::ServerError { code, .. } => *code,
         }
     }
-    
+
     /// Create a parse error
     pub fn parse_error(message: impl Into<String>) -> Self {
-        Self::ParseError { message: message.into() }
+        Self::ParseError {
+            message: message.into(),
+        }
     }
-    
+
     /// Create an invalid request error
     pub fn invalid_request(message: impl Into<String>) -> Self {
-        Self::InvalidRequest { message: message.into() }
+        Self::InvalidRequest {
+            message: message.into(),
+        }
     }
-    
+
     /// Create a method not found error
     pub fn method_not_found(method: impl Into<String>) -> Self {
-        Self::MethodNotFound { method: method.into() }
+        Self::MethodNotFound {
+            method: method.into(),
+        }
     }
-    
+
     /// Create an invalid parameters error
     pub fn invalid_params(message: impl Into<String>) -> Self {
-        Self::InvalidParams { message: message.into() }
+        Self::InvalidParams {
+            message: message.into(),
+        }
     }
-    
+
     /// Create an internal error
     pub fn internal_error(message: impl Into<String>) -> Self {
-        Self::InternalError { message: message.into() }
+        Self::InternalError {
+            message: message.into(),
+        }
     }
-    
+
     /// Create a server error with custom code
     pub fn server_error(code: i32, message: impl Into<String>) -> Self {
-        Self::ServerError { code, message: message.into() }
+        Self::ServerError {
+            code,
+            message: message.into(),
+        }
     }
 }
 
@@ -180,22 +212,30 @@ impl JsonRpcError {
 impl ProtocolError {
     /// Create a JSON-RPC error
     pub fn jsonrpc(message: impl Into<String>) -> Self {
-        Self::JsonRpc { message: message.into() }
+        Self::JsonRpc {
+            message: message.into(),
+        }
     }
-    
+
     /// Create an MCP protocol error
     pub fn mcp(message: impl Into<String>) -> Self {
-        Self::Mcp { message: message.into() }
+        Self::Mcp {
+            message: message.into(),
+        }
     }
-    
+
     /// Create a transport error
     pub fn transport(message: impl Into<String>) -> Self {
-        Self::Transport { message: message.into() }
+        Self::Transport {
+            message: message.into(),
+        }
     }
-    
+
     /// Create an invalid message error
     pub fn invalid_message(message: impl Into<String>) -> Self {
-        Self::InvalidMessage { message: message.into() }
+        Self::InvalidMessage {
+            message: message.into(),
+        }
     }
 }
 
@@ -203,35 +243,39 @@ impl ProtocolError {
 impl McpError {
     /// Create a version mismatch error
     pub fn version_mismatch(expected: impl Into<String>, actual: impl Into<String>) -> Self {
-        Self::VersionMismatch { 
-            expected: expected.into(), 
-            actual: actual.into() 
+        Self::VersionMismatch {
+            expected: expected.into(),
+            actual: actual.into(),
         }
     }
-    
+
     /// Create an unsupported capability error
     pub fn unsupported_capability(capability: impl Into<String>) -> Self {
-        Self::UnsupportedCapability { capability: capability.into() }
+        Self::UnsupportedCapability {
+            capability: capability.into(),
+        }
     }
-    
+
     /// Create a resource not found error
     pub fn resource_not_found(uri: impl Into<String>) -> Self {
         Self::ResourceNotFound { uri: uri.into() }
     }
-    
+
     /// Create an authorization failed error
     pub fn authorization_failed(reason: impl Into<String>) -> Self {
-        Self::AuthorizationFailed { reason: reason.into() }
-    }
-    
-    /// Create an invalid URI error
-    pub fn invalid_uri(uri: impl Into<String>, reason: impl Into<String>) -> Self {
-        Self::InvalidUri { 
-            uri: uri.into(), 
-            reason: reason.into() 
+        Self::AuthorizationFailed {
+            reason: reason.into(),
         }
     }
-    
+
+    /// Create an invalid URI error
+    pub fn invalid_uri(uri: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self::InvalidUri {
+            uri: uri.into(),
+            reason: reason.into(),
+        }
+    }
+
     /// Create a request timeout error
     pub fn request_timeout(timeout_ms: u64) -> Self {
         Self::RequestTimeout { timeout_ms }
