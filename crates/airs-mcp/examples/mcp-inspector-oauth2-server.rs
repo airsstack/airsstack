@@ -29,12 +29,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
-use axum::{
-    extract::State,
-    response::Json,
-    routing::get,
-    Router,
-};
+use axum::{extract::State, response::Json, routing::get, Router};
 use chrono::{Duration as ChronoDuration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde_json::{json, Value};
@@ -48,19 +43,16 @@ use airs_mcp::authentication::strategies::oauth2::OAuth2Strategy;
 use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::oauth2::{
-    config::{OAuth2Config, CacheConfig, ValidationConfig},
-    validator::{Jwt, Scope, Validator},
+    config::{CacheConfig, OAuth2Config, ValidationConfig},
     types::JwtClaims,
+    validator::{Jwt, Scope, Validator},
 };
 use airs_mcp::providers::{
     CodeReviewPromptProvider, FileSystemResourceProvider, MathToolProvider,
     StructuredLoggingHandler,
 };
 use airs_mcp::transport::adapters::http::{
-    auth::{
-        middleware::HttpAuthConfig,
-        oauth2::OAuth2StrategyAdapter,
-    },
+    auth::{middleware::HttpAuthConfig, oauth2::OAuth2StrategyAdapter},
     axum::{AxumHttpServer, McpHandlersBuilder},
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
@@ -91,13 +83,13 @@ fn generate_test_keys() -> Result<TestKeys, Box<dyn std::error::Error>> {
     // In production, keys would be rotated and managed securely
     let private_key_pem = include_str!("../test_data/test_rsa_key.pem");
     let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())?;
-    
+
     // Create JWKS response with the public key
     let jwks_response = json!({
         "keys": [
             {
                 "kty": "RSA",
-                "use": "sig", 
+                "use": "sig",
                 "kid": "test-key-oauth2-mcp",
                 "alg": "RS256",
                 "n": "4f5wg5l2hKsTeNem_V41fGnJm6gOdrj8ydBtQZ4fCI0FgNX-JmFBD-jRwqhwn6b7cDi2QGnfOFcg3s2nWcMaH_yU4pjvNe0rOKE1-Cc5I7Ia_BF2GF4MEDfnTOpN2v5nAK9Q2-QDQ2c5I2z2C5I3Y2w2c5I-D1I-V9I-g-zFcjPz",
@@ -123,7 +115,7 @@ fn generate_test_token(
 ) -> Result<String, jsonwebtoken::errors::Error> {
     let now = Utc::now();
     let exp = now + ChronoDuration::minutes(expires_in_minutes);
-    
+
     let claims = JwtClaims {
         sub: subject.to_string(),
         aud: Some(audience.to_string()),
@@ -218,7 +210,7 @@ struct OAuth2McpServerState {
 impl OAuth2McpServerState {
     fn new(test_keys: TestKeys, oauth2_config: OAuth2Config) -> Self {
         let mut token_configs = HashMap::new();
-        
+
         token_configs.insert("full".to_string(), TokenConfig::full_access());
         token_configs.insert("tools".to_string(), TokenConfig::tools_only());
         token_configs.insert("resources".to_string(), TokenConfig::resources_only());
@@ -233,21 +225,17 @@ impl OAuth2McpServerState {
 }
 
 /// JWKS endpoint handler for JWT validation
-async fn jwks_endpoint(
-    State(state): State<OAuth2McpServerState>,
-) -> Json<Value> {
+async fn jwks_endpoint(State(state): State<OAuth2McpServerState>) -> Json<Value> {
     Json(state.test_keys.jwks_response.clone())
 }
 
 /// Generate test tokens endpoint
-async fn generate_tokens(
-    State(state): State<OAuth2McpServerState>,
-) -> Json<Value> {
+async fn generate_tokens(State(state): State<OAuth2McpServerState>) -> Json<Value> {
     let mut tokens = HashMap::new();
 
     for (key, config) in &state.token_configs {
         let scopes: Vec<&str> = config.scopes.iter().map(|s| s.as_str()).collect();
-        
+
         match generate_test_token(
             &config.subject,
             &scopes,
@@ -258,8 +246,7 @@ async fn generate_tokens(
         ) {
             Ok(token) => {
                 let inspector_cmd = format!(
-                    "npx @modelcontextprotocol/inspector-cli --transport http --server-url http://localhost:3001/mcp --header \"Authorization: Bearer {}\"",
-                    token
+                    "npx @modelcontextprotocol/inspector-cli --transport http --server-url http://localhost:3001/mcp --header \"Authorization: Bearer {token}\""
                 );
 
                 tokens.insert(key, json!({
@@ -297,7 +284,7 @@ async fn generate_tokens(
             "mcp:prompts:*": "Access to all prompt operations",
             "mcp:tools:list": "List available tools",
             "mcp:tools:execute": "Execute tools",
-            "mcp:resources:list": "List available resources", 
+            "mcp:resources:list": "List available resources",
             "mcp:resources:read": "Read resource contents"
         }
     }))
@@ -312,7 +299,7 @@ async fn server_info() -> Json<Value> {
         "endpoints": {
             "/mcp": "Main MCP JSON-RPC endpoint (OAuth2 protected)",
             "/health": "Health check endpoint",
-            "/status": "Server status endpoint", 
+            "/status": "Server status endpoint",
             "/metrics": "Server metrics endpoint",
             "/auth/tokens": "Generate test OAuth2 tokens",
             "/.well-known/jwks.json": "JWKS endpoint for JWT validation"
@@ -331,7 +318,7 @@ async fn server_info() -> Json<Value> {
         },
         "mcp_capabilities": {
             "resources": true,
-            "tools": true, 
+            "tools": true,
             "prompts": true,
             "logging": true
         }
@@ -353,7 +340,7 @@ async fn start_mock_jwks_server(test_keys: TestKeys) -> Result<(), Box<dyn std::
     info!("🔑 Mock JWKS server started on http://127.0.0.1:3002");
     info!("📋 JWKS endpoint: http://127.0.0.1:3002/.well-known/jwks.json");
     info!("🎫 Test tokens: http://127.0.0.1:3002/auth/tokens");
-    
+
     tokio::spawn(async move {
         if let Err(e) = axum::serve(listener, app).await {
             warn!("JWKS server error: {}", e);
@@ -423,23 +410,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create temporary directory for filesystem provider
     let temp_dir = tempfile::TempDir::new()?;
     let temp_path = temp_dir.path();
-    
+
     // Create test files
-    std::fs::write(temp_path.join("oauth2-test.txt"), "Hello from OAuth2 protected MCP server!")?;
     std::fs::write(
-        temp_path.join("config.json"), 
-        r#"{"server": "oauth2-mcp-test", "version": "1.0.0", "auth": "oauth2"}"#
+        temp_path.join("oauth2-test.txt"),
+        "Hello from OAuth2 protected MCP server!",
+    )?;
+    std::fs::write(
+        temp_path.join("config.json"),
+        r#"{"server": "oauth2-mcp-test", "version": "1.0.0", "auth": "oauth2"}"#,
     )?;
     std::fs::write(
         temp_path.join("README.md"),
-        "# OAuth2 MCP Test Server\n\nThis file is accessible through OAuth2 protected resources."
+        "# OAuth2 MCP Test Server\n\nThis file is accessible through OAuth2 protected resources.",
     )?;
 
     // Create MCP handlers with providers
     let handlers = McpHandlersBuilder::new()
         .with_resource_provider(Arc::new(
             FileSystemResourceProvider::new(&temp_path.canonicalize()?)
-                .expect("Failed to create filesystem provider")
+                .expect("Failed to create filesystem provider"),
         ))
         .with_tool_provider(Arc::new(MathToolProvider::new()))
         .with_prompt_provider(Arc::new(CodeReviewPromptProvider::new()))
@@ -451,9 +441,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         HealthCheckConfig::default(),
     ));
 
-    let correlation_manager = Arc::new(
-        CorrelationManager::new(CorrelationConfig::default()).await?
-    );
+    let correlation_manager =
+        Arc::new(CorrelationManager::new(CorrelationConfig::default()).await?);
 
     let session_manager = Arc::new(SessionManager::new(
         correlation_manager,
@@ -482,7 +471,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create the OAuth2-enabled MCP server
     let server = AxumHttpServer::with_handlers(
         connection_manager,
-        session_manager, 
+        session_manager,
         jsonrpc_processor,
         handlers,
         transport_config,
@@ -517,7 +506,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("📋 Available Test Scenarios:");
     info!("   • full: Complete access to all MCP operations");
     info!("   • tools: Access to tools operations only");
-    info!("   • resources: Access to resources operations only");  
+    info!("   • resources: Access to resources operations only");
     info!("   • readonly: Read-only access to listings");
     info!("");
     info!("🔍 MCP Methods Available:");

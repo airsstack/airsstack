@@ -25,7 +25,6 @@ use serde_json::{json, Value};
 use tokio::signal;
 use tracing::{info, warn};
 use tower_http::cors::CorsLayer;
-use chrono;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct JsonRpcRequest {

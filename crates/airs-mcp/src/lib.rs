@@ -198,6 +198,9 @@ pub mod authorization;
 // Providers layer modules
 pub mod providers;
 
+// Protocol layer modules (TASK-028 consolidation)
+pub mod protocol;
+
 // Shared components modules
 pub mod shared;
 
