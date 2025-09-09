@@ -1,52 +1,48 @@
-//! Integration Layer
+//! Integration Layer - High-level MCP (Model Context Protocol) implementations
 //!
-//! This module provides high-level abstractions for JSON-RPC communication
-//! by integrating the correlation manager and transport layers into a unified
-//! client interface.
-//!
-//! # Architecture
-//!
-//! The integration layer consists of:
-//! - `JsonRpcClient`: High-level client for making JSON-RPC calls
-//! - `Handler`: Trait for processing incoming notifications and requests
-//! - `Router`: Message routing and handler registration system
-//!
-//! # Usage Example
-//!
-//! ```rust,no_run
-//! use airs_mcp::integration::JsonRpcClient;
-//! use airs_mcp::transport::StdioTransport;
-//! use serde_json::json;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Create transport and client
-//!     let transport = StdioTransport::new().await?;
-//!     let mut client = JsonRpcClient::new(transport).await?;
-//!     
-//!     // Make a method call
-//!     let response = client.call("ping", Some(json!({"message": "hello"}))).await?;
-//!     println!("Response: {:?}", response);
-//!     
-//!     // Send a notification
-//!     client.notify("status", Some(json!({"status": "ready"}))).await?;
-//!     
-//!     // Clean shutdown
-//!     client.shutdown().await?;
-//!     Ok(())
-//! }
-//! ```
+//! This module provides high-level, ergonomic APIs for building MCP clients and servers.
+//! It combines the modern protocol transport layer with MCP-specific abstractions.
 
 pub mod client;
+pub mod constants;
 pub mod error;
-pub mod handler;
-pub mod router;
 pub mod server;
-pub mod mcp;
 
-// Re-export main types for convenience
-pub use client::JsonRpcClient;
+// Re-export MCP-specific types
+pub use client::{ConnectionState, McpClient, McpClientBuilder, McpClientConfig};
+pub use constants::*;
+pub use error::{McpError, McpResult};
+pub use server::{
+    LoggingHandler, McpCoreConfig, McpServer, McpServerBuilder, McpServerConfig, PromptProvider,
+    ResourceProvider, ToolProvider,
+};
+
+// Re-export integration error types for backwards compatibility
 pub use error::{IntegrationError, IntegrationResult};
-pub use handler::{Handler, NotificationHandler, RequestHandler};
-pub use router::{MessageRouter, RouteConfig};
-pub use server::JsonRpcServer;
+
+// Placeholder exports for removed legacy components
+// These provide type aliases to the modern MCP implementations
+pub type JsonRpcClient<T> = McpClient<T>;
+pub type JsonRpcServer<T> = McpServer<T>;
+
+// Handler types - these can be implemented using the modern MessageHandler pattern
+pub trait Handler: Send + Sync {}
+pub trait NotificationHandler: Handler {}
+pub trait RequestHandler: Handler {}
+
+// Message router - replaced by modern protocol transport event handling
+pub struct MessageRouter;
+
+impl MessageRouter {
+    pub fn new(_config: RouteConfig) -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RouteConfig;
+
+// Implement the handler traits for empty structs to maintain API compatibility
+impl Handler for () {}
+impl NotificationHandler for () {}
+impl RequestHandler for () {}

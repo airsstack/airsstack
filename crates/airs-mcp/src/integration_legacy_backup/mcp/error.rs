@@ -6,7 +6,7 @@
 use thiserror::Error;
 
 use crate::integration::IntegrationError;
-use crate::shared::protocol::errors::ProtocolError;
+use crate::protocol::errors::ProtocolError;
 
 /// Result type for MCP operations
 pub type McpResult<T> = Result<T, McpError>;

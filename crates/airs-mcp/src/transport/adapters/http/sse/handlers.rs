@@ -15,8 +15,8 @@ use serde_json::{json, Value};
 use tokio_stream::wrappers::BroadcastStream;
 
 // Internal module imports
-use crate::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
-use crate::integration::mcp::constants::methods as mcp_methods;
+use crate::protocol::{JsonRpcRequest, JsonRpcResponse};
+use crate::integration::constants::methods as mcp_methods;
 use crate::transport::adapters::http::sse::config::MigrationMode;
 use crate::transport::adapters::http::sse::constants::{content_types, headers};
 use crate::transport::adapters::http::sse::transport::HttpSseTransport;

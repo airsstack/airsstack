@@ -1,69 +1,38 @@
-//! STDIO Transport Adapter
+//! STDIO Transport Implementation
 //!
-//! Bridges the legacy StdioTransport (blocking receive) with the new
-//! MCP-compliant Transport trait (event-driven MessageHandler).
+//! This module provides a modern STDIO transport implementation using the
+//! unified protocol module Transport trait for event-driven message handling.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+// Layer 1: Standard library imports
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
-use serde_json;
-use tokio::sync::oneshot;
-use tokio::task::JoinHandle;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::sync::broadcast;
 
 // Layer 3: Internal module imports
-use crate::transport::mcp::{
-    JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError,
-};
-use crate::transport::StdioTransport;
+use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError};
 
-/// Adapter that bridges StdioTransport with MCP-compliant Transport trait
+/// Modern STDIO transport implementation
 ///
-/// This adapter wraps the legacy StdioTransport and provides an event-driven
-/// interface through MessageHandler callbacks. It runs an internal event loop
-/// that converts blocking `receive()` calls into `handle_message()` events.
+/// This transport reads JSON-RPC messages from stdin and writes responses to stdout,
+/// using the event-driven Transport trait for clean separation of concerns.
 ///
 /// # Architecture
 ///
 /// ```text
-/// McpServerBuilder -> StdioTransportAdapter -> Event Loop -> Legacy StdioTransport
-///                           (MCP Interface)     (Bridge)      (Blocking I/O)
-/// ```
-///
-/// # Event Loop Pattern
-///
-/// The adapter spawns a background task that:
-/// 1. Continuously calls `legacy_transport.receive()`
-/// 2. Parses received bytes into JsonRpcMessage
-/// 3. Calls `handler.handle_message()` with the parsed message
-/// 4. Handles transport errors by calling `handler.handle_error()`
-/// 5. Supports graceful shutdown via cancellation token
-///
-/// # Backward Compatibility
-///
-/// Existing code using StdioTransport can use this adapter without changes:
-/// ```rust,no_run
-/// use airs_mcp::transport::StdioTransport;
-/// use airs_mcp::transport::adapters::StdioTransportAdapter;
-///
-/// async fn example() -> Result<(), Box<dyn std::error::Error>> {
-///     // Old code (still works)
-///     let transport = StdioTransport::new().await?;
-///
-///     // New code (same API, event-driven internally)
-///     let transport = StdioTransportAdapter::new().await?;
-///     Ok(())
-/// }
+/// stdin -> StdioTransport -> MessageHandler -> stdout
+///          (event-driven)   (protocol logic)  (responses)
 /// ```
 ///
 /// # Examples
 ///
 /// ```rust,no_run
-/// # use airs_mcp::transport::adapters::StdioTransportAdapter;
-/// # use airs_mcp::transport::mcp::{Transport, MessageHandler, JsonRpcMessage, MessageContext, TransportError};
-/// # use async_trait::async_trait;
-/// # use std::sync::Arc;
+/// use airs_mcp::protocol::{Transport, MessageHandler, JsonRpcMessage, MessageContext, TransportError};
+/// use airs_mcp::transport::adapters::StdioTransport;
+/// use async_trait::async_trait;
+/// use std::sync::Arc;
 ///
 /// struct EchoHandler;
 ///
@@ -87,205 +56,141 @@ use crate::transport::StdioTransport;
 /// #     example().await
 /// # }
 /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
-///     let mut transport = StdioTransportAdapter::new().await?;
+///     let mut transport = StdioTransport::new();
 ///     let handler = Arc::new(EchoHandler);
 ///     
 ///     transport.set_message_handler(handler);
 ///     transport.start().await?;
 ///     
-///     // Transport now processes messages via event-driven callbacks
+///     // Transport processes messages via event-driven callbacks
 ///     
 ///     transport.close().await?;
 ///     Ok(())
 /// }
 /// ```
-pub struct StdioTransportAdapter {
-    /// Wrapped legacy transport (None when closed)
-    legacy_transport: Option<StdioTransport>,
-
+pub struct StdioTransport {
     /// Event-driven message handler
     message_handler: Option<Arc<dyn MessageHandler>>,
 
-    /// Event loop control
-    running: Arc<AtomicBool>,
-    shutdown_tx: Option<oneshot::Sender<()>>,
-    event_loop_handle: Option<JoinHandle<()>>,
+    /// Shutdown signal broadcaster
+    shutdown_tx: Option<broadcast::Sender<()>>,
 
     /// Session context (STDIO is single-session)
-    session_id: Option<String>,
+    session_id: String,
+
+    /// Connection state
+    is_running: bool,
 }
 
-impl StdioTransportAdapter {
-    /// Create a new STDIO transport adapter
+impl StdioTransport {
+    /// Create a new StdioTransport with maximum message size configuration
     ///
-    /// This initializes the adapter with a legacy StdioTransport but does not
-    /// start the event loop. Call `start()` to begin event-driven processing.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(StdioTransportAdapter)` - Successfully created adapter
-    /// * `Err(TransportError)` - Failed to create underlying StdioTransport
-    ///
-    /// # Examples
-    ///
-    /// ```rust,no_run
-    /// # use airs_mcp::transport::adapters::StdioTransportAdapter;
-    ///
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// #     example().await
-    /// # }
-    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let adapter = StdioTransportAdapter::new().await?;
-    ///     // Adapter created but not started yet
-    ///     Ok(())
-    /// }
-    /// ```
-    pub async fn new() -> Result<Self, TransportError> {
-        let legacy_transport =
-            StdioTransport::new()
-                .await
-                .map_err(|e| TransportError::Connection {
-                    message: format!("Failed to create StdioTransport: {e}"),
-                })?;
-
-        Ok(Self {
-            legacy_transport: Some(legacy_transport),
+    /// This function is removed - use new() and configure separately if needed
+    pub fn with_max_message_size(_max_message_size: usize) -> Self {
+        Self::new()
+    }
+    pub fn new() -> Self {
+        Self {
             message_handler: None,
-            running: Arc::new(AtomicBool::new(false)),
             shutdown_tx: None,
-            event_loop_handle: None,
-            session_id: Some("stdio-session".to_string()), // STDIO has a single session
-        })
+            session_id: "stdio-session".to_string(),
+            is_running: false,
+        }
     }
 
-    /// Create adapter with custom configuration
-    ///
-    /// Allows specifying custom message size limits and other StdioTransport options.
+    /// Create transport with custom session ID
     ///
     /// # Arguments
     ///
-    /// * `max_message_size` - Maximum message size in bytes
+    /// * `session_id` - Custom session identifier
     ///
     /// # Returns
     ///
-    /// * `Ok(StdioTransportAdapter)` - Successfully created adapter with custom config
-    /// * `Err(TransportError)` - Failed to create underlying StdioTransport
-    pub async fn with_config(max_message_size: usize) -> Result<Self, TransportError> {
-        let legacy_transport = StdioTransport::with_max_message_size(max_message_size)
-            .await
-            .map_err(|e| TransportError::Connection {
-                message: format!("Failed to create StdioTransport: {e}"),
-            })?;
-
-        Ok(Self {
-            legacy_transport: Some(legacy_transport),
+    /// A new StdioTransport with the specified session ID
+    pub fn with_session_id(session_id: String) -> Self {
+        Self {
             message_handler: None,
-            running: Arc::new(AtomicBool::new(false)),
             shutdown_tx: None,
-            event_loop_handle: None,
-            session_id: Some("stdio-session".to_string()),
-        })
+            session_id,
+            is_running: false,
+        }
+    }
+}
+
+impl Default for StdioTransport {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[async_trait]
-impl Transport for StdioTransportAdapter {
+impl Transport for StdioTransport {
     type Error = TransportError;
 
     /// Start the transport and begin event-driven message processing
     ///
-    /// This method spawns a background event loop task that continuously reads
-    /// from the legacy StdioTransport and converts messages to handler events.
+    /// This spawns a background task that reads from stdin and processes
+    /// messages through the configured MessageHandler.
     ///
     /// # Returns
     ///
-    /// * `Ok(())` - Event loop started successfully
-    /// * `Err(TransportError)` - Failed to start (no handler set, already running, etc.)
+    /// * `Ok(())` - Transport started successfully
+    /// * `Err(TransportError)` - Failed to start transport
     ///
     /// # Errors
     ///
-    /// - `TransportError::Closed` - Transport has been closed
     /// - `TransportError::Connection` - No message handler set
     /// - `TransportError::Connection` - Already running
     async fn start(&mut self) -> Result<(), Self::Error> {
-        // Validate state
-        if self.legacy_transport.is_none() {
-            return Err(TransportError::Closed);
-        }
-
         if self.message_handler.is_none() {
             return Err(TransportError::Connection {
                 message: "No message handler set".to_string(),
             });
         }
 
-        if self.running.load(Ordering::Acquire) {
+        if self.is_running {
             return Err(TransportError::Connection {
                 message: "Transport already running".to_string(),
             });
         }
 
-        // Set up shutdown channel
-        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
         self.shutdown_tx = Some(shutdown_tx);
 
-        // Extract components for event loop
-        let legacy_transport = self.legacy_transport.take().unwrap();
         let handler = self.message_handler.as_ref().unwrap().clone();
-        let running = self.running.clone();
+        let session_id = self.session_id.clone();
 
-        // Start event loop
-        let event_loop_handle = tokio::spawn(async move {
-            event_loop(legacy_transport, handler, shutdown_rx, running).await;
+        // Spawn stdin reader task
+        tokio::spawn(async move {
+            stdin_reader_loop(handler, session_id, shutdown_rx).await;
         });
 
-        self.event_loop_handle = Some(event_loop_handle);
-        self.running.store(true, Ordering::Release);
-
+        self.is_running = true;
         Ok(())
     }
 
     /// Close the transport and clean up resources
     ///
-    /// This method gracefully shuts down the event loop and closes the underlying
-    /// StdioTransport. It is idempotent and safe to call multiple times.
-    ///
     /// # Returns
     ///
     /// * `Ok(())` - Transport closed successfully
-    /// * `Err(TransportError)` - Error during closure (resources may still be cleaned up)
     async fn close(&mut self) -> Result<(), Self::Error> {
-        if !self.running.load(Ordering::Acquire) {
-            return Ok(()); // Already closed
+        if !self.is_running {
+            return Ok(());
         }
 
-        self.running.store(false, Ordering::Release);
-
-        // Signal event loop to shutdown
-        if let Some(shutdown_tx) = self.shutdown_tx.take() {
-            let _ = shutdown_tx.send(()); // Ignore errors, event loop may have exited
+        // Signal shutdown
+        if let Some(shutdown_tx) = &self.shutdown_tx {
+            let _ = shutdown_tx.send(());
         }
 
-        // Wait for event loop to finish
-        if let Some(handle) = self.event_loop_handle.take() {
-            let _ = handle.await; // Ignore errors from event loop
-        }
-
-        // Close legacy transport if it's still available
-        if let Some(mut legacy_transport) = self.legacy_transport.take() {
-            // Import trait for close method
-            use crate::transport::traits::Transport as LegacyTransportTrait;
-            let _ = legacy_transport.close().await; // Ignore errors, we're closing anyway
-        }
+        self.is_running = false;
+        self.shutdown_tx = None;
 
         Ok(())
     }
 
-    /// Send a JSON-RPC message through the transport
-    ///
-    /// This method sends the message through the underlying StdioTransport.
-    /// The message is serialized to JSON and sent via stdout.
+    /// Send a JSON-RPC message through stdout
     ///
     /// # Arguments
     ///
@@ -295,42 +200,30 @@ impl Transport for StdioTransportAdapter {
     ///
     /// * `Ok(())` - Message sent successfully
     /// * `Err(TransportError)` - Failed to send message
-    ///
-    /// # Errors
-    ///
-    /// - `TransportError::Closed` - Transport has been closed
-    /// - `TransportError::Serialization` - Failed to serialize message
-    /// - `TransportError::Io` - I/O error during send
-    async fn send(&mut self, message: JsonRpcMessage) -> Result<(), Self::Error> {
-        if self.legacy_transport.is_none() {
-            return Err(TransportError::Closed);
-        }
-
-        // Serialize message to JSON bytes
-        let _message_bytes = serde_json::to_vec(&message)
+    async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error> {
+        // Serialize message to JSON
+        let json = serde_json::to_string(message)
             .map_err(|e| TransportError::Serialization { source: e })?;
 
-        // Send through legacy transport
-        // Note: We need to access the legacy transport without taking ownership
-        // For now, we'll implement a send method that works with the current architecture
-        // This is a limitation of the adapter pattern - we may need to redesign this
+        // Write to stdout with newline delimiter
+        let mut stdout = tokio::io::stdout();
+        stdout
+            .write_all(json.as_bytes())
+            .await
+            .map_err(|e| TransportError::Io { source: e })?;
+        stdout
+            .write_all(b"\n")
+            .await
+            .map_err(|e| TransportError::Io { source: e })?;
+        stdout
+            .flush()
+            .await
+            .map_err(|e| TransportError::Io { source: e })?;
 
-        // TODO: Implement proper send mechanism
-        // This requires either:
-        // 1. Modifying StdioTransport to be Send + Sync
-        // 2. Using a different approach for sending messages
-        // 3. Implementing a message queue system
-
-        // For now, return an error indicating this needs implementation
-        Err(TransportError::Connection {
-            message: "Send not yet implemented in adapter".to_string(),
-        })
+        Ok(())
     }
 
     /// Set the message handler for incoming messages
-    ///
-    /// The transport will call the handler's methods for each incoming message,
-    /// transport error, and transport closure event.
     ///
     /// # Arguments
     ///
@@ -341,173 +234,117 @@ impl Transport for StdioTransportAdapter {
 
     /// Get the current session ID
     ///
-    /// For STDIO transport, this returns a static session identifier since
-    /// STDIO represents a single persistent session.
-    ///
     /// # Returns
     ///
-    /// Session ID string ("stdio-session")
+    /// The STDIO session identifier
     fn session_id(&self) -> Option<String> {
-        self.session_id.clone()
+        Some(self.session_id.clone())
     }
 
     /// Set session context for the transport
-    ///
-    /// For STDIO transport, the session context is largely static, but this
-    /// method allows customizing the session identifier if needed.
     ///
     /// # Arguments
     ///
     /// * `session_id` - Optional session identifier
     fn set_session_context(&mut self, session_id: Option<String>) {
-        self.session_id = session_id.or_else(|| Some("stdio-session".to_string()));
+        self.session_id = session_id.unwrap_or_else(|| "stdio-session".to_string());
     }
 
     /// Check if the transport is currently connected
     ///
     /// # Returns
     ///
-    /// `true` if transport is running and can send/receive messages
+    /// `true` if transport is running and ready for I/O
     fn is_connected(&self) -> bool {
-        self.running.load(Ordering::Acquire) && self.legacy_transport.is_some()
+        self.is_running
     }
 
     /// Get the transport type identifier
     ///
     /// # Returns
     ///
-    /// Static string identifying this as a STDIO transport adapter
+    /// Static string identifying this as a STDIO transport
     fn transport_type(&self) -> &'static str {
-        "stdio-adapter"
+        "stdio"
     }
 }
 
-/// Event loop that bridges blocking StdioTransport with event-driven MessageHandler
+/// Background task that reads from stdin and processes messages
 ///
-/// This function runs in a background task and continuously reads from the legacy
-/// StdioTransport, converting received messages into MessageHandler events.
+/// This function runs the main event loop for STDIO transport, reading
+/// line-delimited JSON messages from stdin and dispatching them to the
+/// configured MessageHandler.
 ///
 /// # Arguments
 ///
-/// * `transport` - Legacy StdioTransport for blocking I/O
-/// * `handler` - MessageHandler for event-driven callbacks  
-/// * `shutdown_rx` - Oneshot receiver for graceful shutdown signal
-/// * `running` - Atomic boolean to track running state
-async fn event_loop(
-    mut transport: StdioTransport,
+/// * `handler` - MessageHandler for event callbacks
+/// * `session_id` - Session identifier for message context
+/// * `shutdown_rx` - Shutdown signal receiver
+async fn stdin_reader_loop(
     handler: Arc<dyn MessageHandler>,
-    mut shutdown_rx: oneshot::Receiver<()>,
-    running: Arc<AtomicBool>,
+    session_id: String,
+    mut shutdown_rx: broadcast::Receiver<()>,
 ) {
-    // Import trait to enable method calls
-    use crate::transport::traits::Transport as LegacyTransportTrait;
+    let stdin = tokio::io::stdin();
+    let mut reader = BufReader::new(stdin);
+    let mut line = String::new();
 
     loop {
         tokio::select! {
             // Handle shutdown signal
-            _ = &mut shutdown_rx => {
-                tracing::debug!("STDIO adapter event loop received shutdown signal");
+            _ = shutdown_rx.recv() => {
                 handler.handle_close().await;
                 break;
             }
 
-            // Handle incoming messages
-            result = transport.receive() => {
+            // Read from stdin
+            result = reader.read_line(&mut line) => {
                 match result {
-                    Ok(bytes) => {
-                        // Parse JSON-RPC message
-                        match parse_jsonrpc_message(&bytes) {
-                            Ok(message) => {
-                                let context = MessageContext::default();
-                                handler.handle_message(message, context).await;
-                            }
-                            Err(e) => {
-                                let error = TransportError::Serialization { source: e };
-                                handler.handle_error(error).await;
+                    Ok(0) => {
+                        // EOF reached, stdin closed
+                        handler.handle_close().await;
+                        break;
+                    }
+                    Ok(_) => {
+                        // Process the line
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() {
+                            match serde_json::from_str::<JsonRpcMessage>(trimmed) {
+                                Ok(message) => {
+                                    let context = MessageContext::new(session_id.clone());
+                                    handler.handle_message(message, context).await;
+                                }
+                                Err(e) => {
+                                    let error = TransportError::Serialization { source: e };
+                                    handler.handle_error(error).await;
+                                }
                             }
                         }
+                        line.clear();
                     }
                     Err(e) => {
-                        // Convert transport error and notify handler
-                        let transport_error = convert_legacy_error(e);
-                        let is_closed = matches!(transport_error, TransportError::Closed);
-                        handler.handle_error(transport_error).await;
-
-                        // For STDIO, connection errors usually mean shutdown
-                        if is_closed {
-                            tracing::debug!("STDIO transport closed, shutting down event loop");
-                            handler.handle_close().await;
-                            break;
-                        }
+                        let error = TransportError::Io { source: e };
+                        handler.handle_error(error).await;
+                        break;
                     }
                 }
             }
         }
-    }
-
-    running.store(false, Ordering::Release);
-    tracing::debug!("STDIO adapter event loop terminated");
-}
-
-/// Parse raw bytes into JsonRpcMessage
-///
-/// This function handles the conversion from legacy byte arrays to the new
-/// MCP-compliant JsonRpcMessage type.
-///
-/// # Arguments
-///
-/// * `bytes` - Raw message bytes from legacy transport
-///
-/// # Returns
-///
-/// * `Ok(JsonRpcMessage)` - Successfully parsed message
-/// * `Err(serde_json::Error)` - JSON parsing failed
-fn parse_jsonrpc_message(bytes: &[u8]) -> Result<JsonRpcMessage, serde_json::Error> {
-    serde_json::from_slice(bytes)
-}
-
-/// Convert legacy transport errors to MCP transport errors
-///
-/// This function maps errors from the legacy StdioTransport to the new
-/// MCP-compliant TransportError type.
-///
-/// # Arguments
-///
-/// * `legacy_error` - Error from legacy StdioTransport
-///
-/// # Returns
-///
-/// Equivalent TransportError for the MCP interface
-fn convert_legacy_error(legacy_error: crate::transport::TransportError) -> TransportError {
-    match legacy_error {
-        crate::transport::TransportError::Io(io_error) => TransportError::Io { source: io_error },
-        crate::transport::TransportError::Closed => TransportError::Closed,
-        crate::transport::TransportError::BufferOverflow { details } => TransportError::Transport {
-            message: format!("Buffer overflow: {details}"),
-        },
-        crate::transport::TransportError::Format { message } => TransportError::Transport {
-            message: format!("Format error: {message}"),
-        },
-        crate::transport::TransportError::Timeout { duration_ms } => {
-            TransportError::Timeout { duration_ms }
-        }
-        // Map other variants to Transport with descriptive message
-        other => TransportError::Transport {
-            message: format!("Transport error: {other}"),
-        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Mutex;
 
     // Mock handler for testing
     struct MockHandler {
         messages: Arc<Mutex<Vec<JsonRpcMessage>>>,
-        errors: Arc<Mutex<Vec<TransportError>>>,
+        errors: Arc<Mutex<Vec<String>>>,
         close_called: Arc<AtomicBool>,
+        message_count: Arc<AtomicUsize>,
     }
 
     impl MockHandler {
@@ -516,6 +353,7 @@ mod tests {
                 messages: Arc::new(Mutex::new(Vec::new())),
                 errors: Arc::new(Mutex::new(Vec::new())),
                 close_called: Arc::new(AtomicBool::new(false)),
+                message_count: Arc::new(AtomicUsize::new(0)),
             }
         }
 
@@ -526,17 +364,17 @@ mod tests {
 
         #[allow(dead_code)]
         fn get_errors(&self) -> Vec<String> {
-            self.errors
-                .lock()
-                .unwrap()
-                .iter()
-                .map(|e| e.to_string())
-                .collect()
+            self.errors.lock().unwrap().clone()
         }
 
         #[allow(dead_code)]
         fn was_close_called(&self) -> bool {
             self.close_called.load(Ordering::Acquire)
+        }
+
+        #[allow(dead_code)]
+        fn message_count(&self) -> usize {
+            self.message_count.load(Ordering::Acquire)
         }
     }
 
@@ -544,10 +382,11 @@ mod tests {
     impl MessageHandler for MockHandler {
         async fn handle_message(&self, message: JsonRpcMessage, _context: MessageContext) {
             self.messages.lock().unwrap().push(message);
+            self.message_count.fetch_add(1, Ordering::Release);
         }
 
         async fn handle_error(&self, error: TransportError) {
-            self.errors.lock().unwrap().push(error);
+            self.errors.lock().unwrap().push(error.to_string());
         }
 
         async fn handle_close(&self) {
@@ -556,100 +395,67 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_adapter_creation() {
-        let adapter = StdioTransportAdapter::new().await;
-        assert!(adapter.is_ok());
-
-        let adapter = adapter.unwrap();
-        assert_eq!(adapter.transport_type(), "stdio-adapter");
-        assert!(!adapter.is_connected()); // Not started yet
-        assert_eq!(adapter.session_id(), Some("stdio-session".to_string()));
+    async fn test_transport_creation() {
+        let transport = StdioTransport::new();
+        assert_eq!(transport.transport_type(), "stdio");
+        assert!(!transport.is_connected());
+        assert_eq!(transport.session_id(), Some("stdio-session".to_string()));
     }
 
     #[tokio::test]
-    async fn test_adapter_with_config() {
-        let adapter = StdioTransportAdapter::with_config(1024).await;
-        assert!(adapter.is_ok());
+    async fn test_transport_with_custom_session() {
+        let transport = StdioTransport::with_session_id("custom".to_string());
+        assert_eq!(transport.session_id(), Some("custom".to_string()));
     }
 
     #[tokio::test]
-    async fn test_adapter_lifecycle() {
-        let mut adapter = StdioTransportAdapter::new().await.unwrap();
+    async fn test_transport_lifecycle() {
+        let mut transport = StdioTransport::new();
         let handler = Arc::new(MockHandler::new());
 
         // Test initial state
-        assert!(!adapter.is_connected());
+        assert!(!transport.is_connected());
 
         // Test start without handler fails
-        let result = adapter.start().await;
+        let result = transport.start().await;
         assert!(result.is_err());
 
-        // Set handler and test start
-        adapter.set_message_handler(handler.clone());
+        // Set handler and test operations
+        transport.set_message_handler(handler.clone());
 
-        // Note: In a real test environment, we'd need a way to provide test input
-        // For now, we'll test the error cases and lifecycle management
+        // Note: We can't easily test actual stdin reading in unit tests,
+        // but we can test the lifecycle management
 
         // Test close when not running
-        let result = adapter.close().await;
+        let result = transport.close().await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_session_management() {
-        let mut adapter = StdioTransportAdapter::new().await.unwrap();
+        let mut transport = StdioTransport::new();
 
         // Test default session
-        assert_eq!(adapter.session_id(), Some("stdio-session".to_string()));
+        assert_eq!(transport.session_id(), Some("stdio-session".to_string()));
 
         // Test custom session
-        adapter.set_session_context(Some("custom-session".to_string()));
-        assert_eq!(adapter.session_id(), Some("custom-session".to_string()));
+        transport.set_session_context(Some("custom-session".to_string()));
+        assert_eq!(transport.session_id(), Some("custom-session".to_string()));
 
         // Test None becomes default
-        adapter.set_session_context(None);
-        assert_eq!(adapter.session_id(), Some("stdio-session".to_string()));
+        transport.set_session_context(None);
+        assert_eq!(transport.session_id(), Some("stdio-session".to_string()));
     }
 
-    #[test]
-    fn test_parse_jsonrpc_message() {
-        // Test valid JSON-RPC message
-        let json = r#"{"jsonrpc":"2.0","method":"ping","id":"1"}"#;
-        let result = parse_jsonrpc_message(json.as_bytes());
+    #[tokio::test]
+    async fn test_send_message() {
+        let mut transport = StdioTransport::new();
+
+        // Create a test message
+        let message = JsonRpcMessage::from_notification("test_method", None);
+
+        // Test send (this will write to actual stdout in test environment)
+        let result = transport.send(&message).await;
         assert!(result.is_ok());
-
-        let message = result.unwrap();
-        assert_eq!(message.method, Some("ping".to_string()));
-        assert_eq!(message.id, Some(serde_json::Value::String("1".to_string())));
-
-        // Test invalid JSON
-        let invalid_json = b"invalid json";
-        let result = parse_jsonrpc_message(invalid_json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_convert_legacy_error() {
-        use std::io;
-
-        // Test I/O error conversion
-        let io_error = crate::transport::TransportError::Io(io::Error::new(
-            io::ErrorKind::BrokenPipe,
-            "pipe broken",
-        ));
-        let converted = convert_legacy_error(io_error);
-        assert!(matches!(converted, TransportError::Io { .. }));
-
-        // Test closed error conversion
-        let closed_error = crate::transport::TransportError::Closed;
-        let converted = convert_legacy_error(closed_error);
-        assert!(matches!(converted, TransportError::Closed));
-
-        // Test buffer overflow conversion
-        let buffer_error = crate::transport::TransportError::BufferOverflow {
-            details: "too big".to_string(),
-        };
-        let converted = convert_legacy_error(buffer_error);
-        assert!(matches!(converted, TransportError::Transport { .. }));
     }
 }

@@ -28,6 +28,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 // Layer 3: Internal module imports
+use crate::protocol::transport::TransportError;
 // (Will be added during Phase 2 migration)
 
 // PHASE 1: Placeholder implementations
@@ -57,6 +58,10 @@ pub enum ProtocolError {
     #[error("Invalid message: {message}")]
     InvalidMessage { message: String },
 
+    /// Invalid base64 data
+    #[error("Invalid base64 data")]
+    InvalidBase64Data,
+
     /// Invalid protocol version
     #[error("Invalid protocol version: {0}")]
     InvalidProtocolVersion(String),
@@ -68,10 +73,6 @@ pub enum ProtocolError {
     /// Invalid MIME type format
     #[error("Invalid MIME type: {0}")]
     InvalidMimeType(String),
-
-    /// Invalid Base64 data
-    #[error("Invalid Base64 data")]
-    InvalidBase64Data,
 }
 
 /// Convenient result type for protocol operations
@@ -80,6 +81,14 @@ pub type ProtocolResult<T> = Result<T, ProtocolError>;
 impl From<serde_json::Error> for ProtocolError {
     fn from(err: serde_json::Error) -> Self {
         Self::Serialization {
+            message: err.to_string(),
+        }
+    }
+}
+
+impl From<TransportError> for ProtocolError {
+    fn from(err: TransportError) -> Self {
+        Self::Transport {
             message: err.to_string(),
         }
     }

@@ -6,8 +6,8 @@
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::base::jsonrpc::{JsonRpcNotification, JsonRpcRequest};
 use crate::integration::IntegrationResult;
+use crate::protocol::{JsonRpcNotification, JsonRpcRequest};
 
 /// Trait for handling JSON-RPC notifications
 ///
@@ -98,7 +98,7 @@ impl Handler for EchoHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::jsonrpc::RequestId;
+    use crate::protocol::RequestId;
     use serde_json::json;
 
     #[tokio::test]

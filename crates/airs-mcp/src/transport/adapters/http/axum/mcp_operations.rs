@@ -11,16 +11,13 @@ use std::sync::Arc;
 use serde_json::Value;
 
 // Layer 3: Internal module imports
-use crate::base::jsonrpc::message::JsonRpcRequest;
-use crate::shared::protocol::messages::{
-    initialization::{InitializeRequest, InitializeResponse},
-    logging::SetLoggingRequest,
-    prompts::GetPromptRequest,
-    resources::{ReadResourceRequest, SubscribeResourceRequest, UnsubscribeResourceRequest},
-    tools::CallToolRequest,
+use crate::protocol::{
+    CallToolRequest, GetPromptRequest, InitializeRequest, InitializeResponse, JsonRpcRequest,
+    LoggingConfig, ReadResourceRequest, SetLoggingRequest, SubscribeResourceRequest,
+    UnsubscribeResourceRequest,
 };
-use crate::transport::error::TransportError;
 use crate::transport::adapters::http::session::SessionId;
+use crate::transport::error::TransportError;
 
 use super::mcp_handlers::McpHandlers;
 
@@ -38,14 +35,19 @@ pub async fn process_mcp_initialize(
 
     // In a full implementation, we would store client capabilities and validate protocol version
     // For now, return initialize response with protocol negotiation using proper MCP protocol layer
-    
+
     // Use proper MCP protocol layer instead of manual JSON construction
+    let capabilities_json =
+        serde_json::to_value(&mcp_handlers.config.core.capabilities).map_err(|e| {
+            TransportError::serialization_error(format!("Failed to serialize capabilities: {e}"))
+        })?;
+
     let mcp_response = InitializeResponse::new(
-        mcp_handlers.config.capabilities.clone(),
-        mcp_handlers.config.server_info.clone(),
-        mcp_handlers.config.instructions.clone(),
+        capabilities_json,
+        mcp_handlers.config.core.server_info.clone(),
+        mcp_handlers.config.core.instructions.clone(),
     );
-    
+
     let response = serde_json::json!({
         "jsonrpc": "2.0",
         "id": request.id,
@@ -452,7 +454,12 @@ pub async fn process_mcp_set_logging(
                 TransportError::parse_error(format!("Invalid set logging request: {e}"))
             })?;
 
-        match handler.set_logging(logging_request.config).await {
+        match handler
+            .set_logging(LoggingConfig {
+                level: logging_request.level,
+            })
+            .await
+        {
             Ok(success) => Ok(serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": request.id,

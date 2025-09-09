@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 
 // Internal module imports - using available modules
-use crate::base::jsonrpc::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification};
+use crate::protocol::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification};
 use crate::correlation::manager::CorrelationManager;
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::session::SessionManager;

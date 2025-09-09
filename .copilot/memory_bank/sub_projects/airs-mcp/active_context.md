@@ -1,6 +1,99 @@
 # Active Context - airs-mcp
 
-## CURRENT FOCUS: 🎉 TASK-028 MODULE CONSOLIDATION REFACTORING - PHASE 2 COMPLETE
+## 🏛️ CURRENT FOCUS: ARCHITECTURAL DESIGN - TRANSPORT CONFIGURATION SEPARATION
+
+### 🎯 **NEW ARCHITECTURAL INITIATIVE: ADR-011 Transport Configuration Separation (2025-09-09)**
+
+**CRITICAL ARCHITECTURAL REDESIGN**: Revolutionary Transport Configuration Separation Architecture designed to solve fundamental design flaws in current `McpServer` implementation.
+
+**Status**: 📋 **Design Complete** - Comprehensive architecture documented in ADR-011, ready for implementation planning
+
+#### **🔍 PROBLEM IDENTIFICATION**
+**Current Architecture Issues Identified**:
+1. **Handler Overwriting**: `McpServer::run()` dangerously overwrites transport's pre-configured message handlers
+2. **Mixed Responsibilities**: `McpServer` incorrectly handles both transport management AND MCP configuration
+3. **Generic Configuration Anti-pattern**: `McpServerConfig` attempts one-size-fits-all for vastly different transport types
+4. **Unused Logic**: Comprehensive `handle_request` method exists but unused by HTTP transports with their own `McpHandlers`
+5. **Architectural Confusion**: Unclear ownership between transport and `McpServer` for MCP message processing
+
+#### **💡 USER'S ARCHITECTURAL INSIGHT**
+> **Key Insight**: "I think before a transport object injected to McpServer, they should set their message handler right? Meaning that McpServer should not care about the message handler at all"
+
+**Revelation**: Transport should be **fully configured** before being passed to `McpServer`, eliminating dangerous handler overwriting.
+
+#### **🏗️ ARCHITECTURAL SOLUTION DESIGNED**
+
+##### **1. McpCoreConfig - Universal MCP Requirements**
+```rust
+/// Core MCP protocol configuration required by all transports
+pub struct McpCoreConfig {
+    pub server_info: ServerInfo,
+    pub capabilities: ServerCapabilities,
+    pub protocol_version: ProtocolVersion,
+    pub instructions: Option<String>,
+}
+```
+
+##### **2. Separated Transport Traits**
+- **`Transport` trait**: Pure MCP protocol compliance (start/close/send_message/set_message_handler)
+- **`TransportConfig` trait**: Configuration management (set_mcp_core_config/effective_capabilities)
+- **`ConfigurableTransport`**: Combined trait for full functionality
+
+##### **3. Transport-Specific Configurations**
+```rust
+/// Each transport has optimized configuration
+pub struct StdioTransportConfig {
+    pub mcp_core: McpCoreConfig,           // Universal MCP requirements
+    pub buffer_size: usize,                // STDIO-specific
+    pub strict_validation: bool,           // STDIO-specific
+    pub log_operations: bool,              // STDIO-specific
+}
+
+pub struct HttpTransportConfig {
+    pub mcp_core: McpCoreConfig,           // Universal MCP requirements
+    pub cors_origins: Vec<String>,         // HTTP-specific
+    pub auth_config: Option<OAuth2Config>, // HTTP-specific
+    pub rate_limiting: Option<RateLimitConfig>, // HTTP-specific
+}
+```
+
+##### **4. Simplified McpServer**
+```rust
+/// Simplified MCP server - just wraps pre-configured transport
+pub struct McpServer<T: ConfigurableTransport> {
+    transport: T,
+}
+
+impl<T: ConfigurableTransport> McpServer<T> {
+    pub fn new(transport: T) -> Self { Self { transport } }
+    pub async fn run(&mut self) -> McpResult<()> { self.transport.start().await }
+    // Convenience methods delegate to transport
+}
+```
+
+#### **🎯 ARCHITECTURE BENEFITS**
+- ✅ **No Handler Conflicts**: Pre-configured transports eliminate overwriting
+- ✅ **Single Responsibility**: Clear separation between transport, config, and server
+- ✅ **Transport Specialization**: Each transport optimized for its specific needs
+- ✅ **Type Safety**: Impossible to misconfigure transport-specific settings
+- ✅ **Clean API**: `McpServer` becomes simple transport wrapper
+- ✅ **Extensibility**: Easy to add new transports without affecting existing code
+
+#### **📋 IMPLEMENTATION PHASES PLANNED**
+1. **Phase 1**: Extract `McpCoreConfig` with backward compatibility
+2. **Phase 2**: Enhance Transport trait with configuration methods
+3. **Phase 3**: Create transport-specific configuration structures
+4. **Phase 4**: Simplify `McpServer` to be pure transport wrapper
+5. **Phase 5**: Migration support and deprecation warnings
+
+#### **🔗 DOCUMENTED IN**
+- **ADR-011**: Transport Configuration Separation Architecture (2025-09-09)
+- **Status**: Proposed, ready for implementation planning
+- **Impact**: Critical - Solves fundamental architectural design flaws
+
+---
+
+## PREVIOUS ACHIEVEMENTS
 
 ### ✅ TASK-028 MODULE CONSOLIDATION REFACTORING - **Phase 2 Complete (50% overall)**
 

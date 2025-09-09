@@ -8,10 +8,11 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::base::jsonrpc::streaming::{ParsedMessage, StreamingParser};
-use crate::transport::error::TransportError;
+// Use consolidated protocol module instead of streaming parser
+use crate::protocol::JsonRpcMessage;
 use crate::transport::adapters::http::buffer_pool::{BufferPool, BufferStrategy};
 use crate::transport::adapters::http::config::{OptimizationStrategy, ParserConfig};
+use crate::transport::error::TransportError;
 
 /// Request parser with configurable buffer strategy
 ///
@@ -91,24 +92,30 @@ impl RequestParser {
         // Copy data to buffer
         buffer.extend_from_slice(data);
 
-        // Create per-request parser (no shared state)
-        let mut parser = StreamingParser::new_default();
-
-        // Parse the request
-        match parser.parse_from_bytes(&buffer).await {
-            Ok(message) => {
-                // Convert ParsedMessage to Value
-                let value = match message {
-                    ParsedMessage::Request(req) => serde_json::to_value(req)
-                        .map_err(|e| TransportError::SerializationError(e.to_string()))?,
-                    ParsedMessage::Response(resp) => serde_json::to_value(resp)
-                        .map_err(|e| TransportError::SerializationError(e.to_string()))?,
-                    ParsedMessage::Notification(notif) => serde_json::to_value(notif)
-                        .map_err(|e| TransportError::SerializationError(e.to_string()))?,
-                };
-                Ok(value)
-            }
-            Err(e) => Err(TransportError::ParseError(e.to_string())),
+        // Parse the request directly as JSON-RPC
+        match std::str::from_utf8(&buffer) {
+            Ok(json_str) => match serde_json::from_str::<JsonRpcMessage>(json_str) {
+                Ok(message) => {
+                    // Convert JsonRpcMessage to Value
+                    let value = match message {
+                        JsonRpcMessage::Request(req) => serde_json::to_value(req)
+                            .map_err(|e| TransportError::SerializationError(e.to_string()))?,
+                        JsonRpcMessage::Response(resp) => serde_json::to_value(resp)
+                            .map_err(|e| TransportError::SerializationError(e.to_string()))?,
+                        JsonRpcMessage::Notification(notif) => serde_json::to_value(notif)
+                            .map_err(|e| TransportError::SerializationError(e.to_string()))?,
+                    };
+                    Ok(value)
+                }
+                Err(e) => Err(TransportError::ParseError(format!(
+                    "JSON parsing error: {}",
+                    e
+                ))),
+            },
+            Err(e) => Err(TransportError::ParseError(format!(
+                "UTF-8 parsing error: {}",
+                e
+            ))),
         }
     }
 
@@ -137,33 +144,67 @@ impl RequestParser {
         // Get buffer according to strategy
         let mut buffer = self.buffer_strategy.get_buffer();
 
-        // Create per-request parser (no shared state)
-        let mut parser = StreamingParser::new_default();
-
         // Copy data to buffer
         buffer.extend_from_slice(data);
 
-        // Parse all messages
-        match parser.parse_multiple_from_bytes(&buffer).await {
-            Ok(messages) => {
-                let mut requests = Vec::with_capacity(messages.len());
+        // Parse all messages (assuming line-delimited JSON for multiple messages)
+        match std::str::from_utf8(&buffer) {
+            Ok(json_str) => {
+                let mut requests = Vec::new();
 
-                for message in messages {
-                    // Convert ParsedMessage to Value
+                // Try parsing as single message first
+                if let Ok(message) = serde_json::from_str::<JsonRpcMessage>(json_str) {
                     let value = match message {
-                        ParsedMessage::Request(req) => serde_json::to_value(req)
+                        JsonRpcMessage::Request(req) => serde_json::to_value(req)
                             .map_err(|e| TransportError::SerializationError(e.to_string()))?,
-                        ParsedMessage::Response(resp) => serde_json::to_value(resp)
+                        JsonRpcMessage::Response(resp) => serde_json::to_value(resp)
                             .map_err(|e| TransportError::SerializationError(e.to_string()))?,
-                        ParsedMessage::Notification(notif) => serde_json::to_value(notif)
+                        JsonRpcMessage::Notification(notif) => serde_json::to_value(notif)
                             .map_err(|e| TransportError::SerializationError(e.to_string()))?,
                     };
                     requests.push(value);
+                } else {
+                    // Try parsing as line-delimited JSON
+                    for line in json_str.lines() {
+                        if line.trim().is_empty() {
+                            continue;
+                        }
+
+                        match serde_json::from_str::<JsonRpcMessage>(line) {
+                            Ok(message) => {
+                                let value = match message {
+                                    JsonRpcMessage::Request(req) => serde_json::to_value(req)
+                                        .map_err(|e| {
+                                            TransportError::SerializationError(e.to_string())
+                                        })?,
+                                    JsonRpcMessage::Response(resp) => serde_json::to_value(resp)
+                                        .map_err(|e| {
+                                            TransportError::SerializationError(e.to_string())
+                                        })?,
+                                    JsonRpcMessage::Notification(notif) => {
+                                        serde_json::to_value(notif).map_err(|e| {
+                                            TransportError::SerializationError(e.to_string())
+                                        })?
+                                    }
+                                };
+                                requests.push(value);
+                            }
+                            Err(e) => {
+                                return Err(TransportError::ParseError(format!(
+                                    "JSON parsing error: {}",
+                                    e
+                                )))
+                            }
+                        }
+                    }
                 }
 
                 Ok(requests)
             }
-            Err(e) => Err(TransportError::ParseError(e.to_string())),
+            Err(e) => Err(TransportError::ParseError(format!(
+                "UTF-8 parsing error: {}",
+                e
+            ))),
         }
     }
 
@@ -201,7 +242,9 @@ impl RequestParser {
     }
 
     /// Get buffer pool statistics (if using pooled strategy)
-    pub fn buffer_stats(&self) -> Option<crate::transport::adapters::http::buffer_pool::BufferPoolStats> {
+    pub fn buffer_stats(
+        &self,
+    ) -> Option<crate::transport::adapters::http::buffer_pool::BufferPoolStats> {
         match &self.buffer_strategy {
             BufferStrategy::PerRequest => None,
             BufferStrategy::Pooled(pool) => Some(pool.stats()),
@@ -283,7 +326,9 @@ impl RequestParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::adapters::http::config::{BufferPoolConfig, OptimizationStrategy, ParserConfig};
+    use crate::transport::adapters::http::config::{
+        BufferPoolConfig, OptimizationStrategy, ParserConfig,
+    };
     use serde_json::json;
 
     #[test]

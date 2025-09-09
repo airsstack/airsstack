@@ -1,14 +1,16 @@
 # Architecture Decision Record Registry - airs-mcp
 
-**Last Updated**: 2025-09-07  
-**Total ADRs**: 10  
+**Last Updated**: 2025-09-09  
+**Total ADRs**: 11  
 **Active ADRs**: 10
+**Proposed ADRs**: 1
 **Superseded ADRs**: 0
 
 ## Decision Categories
 
 ### System Architecture
 - **Active**: 8 ADRs
+- **Proposed**: 1 ADRs
 - **Superseded**: 0 ADRs
 
 ### Technology Selection  
@@ -55,6 +57,7 @@
 | ID | Title | Proposed Date | Deciders | Target Decision Date | Discussion |
 |----|-------|---------------|----------|-------------------|------------|
 | ADR-001 | MCP-Compliant Transport Redesign | 2025-09-01 | Core Team | 2025-09-02 | Critical architecture refactoring |
+| ADR-011 | Transport Configuration Separation Architecture | 2025-09-09 | @hiraq + GitHub Copilot | 2025-09-15 | Clean separation of MCP core vs transport-specific configuration |
 
 ## Recently Superseded (Last 6 Months)
 

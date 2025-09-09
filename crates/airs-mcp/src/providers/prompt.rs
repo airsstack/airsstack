@@ -10,8 +10,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use tracing::{info, instrument};
 
-use crate::integration::mcp::{McpError, McpResult, PromptProvider};
-use crate::shared::protocol::{Prompt, PromptArgument, PromptMessage};
+use crate::integration::{McpError, McpResult, PromptProvider};
+use crate::protocol::{Content, Prompt, PromptArgument, PromptMessage};
 
 /// Code review prompt provider
 #[derive(Debug, Clone)]
@@ -180,9 +180,7 @@ impl PromptProvider for CodeReviewPromptProvider {
                 let mut content = self.generate_review_prompt(language, code, "security");
 
                 if !threat_model.is_empty() {
-                    content.push_str(&format!(
-                        "\n\nThreat model considerations: {threat_model}"
-                    ));
+                    content.push_str(&format!("\n\nThreat model considerations: {threat_model}"));
                 }
 
                 ("Security-focused code review prompt", content)
@@ -218,7 +216,7 @@ impl PromptProvider for CodeReviewPromptProvider {
             _ => return Err(McpError::prompt_not_found(name)),
         };
 
-        let messages = vec![PromptMessage::user(prompt_content)];
+        let messages = vec![PromptMessage::user(Content::text(prompt_content))];
 
         info!(
             prompt_name = %name,
@@ -350,7 +348,7 @@ impl PromptProvider for DocumentationPromptProvider {
                     "Generate comprehensive API documentation for the following {language} code in {format} format, targeted at {audience}:\n\n```{language}\n{code}\n```\n\nInclude:\n- Function/method signatures and parameters\n- Return values and types\n- Usage examples\n- Error conditions\n- Notes about performance or limitations"
                 );
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("API documentation generation prompt".to_string(), messages))
             }
             "generate_tutorial" => {
@@ -373,7 +371,7 @@ impl PromptProvider for DocumentationPromptProvider {
                     "Create a comprehensive {level} level tutorial about '{topic}' in {format} format.\n\nTutorial requirements:\n- Target duration: {duration}\n- Include clear learning objectives\n- Provide step-by-step instructions\n- Include practical examples and exercises\n- Add troubleshooting section\n- Conclude with next steps or further resources"
                 );
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("Tutorial generation prompt".to_string(), messages))
             }
             "generate_readme" => {
@@ -420,7 +418,7 @@ impl PromptProvider for DocumentationPromptProvider {
                 prompt.push_str("- License information\n");
                 prompt.push_str("- Contact/support information\n");
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("README generation prompt".to_string(), messages))
             }
             _ => Err(McpError::prompt_not_found(name)),
@@ -563,7 +561,7 @@ impl PromptProvider for AnalysisPromptProvider {
                     prompt.push_str(&format!("\nContext: {context}\n"));
                 }
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("Data analysis prompt".to_string(), messages))
             }
             "research_topic" => {
@@ -586,7 +584,7 @@ impl PromptProvider for AnalysisPromptProvider {
                     "Conduct {depth} research on the topic: '{topic}' with {scope} scope.\n\nResearch guidelines:\n- Use {sources} as primary sources\n- Provide {depth} analysis\n- Include current trends and developments\n- Cite key findings and statistics\n- Identify knowledge gaps or controversies\n- Suggest areas for further investigation\n\nStructure your research with clear sections and conclusions."
                 );
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("Topic research prompt".to_string(), messages))
             }
             "compare_options" => {
@@ -618,7 +616,7 @@ impl PromptProvider for AnalysisPromptProvider {
                     prompt.push_str(&format!("\nDecision context: {context}\n"));
                 }
 
-                let messages = vec![PromptMessage::user(prompt)];
+                let messages = vec![PromptMessage::user(Content::text(prompt))];
                 Ok(("Option comparison prompt".to_string(), messages))
             }
             _ => Err(McpError::prompt_not_found(name)),

@@ -12,7 +12,7 @@
 
 pub mod auth;
 pub mod auth_request;
-pub mod axum;
+pub mod axum; // Re-enabled with direct MessageHandler usage
 pub mod buffer_pool;
 pub mod client;
 pub mod client_adapter;
@@ -27,7 +27,7 @@ pub mod sse;
 
 pub use auth::OAuth2StrategyAdapter;
 pub use auth_request::HttpAuthRequest;
-pub use axum::{AxumHttpServer, ServerState};
+pub use axum::{AxumHttpServer, ServerState}; // Re-enabled with direct MessageHandler usage
 pub use buffer_pool::{BufferPool, BufferPoolStats, BufferStrategy, PooledBuffer};
 pub use client::HttpClientTransport;
 pub use client_adapter::HttpClientTransportAdapter;

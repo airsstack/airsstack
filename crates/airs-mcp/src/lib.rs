@@ -7,11 +7,11 @@
 //!
 //! The AIRS MCP implementation is organized in layers:
 //!
-//! - **Base Layer** (`base`): Foundational components including JSON-RPC 2.0 message types
-//! - **Shared Layer** (`shared`): MCP protocol types and message structures
+//! - **Protocol Layer** (`protocol`): Unified JSON-RPC 2.0 + MCP protocol implementation
 //! - **Transport Layer** (`transport`): Communication transport abstractions and implementations
 //! - **Integration Layer** (`integration`): High-level MCP client and server interfaces
 //! - **Providers Layer** (`providers`): Production-ready MCP provider implementations
+//! - **Shared Layer** (`shared`): Additional MCP message structures and content types
 //!
 //! # Core Features
 //!
@@ -26,7 +26,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use airs_mcp::{JsonRpcRequest, JsonRpcMessage, RequestId};
+//! use airs_mcp::{JsonRpcRequest, JsonRpcMessageTrait, RequestId};
 //! use serde_json::json;
 //!
 //! // Create a JSON-RPC request
@@ -177,9 +177,6 @@
 //! For high-throughput scenarios, future versions will include zero-copy
 //! optimizations and buffer pooling strategies.
 
-// Base layer modules
-pub mod base;
-
 // Correlation layer modules
 pub mod correlation;
 
@@ -201,16 +198,38 @@ pub mod providers;
 // Protocol layer modules (TASK-028 consolidation)
 pub mod protocol;
 
-// Shared components modules
-pub mod shared;
-
 // Transport layer modules
 pub mod transport;
 
 // Re-export commonly used types for convenience
 // This allows users to import directly from the crate root
-pub use base::jsonrpc::{
-    JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, RequestId,
+pub use protocol::{
+    Base64Data,
+    ClientInfo,
+    JsonRpcError,
+    // JSON-RPC 2.0 Message Types
+    JsonRpcMessage,
+    JsonRpcMessageTrait,
+    JsonRpcNotification,
+    JsonRpcRequest,
+    JsonRpcResponse,
+    MessageContext,
+    MessageHandler,
+    MimeType,
+    // Error Types
+    ProtocolError,
+    ProtocolResult,
+
+    ProtocolVersion,
+    RequestId,
+
+    ServerInfo,
+    // Transport Abstractions
+    Transport as ProtocolTransport,
+    TransportError as ProtocolTransportError,
+
+    // MCP Protocol Types
+    Uri,
 };
 
 // Re-export correlation types for convenience
@@ -218,20 +237,15 @@ pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, C
 
 // Re-export integration types for convenience
 pub use integration::{
-    Handler, IntegrationError, IntegrationResult, JsonRpcClient, MessageRouter,
-    NotificationHandler, RequestHandler,
+    ConnectionState, IntegrationError, IntegrationResult, McpClient, McpClientBuilder,
+    McpClientConfig, McpCoreConfig, McpError, McpResult, McpServer, McpServerBuilder,
+    McpServerConfig,
 };
 
 // Re-export transport types for convenience
+pub use transport::adapters::StdioTransport;
 pub use transport::{
-    BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StdioTransport, StreamingBuffer,
-    Transport, TransportError,
-};
-
-// Re-export protocol types for convenience
-pub use shared::protocol::{
-    Base64Data, ClientInfo, Content, ListResourceTemplatesRequest, ListResourceTemplatesResponse,
-    MimeType, ProtocolError, ProtocolResult, ProtocolVersion, ResourceTemplate, ServerInfo, Uri,
+    BufferConfig, BufferManager, BufferMetrics, PooledBuffer, StreamingBuffer, TransportError,
 };
 
 // Version information

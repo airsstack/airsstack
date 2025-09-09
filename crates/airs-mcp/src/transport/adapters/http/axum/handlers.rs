@@ -33,11 +33,14 @@ use crate::authorization::{
     middleware::AuthorizationRequest,
     policy::{AuthorizationPolicy, NoAuthorizationPolicy},
 };
-use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
-use crate::base::jsonrpc::message::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest};
-use crate::integration::mcp::constants::methods as mcp_methods;
-use crate::transport::adapters::http::auth::jsonrpc_authorization::{JsonRpcAuthorizationLayer, JsonRpcHttpRequest};
-use crate::transport::adapters::http::auth::middleware::{HttpAuthMiddleware, HttpAuthStrategyAdapter};
+use crate::integration::constants::methods as mcp_methods;
+use crate::protocol::{JsonRpcMessageTrait, JsonRpcNotification, JsonRpcRequest};
+use crate::transport::adapters::http::auth::jsonrpc_authorization::{
+    JsonRpcAuthorizationLayer, JsonRpcHttpRequest,
+};
+use crate::transport::adapters::http::auth::middleware::{
+    HttpAuthMiddleware, HttpAuthStrategyAdapter,
+};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::session::{ClientInfo, SessionId, SessionManager};
@@ -105,8 +108,11 @@ impl SseEvent {
 /// * `P` - Authorization policy (defaults to NoAuthorizationPolicy)
 /// * `C` - Authorization context (defaults to NoAuthContext)
 #[derive(Clone)]
-pub struct ServerState<A = super::server::NoAuth, P = NoAuthorizationPolicy<NoAuthContext>, C = NoAuthContext>
-where
+pub struct ServerState<
+    A = super::server::NoAuth,
+    P = NoAuthorizationPolicy<NoAuthContext>,
+    C = NoAuthContext,
+> where
     A: HttpAuthStrategyAdapter + Clone,
     P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
     C: AuthzContext + Clone,
@@ -115,8 +121,6 @@ where
     pub connection_manager: Arc<HttpConnectionManager>,
     /// Session manager for handling user sessions
     pub session_manager: Arc<SessionManager>,
-    /// JSON-RPC processor for handling requests
-    pub jsonrpc_processor: Arc<ConcurrentProcessor>,
     /// MCP server for processing MCP protocol requests
     pub mcp_handlers: Arc<McpHandlers>,
     /// Server configuration
@@ -175,7 +179,7 @@ async fn handle_mcp_request<A, P, C>(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     body: String,
-) -> Result<Json<Value>, (StatusCode, String)> 
+) -> Result<Json<Value>, (StatusCode, String)>
 where
     A: HttpAuthStrategyAdapter + Clone + 'static,
     P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone + 'static,
@@ -212,10 +216,13 @@ where
     // PHASE 3: Authorization layer integration placeholder
     // The authorization framework is now integrated into the server architecture.
     // When an authorization layer is configured, we log its presence.
-    // Full authorization checking will be activated when HTTP authentication 
+    // Full authorization checking will be activated when HTTP authentication
     // middleware properly extracts and provides the authentication context.
     if let Some(authorization_layer) = &state.authorization_layer {
-        tracing::debug!("Authorization layer configured: {}", authorization_layer.policy_name());
+        tracing::debug!(
+            "Authorization layer configured: {}",
+            authorization_layer.policy_name()
+        );
     }
 
     // Check if it's a request (has "id") or notification (no "id")

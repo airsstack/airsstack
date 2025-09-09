@@ -6,10 +6,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::base::jsonrpc::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
 use crate::integration::{
     Handler, IntegrationError, IntegrationResult, NotificationHandler, RequestHandler,
 };
+use crate::protocol::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
 
 /// Configuration for route registration
 #[derive(Debug, Clone)]
@@ -315,8 +315,8 @@ impl std::fmt::Debug for MessageRouter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::jsonrpc::RequestId;
     use crate::integration::handler::EchoHandler;
+    use crate::protocol::RequestId;
     use serde_json::json;
 
     #[tokio::test]

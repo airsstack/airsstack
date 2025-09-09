@@ -37,6 +37,7 @@
 // (Will be added as consolidation proceeds)
 
 // Module declarations (workspace standard: declarations only in mod.rs)
+pub mod constants;
 pub mod errors;
 pub mod internal;
 pub mod message;
@@ -47,6 +48,7 @@ pub mod types;
 // NOTE: Actual re-exports will be added during Phase 2 migration
 // This ensures Phase 1 foundation compiles without breaking existing code
 
+pub use constants::*;
 pub use errors::*;
 pub use message::*;
 pub use transport::*;

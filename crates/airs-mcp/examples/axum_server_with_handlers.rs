@@ -4,20 +4,24 @@
 //! MCP handlers with the AxumHttpServer architecture, including the new
 //! zero-cost generic authentication middleware system.
 
-use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
+use airs_mcp::authentication::strategies::apikey::types::ApiKeySource;
+use airs_mcp::authentication::strategies::apikey::{
+    ApiKeyAuthData, ApiKeyStrategy, InMemoryApiKeyValidator,
+};
+use airs_mcp::authentication::{AuthContext, AuthMethod};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::integration::mcp::server::McpServerConfig;
-use airs_mcp::transport::error::TransportError;
+use airs_mcp::protocol::{JsonRpcRequest, JsonRpcResponse, RequestId}; // Use new protocol module
+use airs_mcp::transport::adapters::http::auth::apikey::ApiKeyStrategyAdapter;
+use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
 use airs_mcp::transport::adapters::http::axum::{AxumHttpServer, McpHandlers, McpHandlersBuilder};
 use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
-use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
+use airs_mcp::transport::adapters::http::connection_manager::{
+    HealthCheckConfig, HttpConnectionManager,
+};
 use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
-use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
-use airs_mcp::authentication::strategies::apikey::{ApiKeyStrategy, InMemoryApiKeyValidator, ApiKeyAuthData};
-use airs_mcp::authentication::{AuthMethod, AuthContext};
-use airs_mcp::authentication::strategies::apikey::types::ApiKeySource;
+use airs_mcp::transport::error::TransportError;
 use std::collections::HashMap;
-use airs_mcp::transport::adapters::http::auth::apikey::ApiKeyStrategyAdapter;
 
 use std::sync::Arc;
 
@@ -120,7 +124,8 @@ async fn create_server_for_testing() -> Result<AxumHttpServer, TransportError> {
 }
 
 /// Approach 4: Server with zero-cost API key authentication
-async fn create_server_with_api_key_auth() -> Result<AxumHttpServer<ApiKeyStrategyAdapter<InMemoryApiKeyValidator>>, TransportError> {
+async fn create_server_with_api_key_auth(
+) -> Result<AxumHttpServer<ApiKeyStrategyAdapter<InMemoryApiKeyValidator>>, TransportError> {
     let (connection_manager, session_manager, jsonrpc_processor, config) =
         create_infrastructure().await;
 
@@ -130,7 +135,8 @@ async fn create_server_with_api_key_auth() -> Result<AxumHttpServer<ApiKeyStrate
         session_manager,
         jsonrpc_processor,
         config,
-    ).await?;
+    )
+    .await?;
 
     // Create API key authentication
     let mut api_keys = HashMap::new();
@@ -157,7 +163,7 @@ async fn create_server_with_api_key_auth() -> Result<AxumHttpServer<ApiKeyStrate
     let validator = InMemoryApiKeyValidator::new(api_keys);
     let strategy = ApiKeyStrategy::new(validator);
     let adapter = ApiKeyStrategyAdapter::new(strategy, Default::default());
-    
+
     let auth_config = HttpAuthConfig {
         include_error_details: false,
         auth_realm: "MCP Demo Server".to_string(),
@@ -180,11 +186,13 @@ async fn create_server_with_conditional_auth() -> Result<(), TransportError> {
         session_manager,
         jsonrpc_processor,
         config,
-    ).await?;
+    )
+    .await?;
 
     // Conditional authentication based on environment
-    let auth_enabled = std::env::var("MCP_AUTH_ENABLED").unwrap_or_else(|_| "false".to_string()) == "true";
-    
+    let auth_enabled =
+        std::env::var("MCP_AUTH_ENABLED").unwrap_or_else(|_| "false".to_string()) == "true";
+
     if auth_enabled {
         let mut api_keys = HashMap::new();
         api_keys.insert(
@@ -202,11 +210,11 @@ async fn create_server_with_conditional_auth() -> Result<(), TransportError> {
         let adapter = ApiKeyStrategyAdapter::new(strategy, Default::default());
         let auth_config = HttpAuthConfig {
             include_error_details: false,
-            auth_realm: "MCP Production".to_string(), 
+            auth_realm: "MCP Production".to_string(),
             request_timeout_secs: 10,
             skip_paths: vec!["/health".to_string()],
         };
-        
+
         let _auth_server = base_server.with_authentication(adapter, auth_config);
         println!("   ✓ Server created with API key authentication");
     } else {

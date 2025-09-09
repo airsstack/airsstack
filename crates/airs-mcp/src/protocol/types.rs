@@ -32,13 +32,16 @@
 //! ```
 
 // Layer 1: Standard library imports
+use std::collections::HashMap;
 use std::fmt;
 
 // Layer 2: Third-party crate imports
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-use super::errors::{ProtocolError, ProtocolResult};
+use crate::protocol::errors::{ProtocolError, ProtocolResult};
+use crate::protocol::{JsonRpcRequest, RequestId};
+use crate::protocol::constants::methods;
 
 /// Protocol version with validation and proper encapsulation
 ///
@@ -420,3 +423,638 @@ pub struct ServerInfo {
 // Reference: ResourceContent, TextContent, BlobContent structures
 // TODO(DEBT-ARCH): Add MCP message structures from shared/protocol/messages/
 // Reference: InitializeRequest, InitializeResponse, capability definitions
+
+// ==== Additional Types Restored from git for compilation ====
+
+/// Multi-modal content for MCP protocol messages
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type")]
+pub enum Content {
+    /// Plain text content
+    #[serde(rename = "text")]
+    Text {
+        /// The text content
+        text: String,
+        /// URI of the resource (optional)
+        #[serde(skip_serializing_if = "Option::is_none")]
+        uri: Option<Uri>,
+        /// MIME type of the content
+        #[serde(rename = "mimeType", skip_serializing_if = "Option::is_none")]
+        mime_type: Option<MimeType>,
+    },
+
+    /// Image content with base64 encoded data
+    #[serde(rename = "image")]
+    Image {
+        /// Base64 encoded image data
+        #[serde(rename = "data")]
+        data: Base64Data,
+        /// MIME type of the image
+        #[serde(rename = "mimeType")]
+        mime_type: MimeType,
+        /// URI of the resource (optional)
+        #[serde(skip_serializing_if = "Option::is_none")]
+        uri: Option<Uri>,
+    },
+
+    /// Resource reference content
+    #[serde(rename = "resource")]
+    Resource {
+        /// URI of the resource
+        #[serde(rename = "uri")]
+        resource: Uri,
+        /// Optional text description of the resource
+        text: Option<String>,
+        /// Optional MIME type of the resource
+        #[serde(rename = "mimeType", skip_serializing_if = "Option::is_none")]
+        mime_type: Option<MimeType>,
+    },
+}
+
+impl Content {
+    /// Create text content
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text {
+            text: text.into(),
+            uri: None,
+            mime_type: None,
+        }
+    }
+    
+    /// Create text content with URI
+    pub fn text_with_uri(text: impl Into<String>, uri: impl Into<String>) -> Result<Self, String> {
+        let uri_str = uri.into();
+        let uri = Uri::new_unchecked(uri_str);
+        Ok(Self::Text {
+            text: text.into(),
+            uri: Some(uri),
+            mime_type: None,
+        })
+    }
+
+    /// Extract text content if available
+    pub fn as_text(&self) -> Option<&str> {
+        match self {
+            Content::Text { text, .. } => Some(text),
+            Content::Resource { text: Some(text), .. } => Some(text),
+            _ => None,
+        }
+    }
+}
+
+/// Tool definition for MCP protocol
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tool {
+    pub name: String,
+    pub description: Option<String>,
+    pub input_schema: serde_json::Value,
+}
+
+/// Capability system definitions
+
+/// Client capabilities for MCP protocol
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ClientCapabilities {
+    pub experimental: Option<serde_json::Value>,
+    pub sampling: Option<SamplingCapabilities>,
+    pub roots: Option<RootsCapabilities>,
+}
+
+/// Server capabilities for MCP protocol
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ServerCapabilities {
+    pub experimental: Option<serde_json::Value>,
+    pub logging: Option<LoggingCapabilities>,
+    pub prompts: Option<PromptCapabilities>,
+    pub resources: Option<ResourceCapabilities>,
+    pub tools: Option<ToolCapabilities>,
+}
+
+/// Sampling capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SamplingCapabilities {}
+
+/// Roots capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootsCapabilities {
+    pub list_changed: Option<bool>,
+}
+
+/// Logging capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoggingCapabilities {}
+
+impl Default for LoggingCapabilities {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+/// Prompt capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptCapabilities {
+    pub list_changed: Option<bool>,
+}
+
+/// Resource capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceCapabilities {
+    pub subscribe: Option<bool>,
+    pub list_changed: Option<bool>,
+}
+
+/// Tool capabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCapabilities {
+    pub list_changed: Option<bool>,
+}
+
+impl Default for ToolCapabilities {
+    fn default() -> Self {
+        Self {
+            list_changed: Some(false),
+        }
+    }
+}
+
+/// Represents a prompt template available from the server
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Prompt {
+    /// Unique identifier for the prompt
+    pub name: String,
+    /// Human-readable name for the prompt
+    pub title: Option<String>,
+    /// Optional description of the prompt's purpose
+    pub description: Option<String>,
+    /// Array of arguments this prompt accepts
+    pub arguments: Vec<PromptArgument>,
+}
+
+/// Represents an argument for a prompt template
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PromptArgument {
+    /// Name of the argument
+    pub name: String,
+    /// Description of the argument
+    pub description: Option<String>,
+    /// Whether this argument is required
+    pub required: bool,
+}
+
+impl PromptArgument {
+    /// Create a required argument
+    pub fn required(name: impl Into<String>, description: Option<impl Into<String>>) -> Self {
+        Self {
+            name: name.into(),
+            description: description.map(|d| d.into()),
+            required: true,
+        }
+    }
+    
+    /// Create an optional argument
+    pub fn optional(name: impl Into<String>, description: Option<impl Into<String>>) -> Self {
+        Self {
+            name: name.into(),
+            description: description.map(|d| d.into()),
+            required: false,
+        }
+    }
+}
+
+/// Prompt message content
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PromptMessage {
+    /// Role of the message sender
+    pub role: String,
+    /// Content of the message
+    pub content: Content,
+}
+
+impl PromptMessage {
+    /// Create a user message
+    pub fn user(content: Content) -> Self {
+        Self {
+            role: "user".to_string(),
+            content,
+        }
+    }
+    
+    /// Create an assistant message
+    pub fn assistant(content: Content) -> Self {
+        Self {
+            role: "assistant".to_string(),
+            content,
+        }
+    }
+    
+    /// Create a system message
+    pub fn system(content: Content) -> Self {
+        Self {
+            role: "system".to_string(),
+            content,
+        }
+    }
+}
+
+/// Represents a resource available from the server
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Resource {
+    /// URI of the resource
+    pub uri: Uri,
+    /// Name of the resource
+    pub name: String,
+    /// Description of the resource
+    pub description: Option<String>,
+    /// MIME type of the resource
+    #[serde(rename = "mimeType", skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<MimeType>,
+}
+
+/// Log level enumeration
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Debug,
+    Info,
+    Warning,
+    Error,
+    Critical,
+}
+
+impl LogLevel {
+    /// Convert LogLevel to string representation
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LogLevel::Debug => "debug",
+            LogLevel::Info => "info", 
+            LogLevel::Warning => "warning",
+            LogLevel::Error => "error",
+            LogLevel::Critical => "critical",
+        }
+    }
+}
+
+/// Logging configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LoggingConfig {
+    /// Minimum log level to include
+    pub level: LogLevel,
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self {
+            level: LogLevel::Info,
+        }
+    }
+}
+
+impl LoggingConfig {
+    /// Create a new logging config with specified level
+    pub fn new(level: LogLevel) -> Self {
+        Self { level }
+    }
+    
+    /// Get the minimum level (compatibility with old API)
+    pub fn min_level(&self) -> &LogLevel {
+        &self.level
+    }
+}
+
+/// Initialize request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InitializeRequest {
+    /// Protocol version
+    #[serde(rename = "protocolVersion")]
+    pub protocol_version: ProtocolVersion,
+    /// Capabilities requested by client
+    pub capabilities: serde_json::Value,
+    /// Client information
+    #[serde(rename = "clientInfo")]
+    pub client_info: ClientInfo,
+}
+
+/// Initialize response message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InitializeResponse {
+    /// Protocol version
+    #[serde(rename = "protocolVersion")]
+    pub protocol_version: ProtocolVersion,
+    /// Capabilities offered by server
+    pub capabilities: serde_json::Value,
+    /// Server information
+    #[serde(rename = "serverInfo")]
+    pub server_info: ServerInfo,
+}
+
+impl InitializeResponse {
+    /// Create a new initialize response
+    pub fn new(
+        capabilities: serde_json::Value,
+        server_info: ServerInfo,
+        _instructions: Option<String>, // instructions are handled elsewhere
+    ) -> Self {
+        Self {
+            protocol_version: ProtocolVersion::current(),
+            capabilities,
+            server_info,
+        }
+    }
+}
+
+/// Set logging request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SetLoggingRequest {
+    /// Logging level to set
+    pub level: LogLevel,
+}
+
+impl SetLoggingRequest {
+    /// Create a new set logging request
+    pub fn new(level: LogLevel) -> Self {
+        Self { level }
+    }
+}
+
+/// Get prompt request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GetPromptRequest {
+    /// Name of the prompt to get
+    pub name: String,
+    /// Arguments for the prompt
+    pub arguments: std::collections::HashMap<String, String>,
+}
+
+/// Read resource request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ReadResourceRequest {
+    /// URI of the resource to read
+    pub uri: Uri,
+}
+
+/// Subscribe resource request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubscribeResourceRequest {
+    /// URI of the resource to subscribe to
+    pub uri: Uri,
+}
+
+/// Unsubscribe resource request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UnsubscribeResourceRequest {
+    /// URI of the resource to unsubscribe from
+    pub uri: Uri,
+}
+
+/// Call tool request message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CallToolRequest {
+    /// Name of the tool to call
+    pub name: String,
+    /// Arguments for the tool
+    pub arguments: serde_json::Value,
+}
+
+/// List resources request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListResourcesRequest {
+    pub cursor: Option<String>,
+}
+
+impl ListResourcesRequest {
+    /// Create a new list resources request
+    pub fn new() -> Self {
+        Self { cursor: None }
+    }
+
+    /// Create a new list resources request with cursor
+    pub fn with_cursor(cursor: impl Into<String>) -> Self {
+        Self { cursor: Some(cursor.into()) }
+    }
+
+    /// Convert to JSON-RPC request
+    pub fn to_jsonrpc_request(&self, id: RequestId) -> Result<JsonRpcRequest, ProtocolError> {
+        let params = serde_json::to_value(self)
+            .map_err(|e| ProtocolError::Serialization { message: format!("Failed to serialize ListResourcesRequest: {e}") })?;
+        
+        Ok(JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            method: methods::RESOURCES_LIST.to_string(),
+            params: Some(params),
+            id,
+        })
+    }
+}
+
+/// List resources response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListResourcesResponse {
+    pub resources: Vec<Resource>,
+    pub next_cursor: Option<String>,
+}
+
+/// List prompts request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListPromptsRequest {
+    pub cursor: Option<String>,
+}
+
+impl ListPromptsRequest {
+    /// Create a new list prompts request
+    pub fn new() -> Self {
+        Self { cursor: None }
+    }
+
+    /// Create a new list prompts request with cursor
+    pub fn with_cursor(cursor: impl Into<String>) -> Self {
+        Self { cursor: Some(cursor.into()) }
+    }
+
+    /// Convert to JSON-RPC request
+    pub fn to_jsonrpc_request(&self, id: RequestId) -> Result<JsonRpcRequest, ProtocolError> {
+        let params = serde_json::to_value(self)
+            .map_err(|e| ProtocolError::Serialization { message: format!("Failed to serialize ListPromptsRequest: {e}") })?;
+        
+        Ok(JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            method: methods::PROMPTS_LIST.to_string(),
+            params: Some(params),
+            id,
+        })
+    }
+}
+
+/// List prompts response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListPromptsResponse {
+    pub prompts: Vec<Prompt>,
+    pub next_cursor: Option<String>,
+}
+
+/// List tools request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListToolsRequest {
+    pub cursor: Option<String>,
+}
+
+impl ListToolsRequest {
+    /// Create a new list tools request
+    pub fn new() -> Self {
+        Self { cursor: None }
+    }
+
+    /// Create a new list tools request with cursor
+    pub fn with_cursor(cursor: impl Into<String>) -> Self {
+        Self { cursor: Some(cursor.into()) }
+    }
+
+    /// Convert to JSON-RPC request
+    pub fn to_jsonrpc_request(&self, id: RequestId) -> Result<JsonRpcRequest, ProtocolError> {
+        let params = serde_json::to_value(self)
+            .map_err(|e| ProtocolError::Serialization { message: format!("Failed to serialize ListToolsRequest: {e}") })?;
+        
+        Ok(JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            method: methods::TOOLS_LIST.to_string(),
+            params: Some(params),
+            id,
+        })
+    }
+}
+
+/// List tools response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListToolsResponse {
+    pub tools: Vec<Tool>,
+    pub next_cursor: Option<String>,
+}
+
+/// Call tool response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CallToolResponse {
+    pub content: Vec<Content>,
+    pub is_error: Option<bool>,
+}
+
+/// Get prompt response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetPromptResponse {
+    pub description: Option<String>,
+    pub messages: Vec<PromptMessage>,
+}
+
+/// Read resource response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReadResourceResponse {
+    pub contents: Vec<Content>,
+}
+
+/// Set logging response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetLoggingResponse {
+    pub success: bool,
+    pub message: Option<String>,
+}
+
+/// List resource templates response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListResourceTemplatesResponse {
+    pub resource_templates: Vec<ResourceTemplate>,
+    pub next_cursor: Option<String>,
+}
+
+/// Resource template for dynamic resources
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplate {
+    pub uri_template: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub mime_type: Option<String>,
+}
+
+// Constructor implementations for request types
+impl InitializeRequest {
+    /// Create a new InitializeRequest with specific protocol version
+    pub fn with_version(
+        protocol_version: ProtocolVersion,
+        capabilities: serde_json::Value,
+        client_info: ClientInfo,
+    ) -> Self {
+        Self {
+            protocol_version,
+            capabilities,
+            client_info,
+        }
+    }
+
+    /// Convert to JSON-RPC request
+    pub fn to_jsonrpc_request(&self, id: RequestId) -> Result<JsonRpcRequest, ProtocolError> {
+        let params = serde_json::to_value(self)
+            .map_err(|e| ProtocolError::Serialization { message: format!("Failed to serialize InitializeRequest: {e}") })?;
+        
+        Ok(JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            method: methods::INITIALIZE.to_string(),
+            params: Some(params),
+            id,
+        })
+    }
+}
+
+impl ReadResourceRequest {
+    /// Create a new ReadResourceRequest for a URI
+    pub fn new(uri: String) -> Result<Self, crate::protocol::TransportError> {
+        Ok(Self { uri: Uri::new_unchecked(uri) })
+    }
+}
+
+impl SubscribeResourceRequest {
+    /// Create a new SubscribeResourceRequest for a URI
+    pub fn new(uri: String) -> Result<Self, crate::protocol::TransportError> {
+        Ok(Self { uri: Uri::new_unchecked(uri) })
+    }
+}
+
+impl CallToolRequest {
+    /// Create a new CallToolRequest
+    pub fn new(name: String, arguments: serde_json::Value) -> Self {
+        Self { name, arguments }
+    }
+}
+
+impl GetPromptRequest {
+    /// Create a new GetPromptRequest
+    pub fn new(name: String, arguments: HashMap<String, String>) -> Self {
+        Self { name, arguments }
+    }
+}
+
+// Constructor implementations for response types
+impl CallToolResponse {
+    /// Create a successful tool call response
+    pub fn success(content: Vec<Content>) -> Self {
+        Self {
+            content,
+            is_error: Some(false),
+        }
+    }
+    
+    /// Create an error tool call response
+    pub fn error_text(error: String) -> Self {
+        Self {
+            content: vec![Content::text(error)],
+            is_error: Some(true),
+        }
+    }
+}
+
+impl LoggingConfig {
+    /// Create default logging configuration
+    pub fn default() -> Self {
+        Self {
+            level: LogLevel::Info,
+        }
+    }
+}
+
+

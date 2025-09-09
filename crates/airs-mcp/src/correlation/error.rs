@@ -7,7 +7,7 @@ use chrono::TimeDelta;
 use thiserror::Error;
 
 /// Request ID type alias for consistency with JSON-RPC base types
-pub type RequestId = crate::base::jsonrpc::RequestId;
+pub type RequestId = crate::protocol::RequestId;
 
 /// Correlation error types
 ///

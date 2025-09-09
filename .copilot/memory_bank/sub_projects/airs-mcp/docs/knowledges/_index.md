@@ -1,17 +1,29 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-07  
-**Total Knowledge Docs**: 24  
+**Last Updated**: 2025-09-09  
+**Total Knowledge Docs**: 25  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 11  
+**Documentation Count**: 13  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[Transport Configuration Separation Design](./architecture/transport-configuration-separation-design.md)** 🔥 NEW CRITICAL
+  - **Focus**: Revolutionary architectural design separating MCP core configuration from transport-specific configuration
+  - **Complexity**: Critical - Solves fundamental design flaws in current McpServer architecture, comprehensive solution
+  - **Updated**: 2025-09-09
+  - **Related**: ADR-011 (Transport Configuration Separation), handler overwriting fixes, clean architecture principles
+
+- **[Processor Over-Engineering Analysis](./architecture/KNOWLEDGE-003-processor-over-engineering-analysis.md)** 🔥 CRITICAL
+  - **Focus**: Critical architectural anti-pattern analysis revealing processor layer over-engineering
+  - **Complexity**: Critical - Immediate action required, affects TASK-028 and overall architecture health
+  - **Updated**: 2025-09-08
+  - **Related**: TASK-028 (Module Consolidation), SimpleProcessor elimination, MessageHandler trait duplication
+
 - **[Transport Adapter Architecture Plan](./architecture/KNOWLEDGE-004-transport-adapter-architecture-plan.md)** ✅ NEW
   - **Focus**: Comprehensive transport reorganization plan, adapter pattern for legacy compatibility, MCP compliance strategy
   - **Complexity**: Critical - Complete architectural evolution plan from legacy to MCP-compliant transport layer

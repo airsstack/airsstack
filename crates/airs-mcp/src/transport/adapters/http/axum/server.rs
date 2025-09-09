@@ -22,11 +22,18 @@ use crate::authentication::AuthContext;
 use crate::authorization::{
     context::{AuthzContext, BinaryAuthContext, NoAuthContext, ScopeAuthContext},
     middleware::AuthorizationRequest,
-    policy::{AuthorizationPolicy, BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
+    policy::{
+        AuthorizationPolicy, BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy,
+    },
 };
-use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
-use crate::transport::adapters::http::auth::jsonrpc_authorization::{JsonRpcAuthorizationLayer, JsonRpcHttpRequest};
-use crate::transport::adapters::http::auth::middleware::{HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter};
+// TODO: Migrate concurrent features to new protocol module
+// use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
+use crate::transport::adapters::http::auth::jsonrpc_authorization::{
+    JsonRpcAuthorizationLayer, JsonRpcHttpRequest,
+};
+use crate::transport::adapters::http::auth::middleware::{
+    HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter,
+};
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::engine::{
@@ -58,7 +65,10 @@ impl HttpAuthStrategyAdapter for NoAuth {
     async fn authenticate_http_request(
         &self,
         _request: &HttpAuthRequest,
-    ) -> Result<AuthContext<Self::AuthData>, crate::transport::adapters::http::auth::oauth2::error::HttpAuthError> {
+    ) -> Result<
+        AuthContext<Self::AuthData>,
+        crate::transport::adapters::http::auth::oauth2::error::HttpAuthError,
+    > {
         // NoAuth always returns a successful authentication with empty data
         use crate::authentication::AuthMethod;
         Ok(AuthContext::new(AuthMethod::new("none"), ()))
@@ -86,7 +96,7 @@ impl HttpAuthStrategyAdapter for NoAuth {
 /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
 /// // Default server with no authentication or authorization
 /// // let server = AxumHttpServer::new(...).await?;
-/// 
+///
 /// // OAuth2 server with scope-based authorization
 /// // let oauth2_server = server.with_oauth2_authorization(oauth2_adapter, config);
 /// ```
@@ -112,13 +122,12 @@ where
 
 impl AxumHttpServer<NoAuth> {
     /// Create a new Axum HTTP server with the specified configuration and handlers
-    /// 
+    ///
     /// Creates a server with NoAuth (no authentication) as the default.
     /// Use with_authentication() to add authentication to the server.
     pub async fn new(
         connection_manager: Arc<HttpConnectionManager>,
         session_manager: Arc<SessionManager>,
-        jsonrpc_processor: Arc<ConcurrentProcessor>,
         mcp_handlers: Arc<McpHandlers>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
@@ -128,11 +137,10 @@ impl AxumHttpServer<NoAuth> {
         let state = ServerState {
             connection_manager,
             session_manager,
-            jsonrpc_processor,
             mcp_handlers,
             config: config.clone(),
             sse_broadcaster,
-            auth_middleware: None, // NoAuth has no middleware
+            auth_middleware: None,     // NoAuth has no middleware
             authorization_layer: None, // NoAuth has no authorization layer
         };
 
@@ -150,39 +158,23 @@ impl AxumHttpServer<NoAuth> {
     pub async fn new_with_empty_handlers(
         connection_manager: Arc<HttpConnectionManager>,
         session_manager: Arc<SessionManager>,
-        jsonrpc_processor: Arc<ConcurrentProcessor>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
 
-        Self::new(
-            connection_manager,
-            session_manager,
-            jsonrpc_processor,
-            mcp_handlers,
-            config,
-        )
-        .await
+        Self::new(connection_manager, session_manager, mcp_handlers, config).await
     }
 
     /// Create a new Axum HTTP server using a handlers builder
     pub async fn with_handlers(
         connection_manager: Arc<HttpConnectionManager>,
         session_manager: Arc<SessionManager>,
-        jsonrpc_processor: Arc<ConcurrentProcessor>,
         handlers_builder: McpHandlersBuilder,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         let mcp_handlers = Arc::new(handlers_builder.build());
 
-        Self::new(
-            connection_manager,
-            session_manager,
-            jsonrpc_processor,
-            mcp_handlers,
-            config,
-        )
-        .await
+        Self::new(connection_manager, session_manager, mcp_handlers, config).await
     }
 
     /// Add authentication to the server (zero-cost type conversion)
@@ -206,11 +198,11 @@ impl AxumHttpServer<NoAuth> {
     /// use std::sync::Arc;
     /// use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
     /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
-    /// 
+    ///
     /// // Example usage (requires proper setup)
     /// // let server = AxumHttpServer::new(
     /// //     connection_manager,
-    /// //     session_manager, 
+    /// //     session_manager,
     /// //     jsonrpc_processor,
     /// //     mcp_handlers,
     /// //     config,
@@ -226,18 +218,17 @@ impl AxumHttpServer<NoAuth> {
         A: HttpAuthStrategyAdapter,
     {
         let auth_middleware = HttpAuthMiddleware::new(adapter, auth_config);
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
             authorization_layer: None, // Will be set by authorization builder methods
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -268,7 +259,7 @@ impl AxumHttpServer<NoAuth> {
     /// ```rust,no_run
     /// use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthConfig;
     /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
-    /// 
+    ///
     /// // Example usage (requires proper OAuth2 setup)
     /// // let server = AxumHttpServer::new(deps).await?
     /// //     .with_oauth2_authorization(oauth2_adapter, HttpAuthConfig::default());
@@ -281,21 +272,19 @@ impl AxumHttpServer<NoAuth> {
     where
         O: HttpAuthStrategyAdapter,
     {
-
         let auth_middleware = HttpAuthMiddleware::new(oauth2_adapter, auth_config);
         let authorization_layer = JsonRpcAuthorizationLayer::new(ScopeBasedPolicy::mcp());
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
             authorization_layer: Some(authorization_layer),
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -326,7 +315,7 @@ impl AxumHttpServer<NoAuth> {
     pub fn with_auth_and_authz<A, P, C>(
         self,
         adapter: A,
-        auth_config: HttpAuthConfig, 
+        auth_config: HttpAuthConfig,
         policy: P,
     ) -> AxumHttpServer<A, P, C>
     where
@@ -334,21 +323,19 @@ impl AxumHttpServer<NoAuth> {
         P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
         C: AuthzContext + Clone,
     {
-
         let auth_middleware = HttpAuthMiddleware::new(adapter, auth_config);
         let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
             authorization_layer: Some(authorization_layer),
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -358,7 +345,6 @@ impl AxumHttpServer<NoAuth> {
             middleware: self.middleware,
         }
     }
-
 }
 
 /// Implementation for servers with authentication but no authorization
@@ -378,7 +364,7 @@ where
     ///
     /// ```rust,no_run
     /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
-    /// 
+    ///
     /// // Chain authentication and authorization
     /// // let server = AxumHttpServer::new(deps).await?
     /// //     .with_authentication(oauth2_adapter, HttpAuthConfig::default())
@@ -389,18 +375,17 @@ where
         policy: ScopeBasedPolicy,
     ) -> AxumHttpServer<A, ScopeBasedPolicy, ScopeAuthContext> {
         let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
             authorization_layer: Some(authorization_layer),
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -425,18 +410,17 @@ where
         policy: BinaryAuthorizationPolicy,
     ) -> AxumHttpServer<A, BinaryAuthorizationPolicy, BinaryAuthContext> {
         let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
             authorization_layer: Some(authorization_layer),
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -460,27 +444,23 @@ where
     ///
     /// # Returns
     /// * AxumHttpServer with the specified authorization policy
-    pub fn with_authorization<P, C>(
-        self,
-        policy: P,
-    ) -> AxumHttpServer<A, P, C>
+    pub fn with_authorization<P, C>(self, policy: P) -> AxumHttpServer<A, P, C>
     where
         P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
         C: AuthzContext + Clone,
     {
         let authorization_layer = JsonRpcAuthorizationLayer::new(policy);
-        
+
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
             session_manager: self.state.session_manager,
-            jsonrpc_processor: self.state.jsonrpc_processor,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
             authorization_layer: Some(authorization_layer),
         };
-        
+
         AxumHttpServer {
             state: new_state,
             listener: self.listener,
@@ -631,9 +611,12 @@ where
 
         let app = create_router(self.state.clone());
 
-        let listener = self.listener.take().ok_or_else(|| HttpEngineError::Engine {
-            message: "Server not bound to address".to_string(),
-        })?;
+        let listener = self
+            .listener
+            .take()
+            .ok_or_else(|| HttpEngineError::Engine {
+                message: "Server not bound to address".to_string(),
+            })?;
 
         tracing::info!(
             "Starting Axum HTTP server on {}",
@@ -714,11 +697,9 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::jsonrpc::concurrent::ProcessorConfig;
     use crate::correlation::manager::{CorrelationConfig, CorrelationManager};
     use crate::transport::adapters::http::connection_manager::HealthCheckConfig;
     use crate::transport::adapters::http::session::SessionConfig;
@@ -736,25 +717,12 @@ mod tests {
             SessionConfig::default(),
         ));
 
-        let processor_config = ProcessorConfig {
-            worker_count: 2,
-            queue_capacity: 100,
-            max_batch_size: 10,
-            processing_timeout: chrono::Duration::seconds(30),
-            enable_ordering: false,
-            enable_backpressure: true,
-        };
-        let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
+        // Create HTTP transport configuration
         let config = HttpTransportConfig::new();
 
-        AxumHttpServer::new_with_empty_handlers(
-            connection_manager,
-            session_manager,
-            jsonrpc_processor,
-            config,
-        )
-        .await
-        .unwrap()
+        AxumHttpServer::new_with_empty_handlers(connection_manager, session_manager, config)
+            .await
+            .unwrap()
     }
 
     #[tokio::test]
@@ -771,5 +739,4 @@ mod tests {
         server.bind(addr).await.unwrap();
         assert!(server.is_bound());
     }
-
 }

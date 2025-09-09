@@ -10,11 +10,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::{mpsc, Mutex};
 
+use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError};
 use crate::transport::adapters::http::client::HttpClientTransport;
 use crate::transport::adapters::http::config::HttpTransportConfig;
-use crate::transport::mcp::{
-    JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError,
-};
 use crate::transport::traits::Transport as LegacyTransport;
 
 /// Default no-op handler for when no message handler is provided
@@ -259,11 +257,15 @@ where
     /// * `Err(TransportError)` - Failed to start event loop
     async fn start_event_loop(&mut self) -> Result<(), TransportError> {
         if self.message_handler.is_none() {
-            return Err(TransportError::transport("Message handler not set"));
+            return Err(TransportError::Other {
+                message: "Message handler not set".to_string(),
+            });
         }
 
         if self.shutdown_tx.is_some() {
-            return Err(TransportError::transport("Event loop already running"));
+            return Err(TransportError::Other {
+                message: "Event loop already running".to_string(),
+            });
         }
 
         let handler = self.message_handler.as_ref().unwrap().clone();
@@ -307,7 +309,7 @@ where
                                 let mcp_error = Self::convert_legacy_error(transport_error);
 
                                 // Check if this is a connection closure before handling
-                                let is_closed = matches!(mcp_error, TransportError::Closed);
+                                let is_closed = matches!(mcp_error, TransportError::Connection { .. });
                                 handler.handle_error(mcp_error).await;
 
                                 if is_closed {
@@ -364,9 +366,13 @@ where
                 TransportError::Io { source: io_error }
             }
             crate::transport::error::TransportError::Timeout { duration_ms } => {
-                TransportError::Timeout { duration_ms }
+                TransportError::Timeout {
+                    message: format!("Timeout after {}ms", duration_ms),
+                }
             }
-            _ => TransportError::transport(format!("Legacy transport error: {legacy_error}")),
+            _ => TransportError::Protocol {
+                message: format!("Legacy transport error: {legacy_error}"),
+            },
         }
     }
 }
@@ -405,9 +411,11 @@ where
         Ok(())
     }
 
-    async fn send(&mut self, message: JsonRpcMessage) -> Result<(), Self::Error> {
+    async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error> {
         if !self.is_connected {
-            return Err(TransportError::transport("Transport not connected"));
+            return Err(TransportError::Connection {
+                message: "Transport not connected".to_string(),
+            });
         }
 
         // Serialize message to bytes
@@ -491,10 +499,10 @@ mod tests {
         let result = adapter.start().await;
         assert!(result.is_err());
 
-        if let Err(TransportError::Transport { message }) = result {
+        if let Err(TransportError::Other { message }) = result {
             assert!(message.contains("Message handler not set"));
         } else {
-            panic!("Expected Transport error with message handler message");
+            panic!("Expected Other error with message handler message");
         }
     }
 
@@ -515,7 +523,12 @@ mod tests {
         let (message, context) = result.unwrap();
 
         // Check message parsing
-        assert_eq!(message.method.as_ref().unwrap(), "test");
+        match &message {
+            JsonRpcMessage::Request(request) => {
+                assert_eq!(request.method, "test");
+            }
+            _ => panic!("Expected a Request message"),
+        }
 
         // Check context metadata
         assert!(context.session_id().is_some());

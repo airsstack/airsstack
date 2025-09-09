@@ -14,8 +14,8 @@ use serde_json::{json, Value};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, instrument, warn};
 
-use crate::integration::mcp::{LoggingHandler, McpError, McpResult};
-use crate::shared::protocol::LoggingConfig;
+use crate::integration::{LoggingHandler, McpError, McpResult};
+use crate::protocol::LoggingConfig;
 
 /// Structured logging handler with configurable backends
 #[derive(Debug, Clone)]
@@ -173,15 +173,15 @@ impl LoggingHandler for StructuredLoggingHandler {
         info!("Setting logging configuration: {:?}", config);
 
         // Validate the configuration
-        match config.min_level.as_str() {
+        match config.level.as_str() {
             "error" | "warning" | "info" | "debug" | "critical" => {
                 // Valid level
             }
             _ => {
-                warn!("Invalid logging level: {}", config.min_level.as_str());
+                warn!("Invalid logging level: {}", config.level.as_str());
                 return Err(McpError::invalid_request(format!(
                     "Invalid logging level: {}. Valid levels are: error, warning, info, debug, critical",
-                    config.min_level.as_str()
+                    config.level.as_str()
                 )));
             }
         }
@@ -332,7 +332,7 @@ impl Default for StructuredLoggingHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::protocol::LogLevel;
+    use crate::protocol::LogLevel;
     use tempfile::TempDir;
 
     #[tokio::test]

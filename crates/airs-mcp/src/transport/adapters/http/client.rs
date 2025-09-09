@@ -3,7 +3,8 @@
 //! This module provides the client-side HTTP transport for MCP communication.
 //! It handles sending requests to remote MCP servers and receiving responses.
 
-use crate::transport::{error::TransportError, Transport};
+use crate::transport::{error::TransportError};
+use crate::transport::traits::Transport;
 use reqwest::{Client, Url};
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::Mutex;

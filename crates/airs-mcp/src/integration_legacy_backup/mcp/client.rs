@@ -7,22 +7,53 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use serde_json::Value;
-use tokio::sync::RwLock;
+use tokio::sync::{oneshot, Mutex, RwLock};
 
-use crate::base::jsonrpc::message::RequestId;
-use crate::shared::protocol::{
-    CallToolRequest, CallToolResponse, ClientCapabilities, ClientInfo, Content, GetPromptRequest,
-    GetPromptResponse, InitializeRequest, InitializeResponse, ListPromptsRequest,
-    ListPromptsResponse, ListResourcesRequest, ListResourcesResponse, ListToolsRequest,
-    ListToolsResponse, LoggingConfig, Prompt, PromptMessage, ProtocolVersion, ReadResourceRequest,
-    ReadResourceResponse, Resource, ServerCapabilities, SetLoggingRequest, SetLoggingResponse,
-    SubscribeResourceRequest, Tool,
+use crate::protocol::RequestId;
+use crate::protocol::{
+    CallToolRequest,
+    CallToolResponse,
+    ClientCapabilities,
+    ClientInfo,
+    Content,
+    GetPromptRequest,
+    GetPromptResponse,
+    InitializeRequest,
+    InitializeResponse,
+    ListPromptsRequest,
+    ListPromptsResponse,
+    // Request types for outgoing requests
+    ListResourcesRequest,
+    ListResourcesResponse,
+    ListToolsRequest,
+    ListToolsResponse,
+    LoggingConfig,
+    Prompt,
+    PromptMessage,
+    ProtocolVersion,
+    ReadResourceRequest,
+    ReadResourceResponse,
+    // Core types needed by client
+    Resource,
+    // Capability types
+    ServerCapabilities,
+    SetLoggingRequest,
+    // Response types that clients receive
+    SetLoggingResponse,
+    SubscribeResourceRequest,
+    Tool,
 };
-use crate::transport::Transport;
+use crate::protocol::transport::{Transport, MessageHandler, MessageContext};
+use crate::protocol::{JsonRpcMessage, JsonRpcRequest, JsonRpcResponse};
+use crate::integration::{JsonRpcClient, IntegrationResult, IntegrationError};
+use crate::integration::mcp::McpError;
 
 use super::constants::{defaults, methods};
-use super::error::{McpError, McpResult};
+
+/// Type alias for MCP client results
+pub type McpResult<T> = Result<T, McpError>;
 
 /// Connection state of the MCP client
 #[derive(Debug, Clone, PartialEq)]
@@ -141,10 +172,52 @@ impl Default for McpClientBuilder {
     }
 }
 
+/// Message handler for MCP client responses
+#[derive(Clone)]
+struct ClientMessageHandler {
+    pending_requests: Arc<Mutex<HashMap<String, oneshot::Sender<JsonRpcResponse>>>>,
+}
+
+#[async_trait]
+impl MessageHandler for ClientMessageHandler {
+    async fn handle_message(&self, message: JsonRpcMessage, _context: MessageContext) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        match message {
+            JsonRpcMessage::Response(response) => {
+                // Handle response by completing the pending request
+                let id_str = response.id.to_string();
+                let mut pending = self.pending_requests.lock().await;
+                if let Some(sender) = pending.remove(&id_str) {
+                    let _ = sender.send(response); // Ignore send errors (receiver might be dropped)
+                }
+            }
+            JsonRpcMessage::Notification(_) => {
+                // Handle notifications (could be subscription updates, etc.)
+                // For now, we'll ignore them
+            }
+            JsonRpcMessage::Request(_) => {
+                // Client shouldn't receive requests, but we'll ignore them
+            }
+        }
+        Ok(())
+    }
+
+    async fn handle_error(&self, _error: TransportError) {
+        // Handle transport errors
+        // For now, we'll just log or ignore them
+    }
+
+    async fn handle_close(&self) {
+        // Handle connection close
+        // Clear all pending requests
+        let mut pending = self.pending_requests.lock().await;
+        pending.clear();
+    }
+}
+
 /// High-level MCP client for interacting with MCP servers
 pub struct McpClient<T: Transport> {
-    /// Underlying transport
-    transport: Arc<RwLock<T>>,
+    /// JSON-RPC client for low-level communication
+    json_rpc_client: JsonRpcClient<T>,
     /// Client configuration
     config: McpClientConfig,
     /// Current connection state
@@ -165,11 +238,31 @@ impl<T: Transport + 'static> McpClient<T> {
         McpClientBuilder::new().build(transport).await
     }
 
+    /// Create a new message handler for this client
+    fn create_message_handler(&self) -> impl MessageHandler {
+        ClientMessageHandler {
+            pending_requests: self.pending_requests.clone(),
+        }
+    }
+
     /// Create a new MCP client with configuration
-    pub(crate) async fn new_with_config(transport: T, config: McpClientConfig) -> McpResult<Self>
+    pub(crate) async fn new_with_config(mut transport: T, config: McpClientConfig) -> McpResult<Self>
     where
         T::Error: 'static,
     {
+        // Create pending requests map
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+        
+        // Create and set message handler
+        let handler = Arc::new(ClientMessageHandler {
+            pending_requests: pending_requests.clone(),
+        });
+        transport.set_message_handler(handler);
+        
+        // Start the transport
+        transport.start().await
+            .map_err(|e| McpError::custom(format!("Failed to start transport: {e}")))?;
+
         Ok(Self {
             transport: Arc::new(RwLock::new(transport)),
             config,
@@ -178,6 +271,7 @@ impl<T: Transport + 'static> McpClient<T> {
             resource_cache: Arc::new(RwLock::new(HashMap::new())),
             tool_cache: Arc::new(RwLock::new(HashMap::new())),
             prompt_cache: Arc::new(RwLock::new(HashMap::new())),
+            pending_requests,
         })
     }
 
@@ -199,7 +293,8 @@ impl<T: Transport + 'static> McpClient<T> {
         // Create initialization request
         let request = InitializeRequest::with_version(
             self.config.protocol_version.clone(),
-            self.config.capabilities.clone(),
+            serde_json::to_value(&self.config.capabilities)
+                .map_err(|e| McpError::invalid_request(format!("Failed to serialize capabilities: {e}")))?,
             self.config.client_info.clone(),
         );
 
@@ -217,7 +312,8 @@ impl<T: Transport + 'static> McpClient<T> {
             })?;
 
         // Store server capabilities
-        let server_caps = init_response.capabilities.clone();
+        let server_caps: ServerCapabilities = serde_json::from_value(init_response.capabilities)
+            .map_err(|e| McpError::invalid_response(format!("Invalid server capabilities: {e}")))?;
         *self.server_capabilities.write().await = Some(server_caps.clone());
 
         // Update state to initialized
@@ -299,7 +395,8 @@ impl<T: Transport + 'static> McpClient<T> {
         self.ensure_initialized().await?;
         let uri = uri.into();
 
-        let request = ReadResourceRequest::new(uri.clone())?;
+        let request = ReadResourceRequest::new(uri.clone())
+            .map_err(|e| McpError::invalid_request(e.to_string()))?;
         let response = self.call_mcp(methods::RESOURCES_READ, &request).await?;
 
         let read_response: ReadResourceResponse =
@@ -327,7 +424,8 @@ impl<T: Transport + 'static> McpClient<T> {
             return Err(McpError::unsupported_capability("resource subscriptions"));
         }
 
-        let request = SubscribeResourceRequest::new(uri.clone())?;
+        let request = SubscribeResourceRequest::new(uri.clone())
+            .map_err(|e| McpError::invalid_request(e.to_string()))?;
         let _response = self
             .call_mcp(methods::RESOURCES_SUBSCRIBE, &request)
             .await?;
@@ -378,7 +476,7 @@ impl<T: Transport + 'static> McpClient<T> {
         let call_response: CallToolResponse = serde_json::from_value(response)
             .map_err(|e| McpError::invalid_response(format!("Invalid call tool response: {e}")))?;
 
-        if call_response.is_error {
+        if call_response.is_error.unwrap_or(false) {
             if let Some(error_content) = call_response.content.first() {
                 if let Some(text) = error_content.as_text() {
                     return Err(McpError::tool_execution_failed(name, text));
@@ -457,7 +555,7 @@ impl<T: Transport + 'static> McpClient<T> {
             return Err(McpError::unsupported_capability("logging"));
         }
 
-        let request = SetLoggingRequest::new(config);
+        let request = SetLoggingRequest::new(config.level);
         let response = self.call_mcp(methods::LOGGING_SET_LEVEL, &request).await?;
 
         let log_response: SetLoggingResponse = serde_json::from_value(response).map_err(|e| {
@@ -491,30 +589,37 @@ impl<T: Transport + 'static> McpClient<T> {
     /// Internal helper to send a JSON-RPC request and get response
     async fn send_request(
         &self,
-        request: &crate::base::jsonrpc::message::JsonRpcRequest,
-    ) -> McpResult<crate::base::jsonrpc::message::JsonRpcResponse> {
+        request: &JsonRpcRequest,
+    ) -> McpResult<JsonRpcResponse> {
+        // Create a oneshot channel for the response
+        let (sender, receiver) = oneshot::channel();
+        
+        // Register the pending request
+        let id_str = request.id.to_string();
+        {
+            let mut pending = self.pending_requests.lock().await;
+            pending.insert(id_str.clone(), sender);
+        }
+
+        // Send the request through the transport
         let mut transport = self.transport.write().await;
-
-        // Serialize and send request
-        let request_data = serde_json::to_vec(request)
-            .map_err(|e| McpError::invalid_request(format!("Failed to serialize request: {e}")))?;
-
+        let message = JsonRpcMessage::Request(request.clone());
         transport
-            .send(&request_data)
+            .send(&message)
             .await
             .map_err(|e| McpError::custom(format!("Failed to send request: {e}")))?;
+        
+        // Release the transport lock
+        drop(transport);
 
-        // Receive response
-        let response_data = transport
-            .receive()
-            .await
-            .map_err(|e| McpError::custom(format!("Failed to receive response: {e}")))?;
-
-        // Parse response
-        let response: crate::base::jsonrpc::message::JsonRpcResponse =
-            serde_json::from_slice(&response_data).map_err(|e| {
-                McpError::invalid_response(format!("Failed to parse response: {e}"))
-            })?;
+        // Wait for the response with timeout
+        let response = tokio::time::timeout(
+            self.config.default_timeout,
+            receiver
+        )
+        .await
+        .map_err(|_| McpError::custom("Request timeout"))?
+        .map_err(|_| McpError::custom("Request cancelled"))?;
 
         Ok(response)
     }
@@ -524,7 +629,7 @@ impl<T: Transport + 'static> McpClient<T> {
         let params_value = serde_json::to_value(params)
             .map_err(|e| McpError::invalid_response(format!("Failed to serialize request: {e}")))?;
 
-        let request = crate::base::jsonrpc::message::JsonRpcRequest {
+        let request = crate::protocol::JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
             method: method.to_string(),
             params: Some(params_value),
@@ -552,7 +657,7 @@ impl<T: Transport> Drop for McpClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::StdioTransport;
+    use crate::transport::stdio::StdioTransport;
 
     #[test]
     fn test_config_defaults() {
@@ -584,7 +689,7 @@ mod tests {
     async fn test_client_creation() {
         // Note: This test requires a mock transport for full testing
         // For now, we just test the creation logic
-        let transport = StdioTransport::new().await.unwrap();
+        let transport = StdioTransport::new();
         let client = McpClientBuilder::new()
             .client_info("test", "1.0")
             .build(transport)
@@ -598,7 +703,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_state_management() {
-        let transport = StdioTransport::new().await.unwrap();
+        let transport = StdioTransport::new();
         let client = McpClient::new(transport).await.unwrap();
 
         // Initial state should be disconnected
@@ -612,7 +717,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_capability_checking() {
-        let transport = StdioTransport::new().await.unwrap();
+        let transport = StdioTransport::new();
         let client = McpClient::new(transport).await.unwrap();
 
         // Should return false when no capabilities are set

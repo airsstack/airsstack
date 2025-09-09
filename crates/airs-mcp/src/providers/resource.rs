@@ -16,8 +16,8 @@ use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::{debug, info, instrument};
 
-use crate::integration::mcp::{McpError, McpResult, ResourceProvider};
-use crate::shared::protocol::{Content, MimeType, Resource, Uri};
+use crate::integration::{McpError, McpResult, ResourceProvider};
+use crate::protocol::{Content, MimeType, Resource, Uri};
 
 /// File system resource provider with security constraints
 #[derive(Debug, Clone)]
@@ -493,7 +493,7 @@ mod tests {
     async fn test_file_system_provider_creation() {
         let temp_dir = TempDir::new().unwrap();
         let provider = FileSystemResourceProvider::new(temp_dir.path()).unwrap();
-        
+
         // On macOS, paths like /var/folders get canonicalized to /private/var/folders
         // So we need to canonicalize both paths for comparison
         let expected_path = temp_dir.path().canonicalize().unwrap();

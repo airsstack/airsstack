@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use crate::integration::mcp::server::McpServerConfig;
-use crate::integration::mcp::{LoggingHandler, PromptProvider, ResourceProvider, ToolProvider};
+use crate::integration::server::McpServerConfig;
+use crate::integration::{LoggingHandler, PromptProvider, ResourceProvider, ToolProvider};
 
 /// MCP handlers container for different provider types
 ///

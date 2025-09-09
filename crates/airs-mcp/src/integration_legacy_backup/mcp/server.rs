@@ -11,18 +11,46 @@ use serde_json::Value;
 use tokio::sync::RwLock;
 
 use super::constants::{defaults, error_codes, methods};
-use crate::base::jsonrpc::message::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
 use crate::integration::JsonRpcServer;
-use crate::shared::protocol::{
-    CallToolRequest, CallToolResponse, ClientCapabilities, Content, GetPromptRequest,
-    GetPromptResponse, InitializeRequest, InitializeResponse, ListPromptsResponse,
-    ListResourceTemplatesResponse, ListResourcesResponse, ListToolsResponse, LoggingCapabilities,
-    LoggingConfig, Prompt, PromptCapabilities, PromptMessage, ProtocolVersion, ReadResourceRequest,
-    ReadResourceResponse, Resource, ResourceCapabilities, ResourceTemplate, ServerCapabilities,
-    ServerInfo, SetLoggingRequest, SetLoggingResponse, SubscribeResourceRequest, Tool,
-    ToolCapabilities, UnsubscribeResourceRequest,
+use crate::protocol::transport::Transport;
+use crate::protocol::{
+    CallToolRequest,
+    CallToolResponse,
+    ClientCapabilities,
+    Content,
+    GetPromptRequest,
+    GetPromptResponse,
+    InitializeRequest,
+    InitializeResponse,
+    ListPromptsResponse,
+    ListResourceTemplatesResponse,
+    // Response types
+    ListResourcesResponse,
+    ListToolsResponse,
+    LogLevel,
+    LoggingCapabilities,
+    LoggingConfig,
+    Prompt,
+    PromptCapabilities,
+    PromptMessage,
+    ProtocolVersion,
+    ReadResourceRequest,
+    ReadResourceResponse,
+    // Core types
+    Resource,
+    ResourceCapabilities,
+    ResourceTemplate,
+    // Capability types
+    ServerCapabilities,
+    ServerInfo,
+    SetLoggingRequest,
+    SetLoggingResponse,
+    SubscribeResourceRequest,
+    Tool,
+    ToolCapabilities,
+    UnsubscribeResourceRequest,
 };
-use crate::transport::Transport;
+use crate::protocol::{JsonRpcNotification, JsonRpcRequest, JsonRpcResponse};
 
 use super::error::{McpError, McpResult};
 
@@ -111,7 +139,10 @@ impl Default for McpServerConfig {
             protocol_version: ProtocolVersion::current(),
             strict_validation: defaults::STRICT_VALIDATION,
             log_operations: defaults::LOG_OPERATIONS,
-            instructions: Some("MCP server with configurable capabilities. Use appropriate authentication method.".to_string()),
+            instructions: Some(
+                "MCP server with configurable capabilities. Use appropriate authentication method."
+                    .to_string(),
+            ),
         }
     }
 }
@@ -502,11 +533,8 @@ impl<T: Transport + 'static> McpServer<T> {
         *client_capabilities.write().await = Some(init_request.capabilities);
 
         // Create initialization response with configured instructions
-        let response = InitializeResponse::new(
-            config.capabilities,
-            config.server_info,
-            config.instructions,
-        );
+        let response =
+            InitializeResponse::new(config.capabilities, config.server_info, config.instructions);
 
         // Mark as initialized
         *initialized.write().await = true;
@@ -701,13 +729,16 @@ impl<T: Transport + 'static> McpServer<T> {
         let request: SetLoggingRequest = serde_json::from_value(params.unwrap_or_default())
             .map_err(|e| McpError::invalid_request(format!("Invalid set logging request: {e}")))?;
 
-        let success = handler.set_logging(request.config).await?;
+        let config = LoggingConfig {
+            level: request.level,
+        };
+        let success = handler.set_logging(config).await?;
         let response = SetLoggingResponse {
             success,
             message: if success {
-                Some("Logging configuration updated".to_string())
-            } else {
                 None
+            } else {
+                Some("Failed to set logging level".to_string())
             },
         };
 

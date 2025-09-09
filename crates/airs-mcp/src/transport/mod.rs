@@ -40,9 +40,9 @@
 pub mod adapters; // Transport adapters for legacy compatibility and MCP-compliant interfaces
 pub mod buffer;
 pub mod error;
-pub mod mcp; // Pure MCP-specification compliant transport interfaces
-pub mod stdio;
-pub mod streaming;
+// mcp module removed - functionality consolidated into protocol module
+// stdio module removed - use protocol-based transport instead
+// streaming module removed - unnecessary complexity for MCP compliance
 pub mod traits;
 pub mod zero_copy;
 
@@ -55,22 +55,14 @@ pub mod http {
 // Re-export key types for convenient access
 pub use buffer::*;
 pub use error::*;
-pub use stdio::*;
-pub use streaming::*;
-pub use traits::*;
 pub use zero_copy::*;
 
-// Adapter re-exports for convenience
-pub use adapters::StdioTransportAdapter;
-
-// MCP-compliant transport re-exports
-pub use mcp::{
-    JsonRpcError as McpJsonRpcError, JsonRpcMessage as McpJsonRpcMessage, MessageContext,
-    MessageHandler, Transport as McpTransport, TransportError as McpTransportError,
-};
+// MCP-compliant transport re-exports moved to protocol module
+// These types are now available via crate::protocol::*
 
 // HTTP transport re-exports (via adapters for backward compatibility)
+// Note: Complex types temporarily disabled for MCP-compliant simplification
 pub use adapters::{
-    AxumHttpServer, BufferPool, BufferPoolStats, HttpClientTransport, HttpServerTransport,
+    /*AxumHttpServer,*/ BufferPool, BufferPoolStats, HttpClientTransport, HttpServerTransport,
     HttpTransportConfig, RequestParser,
 };

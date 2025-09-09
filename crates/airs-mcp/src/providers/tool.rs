@@ -12,8 +12,8 @@ use serde_json::{json, Value};
 use tokio::process::Command;
 use tracing::{info, instrument};
 
-use crate::integration::mcp::{McpError, McpResult, ToolProvider};
-use crate::shared::protocol::{Content, Tool};
+use crate::integration::{McpError, McpResult, ToolProvider};
+use crate::protocol::{Content, Tool};
 
 /// Mathematical operations tool provider
 #[derive(Debug, Clone)]
@@ -67,7 +67,6 @@ impl ToolProvider for MathToolProvider {
         let mut tools = vec![
             Tool {
                 name: "add".to_string(),
-                title: Some("Add Numbers".to_string()),
                 description: Some("Add two or more numbers together".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -84,7 +83,6 @@ impl ToolProvider for MathToolProvider {
             },
             Tool {
                 name: "subtract".to_string(),
-                title: Some("Subtract Numbers".to_string()),
                 description: Some("Subtract second number from first".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -97,7 +95,6 @@ impl ToolProvider for MathToolProvider {
             },
             Tool {
                 name: "multiply".to_string(),
-                title: Some("Multiply Numbers".to_string()),
                 description: Some("Multiply two or more numbers together".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -114,7 +111,6 @@ impl ToolProvider for MathToolProvider {
             },
             Tool {
                 name: "divide".to_string(),
-                title: Some("Divide Numbers".to_string()),
                 description: Some("Divide first number by second".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -127,7 +123,6 @@ impl ToolProvider for MathToolProvider {
             },
             Tool {
                 name: "power".to_string(),
-                title: Some("Power".to_string()),
                 description: Some("Raise number to a power".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -144,7 +139,6 @@ impl ToolProvider for MathToolProvider {
             tools.extend(vec![
                 Tool {
                     name: "sqrt".to_string(),
-                    title: Some("Square Root".to_string()),
                     description: Some("Calculate square root of a number".to_string()),
                     input_schema: json!({
                         "type": "object",
@@ -156,7 +150,6 @@ impl ToolProvider for MathToolProvider {
                 },
                 Tool {
                     name: "sin".to_string(),
-                    title: Some("Sine".to_string()),
                     description: Some("Calculate sine of an angle in radians".to_string()),
                     input_schema: json!({
                         "type": "object",
@@ -168,7 +161,6 @@ impl ToolProvider for MathToolProvider {
                 },
                 Tool {
                     name: "cos".to_string(),
-                    title: Some("Cosine".to_string()),
                     description: Some("Calculate cosine of an angle in radians".to_string()),
                     input_schema: json!({
                         "type": "object",
@@ -180,7 +172,6 @@ impl ToolProvider for MathToolProvider {
                 },
                 Tool {
                     name: "log".to_string(),
-                    title: Some("Natural Logarithm".to_string()),
                     description: Some("Calculate natural logarithm of a number".to_string()),
                     input_schema: json!({
                         "type": "object",
@@ -192,7 +183,6 @@ impl ToolProvider for MathToolProvider {
                 },
                 Tool {
                     name: "factorial".to_string(),
-                    title: Some("Factorial".to_string()),
                     description: Some("Calculate factorial of a non-negative integer".to_string()),
                     input_schema: json!({
                         "type": "object",
@@ -376,9 +366,8 @@ impl ToolProvider for MathToolProvider {
         };
 
         Ok(vec![Content::text(
-            serde_json::to_string_pretty(&result).map_err(|e| {
-                McpError::internal_error(format!("JSON serialization error: {e}"))
-            })?,
+            serde_json::to_string_pretty(&result)
+                .map_err(|e| McpError::internal_error(format!("JSON serialization error: {e}")))?,
         )])
     }
 }
@@ -420,7 +409,6 @@ impl ToolProvider for SystemToolProvider {
         let mut tools = vec![
             Tool {
                 name: "ping".to_string(),
-                title: Some("Ping Host".to_string()),
                 description: Some("Ping a network host to test connectivity".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -433,7 +421,6 @@ impl ToolProvider for SystemToolProvider {
             },
             Tool {
                 name: "echo".to_string(),
-                title: Some("Echo Text".to_string()),
                 description: Some("Echo back the provided text".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -445,7 +432,6 @@ impl ToolProvider for SystemToolProvider {
             },
             Tool {
                 name: "date".to_string(),
-                title: Some("Current Date/Time".to_string()),
                 description: Some("Get the current date and time".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -459,7 +445,6 @@ impl ToolProvider for SystemToolProvider {
         if self.allow_dangerous {
             tools.push(Tool {
                 name: "execute".to_string(),
-                title: Some("Execute Command".to_string()),
                 description: Some("Execute a system command (DANGEROUS - use with caution)".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -581,9 +566,7 @@ impl ToolProvider for SystemToolProvider {
                 )
                 .await
                 .map_err(|_| McpError::internal_error("Command execution timeout"))?
-                .map_err(|e| {
-                    McpError::internal_error(format!("Failed to execute command: {e}"))
-                })?;
+                .map_err(|e| McpError::internal_error(format!("Failed to execute command: {e}")))?;
 
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
@@ -623,7 +606,6 @@ impl ToolProvider for TextToolProvider {
         Ok(vec![
             Tool {
                 name: "word_count".to_string(),
-                title: Some("Word Count".to_string()),
                 description: Some("Count words, characters, and lines in text".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -635,7 +617,6 @@ impl ToolProvider for TextToolProvider {
             },
             Tool {
                 name: "reverse_text".to_string(),
-                title: Some("Reverse Text".to_string()),
                 description: Some("Reverse the order of characters in text".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -647,7 +628,6 @@ impl ToolProvider for TextToolProvider {
             },
             Tool {
                 name: "to_uppercase".to_string(),
-                title: Some("To Uppercase".to_string()),
                 description: Some("Convert text to uppercase".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -659,7 +639,6 @@ impl ToolProvider for TextToolProvider {
             },
             Tool {
                 name: "to_lowercase".to_string(),
-                title: Some("To Lowercase".to_string()),
                 description: Some("Convert text to lowercase".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -671,7 +650,6 @@ impl ToolProvider for TextToolProvider {
             },
             Tool {
                 name: "extract_urls".to_string(),
-                title: Some("Extract URLs".to_string()),
                 description: Some("Extract URLs from text".to_string()),
                 input_schema: json!({
                     "type": "object",

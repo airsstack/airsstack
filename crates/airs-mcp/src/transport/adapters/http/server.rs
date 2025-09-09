@@ -15,9 +15,11 @@ use tokio::sync::{mpsc, oneshot, Mutex};
 use super::connection_manager::HttpConnectionManager;
 use super::session::{SessionId, SessionManager};
 use super::{AxumHttpServer, HttpTransportConfig, RequestParser};
-use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
+// TODO: Migrate concurrent features to new protocol module
+// use crate::base::jsonrpc::concurrent::ConcurrentProcessor;
 use crate::correlation::manager::CorrelationManager;
-use crate::transport::{error::TransportError, Transport};
+use crate::transport::{error::TransportError};
+use crate::transport::traits::Transport;
 
 // Type aliases to reduce complexity
 type IncomingRequestReceiver = Arc<Mutex<mpsc::UnboundedReceiver<(SessionId, Vec<u8>)>>>;
@@ -86,11 +88,11 @@ impl HttpServerTransport {
     /// This creates a functional HTTP server transport that integrates
     /// AxumHttpServer with the Transport trait interface.
     pub async fn new(config: HttpTransportConfig) -> Result<Self, TransportError> {
-        let request_parser = RequestParser::new(config.parser.clone());
-        let bind_address = config.bind_address;
+        let _request_parser = RequestParser::new(config.parser.clone());
+        let _bind_address = config.bind_address;
 
         // Create required components for AxumHttpServer
-        let connection_manager = Arc::new(HttpConnectionManager::new(
+        let _connection_manager = Arc::new(HttpConnectionManager::new(
             config.max_connections,
             Default::default(),
         ));
@@ -104,37 +106,14 @@ impl HttpServerTransport {
                 })?,
         );
 
-        let session_manager =
+        let _session_manager =
             Arc::new(SessionManager::new(correlation_manager, Default::default()));
 
-        let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(Default::default()));
-
-        // Create the HTTP server with empty handlers (will be configured later)
-        let axum_server = AxumHttpServer::new_with_empty_handlers(
-            connection_manager,
-            session_manager.clone(),
-            jsonrpc_processor,
-            config.clone(),
-        )
-        .await
-        .map_err(|e| TransportError::Other {
-            details: format!("Failed to create Axum server: {e}"),
-        })?;
-
-        // Create session coordination channels for Phase 2
-        let (incoming_sender, incoming_receiver) = mpsc::unbounded_channel();
-
-        Ok(Self {
-            bind_address,
-            config,
-            request_parser,
-            axum_server: Some(axum_server),
-            incoming_requests: Arc::new(Mutex::new(incoming_receiver)),
-            incoming_sender,
-            outgoing_responses: Arc::new(Mutex::new(HashMap::new())),
-            current_session: None,
-            is_closed: false,
-            session_manager,
+        // TODO: Replace ConcurrentProcessor with simple JSON-RPC handler for MCP compliance
+        // Temporarily return early to focus on basic HTTP transport without complex processing
+        Err(TransportError::Other {
+            details: "Complex HTTP server temporarily disabled for MCP-compliant simplification"
+                .to_string(),
         })
     }
 

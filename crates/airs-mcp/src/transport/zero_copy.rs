@@ -32,7 +32,8 @@
 use async_trait::async_trait;
 use bytes::BytesMut;
 
-use crate::transport::{Transport, TransportError};
+use crate::transport::{TransportError};
+use crate::transport::traits::Transport;
 
 /// Zero-copy transport operations for high-performance scenarios
 ///
