@@ -154,7 +154,7 @@ During Phase 2 implementation, we discovered severe architectural over-engineeri
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 70% (3.5/5 phases; Phase 4: ACTIVE, Phase 5: PLANNED) **⚡ PHASE 4 VALIDATION + PHASE 5 DESIGN**
+**Overall Status:** in_progress - 78% (3.8/5 phases; Phase 4: ACTIVE, Phase 5.1: COMPLETE) **⚡ PHASE 5.1 COMPLETE + PHASE 4 VALIDATION**
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -165,7 +165,7 @@ During Phase 2 implementation, we discovered severe architectural over-engineeri
 | 28.3b | Processor Over-Engineering Elimination - Remove SimpleProcessor | complete | 2025-09-08 | ✅ Complete - SimpleProcessor eliminated, direct MessageHandler integration |
 | 28.3c | Module Cleanup - Delete original modules and processor files | complete | 2025-09-08 | ✅ Complete - All three modules deleted, import paths updated, modern STDIO transport implemented |
 | 28.4 | Validation - Testing and performance verification | in_progress | 2025-01-29 | ⚡ ACTIVE - Starting comprehensive testing |
-| 28.5a | McpCoreConfig Extraction - Extract universal MCP requirements | not_started | 2025-09-09 | Planned - Part of ADR-011 implementation |
+| 28.5a | McpCoreConfig Extraction - Extract universal MCP requirements | complete | 2025-09-09 | ✅ Complete - Core/transport separation architecture implemented |
 | 28.5b | Transport Configuration Trait - Create transport-specific config trait | not_started | 2025-09-09 | Planned - Enables clean config separation |
 | 28.5c | Transport-Specific Config Structures - STDIO and HTTP configs | not_started | 2025-09-09 | Planned - Transport-specific configuration patterns |
 | 28.5d | McpServer Simplification - Remove handler overwriting | not_started | 2025-09-09 | Planned - Fix dangerous architecture in integration/server.rs |
@@ -180,6 +180,26 @@ During Phase 2 implementation, we discovered severe architectural over-engineeri
 - **Status**: 🎯 **COMPILATION PROGRESS**: Error count reduced from 67 to ~15 after type restoration from git
 - **Key Fix**: Successfully restored missing types (Content, Tool, Prompt, etc.) from git backup to protocol module
 - **Next**: Fix remaining HTTP adapter imports and add missing response message types
+
+### 2025-09-09 - ✅ PHASE 5.1: McpCoreConfig EXTRACTION COMPLETE ⚡ MAJOR ARCHITECTURE MILESTONE
+- **🎉 Phase 5.1 Complete**: Successfully implemented transport configuration separation foundation
+- **McpCoreConfig Created**: Universal MCP requirements extracted into dedicated structure:
+  - `server_info: ServerInfo` - Server identification
+  - `capabilities: ServerCapabilities` - MCP protocol capabilities
+  - `protocol_version: ProtocolVersion` - Protocol version support
+  - `instructions: Option<String>` - Client instructions
+- **McpServerConfig Refactored**: Now contains separated concerns:
+  - `core: McpCoreConfig` - Universal MCP requirements (transport-agnostic)
+  - `strict_validation: bool` - Transport-specific behavior
+  - `log_operations: bool` - Transport-specific behavior
+- **Comprehensive Updates**: All field access patterns updated throughout codebase:
+  - ✅ Builder methods: `config.core.server_info`, `config.core.capabilities`
+  - ✅ Server methods: `config.core.capabilities`, `config.core.instructions`
+  - ✅ HTTP transport: Updated `mcp_operations.rs`
+  - ✅ Tests: Updated all assertions to use `config.core.*`
+- **Public API**: Added `McpCoreConfig` to exports in `integration/mod.rs` and `lib.rs`
+- **ADR-011 Foundation**: Core architecture for transport configuration separation now in place
+- **Ready for Phase 5.2**: Transport Configuration Trait implementation
 
 ### 2025-09-09 - 🎯 PHASE 5 PLANNING: TRANSPORT CONFIGURATION SEPARATION ⚡ ARCHITECTURE EXPANSION
 - **Major Expansion**: Added Phase 5 to implement ADR-011 Transport Configuration Separation Architecture
