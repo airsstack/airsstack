@@ -8,3 +8,10 @@ pub mod transport;
 
 pub use config::StdioTransportConfig;
 pub use transport::{StdioTransport, StdioTransportBuilder};
+
+// Type aliases for convenience (as per Phase 5.5.5 requirements)
+/// Type alias for STDIO message handlers using unit context
+pub type StdioMessageHandler = dyn crate::protocol::MessageHandler<()>;
+
+/// Type alias for STDIO message context
+pub type StdioMessageContext = crate::protocol::MessageContext<()>;
