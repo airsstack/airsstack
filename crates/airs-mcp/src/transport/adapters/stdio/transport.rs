@@ -4,6 +4,7 @@
 //! unified protocol module Transport trait for event-driven message handling.
 
 // Layer 1: Standard library imports
+use std::fmt::Debug;
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
@@ -12,7 +13,18 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::broadcast;
 
 // Layer 3: Internal module imports
-use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError};
+use crate::protocol::{
+    JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
+};
+
+//
+// Type Aliases for STDIO Transport Convenience
+//
+// Note: Since type aliases cannot have generic parameters, we define these
+// for the specific case of STDIO transport (which uses () as context type)
+
+/// Type alias for STDIO message context (no transport-specific data)
+pub type StdioMessageContext = MessageContext<()>;
 
 /// Modern STDIO transport implementation
 ///
@@ -29,16 +41,16 @@ use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport,
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder};
-/// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder};
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, TransportError, TransportBuilder};
+/// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder, StdioMessageContext};
 /// use async_trait::async_trait;
 /// use std::sync::Arc;
 ///
 /// struct EchoHandler;
 ///
 /// #[async_trait]
-/// impl MessageHandler for EchoHandler {
-///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {
+/// impl MessageHandler<()> for EchoHandler {
+///     async fn handle_message(&self, message: JsonRpcMessage, context: StdioMessageContext) {
 ///         println!("Received: {:?}", message);
 ///     }
 ///
@@ -70,8 +82,8 @@ use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport,
 /// }
 /// ```
 pub struct StdioTransport {
-    /// Event-driven message handler
-    message_handler: Option<Arc<dyn MessageHandler>>,
+    /// Event-driven message handler (STDIO uses no transport-specific context)
+    message_handler: Option<Arc<dyn MessageHandler<()>>>,
 
     /// Shutdown signal broadcaster
     shutdown_tx: Option<broadcast::Sender<()>>,
@@ -121,6 +133,26 @@ impl StdioTransport {
 impl Default for StdioTransport {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Debug for StdioTransport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StdioTransport")
+            .field(
+                "message_handler",
+                &self
+                    .message_handler
+                    .as_ref()
+                    .map(|_| "Arc<dyn MessageHandler<()>>"),
+            )
+            .field(
+                "shutdown_tx",
+                &self.shutdown_tx.as_ref().map(|_| "broadcast::Sender<()>"),
+            )
+            .field("session_id", &self.session_id)
+            .field("is_running", &self.is_running)
+            .finish()
     }
 }
 
@@ -273,7 +305,7 @@ impl Transport for StdioTransport {
 /// * `session_id` - Session identifier for message context
 /// * `shutdown_rx` - Shutdown signal receiver
 async fn stdin_reader_loop(
-    handler: Arc<dyn MessageHandler>,
+    handler: Arc<dyn MessageHandler<()>>,
     session_id: String,
     mut shutdown_rx: broadcast::Receiver<()>,
 ) {
@@ -342,8 +374,8 @@ async fn stdin_reader_loop(
 /// struct EchoHandler;
 ///
 /// #[async_trait]
-/// impl MessageHandler for EchoHandler {
-///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {
+/// impl MessageHandler<()> for EchoHandler {
+///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<()>) {
 ///         println!("Received: {:?}", message);
 ///     }
 ///
@@ -376,7 +408,7 @@ async fn stdin_reader_loop(
 /// ```
 pub struct StdioTransportBuilder {
     /// Message handler for the transport (set via with_message_handler)
-    message_handler: Option<Arc<dyn MessageHandler>>,
+    message_handler: Option<Arc<dyn MessageHandler<()>>>,
 }
 
 impl StdioTransportBuilder {
@@ -394,7 +426,21 @@ impl Default for StdioTransportBuilder {
     }
 }
 
-impl crate::protocol::TransportBuilder for StdioTransportBuilder {
+impl std::fmt::Debug for StdioTransportBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StdioTransportBuilder")
+            .field(
+                "message_handler",
+                &self
+                    .message_handler
+                    .as_ref()
+                    .map(|_| "Arc<dyn MessageHandler<()>>"),
+            )
+            .finish()
+    }
+}
+
+impl TransportBuilder<()> for StdioTransportBuilder {
     type Transport = StdioTransport;
     type Error = TransportError;
 
@@ -402,7 +448,7 @@ impl crate::protocol::TransportBuilder for StdioTransportBuilder {
     ///
     /// This is the key method that implements the pre-configured pattern.
     /// The handler must be set before building the transport.
-    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler>) -> Self {
+    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<()>>) -> Self {
         self.message_handler = Some(handler);
         self
     }
@@ -412,9 +458,11 @@ impl crate::protocol::TransportBuilder for StdioTransportBuilder {
     /// This creates a fully configured transport that is ready to start.
     /// The transport will have its message handler pre-configured.
     async fn build(self) -> Result<Self::Transport, Self::Error> {
-        let handler = self.message_handler.ok_or_else(|| TransportError::Connection {
-            message: "Message handler must be set before building transport".to_string(),
-        })?;
+        let handler = self
+            .message_handler
+            .ok_or_else(|| TransportError::Connection {
+                message: "Message handler must be set before building transport".to_string(),
+            })?;
 
         Ok(StdioTransport {
             message_handler: Some(handler),
@@ -431,8 +479,7 @@ mod tests {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Mutex;
 
-    // Import the TransportBuilder trait to use its methods
-    use crate::protocol::TransportBuilder;
+    // TransportBuilder trait is already imported above
 
     // Mock handler for testing
     struct MockHandler {
@@ -474,8 +521,8 @@ mod tests {
     }
 
     #[async_trait]
-    impl MessageHandler for MockHandler {
-        async fn handle_message(&self, message: JsonRpcMessage, _context: MessageContext) {
+    impl MessageHandler<()> for MockHandler {
+        async fn handle_message(&self, message: JsonRpcMessage, _context: StdioMessageContext) {
             self.messages.lock().unwrap().push(message);
             self.message_count.fetch_add(1, Ordering::Release);
         }
@@ -512,7 +559,7 @@ mod tests {
             .with_message_handler(handler.clone())
             .build()
             .await;
-        
+
         assert!(transport_result.is_ok());
         let mut transport = transport_result.unwrap();
 
@@ -523,7 +570,10 @@ mod tests {
         let mut basic_transport = StdioTransport::new();
         let start_result = basic_transport.start().await;
         assert!(start_result.is_err());
-        assert!(start_result.unwrap_err().to_string().contains("No message handler configured"));
+        assert!(start_result
+            .unwrap_err()
+            .to_string()
+            .contains("No message handler configured"));
 
         // Note: We can't easily test actual stdin reading in unit tests,
         // but we can test the lifecycle management
@@ -570,7 +620,7 @@ mod tests {
             .with_message_handler(handler.clone())
             .build()
             .await;
-        
+
         assert!(transport_result.is_ok());
         let transport = transport_result.unwrap();
         assert_eq!(transport.transport_type(), "stdio");
@@ -580,6 +630,9 @@ mod tests {
         let builder_without_handler = StdioTransportBuilder::new();
         let result = builder_without_handler.build().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Message handler must be set"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Message handler must be set"));
     }
 }

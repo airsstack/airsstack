@@ -147,15 +147,23 @@ impl From<serde_json::Error> for TransportError {
 /// use airs_mcp::protocol::MessageContext;
 /// use chrono::Utc;
 ///
+/// // Default generic context (for STDIO)
 /// let context = MessageContext::new("session-123".to_string())
 ///     .with_remote_addr("192.168.1.100:8080".to_string())
 ///     .with_user_agent("airs-mcp-client/1.0".to_string());
 ///
 /// assert_eq!(context.session_id(), Some("session-123"));
 /// assert_eq!(context.remote_addr(), Some("192.168.1.100:8080"));
+///
+/// // Transport-specific context (e.g., HTTP)
+/// # struct HttpRequestData { method: String, path: String }
+/// let http_context = MessageContext::new_with_transport_data(
+///     "session-123",
+///     HttpRequestData { method: "POST".to_string(), path: "/mcp".to_string() }
+/// );
 /// ```
 #[derive(Debug, Clone)]
-pub struct MessageContext {
+pub struct MessageContext<T = ()> {
     /// Session identifier (if applicable)
     session_id: Option<String>,
 
@@ -167,26 +175,48 @@ pub struct MessageContext {
 
     /// Additional metadata
     metadata: HashMap<String, String>,
+
+    /// Transport-specific data (generic for different transport types)
+    transport_data: Option<T>,
 }
 
-impl MessageContext {
-    /// Create a new message context
-    pub fn new(session_id: impl Into<String>) -> Self {
+impl<T> MessageContext<T> {
+    /// Create a new message context with transport-specific data
+    pub fn new_with_transport_data(session_id: impl Into<String>, transport_data: T) -> Self {
         Self {
             session_id: Some(session_id.into()),
             timestamp: Utc::now(),
             remote_addr: None,
             metadata: HashMap::new(),
+            transport_data: Some(transport_data),
         }
     }
 
-    /// Create a new message context without session ID
-    pub fn without_session() -> Self {
+    /// Create a new message context without transport data (for simple transports)
+    pub fn new(session_id: impl Into<String>) -> Self
+    where
+        T: Default,
+    {
+        Self {
+            session_id: Some(session_id.into()),
+            timestamp: Utc::now(),
+            remote_addr: None,
+            metadata: HashMap::new(),
+            transport_data: None,
+        }
+    }
+
+    /// Create a new message context without session ID or transport data
+    pub fn without_session() -> Self
+    where
+        T: Default,
+    {
         Self {
             session_id: None,
             timestamp: Utc::now(),
             remote_addr: None,
             metadata: HashMap::new(),
+            transport_data: None,
         }
     }
 
@@ -231,6 +261,29 @@ impl MessageContext {
     pub fn with_content_type(self, content_type: String) -> Self {
         self.with_metadata("content-type".to_string(), content_type)
     }
+
+    /// Get transport-specific data
+    ///
+    /// Returns a reference to the transport-specific data if it exists.
+    /// This allows handlers to access transport-specific context information.
+    pub fn transport_data(&self) -> Option<&T> {
+        self.transport_data.as_ref()
+    }
+
+    /// Set transport-specific data
+    ///
+    /// Adds or updates transport-specific data for this context.
+    pub fn with_transport_data(mut self, data: T) -> Self {
+        self.transport_data = Some(data);
+        self
+    }
+
+    /// Check if transport data is available
+    ///
+    /// Returns true if this context contains transport-specific data.
+    pub fn has_transport_data(&self) -> bool {
+        self.transport_data.is_some()
+    }
 }
 
 /// Event-driven message handler trait
@@ -242,6 +295,9 @@ impl MessageContext {
 /// The event-driven design matches the official MCP specification patterns
 /// and eliminates the complexity of blocking receive() operations.
 ///
+/// The generic type parameter `T` represents transport-specific context data
+/// that can be included with each message (e.g., HTTP request details).
+///
 /// # Examples
 ///
 /// ```rust
@@ -252,8 +308,8 @@ impl MessageContext {
 /// struct EchoHandler;
 ///
 /// #[async_trait]
-/// impl MessageHandler for EchoHandler {
-///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {
+/// impl MessageHandler<()> for EchoHandler {
+///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<()>) {
 ///         println!("Received message: {:?}", message);
 ///         // Echo logic would go here
 ///     }
@@ -268,7 +324,7 @@ impl MessageContext {
 /// }
 /// ```
 #[async_trait]
-pub trait MessageHandler: Send + Sync {
+pub trait MessageHandler<T = ()>: Send + Sync {
     /// Handle an incoming JSON-RPC message
     ///
     /// This method is called for every message received by the transport,
@@ -277,8 +333,8 @@ pub trait MessageHandler: Send + Sync {
     /// # Arguments
     ///
     /// * `message` - The JSON-RPC message received
-    /// * `context` - Session and metadata information
-    async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext);
+    /// * `context` - Session and metadata information with transport-specific data
+    async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<T>);
 
     /// Handle a transport-level error
     ///
@@ -455,8 +511,11 @@ pub trait Transport: Send + Sync {
 /// are created with their message handlers already set, eliminating the
 /// dangerous `set_message_handler()` pattern.
 ///
+/// The generic type parameter `T` represents transport-specific context data
+/// that will be passed to the message handler (e.g., HTTP request details).
+///
 /// Reference: ADR-011 Transport Configuration Separation
-pub trait TransportBuilder: Send + Sync {
+pub trait TransportBuilder<T = ()>: Send + Sync {
     /// The transport type that this builder creates
     type Transport: Transport + 'static;
 
@@ -470,8 +529,8 @@ pub trait TransportBuilder: Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `handler` - Handler for incoming messages and events
-    fn with_message_handler(self, handler: Arc<dyn MessageHandler>) -> Self;
+    /// * `handler` - Handler for incoming messages and events with transport-specific context
+    fn with_message_handler(self, handler: Arc<dyn MessageHandler<T>>) -> Self;
 
     /// Build the transport with the configured message handler
     ///
@@ -525,8 +584,3 @@ pub trait TransportConfig: Send + Sync {
         self.server_config().map(|c| &c.protocol_version)
     }
 }
-
-// TODO(DEBT-ARCH): Add concrete transport implementations
-// Reference: HTTP transport from transport/http/, STDIO transport
-// TODO(DEBT-ARCH): Add message routing and correlation tracking
-// Reference: src/correlation/ for correlation patterns

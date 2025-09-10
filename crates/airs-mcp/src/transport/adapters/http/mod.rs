@@ -19,7 +19,9 @@ pub mod client;
 pub mod client_adapter;
 pub mod config;
 pub mod connection_manager;
+pub mod context; // NEW: HTTP context for generic MessageHandler pattern
 pub mod engine;
+pub mod handlers; // NEW: Example MessageHandler<HttpContext> implementations
 pub mod parser;
 pub mod server;
 pub mod server_adapter;
@@ -38,11 +40,20 @@ pub use connection_manager::{
     ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot,
     HealthCheckConfig, HealthCheckResult, HttpConnectionManager,
 };
+pub use context::HttpContext; // NEW: HTTP context for generic MessageHandler pattern
 pub use engine::{
     AuthenticationContext, HttpEngine, HttpEngineError, HttpMiddleware, HttpResponse,
     McpRequestHandler, ResponseMode,
 };
+pub use handlers::{EchoHttpHandler, McpHttpHandler, StaticFileHandler}; // NEW: Example HTTP message handlers
 pub use parser::RequestParser;
+
+// Type aliases for convenience (as per Phase 5.5.5 requirements)
+/// Type alias for HTTP message handlers using HttpContext
+pub type HttpMessageHandler = dyn crate::protocol::MessageHandler<HttpContext>;
+
+/// Type alias for HTTP message context
+pub type HttpMessageContext = crate::protocol::MessageContext<HttpContext>;
 pub use server::HttpServerTransport;
 pub use server_adapter::HttpServerTransportAdapter;
 pub use session::{

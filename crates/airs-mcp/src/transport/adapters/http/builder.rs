@@ -430,10 +430,7 @@ mod tests {
     #[tokio::test]
     async fn test_phase_5_5_3_http_context_integration() {
         // Test HttpContext creation and HTTP-specific methods
-        let context = HttpContext::new(
-            "POST".to_string(),
-            "/mcp/request".to_string(),
-        );
+        let context = HttpContext::new("POST".to_string(), "/mcp/request".to_string());
 
         assert!(context.is_post());
         assert_eq!(context.method(), "POST");
@@ -445,25 +442,22 @@ mod tests {
     #[tokio::test]
     async fn test_phase_5_5_3_http_context_builder_pattern() {
         // Test HttpContext builder pattern with headers and query parameters
-        let context = HttpContext::new(
-            "GET".to_string(),
-            "/mcp/status".to_string(),
-        )
-        .with_header("Content-Type", "application/json")
-        .with_header("Authorization", "Bearer token123")
-        .with_query_param("format", "json")
-        .with_query_param("version", "1.0")
-        .with_remote_addr("127.0.0.1:8080".to_string());
+        let context = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
+            .with_header("Content-Type", "application/json")
+            .with_header("Authorization", "Bearer token123")
+            .with_query_param("format", "json")
+            .with_query_param("version", "1.0")
+            .with_remote_addr("127.0.0.1:8080".to_string());
 
         assert_eq!(context.method(), "GET");
         assert_eq!(context.path(), "/mcp/status");
         assert_eq!(context.remote_addr(), Some("127.0.0.1:8080"));
-        
+
         // Test case-insensitive header access
         assert_eq!(context.get_header("content-type"), Some("application/json"));
         assert_eq!(context.get_header("CONTENT-TYPE"), Some("application/json"));
         assert_eq!(context.get_header("Content-Type"), Some("application/json"));
-        
+
         assert_eq!(context.get_query_param("format"), Some("json"));
         assert_eq!(context.get_query_param("version"), Some("1.0"));
     }
@@ -471,20 +465,13 @@ mod tests {
     #[tokio::test]
     async fn test_phase_5_5_3_json_content_detection() {
         // Test is_json() method for Content-Type detection
-        let json_context = HttpContext::new(
-            "POST".to_string(),
-            "/api/data".to_string(),
-        ).with_header("Content-Type", "application/json");
+        let json_context = HttpContext::new("POST".to_string(), "/api/data".to_string())
+            .with_header("Content-Type", "application/json");
 
-        let xml_context = HttpContext::new(
-            "POST".to_string(),
-            "/api/data".to_string(),
-        ).with_header("Content-Type", "application/xml");
+        let xml_context = HttpContext::new("POST".to_string(), "/api/data".to_string())
+            .with_header("Content-Type", "application/xml");
 
-        let no_content_type = HttpContext::new(
-            "POST".to_string(),
-            "/api/data".to_string(),
-        );
+        let no_content_type = HttpContext::new("POST".to_string(), "/api/data".to_string());
 
         assert!(json_context.is_json());
         assert!(!xml_context.is_json());
@@ -494,20 +481,14 @@ mod tests {
     #[tokio::test]
     async fn test_phase_5_5_3_session_extraction() {
         // Test session ID extraction from different sources
-        let header_session = HttpContext::new(
-            "GET".to_string(),
-            "/mcp/status".to_string(),
-        ).with_header("X-Session-ID", "session123");
+        let header_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
+            .with_header("X-Session-ID", "session123");
 
-        let cookie_session = HttpContext::new(
-            "GET".to_string(),
-            "/mcp/status".to_string(),
-        ).with_header("Cookie", "sessionId=cookie456; other=value");
+        let cookie_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
+            .with_header("Cookie", "sessionId=cookie456; other=value");
 
-        let query_session = HttpContext::new(
-            "GET".to_string(),
-            "/mcp/status".to_string(),
-        ).with_query_param("sessionId", "query789");
+        let query_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
+            .with_query_param("sessionId", "query789");
 
         assert_eq!(header_session.session_id(), Some("session123"));
         assert_eq!(cookie_session.session_id(), Some("cookie456"));
@@ -530,7 +511,9 @@ mod tests {
                 context: MessageContext<HttpContext>,
             ) {
                 // Access HTTP-specific context data
-                let http_context = context.transport_data().expect("HttpContext should be present");
+                let http_context = context
+                    .transport_data()
+                    .expect("HttpContext should be present");
                 assert_eq!(http_context.method(), "POST");
                 assert_eq!(http_context.path(), "/test");
             }
@@ -546,19 +529,17 @@ mod tests {
 
         // Create handler and test with HttpContext
         let handler = TestHttpHandler;
-        let http_context = HttpContext::new(
-            "POST".to_string(),
-            "/test".to_string(),
-        );
-        
+        let http_context = HttpContext::new("POST".to_string(), "/test".to_string());
+
         let message_context = MessageContext::new_with_transport_data(
             "test-correlation-id".to_string(),
             http_context,
         );
 
         // Create a test message for the handler
-        let test_message = JsonRpcMessage::from_request("test_method", None, RequestId::new_number(1));
-        
+        let test_message =
+            JsonRpcMessage::from_request("test_method", None, RequestId::new_number(1));
+
         handler.handle_message(test_message, message_context).await;
     }
 
@@ -577,9 +558,14 @@ mod tests {
                 _message: JsonRpcMessage,
                 context: MessageContext<HttpContext>,
             ) {
-                let http_ctx = context.transport_data().expect("HttpContext should be present");
-                tracing::info!("Handling HTTP {} request to {}", 
-                    http_ctx.method(), http_ctx.path());
+                let http_ctx = context
+                    .transport_data()
+                    .expect("HttpContext should be present");
+                tracing::info!(
+                    "Handling HTTP {} request to {}",
+                    http_ctx.method(),
+                    http_ctx.path()
+                );
             }
 
             async fn handle_error(&self, _error: TransportError) {
@@ -592,8 +578,7 @@ mod tests {
         }
 
         let handler = Arc::new(HttpContextHandler);
-        let builder = HttpTransportBuilder::new()
-            .with_message_handler(handler);
+        let builder = HttpTransportBuilder::new().with_message_handler(handler);
         let transport = builder.build().await.unwrap();
 
         // Verify the transport is properly configured
