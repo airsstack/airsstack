@@ -12,7 +12,6 @@ use tokio::sync::broadcast;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::transport::adapters::http::axum::{
     create_router, McpHandlersBuilder, McpSseQueryParams, ServerState, SseEvent,
@@ -35,15 +34,12 @@ async fn create_test_server_state() -> ServerState {
     let session_config = SessionConfig::default();
     let session_manager = Arc::new(SessionManager::new(correlation_manager, session_config));
 
-    let processor_config = ProcessorConfig::default();
-    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
     let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
     let (sse_broadcaster, _) = broadcast::channel::<SseEvent>(1024);
 
     ServerState {
         connection_manager,
         session_manager,
-        jsonrpc_processor,
         mcp_handlers,
         config,
         sse_broadcaster,
@@ -74,7 +70,6 @@ async fn test_server_state_creation() {
     // Instead of null pointer checks, just verify they exist by using Arc::strong_count
     assert!(Arc::strong_count(&state.connection_manager) > 0);
     assert!(Arc::strong_count(&state.session_manager) > 0);
-    assert!(Arc::strong_count(&state.jsonrpc_processor) > 0);
     assert!(Arc::strong_count(&state.mcp_handlers) > 0);
     assert_eq!(state.config.bind_address.port(), 3000); // Default port
 }
@@ -211,7 +206,6 @@ async fn test_configuration_integration() {
     let session_config = SessionConfig::default();
     let health_config = HealthCheckConfig::default();
     let correlation_config = CorrelationConfig::default();
-    let processor_config = ProcessorConfig::default();
 
     // All configurations should have reasonable defaults
     assert!(config.max_connections > 0, "Should allow connections");
@@ -224,7 +218,6 @@ async fn test_configuration_integration() {
         correlation_config.max_pending_requests > 0,
         "Should allow pending requests"
     );
-    assert!(processor_config.worker_count > 0, "Should have workers");
 }
 
 /// Test broadcast channel capacity and overflow behavior

@@ -38,13 +38,13 @@
 
 // Export main transport components
 pub mod adapters; // Transport adapters for legacy compatibility and MCP-compliant interfaces
-pub mod buffer;
+// buffer module removed - advanced buffer management not used by current transport implementations
 pub mod error;
 // mcp module removed - functionality consolidated into protocol module
 // stdio module removed - use protocol-based transport instead
 // streaming module removed - unnecessary complexity for MCP compliance
-pub mod traits;
-pub mod zero_copy;
+// traits module removed - use protocol::Transport instead of transport::traits::Transport
+// zero_copy module removed - depends on deprecated Transport trait
 
 // Re-export http module for backward compatibility
 // This provides access to transport::http::* paths used by tests and examples
@@ -53,9 +53,8 @@ pub mod http {
 }
 
 // Re-export key types for convenient access
-pub use buffer::*;
 pub use error::*;
-pub use zero_copy::*;
+// zero_copy module removed - use protocol-based transport implementations
 
 // MCP-compliant transport re-exports moved to protocol module
 // These types are now available via crate::protocol::*
@@ -63,6 +62,6 @@ pub use zero_copy::*;
 // HTTP transport re-exports (via adapters for backward compatibility)
 // Note: Complex types temporarily disabled for MCP-compliant simplification
 pub use adapters::{
-    /*AxumHttpServer,*/ BufferPool, BufferPoolStats, HttpClientTransport, HttpServerTransport,
+    /*AxumHttpServer,*/ BufferPool, BufferPoolStats,
     HttpTransportConfig, RequestParser,
 };

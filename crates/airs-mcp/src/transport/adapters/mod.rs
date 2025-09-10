@@ -82,8 +82,8 @@ pub use stdio::{
 
 // HTTP Transport - Self-contained module
 pub use http::{
-    EchoHttpHandler, HttpClientTransport, HttpConnectionManager, HttpContext, HttpMessageContext,
-    HttpMessageHandler, HttpServerTransport, HttpTransport, HttpTransportBuilder,
+    EchoHttpHandler, HttpConnectionManager, HttpContext, HttpMessageContext,
+    HttpMessageHandler, HttpTransport, HttpTransportBuilder,
     HttpTransportConfig, McpHttpHandler, StaticFileHandler,
 };
 

@@ -80,28 +80,59 @@ impl<T: Transport + 'static> McpServer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::StdioTransport;
+    use crate::protocol::{JsonRpcMessage, MessageHandler, TransportBuilder};
+    use crate::transport::adapters::stdio::{StdioTransportBuilder, StdioMessageContext};
+
+    // Simple test message handler for integration tests
+    #[derive(Debug)]
+    struct TestMessageHandler;
+
+    #[async_trait]
+    impl MessageHandler<()> for TestMessageHandler {
+        async fn handle_message(&self, _message: JsonRpcMessage, _context: StdioMessageContext) {
+            // Simple test handler - just ignore messages
+        }
+
+        async fn handle_error(&self, _error: crate::protocol::TransportError) {
+            // Simple test handler - just ignore errors
+        }
+
+        async fn handle_close(&self) {
+            // Simple test handler - no cleanup needed
+        }
+    }
 
     #[tokio::test]
     async fn test_server_creation() {
-        let transport = StdioTransport::new();
+        let handler = Arc::new(TestMessageHandler);
+        let transport = StdioTransportBuilder::new()
+            .with_message_handler(handler)
+            .build()
+            .await
+            .unwrap();
+            
         let server = McpServer::new(transport);
 
-        // Verify it's a simple lifecycle wrapper
-        // In practice, the transport would be pre-configured with message handlers
+        // Verify it's a simple lifecycle wrapper - server should be created successfully
+        assert!(!server.transport.lock().await.is_connected());
     }
 
     #[tokio::test]
     async fn test_lifecycle_operations() {
-        let transport = StdioTransport::new();
+        let handler = Arc::new(TestMessageHandler);
+        let transport = StdioTransportBuilder::new()
+            .with_message_handler(handler)
+            .build()
+            .await
+            .unwrap();
+            
         let server = McpServer::new(transport);
 
         // Test basic lifecycle - start and shutdown
-        // Note: In practice the transport would be pre-configured
         let start_result = server.start().await;
-        // StdioTransport might not actually start anything, so we just verify no panic
+        assert!(start_result.is_ok(), "Server start should succeed");
 
         let shutdown_result = server.shutdown().await;
-        // Similarly for shutdown
+        assert!(shutdown_result.is_ok(), "Server shutdown should succeed");
     }
 }

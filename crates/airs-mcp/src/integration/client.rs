@@ -664,7 +664,27 @@ impl<T: Transport> Drop for McpClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::StdioTransport;
+    use crate::protocol::{JsonRpcMessage, MessageHandler, TransportBuilder};
+    use crate::transport::adapters::stdio::{StdioTransportBuilder, StdioMessageContext};
+
+    // Simple test message handler for integration tests
+    #[derive(Debug)]
+    struct TestMessageHandler;
+
+    #[async_trait]
+    impl MessageHandler<()> for TestMessageHandler {
+        async fn handle_message(&self, _message: JsonRpcMessage, _context: StdioMessageContext) {
+            // Simple test handler - just ignore messages
+        }
+
+        async fn handle_error(&self, _error: TransportError) {
+            // Simple test handler - just ignore errors
+        }
+
+        async fn handle_close(&self) {
+            // Simple test handler - no cleanup needed
+        }
+    }
 
     #[test]
     fn test_config_defaults() {
@@ -695,8 +715,14 @@ mod tests {
     #[tokio::test]
     async fn test_client_creation() {
         // Note: This test requires a mock transport for full testing
-        // For now, we just test the creation logic
-        let transport = StdioTransport::new();
+        // For now, we just test the creation logic using the new builder pattern
+        let handler = Arc::new(TestMessageHandler);
+        let transport = StdioTransportBuilder::new()
+            .with_message_handler(handler)
+            .build()
+            .await
+            .unwrap();
+            
         let client = McpClientBuilder::new()
             .client_info("test", "1.0")
             .build(transport)
@@ -710,7 +736,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_state_management() {
-        let transport = StdioTransport::new();
+        let handler = Arc::new(TestMessageHandler);
+        let transport = StdioTransportBuilder::new()
+            .with_message_handler(handler)
+            .build()
+            .await
+            .unwrap();
+            
         let client = McpClient::new(transport).await.unwrap();
 
         // Initial state should be disconnected
@@ -724,7 +756,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_capability_checking() {
-        let transport = StdioTransport::new();
+        let handler = Arc::new(TestMessageHandler);
+        let transport = StdioTransportBuilder::new()
+            .with_message_handler(handler)
+            .build()
+            .await
+            .unwrap();
+            
         let client = McpClient::new(transport).await.unwrap();
 
         // Should return false when no capabilities are set

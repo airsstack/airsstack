@@ -15,14 +15,12 @@ pub mod auth_request;
 pub mod axum; // Re-enabled with direct MessageHandler usage
 pub mod buffer_pool;
 pub mod builder; // NEW: Pre-configured transport builder
-pub mod client;
 pub mod config;
 pub mod connection_manager;
 pub mod context; // NEW: HTTP context for generic MessageHandler pattern
 pub mod engine;
 pub mod handlers; // NEW: Example MessageHandler<HttpContext> implementations
 pub mod parser;
-pub mod server;
 pub mod session;
 pub mod sse;
 
@@ -31,7 +29,6 @@ pub use auth_request::HttpAuthRequest;
 pub use axum::{AxumHttpServer, ServerState}; // Re-enabled with direct MessageHandler usage
 pub use buffer_pool::{BufferPool, BufferPoolStats, BufferStrategy, PooledBuffer};
 pub use builder::{HttpTransport, HttpTransportBuilder}; // NEW: Pre-configured transport pattern
-pub use client::HttpClientTransport;
 pub use config::HttpTransportConfig;
 pub use connection_manager::{
     ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot,
@@ -51,7 +48,7 @@ pub type HttpMessageHandler = dyn crate::protocol::MessageHandler<HttpContext>;
 
 /// Type alias for HTTP message context
 pub type HttpMessageContext = crate::protocol::MessageContext<HttpContext>;
-pub use server::HttpServerTransport;
+
 pub use session::{
     extract_last_event_id, extract_session_id, SessionConfig, SessionId, SessionManager,
     SessionStatsSnapshot,

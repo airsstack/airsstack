@@ -10,7 +10,6 @@
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
-use chrono::Duration as ChronoDuration;
 
 // Layer 3: Internal module imports
 use airs_mcp::authentication::{AuthContext, AuthMethod};
@@ -18,7 +17,6 @@ use airs_mcp::authorization::{
     context::{BinaryAuthContext, NoAuthContext, ScopeAuthContext},
     policy::{BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
 };
-use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::transport::adapters::http::auth::oauth2::error::HttpAuthError;
 use airs_mcp::transport::adapters::http::{
@@ -99,22 +97,12 @@ async fn create_test_server() -> AxumHttpServer<TestAuthAdapter> {
         SessionConfig::default(),
     ));
 
-    let processor_config = ProcessorConfig {
-        worker_count: 2,
-        queue_capacity: 100,
-        max_batch_size: 10,
-        processing_timeout: ChronoDuration::seconds(30),
-        enable_ordering: false,
-        enable_backpressure: true,
-    };
-    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
     let handlers = McpHandlersBuilder::new();
     let config = HttpTransportConfig::new();
 
     AxumHttpServer::with_handlers(
         connection_manager,
         session_manager,
-        jsonrpc_processor,
         handlers,
         config,
     )
@@ -200,15 +188,6 @@ async fn test_oauth2_server_builder_architecture() {
         SessionConfig::default(),
     ));
 
-    let processor_config = ProcessorConfig {
-        worker_count: 2,
-        queue_capacity: 100,
-        max_batch_size: 10,
-        processing_timeout: ChronoDuration::seconds(30),
-        enable_ordering: false,
-        enable_backpressure: true,
-    };
-    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
     let handlers = McpHandlersBuilder::new();
     let config = HttpTransportConfig::new();
 
@@ -216,7 +195,6 @@ async fn test_oauth2_server_builder_architecture() {
     let server = AxumHttpServer::with_handlers(
         connection_manager,
         session_manager,
-        jsonrpc_processor,
         handlers,
         config,
     )

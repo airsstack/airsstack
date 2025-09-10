@@ -40,7 +40,6 @@ use uuid::Uuid;
 
 // Layer 3: Internal module imports - using existing AirsStack infrastructure
 use airs_mcp::authentication::strategies::oauth2::OAuth2Strategy;
-use airs_mcp::base::jsonrpc::concurrent::{ConcurrentProcessor, ProcessorConfig};
 use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::oauth2::{
     config::{CacheConfig, OAuth2Config, ValidationConfig},
@@ -449,16 +448,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         SessionConfig::default(),
     ));
 
-    let processor_config = ProcessorConfig {
-        worker_count: 4,
-        queue_capacity: 1000,
-        max_batch_size: 10,
-        processing_timeout: ChronoDuration::seconds(30),
-        enable_ordering: false,
-        enable_backpressure: true,
-    };
-    let jsonrpc_processor = Arc::new(ConcurrentProcessor::new(processor_config));
-
     // Create HTTP transport configuration
     let transport_config = HttpTransportConfig::new()
         .bind_address("127.0.0.1:3001".parse()?)
@@ -472,7 +461,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server = AxumHttpServer::with_handlers(
         connection_manager,
         session_manager,
-        jsonrpc_processor,
         handlers,
         transport_config,
     )

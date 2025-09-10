@@ -245,7 +245,7 @@ pub use integration::{
 // Re-export transport types for convenience
 pub use transport::adapters::StdioTransport;
 pub use transport::{
-    BufferConfig, BufferManager, BufferMetrics, PooledBuffer, TransportError,
+    TransportError,
 };
 
 // Version information

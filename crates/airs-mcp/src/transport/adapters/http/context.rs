@@ -228,6 +228,13 @@ impl HttpContext {
                 }
             }
             "authorization" => self.auth_info = Some(value.clone()),
+            "x-session-id" => self.session_id = Some(value.clone()),
+            "cookie" => {
+                // Extract sessionId from cookie string
+                if let Some(session_id) = extract_session_from_cookie(&value) {
+                    self.session_id = Some(session_id);
+                }
+            }
             _ => {}
         }
 
@@ -267,8 +274,8 @@ impl HttpContext {
         let name = name.into();
         let value = value.into();
 
-        // Update session ID if this is the session_id parameter
-        if name == "session_id" {
+        // Update session ID if this is a session parameter (support both formats)
+        if name == "session_id" || name == "sessionId" {
             self.session_id = Some(value.clone());
         }
 
@@ -365,6 +372,19 @@ impl HttpContext {
             .map(|ct| ct.contains("application/json"))
             .unwrap_or(false)
     }
+}
+
+/// Helper function to extract session ID from cookie header
+fn extract_session_from_cookie(cookie_header: &str) -> Option<String> {
+    for cookie_pair in cookie_header.split(';') {
+        let cookie_pair = cookie_pair.trim();
+        if let Some((key, value)) = cookie_pair.split_once('=') {
+            if key.trim() == "sessionId" {
+                return Some(value.trim().to_string());
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]

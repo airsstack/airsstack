@@ -82,7 +82,3 @@ harness = false
 [[bench]]
 name = "correlation_simple"
 harness = false
-
-[[bench]]
-name = "transport_performance"
-harness = false
