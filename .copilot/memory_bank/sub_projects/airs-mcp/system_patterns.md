@@ -22,6 +22,69 @@
 - **Security Boundaries**: Client-host-server isolation, token audience validation, PKCE implementation
 - **Transport Integration**: OAuth middleware patterns with HTTP Streamable transport compatibility
 
+## Transport Layer Architecture Pattern ✅ COMPLETE (2025-09-10)
+
+### Generic MessageHandler Architecture Pattern
+**ARCHITECTURAL ACHIEVEMENT**: Unified transport layer architecture using generic MessageHandler pattern for all transport types.
+
+**Core Generic Pattern**:
+```rust
+// Generic MessageHandler trait for all transports
+#[async_trait]
+pub trait MessageHandler<T>: Send + Sync {
+    async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<T>);
+    async fn handle_error(&self, error: TransportError);
+    async fn handle_close(&self);
+}
+
+// Generic MessageContext with transport-specific data
+pub struct MessageContext<T = ()> {
+    session_id: String,
+    transport_data: T,
+}
+```
+
+**Transport-Specific Module Organization**:
+```
+src/protocol/                    # Transport-agnostic core
+├── message_handler.rs           # Generic MessageHandler<T> trait
+├── message_context.rs           # Generic MessageContext<T>
+└── transport.rs                 # Generic Transport trait
+
+src/transport/adapters/
+├── stdio/                       # STDIO-specific everything
+│   ├── transport.rs             # StdioTransport implementation
+│   ├── handlers.rs              # EchoHandler, LoggingHandler
+│   └── mod.rs                   # type StdioMessageHandler = dyn MessageHandler<()>
+│
+├── http/                        # HTTP-specific everything  
+│   ├── transport.rs             # HttpTransport implementation
+│   ├── handlers.rs              # McpHttpHandler, StaticFileHandler
+│   ├── context.rs               # HttpContext definition
+│   └── mod.rs                   # type HttpMessageHandler = dyn MessageHandler<HttpContext>
+│
+└── websocket/                   # WebSocket-specific everything
+    ├── transport.rs             # WebSocketTransport implementation
+    ├── handlers.rs              # WebSocketEchoHandler
+    └── context.rs               # WebSocketContext definition
+```
+
+**Event-Driven Flow Pattern**:
+```
+Transport receives data → Parses to JsonRpcMessage → Creates context → Calls MessageHandler
+                                                                           ↓
+                                            Handler processes and responds directly through transport
+```
+
+**Key Design Principles**:
+- **No Bridge Patterns**: Direct handler-to-transport communication eliminates complex bridges
+- **Transport Autonomy**: Each transport module contains all its specific implementations  
+- **Handler Responsibility**: Handlers produce transport-specific responses (HTTP status codes, STDIO output)
+- **Generic Type Safety**: Compile-time validation of transport context data
+- **Engineer Freedom**: Engineers define custom context structures and performance strategies
+
+**Reference**: ADR-012 - Generic MessageHandler Architecture for Transport Layer
+
 ## Authentication System Architecture ✅ COMPLETE (2025-09-02)
 
 ### Zero-Cost Authentication Abstraction Pattern

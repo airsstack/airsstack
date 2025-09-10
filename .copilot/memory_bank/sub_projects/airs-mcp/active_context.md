@@ -1,12 +1,61 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: ADR-011 IMPLEMENTATION COMPLETE - PHASE 5.4 SUCCESS
+## 🏛️ CURRENT FOCUS: TASK-028 PHASE 5.5 - GENERIC MESSAGEHANDLER ARCHITECTURE INTEGRATION
 
-### 🎉 **PHASE 5.4 COMPLETE: McpServer Simplification Architecture (2025-09-10)**
+### 🚀 **PHASE 5.5 EXPANSION: Unified Transport Architecture (2025-09-10)**
 
-**STATUS**: ✅ **IMPLEMENTATION COMPLETE** - Revolutionary simplification of `McpServer` architecture successfully implemented per ADR-011
+**STATUS**: ✅ **STRATEGICALLY REORGANIZED** - Extended TASK-028 Phase 5.5 to include Generic MessageHandler architecture integration
 
-#### **🚀 ARCHITECTURAL TRANSFORMATION ACHIEVED**
+#### **🎯 STRATEGIC DECISION: UNIFIED TASK APPROACH**
+
+**Problem Solved**: Instead of fragmenting work across multiple tasks, integrated Generic MessageHandler architecture into existing TASK-028 Phase 5.5
+**Rationale**: 
+- Phase 5.5 already focused on "Pre-Configured Transport Pattern"
+- Generic MessageHandler is natural evolution of transport configuration work
+- Maintains cohesive architectural vision in single task
+- Avoids task numbering conflicts and fragmentation
+
+#### **🏗️ PHASE 5.5 EXPANDED SCOPE**
+
+**Original Scope**: Pre-configured transport pattern implementation
+**Expanded Scope**: Complete unified transport architecture including:
+
+##### **5.5.1 Core Generic Foundation** 
+- Generic `MessageHandler<T>` and `MessageContext<T>` traits
+- Type aliases for transport-specific handlers
+- Helper methods for convenient access
+
+##### **5.5.2 STDIO Transport Validation**
+- Update existing STDIO to use `MessageHandler<()>` pattern
+- Validate generic architecture with proven implementation
+- Update builders and handlers
+
+##### **5.5.3 HTTP Transport Implementation**
+- `HttpContext` structure with request details
+- `HttpTransport` with `MessageHandler<HttpContext>`
+- `HttpTransportBuilder` following ADR-011 pattern
+
+##### **5.5.4 HTTP Handler Examples**
+- `McpHttpHandler` - MCP protocol over HTTP
+- `EchoHttpHandler` - Simple testing handler
+- `StaticFileHandler` - File serving example
+
+##### **5.5.5 Module Organization**
+- Self-contained transport modules
+- Clean separation between core and transport-specific
+- Type aliases and convenience patterns
+
+##### **5.5.6 Documentation & Testing**
+- Comprehensive testing of generic pattern
+- Documentation updates
+- Workspace standards compliance
+
+#### **📋 CURRENT STATUS: TASK-028 85% COMPLETE**
+
+**Previous Achievement**: Phases 1-5.4 complete (module consolidation, McpServer simplification)
+**Current Focus**: Phase 5.5 with expanded scope (6 new subtasks)
+**Estimated Effort**: 12-15 hours for complete unified transport architecture
+**Next Action**: Begin subtask 5.5.1 - Core Generic Foundation Implementation
 
 **Before (Complex, Problematic)**:
 ```rust

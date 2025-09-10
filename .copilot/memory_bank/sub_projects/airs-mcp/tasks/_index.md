@@ -1,17 +1,40 @@
 # Tasks Index - airs-mcp
 
+## Pending
+
+- [TASK-013] Generic MessageHandler Foundation Implementation - HIGH Priority - Added on 2025-09-10
+  - **Core Foundation**: Implement generic MessageHandler<T> and MessageContext<T> traits
+  - **STDIO Adaptation**: Update existing STDIO transport to use generic pattern as validation
+  - **Pattern Validation**: Verify generic architecture works with proven STDIO implementation
+  - **Type Safety**: Establish compile-time validation of transport-specific context data
+  - **Dependencies**: None (foundation work), enables TASK-014
+  - **References**: ADR-012 (Generic MessageHandler Architecture), architectural discovery session
+  - **Impact**: Foundation for unified transport architecture across all transport types
+
+- [TASK-014] HTTP Transport Generic Handler Implementation - HIGH Priority - Added on 2025-09-10  
+  - **HTTP Context**: Define HttpContext structure with request details and convenience methods
+  - **HTTP Transport**: Implement Transport trait with MessageHandler<HttpContext> pattern
+  - **Handler Examples**: McpHttpHandler, EchoHttpHandler, StaticFileHandler implementations
+  - **Framework Agnostic**: HTTP server abstraction for engineer choice of frameworks
+  - **Dependencies**: TASK-013 (Generic MessageHandler Foundation) must be complete
+  - **References**: ADR-012, transport-handler-architecture.md knowledge doc
+  - **Impact**: Complete HTTP transport implementation using unified generic architecture
+
+# Tasks Index - airs-mcp
+
 ## In Progress
 
-- [TASK-028] Module Consolidation Refactoring - HIGH Priority - Added on 2025-09-07 - 70% Complete (Phase 4 Active, Phase 5 Planned) ⚡ **EXPANDED**
+- [TASK-028] Module Consolidation Refactoring - HIGH Priority - Added on 2025-09-07 - 85% Complete (Phase 5.5: EXPANDED & ACTIVE) ⚡ **GENERIC MESSAGEHANDLER ARCHITECTURE INTEGRATION**
   - **Architecture Refactoring**: ✅ Phase 2 Complete - Consolidated `src/base/jsonrpc`, `src/shared/protocol`, `src/transport/mcp` into unified `src/protocol/` module
   - **🔥 CRITICAL DISCOVERY**: Processor over-engineering found - SimpleProcessor and ConcurrentProcessor create unnecessary complexity
   - **Code Deduplication**: ✅ Complete - Eliminated identical serialization methods and compatibility layers
   - **API Implementation**: ✅ Complete - Full JSON-RPC 2.0, MCP types, error handling, transport abstractions
   - **Quality Achievement**: ✅ Zero warnings compliance, clean compilation, workspace standards applied
-  - **Current Status**: Phase 4 active (validation), Phase 5 planned (ADR-011 Transport Configuration Separation)
-  - **Related Documentation**: ADR-010 (Module Consolidation), ADR-011 (Transport Configuration Separation), KNOWLEDGE-003 (Processor Over-Engineering Analysis)
-  - **Estimated Effort**: 9-10 hours remaining for Phase 4-5 (Validation + Transport Architecture)
-  - **Impact**: Major architectural cleanup - Module consolidation + processor elimination + transport configuration separation for unified, clean architecture
+  - **🚀 PHASE 5.5 EXPANSION**: Generic MessageHandler architecture integration discovered and added to current phase
+  - **Current Status**: Phase 5.5 active with 6 new subtasks (5.5.1-5.5.6) covering unified transport architecture
+  - **Related Documentation**: ADR-010 (Module Consolidation), ADR-011 (Transport Configuration Separation), ADR-012 (Generic MessageHandler Architecture), KNOWLEDGE-003 (Processor Over-Engineering Analysis)
+  - **Estimated Effort**: 12-15 hours remaining for expanded Phase 5.5 (Generic MessageHandler + HTTP Transport implementation)
+  - **Impact**: Complete architectural unification - Module consolidation + processor elimination + transport configuration separation + generic handler pattern for clean, unified transport architecture
 
 ## Pending
 

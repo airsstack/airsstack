@@ -1,15 +1,15 @@
 # Architecture Decision Record Registry - airs-mcp
 
-**Last Updated**: 2025-09-09  
-**Total ADRs**: 11  
-**Active ADRs**: 10
+**Last Updated**: 2025-09-10  
+**Total ADRs**: 12  
+**Active ADRs**: 11
 **Proposed ADRs**: 1
 **Superseded ADRs**: 0
 
 ## Decision Categories
 
 ### System Architecture
-- **Active**: 8 ADRs
+- **Active**: 9 ADRs
 - **Proposed**: 1 ADRs
 - **Superseded**: 0 ADRs
 
@@ -74,6 +74,8 @@
 ## Decision Timeline (Chronological)
 
 ### Recent Decisions (Last 3 Months)
+- **2025-09-10**: ADR-012 - Generic MessageHandler Architecture for Transport Layer (Accepted)
+- **2025-09-09**: ADR-011 - Transport Configuration Separation Architecture (Accepted)
 - **2025-09-06**: ADR-009 - Zero-Cost Generic Authorization Architecture (Accepted)
 - **2025-09-01**: ADR-001 - MCP-Compliant Transport Redesign (Proposed)
 - **2025-08-14**: ADR-008 - MCP Protocol Architecture (Accepted)
@@ -95,6 +97,8 @@
 - **ADR-005** → supports → **ADR-007** (field naming supports protocol architecture)
 - **ADR-006** → supports → **performance optimization** (benchmarking enables optimization)
 - **ADR-009** → resolves → **TASK-027, DEBT-ARCH-003** (fixes OAuth2 authorization architecture)
+- **ADR-011** → enables → **ADR-012** (pre-configured transports enable generic handlers)
+- **ADR-012** → implements → **unified transport architecture** (generic handlers provide consistency)
 
 ### Conflict Resolution
 - No conflicts identified between current decisions
