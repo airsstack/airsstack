@@ -1,53 +1,83 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: TASK-028 PHASE 5.5.5 - TRANSPORT MODULE ORGANIZATION
+## 🏛️ CURRENT FOCUS: TASK-028 PHASE 5.5.6a - MIGRATION COMPLETION & 0.2.0 RELEASE PREP
 
-### 🚀 **PHASE 5.5.5: Self-Contained Transport Module Architecture (2025-09-10)**
+### 🚀 **PHASE 5.5.6a: Migration Completion & Quality Assurance (2025-09-10)**
 
-**STATUS**: 🔄 **IN PROGRESS** - Organizing transport modules for clean architecture and no cross-dependencies
+**STATUS**: 🔄 **IN PROGRESS** - Completing architectural migration for 0.2.0 breaking release
+
+**RELEASE OBJECTIVE**: Prepare `airs-mcp` for **0.2.0 breaking release** (current: 0.1.1 → target: 0.2.0) due to major ADR-012 architectural changes
 
 #### **🎯 CURRENT OBJECTIVES**
 
-**Primary Goal**: Ensure clean module organization with self-contained transport implementations
+**Primary Goal**: Complete architectural migration to ADR-012 Generic MessageHandler pattern for 0.2.0 breaking release
 **Key Requirements**:
-- Protocol module contains only transport-agnostic generic traits
-- Transport modules (`stdio/`, `http/`) are fully self-contained with implementations
-- Type aliases for convenience without cross-module dependencies
-- Clear separation between core protocol and transport-specific code
+- Update all module import paths from old architecture to new ADR-012 structure
+- Migrate deprecated API usage to current patterns (JsonRpcMessage, TransportError)
+- Ensure comprehensive test coverage for new architecture
+- Prepare clean 0.2.0 release with breaking changes documentation
 
-#### **🏗️ PHASE 5.5.5 SCOPE**
+#### **🏗️ PHASE 5.5.6a SCOPE - MIGRATION COMPLETION**
 
-##### **Core Protocol Separation**
-- Verify `protocol/` contains only generic, transport-agnostic traits
-- Move any transport-specific code to appropriate transport modules
-- Maintain clean `MessageHandler<T>` and `MessageContext<T>` abstractions
+##### **Step 1: Module Migration Completion (HIGH PRIORITY)**
+**Objective**: Update all import paths from old module structure to new ADR-012 architecture
+- Map old paths → new paths: `base::jsonrpc` → `protocol::`, `shared::protocol` → `protocol::`
+- Update import statements in affected files (SSE, tests, benchmarks, examples)
+- Include OAuth2 imports where architecturally necessary
+- Validate Transport trait import paths (`transport::Transport` → `transport::traits::Transport`)
 
-##### **Transport Module Self-Containment**
-- Ensure `transport/adapters/stdio/` is fully self-contained with `MessageHandler<()>`
-- Ensure `transport/adapters/http/` is fully self-contained with `MessageHandler<HttpContext>`
-- Validate no cross-dependencies between transport implementations
-- Each transport module exports complete functionality (builders, handlers, contexts)
+##### **Step 2: API Usage Migration (HIGH PRIORITY)**
+**Objective**: Replace deprecated API patterns with current implementations
+- Update JsonRpcMessage field access → method calls (`message.method` → `message.method()`)
+- Fix TransportError pattern matching (Timeout field changes)
+- Update constructor calls (`new_request` → `from_request`)
+- Ensure all API usage matches current protocol architecture
 
-##### **Type Alias Organization**
-- Convenient type aliases (`HttpMessageHandler`, `StdioMessageHandler`) in transport modules
-- No transport-specific aliases in core protocol module
-- Clear naming conventions and documentation
+##### **Step 3: Test & Example Updates (MEDIUM PRIORITY)**
+**Objective**: Comprehensive testing and example migration for new architecture
+- **Tests**: Add comprehensive tests for Generic MessageHandler<T> patterns
+- **Tests**: Validate transport module organization and self-containment
+- **Examples**: Update all examples to use latest ADR-012 architecture patterns
+- **Examples**: Ensure practical demonstrations work with new module structure
 
-##### **Documentation & Validation**
-- Update module documentation with architectural decisions
-- Validate ADR-012 implementation completeness
-- Ensure workspace standards compliance throughout
+##### **Step 4: Production Code Quality (LOW PRIORITY)**
+**Objective**: Clean up warnings and improve production readiness
+- Fix unused variable warnings (`integration/server.rs`)
+- Remove development artifacts (unused imports, debug prints)
+- Ensure workspace standards compliance (import organization, documentation)
+- Validate zero-warning compilation across all targets
 
-#### **🎯 STRATEGIC DECISION: UNIFIED TASK APPROACH**
+#### **🎯 STRATEGIC DECISION: 0.2.0 BREAKING RELEASE PREPARATION**
 
-**Problem Solved**: Instead of fragmenting work across multiple tasks, integrated Generic MessageHandler architecture into existing TASK-028 Phase 5.5
+**Problem Solved**: Complete architectural migration requires breaking changes due to module reorganization and API updates
 **Rationale**: 
-- Phase 5.5 already focused on "Pre-Configured Transport Pattern"
-- Generic MessageHandler is natural evolution of transport configuration work
-- Maintains cohesive architectural vision in single task
-- Avoids task numbering conflicts and fragmentation
+- ADR-012 Generic MessageHandler architecture represents fundamental design changes
+- Module path changes (`base::jsonrpc` → `protocol::`) break existing imports
+- API pattern changes (field access → method calls) break existing usage
+- Version bump 0.1.1 → 0.2.0 properly signals breaking changes to users
 
-#### **🏗️ PHASE 5.5 EXPANDED SCOPE**
+#### **🏗️ RELEASE STRATEGY**
+- **Breaking Changes**: Module reorganization, API pattern updates, transport architecture
+- **Migration Guide**: Document migration path from 0.1.1 → 0.2.0 
+- **Backward Compatibility**: Not maintained due to fundamental architectural changes
+- **Testing Strategy**: Comprehensive validation of new architecture patterns
+
+#### **🏗️ PHASE 5.5 EXPANDED SCOPE - MIGRATION COMPLETION FOR 0.2.0**
+
+**Refined Focus**: Complete ADR-012 architectural migration and prepare breaking release
+- ✅ **Phase 5.5.1**: Core Generic Foundation (MessageHandler<T>, MessageContext<T>)
+- ✅ **Phase 5.5.2**: STDIO Transport Generic Pattern Validation 
+- ✅ **Phase 5.5.3**: HTTP Transport Generic Implementation
+- ✅ **Phase 5.5.4**: HTTP Handler Examples Implementation  
+- ✅ **Phase 5.5.5**: Transport Module Organization
+- 🔄 **Phase 5.5.6a**: Migration Completion & 0.2.0 Release Prep (CURRENT)
+
+**Success Criteria for 0.2.0 Release**:
+- Zero compilation errors across all targets (`cargo check --package airs-mcp --all-targets --all-features`)
+- Zero warnings in production code 
+- All tests pass with comprehensive coverage
+- All examples work with new architecture
+- Clean migration documentation for users
 
 **Original Scope**: Pre-configured transport pattern implementation
 **Expanded Scope**: Complete unified transport architecture including:
