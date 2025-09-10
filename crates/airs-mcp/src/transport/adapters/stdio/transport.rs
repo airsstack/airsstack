@@ -41,8 +41,8 @@ pub type StdioMessageContext = MessageContext<()>;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, TransportError, TransportBuilder};
-/// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder, StdioMessageContext};
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, TransportError, TransportBuilder, MessageContext};
+/// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder};
 /// use async_trait::async_trait;
 /// use std::sync::Arc;
 ///
@@ -50,7 +50,7 @@ pub type StdioMessageContext = MessageContext<()>;
 ///
 /// #[async_trait]
 /// impl MessageHandler<()> for EchoHandler {
-///     async fn handle_message(&self, message: JsonRpcMessage, context: StdioMessageContext) {
+///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<()>) {
 ///         println!("Received: {:?}", message);
 ///     }
 ///
@@ -68,6 +68,8 @@ pub type StdioMessageContext = MessageContext<()>;
 /// #     example().await
 /// # }
 /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+///     use airs_mcp::protocol::Transport;
+///     
 ///     let handler = Arc::new(EchoHandler);
 ///     
 ///     // Pre-configured transport pattern - no dangerous set_message_handler() calls
@@ -366,7 +368,7 @@ async fn stdin_reader_loop(
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder};
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder, Transport};
 /// use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 /// use async_trait::async_trait;
 /// use std::sync::Arc;

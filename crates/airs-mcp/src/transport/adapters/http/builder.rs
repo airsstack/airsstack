@@ -35,7 +35,7 @@ use crate::protocol::{
 /// # Usage
 ///
 /// ```rust
-/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext};
+/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext, JsonRpcMessage, TransportError};
 /// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, HttpTransportConfig, HttpContext};
 /// use std::sync::Arc;
 ///
@@ -247,7 +247,7 @@ impl Transport for HttpTransport {
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext};
+/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext, JsonRpcMessage, TransportError};
 /// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, HttpTransportConfig, HttpContext};
 /// use std::sync::Arc;
 ///

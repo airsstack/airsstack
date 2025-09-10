@@ -22,56 +22,29 @@
 //!
 //! # Examples
 //!
+//! ## Generic MessageHandler Pattern
+//!
 //! ```rust
-//! use airs_mcp::protocol::{Transport, MessageHandler, JsonRpcMessage, MessageContext, TransportError};
+//! use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError};
 //! use std::sync::Arc;
 //! use async_trait::async_trait;
 //!
-//! # struct MyHandler;
-//! # #[async_trait]
-//! # impl MessageHandler for MyHandler {
-//! #     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {}
-//! #     async fn handle_error(&self, error: TransportError) {}
-//! #     async fn handle_close(&self) {}
-//! # }
-//! # struct MyTransport;
-//! # impl MyTransport {
-//! #     fn new() -> Self { Self }
-//! # }
-//! # #[async_trait]
-//! # impl Transport for MyTransport {
-//! #     type Error = TransportError;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn close(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error> { Ok(()) }
-//! #     fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>) {}
-//! #     fn session_id(&self) -> Option<String> { None }
-//! #     fn set_session_context(&mut self, session_id: Option<String>) {}
-//! #     fn is_connected(&self) -> bool { true }
-//! #     fn transport_type(&self) -> &'static str { "test" }
-//! # }
+//! // Example with unit context (for STDIO transport)
+//! struct EchoHandler;
 //!
-//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     let handler = Arc::new(MyHandler);
-//!     let mut transport = MyTransport::new();
+//! #[async_trait]
+//! impl MessageHandler<()> for EchoHandler {
+//!     async fn handle_message(&self, message: JsonRpcMessage, _context: MessageContext<()>) {
+//!         println!("Received message: {:?}", message);
+//!     }
 //!     
-//!     // Set up event-driven message handling
-//!     transport.set_message_handler(handler);
+//!     async fn handle_error(&self, error: TransportError) {
+//!         eprintln!("Transport error: {:?}", error);
+//!     }
 //!     
-//!     // Start the transport (begins listening for messages)
-//!     transport.start().await?;
-//!     
-//!     // Send a message
-//!     let message = JsonRpcMessage::from_notification("ping", None);
-//!     transport.send(&message).await?;
-//!     
-//!     // Transport automatically calls handler.handle_message() for incoming messages
-//!     // No blocking receive() calls needed
-//!     
-//!     // Clean up
-//!     transport.close().await?;
-//!     
-//!     Ok(())
+//!     async fn handle_close(&self) {
+//!         println!("Transport closed");
+//!     }
 //! }
 //! ```
 
@@ -148,19 +121,12 @@ impl From<serde_json::Error> for TransportError {
 /// use chrono::Utc;
 ///
 /// // Default generic context (for STDIO)
-/// let context = MessageContext::new("session-123".to_string())
+/// let context = MessageContext::<()>::new("session-123".to_string())
 ///     .with_remote_addr("192.168.1.100:8080".to_string())
 ///     .with_user_agent("airs-mcp-client/1.0".to_string());
 ///
 /// assert_eq!(context.session_id(), Some("session-123"));
 /// assert_eq!(context.remote_addr(), Some("192.168.1.100:8080"));
-///
-/// // Transport-specific context (e.g., HTTP)
-/// # struct HttpRequestData { method: String, path: String }
-/// let http_context = MessageContext::new_with_transport_data(
-///     "session-123",
-///     HttpRequestData { method: "POST".to_string(), path: "/mcp".to_string() }
-/// );
 /// ```
 #[derive(Debug, Clone)]
 pub struct MessageContext<T = ()> {
@@ -369,57 +335,16 @@ pub trait MessageHandler<T = ()>: Send + Sync {
 ///
 /// # Examples
 ///
+/// See specific transport implementations:
+/// - `transport::adapters::stdio::StdioTransport` for STDIO communication
+/// - `transport::adapters::http::HttpTransport` for HTTP-based communication
+///
 /// ```rust
-/// use airs_mcp::protocol::{Transport, MessageHandler, JsonRpcMessage, MessageContext, TransportError};
-/// use std::sync::Arc;
+/// use airs_mcp::protocol::{Transport, JsonRpcMessage};
 /// use async_trait::async_trait;
 ///
-/// # struct MyHandler;
-/// # #[async_trait]
-/// # impl MessageHandler for MyHandler {
-/// #     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {}
-/// #     async fn handle_error(&self, error: TransportError) {}
-/// #     async fn handle_close(&self) {}
-/// # }
-/// # struct MyTransport;
-/// # impl MyTransport {
-/// #     fn new() -> Self { Self }
-/// # }
-/// # #[async_trait]
-/// # impl Transport for MyTransport {
-/// #     type Error = TransportError;
-/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-/// #     async fn close(&mut self) -> Result<(), Self::Error> { Ok(()) }
-/// #     async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error> { Ok(()) }
-/// #     fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>) {}
-/// #     fn session_id(&self) -> Option<String> { None }
-/// #     fn set_session_context(&mut self, session_id: Option<String>) {}
-/// #     fn is_connected(&self) -> bool { true }
-/// #     fn transport_type(&self) -> &'static str { "test" }
-/// # }
-///
-/// async fn example() -> Result<(), Box<dyn std::error::Error>> {
-///     let handler = Arc::new(MyHandler);
-///     let mut transport = MyTransport::new();
-///     
-///     // Set up event-driven message handling
-///     transport.set_message_handler(handler);
-///     
-///     // Start the transport (begins listening for messages)
-///     transport.start().await?;
-///     
-///     // Send a message
-///     let message = JsonRpcMessage::from_notification("ping", None);
-///     transport.send(message).await?;
-///     
-///     // Transport automatically calls handler.handle_message() for incoming messages
-///     // No blocking receive() calls needed
-///     
-///     // Clean up
-///     transport.close().await?;
-///     
-///     Ok(())
-/// }
+/// // Transport implementations provide event-driven message handling
+/// // via the MessageHandler pattern - see transport adapters for examples
 /// ```
 #[async_trait]
 pub trait Transport: Send + Sync {

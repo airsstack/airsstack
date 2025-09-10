@@ -15,7 +15,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use airs_mcp::protocol::{JsonRpcRequest, JsonRpcMessage, RequestId};
+//! use airs_mcp::protocol::{JsonRpcRequest, JsonRpcMessageTrait, RequestId};
 //! use serde_json::json;
 //!
 //! let request = JsonRpcRequest::new(
@@ -326,7 +326,7 @@ impl fmt::Display for RequestId {
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::protocol::{JsonRpcRequest, JsonRpcMessage, RequestId};
+/// use airs_mcp::protocol::{JsonRpcRequest, JsonRpcMessageTrait, RequestId};
 /// use serde_json::json;
 ///
 /// // Request with parameters
@@ -406,7 +406,7 @@ impl JsonRpcMessageTrait for JsonRpcRequest {}
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::protocol::{JsonRpcResponse, JsonRpcMessage, RequestId};
+/// use airs_mcp::protocol::{JsonRpcResponse, JsonRpcMessageTrait, RequestId};
 /// use serde_json::json;
 ///
 /// // Success response
@@ -512,7 +512,7 @@ impl JsonRpcMessageTrait for JsonRpcResponse {}
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp::protocol::{JsonRpcNotification, JsonRpcMessage};
+/// use airs_mcp::protocol::{JsonRpcNotification, JsonRpcMessageTrait};
 /// use serde_json::json;
 ///
 /// // Notification with parameters

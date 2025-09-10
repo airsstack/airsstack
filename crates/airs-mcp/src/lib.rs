@@ -99,7 +99,7 @@
 //! All message types implement the `JsonRpcMessage` trait for consistent serialization:
 //!
 //! ```rust
-//! use airs_mcp::{JsonRpcMessage, JsonRpcNotification};
+//! use airs_mcp::{JsonRpcMessageTrait, JsonRpcNotification};
 //!
 //! let notification = JsonRpcNotification::new("heartbeat", None);
 //!
@@ -109,9 +109,8 @@
 //! // Pretty-printed JSON for debugging
 //! let pretty = notification.to_json_pretty().unwrap();
 //!
-//! // Deserialize from JSON bytes (efficient for network I/O)
-//! let bytes = json.as_bytes();
-//! let parsed = JsonRpcNotification::from_json_bytes(bytes).unwrap();
+//! // Deserialize from JSON string
+//! let parsed = JsonRpcNotification::from_json(&json).unwrap();
 //! ```
 //!
 //! ## Request ID Flexibility
@@ -137,7 +136,7 @@
 //! All serialization operations return `Result` types with `serde_json::Error`:
 //!
 //! ```rust
-//! use airs_mcp::{JsonRpcRequest, JsonRpcMessage, RequestId};
+//! use airs_mcp::{JsonRpcRequest, JsonRpcMessageTrait, RequestId};
 //!
 //! let request = JsonRpcRequest::new("test", None, RequestId::new_number(1));
 //!
@@ -244,9 +243,7 @@ pub use integration::{
 
 // Re-export transport types for convenience
 pub use transport::adapters::StdioTransport;
-pub use transport::{
-    TransportError,
-};
+pub use transport::TransportError;
 
 // Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

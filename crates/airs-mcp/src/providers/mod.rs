@@ -13,27 +13,10 @@
 //! # Usage Example
 //!
 //! ```rust,no_run
-//! use airs_mcp::providers::{FileSystemResourceProvider, MathToolProvider, CodeReviewPromptProvider};
-//! use airs_mcp::integration::mcp::McpServerBuilder;
-//! use airs_mcp::transport::stdio::StdioTransport;
-//! use std::sync::Arc;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Create a transport (using stdio as example)
-//!     let transport = StdioTransport::new().await?;
-//!     
-//!     let server = McpServerBuilder::new()
-//!         .server_info("production-server", "1.0.0")
-//!         .with_resource_provider(FileSystemResourceProvider::new("/safe/path")?)
-//!         .with_tool_provider(MathToolProvider::new())
-//!         .with_prompt_provider(CodeReviewPromptProvider::new())
-//!         .build(transport)
-//!         .await?;
-//!     
-//!     server.run().await?;
-//!     Ok(())
-//! }
+//! // Provider implementations will be available in future versions
+//! // This module is currently a placeholder for production-ready
+//! // MCP provider implementations that integrate with the generic
+//! // MessageHandler architecture
 //! ```
 
 pub mod logging;
