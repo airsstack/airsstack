@@ -8,9 +8,9 @@ use serde_json::json;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
-use airs_mcp::base::jsonrpc::{JsonRpcMessage, JsonRpcRequest, RequestId};
+use airs_mcp::protocol::{JsonRpcMessageTrait, JsonRpcRequest, RequestId};
 use airs_mcp::transport::buffer::{BufferConfig, BufferManager};
-use airs_mcp::transport::StdioTransport;
+use airs_mcp::transport::adapters::StdioTransport;
 
 /// Create a test runtime for async benchmarks
 fn create_runtime() -> Runtime {
@@ -236,7 +236,7 @@ fn benchmark_stdio_transport_creation(c: &mut Criterion) {
                 rt.block_on(async {
                     // Note: This will create a transport, but we won't actually use STDIO
                     // since benchmarks can't interact with real stdin/stdout
-                    let result = StdioTransport::new().await;
+                    let result = StdioTransport::new();
                     // Explicitly handle the Result to satisfy must_use
                     let _ = black_box(result);
                 });
@@ -250,7 +250,7 @@ fn benchmark_stdio_transport_creation(c: &mut Criterion) {
             || (),
             |_| {
                 rt.block_on(async {
-                    let result = StdioTransport::with_max_message_size(1024 * 1024).await;
+                    let result = StdioTransport::with_max_message_size(1024 * 1024);
                     // Explicitly handle the Result to satisfy must_use
                     let _ = black_box(result);
                 });

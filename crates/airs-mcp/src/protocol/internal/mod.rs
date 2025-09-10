@@ -5,20 +5,18 @@
 //!
 //! # Module Organization
 //!
-//! - `concurrent`: Concurrent processing utilities and optimizations
-//! - `streaming`: Streaming protocol optimizations and buffering
 //! - `context`: Context management and session handling
 //!
 //! # Consolidation Sources
 //!
 //! **Phase 2 Migration Plan:**
-//! - `concurrent.rs` from `src/base/jsonrpc/concurrent.rs`
-//! - `streaming.rs` from `src/base/jsonrpc/streaming.rs`
 //! - `context.rs` from `src/transport/mcp/context.rs`
+//!
+//! **Removed Modules (0.2.0 Simplification):**
+//! - `concurrent.rs` - Processors identified as over-engineering, removed for core focus
+//! - `streaming.rs` - Advanced streaming functionality removed for 0.2.0 core release
 
 // Module declarations (workspace standard: declarations only in mod.rs)
-pub mod concurrent;
 pub mod context;
-pub mod streaming;
 
 // Internal modules are NOT re-exported (implementation details)

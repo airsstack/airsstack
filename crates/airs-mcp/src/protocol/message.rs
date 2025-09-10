@@ -574,8 +574,6 @@ impl JsonRpcMessageTrait for JsonRpcNotification {}
 // Implement the trait for the unified message enum
 impl JsonRpcMessageTrait for JsonRpcMessage {}
 
-// TODO(DEBT-ARCH): Add MCP-specific message structures and streaming optimizations
+// TODO(DEBT-ARCH): Add MCP-specific message structures and protocol optimizations
 // Will be implemented once the core migration is complete
-// Reference: src/shared/protocol/messages/ and src/base/jsonrpc/streaming.rs
-// TODO(DEBT-ARCH): Add concurrent processing pipeline
-// Reference: src/base/jsonrpc/concurrent.rs
+// Reference: MCP protocol specification for message structures

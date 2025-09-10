@@ -3,7 +3,7 @@ use axum::{routing::get, Router};
 use airs_mcp::transport::adapters::http::sse::{
     handlers::{health_handler, messages_handler, sse_stream_handler, MessageRequest},
 };
-use airs_mcp::base::jsonrpc::{JsonRpcRequest, RequestId};
+use airs_mcp::protocol::{JsonRpcRequest, RequestId};
 
 /// Test that handlers can be used in routes (basic compilation test)
 #[tokio::test]

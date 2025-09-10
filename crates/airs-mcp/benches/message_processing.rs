@@ -6,7 +6,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use serde_json::json;
 
-use airs_mcp::base::jsonrpc::{JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, RequestId};
+use airs_mcp::protocol::{JsonRpcMessageTrait, JsonRpcNotification, JsonRpcRequest, RequestId};
 
 /// Create a test request with a payload of the specified size (in KB)
 fn create_test_request(size_kb: usize) -> JsonRpcRequest {
@@ -126,10 +126,10 @@ fn benchmark_message_deserialization(c: &mut Criterion) {
     // Benchmark binary deserialization
     for (size_kb, bytes) in &serialized_bytes {
         group.bench_with_input(
-            BenchmarkId::new("request_from_bytes", size_kb),
+            BenchmarkId::new("request_from_json_bytes", size_kb),
             size_kb,
             |b, &_size| {
-                b.iter(|| black_box(JsonRpcRequest::from_bytes(bytes)).unwrap());
+                b.iter(|| black_box(JsonRpcRequest::from_json_bytes(bytes)).unwrap());
             },
         );
     }
@@ -177,7 +177,7 @@ fn benchmark_round_trip_processing(c: &mut Criterion) {
                 b.iter(|| {
                     let request = create_test_request(size);
                     let bytes = black_box(request.to_bytes()).unwrap();
-                    let parsed = black_box(JsonRpcRequest::from_bytes(&bytes)).unwrap();
+                    let parsed = black_box(JsonRpcRequest::from_json_bytes(&bytes)).unwrap();
                     black_box(parsed);
                 });
             },

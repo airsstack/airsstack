@@ -97,8 +97,8 @@ pub use http::{
     SseEndpointConfig, DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
 };
 
-// Transport Adapters (MCP-compliant event-driven interfaces)
-pub use http::{HttpClientTransportAdapter, HttpServerTransportAdapter};
+// NOTE: Transport Adapters removed as part of Phase 5.5.6a architectural simplification
+// Use direct transport implementations instead of bridge adapters
 
 #[cfg(test)]
 mod tests {

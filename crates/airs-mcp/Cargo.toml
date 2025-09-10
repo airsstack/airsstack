@@ -80,17 +80,9 @@ name = "message_processing"
 harness = false
 
 [[bench]]
-name = "streaming_performance"
-harness = false
-
-[[bench]]
 name = "correlation_simple"
 harness = false
 
 [[bench]]
 name = "transport_performance"
-harness = false
-
-[[bench]]
-name = "http_server_focused"
 harness = false

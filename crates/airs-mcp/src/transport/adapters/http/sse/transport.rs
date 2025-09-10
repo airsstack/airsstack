@@ -284,7 +284,7 @@ impl SseEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::jsonrpc::{JsonRpcRequest, RequestId};
+    use crate::protocol::{JsonRpcRequest, RequestId};
     use serde_json::json;
     
     #[tokio::test]

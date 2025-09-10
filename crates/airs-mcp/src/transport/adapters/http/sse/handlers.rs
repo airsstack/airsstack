@@ -367,7 +367,7 @@ pub async fn health_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::jsonrpc::RequestId;
+    use crate::protocol::RequestId;
     use crate::transport::adapters::http::config::HttpTransportConfig;
     use crate::transport::adapters::http::sse::config::HttpSseConfig;
     use serde_json::json;
