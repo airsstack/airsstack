@@ -521,7 +521,7 @@ pub struct ClientCapabilities {
 }
 
 /// Server capabilities for MCP protocol
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ServerCapabilities {
     pub experimental: Option<serde_json::Value>,
     pub logging: Option<LoggingCapabilities>,
@@ -531,17 +531,17 @@ pub struct ServerCapabilities {
 }
 
 /// Sampling capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SamplingCapabilities {}
 
 /// Roots capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RootsCapabilities {
     pub list_changed: Option<bool>,
 }
 
 /// Logging capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LoggingCapabilities {}
 
 impl Default for LoggingCapabilities {
@@ -551,20 +551,20 @@ impl Default for LoggingCapabilities {
 }
 
 /// Prompt capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PromptCapabilities {
     pub list_changed: Option<bool>,
 }
 
 /// Resource capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourceCapabilities {
     pub subscribe: Option<bool>,
     pub list_changed: Option<bool>,
 }
 
 /// Tool capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ToolCapabilities {
     pub list_changed: Option<bool>,
 }
@@ -1053,6 +1053,67 @@ impl LoggingConfig {
     pub fn default() -> Self {
         Self {
             level: LogLevel::Info,
+        }
+    }
+}
+
+/// Core MCP server configuration required by all transports
+///
+/// This contains only the universal MCP requirements that every transport needs,
+/// regardless of transport type (STDIO, HTTP, WebSocket, etc.). This configuration
+/// defines the fundamental server identity, capabilities, and protocol compliance
+/// that must be consistent across all transport implementations.
+///
+/// # Architecture
+///
+/// This struct represents the protocol-level server configuration that sits at the
+/// foundation of the MCP transport abstraction. All transport-specific configurations
+/// should embed this as their core configuration to ensure protocol compliance.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::protocol::types::{ServerConfig, ServerInfo, ServerCapabilities, ProtocolVersion};
+///
+/// // Default configuration
+/// let config = ServerConfig::default();
+///
+/// // Custom configuration
+/// let config = ServerConfig {
+///     server_info: ServerInfo {
+///         name: "my-mcp-server".to_string(),
+///         version: "1.0.0".to_string(),
+///     },
+///     capabilities: ServerCapabilities::default(),
+///     protocol_version: ProtocolVersion::current(),
+///     instructions: Some("Custom server instructions".to_string()),
+/// };
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub struct ServerConfig {
+    /// Server information to send during initialization
+    pub server_info: ServerInfo,
+    /// Server capabilities to advertise
+    pub capabilities: ServerCapabilities,
+    /// Protocol version to support
+    pub protocol_version: ProtocolVersion,
+    /// Optional instructions to provide to clients during initialization
+    pub instructions: Option<String>,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            server_info: ServerInfo {
+                name: "airs-mcp-server".to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            capabilities: ServerCapabilities::default(),
+            protocol_version: ProtocolVersion::current(),
+            instructions: Some(
+                "MCP server with configurable capabilities. Use appropriate authentication method."
+                    .to_string(),
+            ),
         }
     }
 }

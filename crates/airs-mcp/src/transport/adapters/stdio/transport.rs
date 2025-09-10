@@ -29,8 +29,8 @@ use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport,
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{Transport, MessageHandler, JsonRpcMessage, MessageContext, TransportError};
-/// use airs_mcp::transport::adapters::StdioTransport;
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder};
+/// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder};
 /// use async_trait::async_trait;
 /// use std::sync::Arc;
 ///
@@ -56,14 +56,15 @@ use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport,
 /// #     example().await
 /// # }
 /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
-///     let mut transport = StdioTransport::new();
 ///     let handler = Arc::new(EchoHandler);
 ///     
-///     transport.set_message_handler(handler);
+///     // Pre-configured transport pattern - no dangerous set_message_handler() calls
+///     let mut transport = StdioTransportBuilder::new()
+///         .with_message_handler(handler)
+///         .build()
+///         .await?;
+///     
 ///     transport.start().await?;
-///     
-///     // Transport processes messages via event-driven callbacks
-///     
 ///     transport.close().await?;
 ///     Ok(())
 /// }
@@ -139,25 +140,25 @@ impl Transport for StdioTransport {
     ///
     /// # Errors
     ///
-    /// - `TransportError::Connection` - No message handler set
     /// - `TransportError::Connection` - Already running
+    /// - `TransportError::Connection` - No message handler configured (should not happen with pre-configured pattern)
     async fn start(&mut self) -> Result<(), Self::Error> {
-        if self.message_handler.is_none() {
-            return Err(TransportError::Connection {
-                message: "No message handler set".to_string(),
-            });
-        }
-
         if self.is_running {
             return Err(TransportError::Connection {
                 message: "Transport already running".to_string(),
             });
         }
 
+        // With pre-configured pattern, handler should always be set
+        let handler = self.message_handler.as_ref()
+            .ok_or_else(|| TransportError::Connection {
+                message: "No message handler configured. Use StdioTransportBuilder for pre-configured setup.".to_string(),
+            })?
+            .clone();
+
         let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
         self.shutdown_tx = Some(shutdown_tx);
 
-        let handler = self.message_handler.as_ref().unwrap().clone();
         let session_id = self.session_id.clone();
 
         // Spawn stdin reader task
@@ -221,15 +222,6 @@ impl Transport for StdioTransport {
             .map_err(|e| TransportError::Io { source: e })?;
 
         Ok(())
-    }
-
-    /// Set the message handler for incoming messages
-    ///
-    /// # Arguments
-    ///
-    /// * `handler` - Handler for incoming messages and events
-    fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>) {
-        self.message_handler = Some(handler);
     }
 
     /// Get the current session ID
@@ -333,11 +325,114 @@ async fn stdin_reader_loop(
     }
 }
 
+/// Builder for creating pre-configured STDIO transports
+///
+/// This builder implements the pre-configured transport pattern where
+/// transports are created with their message handlers already set,
+/// eliminating the dangerous `set_message_handler()` pattern.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder};
+/// use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+/// use async_trait::async_trait;
+/// use std::sync::Arc;
+///
+/// struct EchoHandler;
+///
+/// #[async_trait]
+/// impl MessageHandler for EchoHandler {
+///     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext) {
+///         println!("Received: {:?}", message);
+///     }
+///
+///     async fn handle_error(&self, error: TransportError) {
+///         eprintln!("Transport error: {}", error);
+///     }
+///
+///     async fn handle_close(&self) {
+///         println!("Transport closed");
+///     }
+/// }
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// #     example().await
+/// # }
+/// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+///     let handler = Arc::new(EchoHandler);
+///     
+///     // Pre-configured transport pattern - no dangerous set_message_handler() calls
+///     let mut transport = StdioTransportBuilder::new()
+///         .with_message_handler(handler)
+///         .build()
+///         .await?;
+///     
+///     transport.start().await?;
+///     transport.close().await?;
+///     Ok(())
+/// }
+/// ```
+pub struct StdioTransportBuilder {
+    /// Message handler for the transport (set via with_message_handler)
+    message_handler: Option<Arc<dyn MessageHandler>>,
+}
+
+impl StdioTransportBuilder {
+    /// Create a new STDIO transport builder
+    pub fn new() -> Self {
+        Self {
+            message_handler: None,
+        }
+    }
+}
+
+impl Default for StdioTransportBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl crate::protocol::TransportBuilder for StdioTransportBuilder {
+    type Transport = StdioTransport;
+    type Error = TransportError;
+
+    /// Set the message handler for the transport
+    ///
+    /// This is the key method that implements the pre-configured pattern.
+    /// The handler must be set before building the transport.
+    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler>) -> Self {
+        self.message_handler = Some(handler);
+        self
+    }
+
+    /// Build the transport with the configured message handler
+    ///
+    /// This creates a fully configured transport that is ready to start.
+    /// The transport will have its message handler pre-configured.
+    async fn build(self) -> Result<Self::Transport, Self::Error> {
+        let handler = self.message_handler.ok_or_else(|| TransportError::Connection {
+            message: "Message handler must be set before building transport".to_string(),
+        })?;
+
+        Ok(StdioTransport {
+            message_handler: Some(handler),
+            shutdown_tx: None,
+            session_id: "stdio-session".to_string(),
+            is_running: false,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Mutex;
+
+    // Import the TransportBuilder trait to use its methods
+    use crate::protocol::TransportBuilder;
 
     // Mock handler for testing
     struct MockHandler {
@@ -410,18 +505,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_transport_lifecycle() {
-        let mut transport = StdioTransport::new();
         let handler = Arc::new(MockHandler::new());
+
+        // Test creating transport with pre-configured pattern
+        let transport_result = StdioTransportBuilder::new()
+            .with_message_handler(handler.clone())
+            .build()
+            .await;
+        
+        assert!(transport_result.is_ok());
+        let mut transport = transport_result.unwrap();
 
         // Test initial state
         assert!(!transport.is_connected());
 
-        // Test start without handler fails
-        let result = transport.start().await;
-        assert!(result.is_err());
-
-        // Set handler and test operations
-        transport.set_message_handler(handler.clone());
+        // Test that transport without handler (created with new()) fails to start
+        let mut basic_transport = StdioTransport::new();
+        let start_result = basic_transport.start().await;
+        assert!(start_result.is_err());
+        assert!(start_result.unwrap_err().to_string().contains("No message handler configured"));
 
         // Note: We can't easily test actual stdin reading in unit tests,
         // but we can test the lifecycle management
@@ -457,5 +559,27 @@ mod tests {
         // Test send (this will write to actual stdout in test environment)
         let result = transport.send(&message).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_transport_builder() {
+        let handler = Arc::new(MockHandler::new());
+
+        // Test successful build with handler
+        let transport_result = StdioTransportBuilder::new()
+            .with_message_handler(handler.clone())
+            .build()
+            .await;
+        
+        assert!(transport_result.is_ok());
+        let transport = transport_result.unwrap();
+        assert_eq!(transport.transport_type(), "stdio");
+        assert_eq!(transport.session_id(), Some("stdio-session".to_string()));
+
+        // Test builder without handler fails
+        let builder_without_handler = StdioTransportBuilder::new();
+        let result = builder_without_handler.build().await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Message handler must be set"));
     }
 }

@@ -43,8 +43,11 @@ pub mod tool;
 
 // Re-export main provider types for convenience
 pub use logging::{FileLoggingHandler, StructuredLoggingHandler};
-pub use prompt::{AnalysisPromptProvider, CodeReviewPromptProvider, DocumentationPromptProvider};
+pub use prompt::{
+    AnalysisPromptProvider, CodeReviewPromptProvider, DocumentationPromptProvider, PromptProvider,
+};
 pub use resource::{
     ConfigurationResourceProvider, DatabaseResourceProvider, FileSystemResourceProvider,
+    ResourceProvider,
 };
-pub use tool::{MathToolProvider, SystemToolProvider, TextToolProvider};
+pub use tool::{MathToolProvider, SystemToolProvider, TextToolProvider, ToolProvider};

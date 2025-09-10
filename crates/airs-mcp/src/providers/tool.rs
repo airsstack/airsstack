@@ -1,9 +1,15 @@
-//! Production-ready Tool Provider Implementations
+//! Tool Provider Trait and Production-ready Implementations
 //!
-//! This module provides comprehensive tool providers for common use cases:
+//! This module provides the ToolProvider trait definition and comprehensive
+//! tool provider implementations for common use cases:
 //! - Mathematical operations and calculations
 //! - System operations and utilities
 //! - Text processing and analysis tools
+//!
+//! # Architecture
+//!
+//! The ToolProvider trait defines the interface for providing MCP tools,
+//! while the concrete implementations handle specific tool categories and capabilities.
 
 use std::process::Stdio;
 
@@ -12,8 +18,58 @@ use serde_json::{json, Value};
 use tokio::process::Command;
 use tracing::{info, instrument};
 
-use crate::integration::{McpError, McpResult, ToolProvider};
+use crate::integration::{McpError, McpResult};
 use crate::protocol::{Content, Tool};
+
+/// Trait for providing MCP tool functionality
+///
+/// This trait defines the interface for providing tools in an MCP server.
+/// Tools represent executable functionality that can be invoked by MCP clients,
+/// such as mathematical operations, system commands, or custom business logic.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::providers::ToolProvider;
+/// use airs_mcp::protocol::{Tool, Content};
+/// use airs_mcp::integration::{McpResult, McpError};
+/// use async_trait::async_trait;
+/// use serde_json::Value;
+///
+/// struct MyToolProvider;
+///
+/// #[async_trait]
+/// impl ToolProvider for MyToolProvider {
+///     async fn list_tools(&self) -> McpResult<Vec<Tool>> {
+///         // Return list of available tools
+///         Ok(vec![])
+///     }
+///
+///     async fn call_tool(&self, name: &str, arguments: Value) -> McpResult<Vec<Content>> {
+///         // Execute the requested tool
+///         Ok(vec![])
+///     }
+/// }
+/// ```
+#[async_trait]
+pub trait ToolProvider: Send + Sync {
+    /// List all available tools
+    ///
+    /// Returns a list of all tools that this provider can execute.
+    /// This method is called when clients request the list of available tools.
+    async fn list_tools(&self) -> McpResult<Vec<Tool>>;
+
+    /// Execute a tool with the given arguments
+    ///
+    /// Executes the specified tool with the provided arguments and returns the result.
+    /// The tool execution should be isolated and safe, with proper error handling.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the tool to execute
+    /// * `arguments` - JSON value containing the tool's input arguments
+    async fn call_tool(&self, name: &str, arguments: Value) -> McpResult<Vec<Content>>;
+}
 
 /// Mathematical operations tool provider
 #[derive(Debug, Clone)]

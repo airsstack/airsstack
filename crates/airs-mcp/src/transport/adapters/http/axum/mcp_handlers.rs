@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use crate::integration::server::McpServerConfig;
-use crate::integration::{LoggingHandler, PromptProvider, ResourceProvider, ToolProvider};
+use crate::integration::LoggingHandler;
+use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 
 /// MCP handlers container for different provider types
 ///
@@ -22,8 +22,6 @@ pub struct McpHandlers {
     pub prompt_provider: Option<Arc<dyn PromptProvider>>,
     /// Logging handler for MCP logging operations
     pub logging_handler: Option<Arc<dyn LoggingHandler>>,
-    /// MCP server configuration
-    pub config: McpServerConfig,
 }
 
 /// Builder for MCP handlers to enable fluent configuration
@@ -35,18 +33,16 @@ pub struct McpHandlersBuilder {
     tool_provider: Option<Arc<dyn ToolProvider>>,
     prompt_provider: Option<Arc<dyn PromptProvider>>,
     logging_handler: Option<Arc<dyn LoggingHandler>>,
-    config: McpServerConfig,
 }
 
 impl McpHandlersBuilder {
-    /// Create a new MCP handlers builder with default configuration
+    /// Create a new MCP handlers builder
     pub fn new() -> Self {
         Self {
             resource_provider: None,
             tool_provider: None,
             prompt_provider: None,
             logging_handler: None,
-            config: McpServerConfig::default(),
         }
     }
 
@@ -74,12 +70,6 @@ impl McpHandlersBuilder {
         self
     }
 
-    /// Set the MCP server configuration
-    pub fn with_config(mut self, config: McpServerConfig) -> Self {
-        self.config = config;
-        self
-    }
-
     /// Build the MCP handlers
     pub fn build(self) -> McpHandlers {
         McpHandlers {
@@ -87,7 +77,6 @@ impl McpHandlersBuilder {
             tool_provider: self.tool_provider,
             prompt_provider: self.prompt_provider,
             logging_handler: self.logging_handler,
-            config: self.config,
         }
     }
 }

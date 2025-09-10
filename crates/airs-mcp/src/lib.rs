@@ -223,6 +223,7 @@ pub use protocol::{
     ProtocolVersion,
     RequestId,
 
+    ServerConfig, // New location of core MCP configuration
     ServerInfo,
     // Transport Abstractions
     Transport as ProtocolTransport,
@@ -238,8 +239,7 @@ pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, C
 // Re-export integration types for convenience
 pub use integration::{
     ConnectionState, IntegrationError, IntegrationResult, McpClient, McpClientBuilder,
-    McpClientConfig, McpCoreConfig, McpError, McpResult, McpServer, McpServerBuilder,
-    McpServerConfig,
+    McpClientConfig, McpError, McpResult, McpServer,
 };
 
 // Re-export transport types for convenience

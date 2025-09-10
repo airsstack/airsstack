@@ -86,6 +86,7 @@ use thiserror::Error;
 
 // Layer 3: Internal module imports
 use super::message::JsonRpcMessage;
+use super::types::{ProtocolVersion, ServerCapabilities, ServerConfig, ServerInfo};
 
 /// Transport error types for comprehensive error handling
 ///
@@ -408,16 +409,6 @@ pub trait Transport: Send + Sync {
     /// * `Err(Self::Error)` - Failed to send message
     async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error>;
 
-    /// Set the message handler for incoming messages
-    ///
-    /// The transport will call the handler's methods for each incoming message,
-    /// transport error, and transport closure event.
-    ///
-    /// # Arguments
-    ///
-    /// * `handler` - Handler for incoming messages and events
-    fn set_message_handler(&mut self, handler: Arc<dyn MessageHandler>);
-
     /// Get the current session ID (if applicable)
     ///
     /// For session-based transports, this returns the current session identifier.
@@ -456,6 +447,83 @@ pub trait Transport: Send + Sync {
     ///
     /// Static string identifying the transport type
     fn transport_type(&self) -> &'static str;
+}
+
+/// Builder trait for creating pre-configured transports
+///
+/// This trait provides the pre-configured transport pattern where transports
+/// are created with their message handlers already set, eliminating the
+/// dangerous `set_message_handler()` pattern.
+///
+/// Reference: ADR-011 Transport Configuration Separation
+pub trait TransportBuilder: Send + Sync {
+    /// The transport type that this builder creates
+    type Transport: Transport + 'static;
+
+    /// Transport-specific error type
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Set the message handler for the transport
+    ///
+    /// This is the key method that implements the pre-configured pattern.
+    /// The handler must be set before building the transport.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - Handler for incoming messages and events
+    fn with_message_handler(self, handler: Arc<dyn MessageHandler>) -> Self;
+
+    /// Build the transport with the configured message handler
+    ///
+    /// This creates a fully configured transport that is ready to start.
+    /// The transport will have its message handler pre-configured.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self::Transport)` - Fully configured transport
+    /// * `Err(Self::Error)` - Failed to create transport
+    fn build(
+        self,
+    ) -> impl std::future::Future<Output = Result<Self::Transport, Self::Error>> + Send;
+}
+
+/// Transport configuration trait for type-safe transport settings
+///
+/// This trait provides a standardized interface for transport-specific configuration
+/// management while maintaining access to universal MCP core requirements.
+///
+/// Reference: ADR-011 Transport Configuration Separation
+pub trait TransportConfig: Send + Sync {
+    /// Set or update the MCP server configuration
+    ///
+    /// This method allows updating the core MCP requirements (server info,
+    /// capabilities, protocol version) that are common across all transports.
+    fn set_server_config(&mut self, server_config: ServerConfig);
+
+    /// Get reference to the MCP server configuration
+    ///
+    /// Returns None if no server configuration has been set.
+    fn server_config(&self) -> Option<&ServerConfig>;
+
+    /// Get effective MCP capabilities for this transport
+    ///
+    /// This method combines the base capabilities from the server config
+    /// with any transport-specific capability modifications.
+    fn effective_capabilities(&self) -> ServerCapabilities;
+
+    /// Get server info from server config
+    ///
+    /// Convenience method that extracts server info from the server config.
+    fn server_info(&self) -> Option<&ServerInfo> {
+        self.server_config().map(|c| &c.server_info)
+    }
+
+    /// Get protocol version from server config
+    ///
+    /// Convenience method that extracts protocol version from the server config.
+    fn protocol_version(&self) -> Option<&ProtocolVersion> {
+        self.server_config().map(|c| &c.protocol_version)
+    }
 }
 
 // TODO(DEBT-ARCH): Add concrete transport implementations

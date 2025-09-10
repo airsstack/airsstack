@@ -12,10 +12,7 @@ pub mod server;
 pub use client::{ConnectionState, McpClient, McpClientBuilder, McpClientConfig};
 pub use constants::*;
 pub use error::{McpError, McpResult};
-pub use server::{
-    LoggingHandler, McpCoreConfig, McpServer, McpServerBuilder, McpServerConfig, PromptProvider,
-    ResourceProvider, ToolProvider,
-};
+pub use server::{LoggingHandler, McpServer};
 
 // Re-export integration error types for backwards compatibility
 pub use error::{IntegrationError, IntegrationResult};

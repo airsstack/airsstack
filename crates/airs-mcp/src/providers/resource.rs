@@ -1,9 +1,15 @@
-//! Production-ready Resource Provider Implementations
+//! Resource Provider Trait and Production-ready Implementations
 //!
-//! This module provides comprehensive resource providers for common use cases:
+//! This module provides the ResourceProvider trait definition and comprehensive
+//! resource provider implementations for common use cases:
 //! - File system access with security constraints
 //! - Configuration management
 //! - Database resource exposure
+//!
+//! # Architecture
+//!
+//! The ResourceProvider trait defines the interface for providing MCP resources,
+//! while the concrete implementations handle specific resource types and sources.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -16,8 +22,89 @@ use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::{debug, info, instrument};
 
-use crate::integration::{McpError, McpResult, ResourceProvider};
-use crate::protocol::{Content, MimeType, Resource, Uri};
+use crate::integration::{McpError, McpResult};
+use crate::protocol::{Content, MimeType, Resource, ResourceTemplate, Uri};
+
+/// Trait for providing MCP resource functionality
+///
+/// This trait defines the interface for providing resources in an MCP server.
+/// Resources represent data or content that can be accessed by MCP clients,
+/// such as files, databases, APIs, or any other source of information.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::providers::ResourceProvider;
+/// use airs_mcp::protocol::{Resource, Content};
+/// use airs_mcp::integration::{McpResult, McpError};
+/// use async_trait::async_trait;
+///
+/// struct MyResourceProvider;
+///
+/// #[async_trait]
+/// impl ResourceProvider for MyResourceProvider {
+///     async fn list_resources(&self) -> McpResult<Vec<Resource>> {
+///         // Return list of available resources
+///         Ok(vec![])
+///     }
+///
+///     async fn read_resource(&self, uri: &str) -> McpResult<Vec<Content>> {
+///         // Return content for the requested resource
+///         Ok(vec![])
+///     }
+/// }
+/// ```
+#[async_trait]
+pub trait ResourceProvider: Send + Sync {
+    /// List all available resources
+    ///
+    /// Returns a list of all resources that this provider can serve.
+    /// This method is called when clients request the list of available resources.
+    async fn list_resources(&self) -> McpResult<Vec<Resource>>;
+
+    /// List all available resource templates
+    ///
+    /// Resource templates allow for dynamic resource discovery using URI templates.
+    /// Default implementation returns empty list if templates are not supported.
+    async fn list_resource_templates(&self) -> McpResult<Vec<ResourceTemplate>> {
+        // Default implementation returns empty list
+        Ok(vec![])
+    }
+
+    /// Read content from a specific resource
+    ///
+    /// Returns the content of the resource identified by the given URI.
+    /// The content can be text, binary data, or other structured content.
+    ///
+    /// # Arguments
+    ///
+    /// * `uri` - The URI identifying the resource to read
+    async fn read_resource(&self, uri: &str) -> McpResult<Vec<Content>>;
+
+    /// Subscribe to resource changes (optional)
+    ///
+    /// Allows clients to subscribe to notifications when a resource changes.
+    /// Default implementation returns an error indicating subscriptions are not supported.
+    ///
+    /// # Arguments
+    ///
+    /// * `uri` - The URI of the resource to subscribe to
+    async fn subscribe_to_resource(&self, _uri: &str) -> McpResult<()> {
+        Err(McpError::unsupported_capability("resource subscriptions"))
+    }
+
+    /// Unsubscribe from resource changes (optional)
+    ///
+    /// Removes a subscription to resource change notifications.
+    /// Default implementation returns an error indicating subscriptions are not supported.
+    ///
+    /// # Arguments
+    ///
+    /// * `uri` - The URI of the resource to unsubscribe from
+    async fn unsubscribe_from_resource(&self, _uri: &str) -> McpResult<()> {
+        Err(McpError::unsupported_capability("resource subscriptions"))
+    }
+}
 
 /// File system resource provider with security constraints
 #[derive(Debug, Clone)]

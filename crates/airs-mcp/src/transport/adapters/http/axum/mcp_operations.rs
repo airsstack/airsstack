@@ -13,8 +13,8 @@ use serde_json::Value;
 // Layer 3: Internal module imports
 use crate::protocol::{
     CallToolRequest, GetPromptRequest, InitializeRequest, InitializeResponse, JsonRpcRequest,
-    LoggingConfig, ReadResourceRequest, SetLoggingRequest, SubscribeResourceRequest,
-    UnsubscribeResourceRequest,
+    LoggingConfig, ReadResourceRequest, ServerCapabilities, ServerInfo, SetLoggingRequest,
+    SubscribeResourceRequest, UnsubscribeResourceRequest,
 };
 use crate::transport::adapters::http::session::SessionId;
 use crate::transport::error::TransportError;
@@ -23,7 +23,7 @@ use super::mcp_handlers::McpHandlers;
 
 /// Process MCP initialize request
 pub async fn process_mcp_initialize(
-    mcp_handlers: &Arc<McpHandlers>,
+    _mcp_handlers: &Arc<McpHandlers>,
     _session_id: SessionId,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
@@ -37,15 +37,21 @@ pub async fn process_mcp_initialize(
     // For now, return initialize response with protocol negotiation using proper MCP protocol layer
 
     // Use proper MCP protocol layer instead of manual JSON construction
-    let capabilities_json =
-        serde_json::to_value(&mcp_handlers.config.core.capabilities).map_err(|e| {
-            TransportError::serialization_error(format!("Failed to serialize capabilities: {e}"))
-        })?;
+    // TODO(DEBT): Need to pass server config separately or use a default
+    let default_capabilities = ServerCapabilities::default();
+    let capabilities_json = serde_json::to_value(&default_capabilities).map_err(|e| {
+        TransportError::serialization_error(format!("Failed to serialize capabilities: {e}"))
+    })?;
+
+    let default_server_info = ServerInfo {
+        name: "airs-mcp-server".to_string(),
+        version: "0.1.1".to_string(),
+    };
 
     let mcp_response = InitializeResponse::new(
         capabilities_json,
-        mcp_handlers.config.core.server_info.clone(),
-        mcp_handlers.config.core.instructions.clone(),
+        default_server_info,
+        None, // No instructions for now
     );
 
     let response = serde_json::json!({

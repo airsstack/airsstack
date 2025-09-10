@@ -1,17 +1,81 @@
-//! Production-ready Prompt Provider Implementations
+//! Prompt Provider Trait and Production-ready Implementations
 //!
-//! This module provides comprehensive prompt providers for common use cases:
+//! This module provides the PromptProvider trait definition and comprehensive
+//! prompt provider implementations for common use cases:
 //! - Code review prompt templates
 //! - Documentation generation prompts
 //! - Analysis and research prompts
+//!
+//! # Architecture
+//!
+//! The PromptProvider trait defines the interface for providing MCP prompts,
+//! while the concrete implementations handle specific prompt categories and templates.
 
 use std::collections::HashMap;
 
 use async_trait::async_trait;
 use tracing::{info, instrument};
 
-use crate::integration::{McpError, McpResult, PromptProvider};
+use crate::integration::{McpError, McpResult};
 use crate::protocol::{Content, Prompt, PromptArgument, PromptMessage};
+
+/// Trait for providing MCP prompt functionality
+///
+/// This trait defines the interface for providing prompts in an MCP server.
+/// Prompts represent reusable message templates that can be invoked by MCP clients
+/// to generate structured conversations or analysis requests.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::providers::PromptProvider;
+/// use airs_mcp::protocol::{Prompt, PromptMessage};
+/// use airs_mcp::integration::{McpResult, McpError};
+/// use async_trait::async_trait;
+/// use std::collections::HashMap;
+///
+/// struct MyPromptProvider;
+///
+/// #[async_trait]
+/// impl PromptProvider for MyPromptProvider {
+///     async fn list_prompts(&self) -> McpResult<Vec<Prompt>> {
+///         // Return list of available prompts
+///         Ok(vec![])
+///     }
+///
+///     async fn get_prompt(
+///         &self,
+///         name: &str,
+///         arguments: HashMap<String, String>,
+///     ) -> McpResult<(String, Vec<PromptMessage>)> {
+///         // Generate the requested prompt
+///         Ok(("Generated prompt".to_string(), vec![]))
+///     }
+/// }
+/// ```
+#[async_trait]
+pub trait PromptProvider: Send + Sync {
+    /// List all available prompts
+    ///
+    /// Returns a list of all prompts that this provider can generate.
+    /// This method is called when clients request the list of available prompts.
+    async fn list_prompts(&self) -> McpResult<Vec<Prompt>>;
+
+    /// Get a prompt with the given arguments
+    ///
+    /// Generates a prompt with the specified name using the provided arguments.
+    /// Returns both the prompt content and any associated messages.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the prompt to generate
+    /// * `arguments` - Key-value pairs for prompt parameter substitution
+    async fn get_prompt(
+        &self,
+        name: &str,
+        arguments: HashMap<String, String>,
+    ) -> McpResult<(String, Vec<PromptMessage>)>;
+}
 
 /// Code review prompt provider
 #[derive(Debug, Clone)]

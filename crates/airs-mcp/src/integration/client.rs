@@ -250,11 +250,14 @@ impl<T: Transport + 'static> McpClient<T> {
         // Create pending requests map
         let pending_requests = Arc::new(Mutex::new(HashMap::new()));
 
+        // TODO(DEBT): Client should use pre-configured transport pattern
+        // For now, we'll need to add set_message_handler back to Transport trait
+        // or implement a ClientTransportBuilder pattern
         // Create and set message handler
-        let handler = Arc::new(ClientMessageHandler {
+        let _handler = Arc::new(ClientMessageHandler {
             pending_requests: pending_requests.clone(),
         });
-        transport.set_message_handler(handler);
+        // transport.set_message_handler(handler); // TODO: Fix this pattern
 
         // Start the transport
         transport

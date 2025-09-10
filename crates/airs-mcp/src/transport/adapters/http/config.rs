@@ -6,6 +6,9 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
+use crate::protocol::transport::TransportConfig;
+use crate::protocol::types::{ServerCapabilities, ServerConfig};
+
 /// Core configuration for HTTP Streamable Transport
 ///
 /// This configuration follows the validated architectural decisions:
@@ -31,24 +34,27 @@ use std::time::Duration;
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct HttpTransportConfig {
+    /// Universal MCP requirements (from ADR-011)
+    server_config: Option<ServerConfig>,
+
     /// Address to bind the HTTP server
     pub bind_address: SocketAddr,
-    
+
     /// Maximum concurrent connections
     pub max_connections: usize,
-    
+
     /// Maximum concurrent requests per connection
     pub max_concurrent_requests: usize,
-    
+
     /// Session timeout duration
     pub session_timeout: Duration,
-    
+
     /// Keep-alive timeout for HTTP connections
     pub keep_alive_timeout: Duration,
-    
+
     /// Request processing timeout
     pub request_timeout: Duration,
-    
+
     /// Parser configuration for optimization
     pub parser: ParserConfig,
 }
@@ -66,6 +72,7 @@ impl HttpTransportConfig {
     /// - No buffer pooling (simple per-request allocation)
     pub fn new() -> Self {
         Self {
+            server_config: None,
             bind_address: "127.0.0.1:3000".parse().expect("Valid default address"),
             max_connections: 1000,
             max_concurrent_requests: 10,
@@ -75,70 +82,71 @@ impl HttpTransportConfig {
             parser: ParserConfig::new(),
         }
     }
-    
+
     /// Set the bind address
     pub fn bind_address(mut self, addr: SocketAddr) -> Self {
         self.bind_address = addr;
         self
     }
-    
+
     /// Set maximum concurrent connections
     pub fn max_connections(mut self, max: usize) -> Self {
         self.max_connections = max;
         self
     }
-    
+
     /// Set maximum concurrent requests per connection
     pub fn max_concurrent_requests(mut self, max: usize) -> Self {
         self.max_concurrent_requests = max;
         self
     }
-    
+
     /// Set session timeout
     pub fn session_timeout(mut self, timeout: Duration) -> Self {
         self.session_timeout = timeout;
         self
     }
-    
+
     /// Set keep-alive timeout
     pub fn keep_alive_timeout(mut self, timeout: Duration) -> Self {
         self.keep_alive_timeout = timeout;
         self
     }
-    
+
     /// Set request timeout
     pub fn request_timeout(mut self, timeout: Duration) -> Self {
         self.request_timeout = timeout;
         self
     }
-    
+
     /// Enable buffer pooling with default configuration
     pub fn enable_buffer_pool(mut self) -> Self {
-        self.parser.optimization_strategy = OptimizationStrategy::BufferPool(BufferPoolConfig::default());
+        self.parser.optimization_strategy =
+            OptimizationStrategy::BufferPool(BufferPoolConfig::default());
         self
     }
-    
+
     /// Set custom buffer pool configuration
     pub fn buffer_pool(mut self, config: BufferPoolConfig) -> Self {
         self.parser.optimization_strategy = OptimizationStrategy::BufferPool(config);
         self
     }
-    
+
     /// Set buffer pool size (convenience method)
     pub fn buffer_pool_size(mut self, max_buffers: usize) -> Self {
-        if let OptimizationStrategy::BufferPool(ref mut config) = self.parser.optimization_strategy {
+        if let OptimizationStrategy::BufferPool(ref mut config) = self.parser.optimization_strategy
+        {
             config.max_buffers = max_buffers;
         } else {
-            self.parser.optimization_strategy = OptimizationStrategy::BufferPool(
-                BufferPoolConfig {
+            self.parser.optimization_strategy =
+                OptimizationStrategy::BufferPool(BufferPoolConfig {
                     max_buffers,
                     ..BufferPoolConfig::default()
-                }
-            );
+                });
         }
         self
     }
-    
+
     /// Set maximum message size
     pub fn max_message_size(mut self, size: usize) -> Self {
         self.parser.max_message_size = size;
@@ -160,7 +168,7 @@ impl Default for HttpTransportConfig {
 pub struct ParserConfig {
     /// Optimization strategy for buffer management
     pub optimization_strategy: OptimizationStrategy,
-    
+
     /// Maximum message size in bytes (16 MB default)
     pub max_message_size: usize,
 }
@@ -189,14 +197,14 @@ impl Default for ParserConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub enum OptimizationStrategy {
     /// Simple per-request allocation
-    /// 
+    ///
     /// - No shared state or contention
     /// - 800ns-3.5μs allocation overhead per request
     /// - Recommended for most use cases
     None,
-    
+
     /// Buffer pooling for memory reuse
-    /// 
+    ///
     /// - 80% faster for small messages
     /// - Configurable pool size and buffer size
     /// - Recommended for high-throughput scenarios
@@ -212,10 +220,10 @@ pub enum OptimizationStrategy {
 pub struct BufferPoolConfig {
     /// Maximum number of buffers to keep in pool
     pub max_buffers: usize,
-    
+
     /// Size of each buffer in bytes
     pub buffer_size: usize,
-    
+
     /// Enable adaptive buffer sizing based on usage patterns
     pub adaptive_sizing: bool,
 }
@@ -224,24 +232,24 @@ impl BufferPoolConfig {
     /// Create new buffer pool config with sensible defaults
     pub fn new() -> Self {
         Self {
-            max_buffers: 100,           // Support 100 concurrent requests
-            buffer_size: 8 * 1024,      // 8 KB buffers (typical JSON-RPC message size)
-            adaptive_sizing: false,     // Start with fixed sizing
+            max_buffers: 100,       // Support 100 concurrent requests
+            buffer_size: 8 * 1024,  // 8 KB buffers (typical JSON-RPC message size)
+            adaptive_sizing: false, // Start with fixed sizing
         }
     }
-    
+
     /// Set maximum number of buffers
     pub fn max_buffers(mut self, max: usize) -> Self {
         self.max_buffers = max;
         self
     }
-    
+
     /// Set buffer size in bytes
     pub fn buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = size;
         self
     }
-    
+
     /// Enable adaptive buffer sizing
     pub fn adaptive_sizing(mut self, enabled: bool) -> Self {
         self.adaptive_sizing = enabled;
@@ -255,6 +263,29 @@ impl Default for BufferPoolConfig {
     }
 }
 
+impl TransportConfig for HttpTransportConfig {
+    fn set_server_config(&mut self, server_config: ServerConfig) {
+        self.server_config = Some(server_config);
+    }
+
+    fn server_config(&self) -> Option<&ServerConfig> {
+        self.server_config.as_ref()
+    }
+
+    fn effective_capabilities(&self) -> ServerCapabilities {
+        if let Some(server_cfg) = &self.server_config {
+            let caps = server_cfg.capabilities.clone();
+
+            // HTTP-specific capability enhancements
+            // HTTP can support all MCP features including experimental ones
+
+            caps
+        } else {
+            ServerCapabilities::default()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,12 +294,15 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = HttpTransportConfig::new();
-        
+
         assert_eq!(config.bind_address.to_string(), "127.0.0.1:3000");
         assert_eq!(config.max_connections, 1000);
         assert_eq!(config.max_concurrent_requests, 10);
         assert_eq!(config.session_timeout, Duration::from_secs(300));
-        assert!(matches!(config.parser.optimization_strategy, OptimizationStrategy::None));
+        assert!(matches!(
+            config.parser.optimization_strategy,
+            OptimizationStrategy::None
+        ));
     }
 
     #[test]
@@ -282,7 +316,10 @@ mod tests {
         assert_eq!(config.bind_address.to_string(), "0.0.0.0:8080");
         assert_eq!(config.max_connections, 5000);
         assert_eq!(config.session_timeout, Duration::from_secs(600));
-        assert!(matches!(config.parser.optimization_strategy, OptimizationStrategy::BufferPool(_)));
+        assert!(matches!(
+            config.parser.optimization_strategy,
+            OptimizationStrategy::BufferPool(_)
+        ));
     }
 
     #[test]
@@ -299,8 +336,7 @@ mod tests {
 
     #[test]
     fn test_buffer_pool_size_convenience() {
-        let config = HttpTransportConfig::new()
-            .buffer_pool_size(500);
+        let config = HttpTransportConfig::new().buffer_pool_size(500);
 
         if let OptimizationStrategy::BufferPool(pool_config) = config.parser.optimization_strategy {
             assert_eq!(pool_config.max_buffers, 500);

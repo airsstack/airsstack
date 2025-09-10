@@ -434,12 +434,6 @@ where
         Ok(())
     }
 
-    fn set_message_handler(&mut self, _handler: Arc<dyn MessageHandler>) {
-        // Generic adapters don't support dynamic handlers
-        // Users should use the builder pattern instead
-        panic!("set_message_handler is not supported for generic adapters. Use with_handler() or new_with_handler() for zero-cost abstractions.");
-    }
-
     fn session_id(&self) -> Option<String> {
         self.session_id.clone()
     }

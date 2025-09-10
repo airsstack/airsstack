@@ -7,10 +7,8 @@ pub mod constants;
 pub mod error;
 pub mod server;
 
+use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 pub use client::{ConnectionState, McpClient, McpClientBuilder, McpClientConfig};
 pub use constants::*;
 pub use error::{McpError, McpResult};
-pub use server::{
-    LoggingHandler, McpServer, McpServerBuilder, McpServerConfig, PromptProvider, ResourceProvider,
-    ToolProvider,
-};
+pub use server::{LoggingHandler, McpServer, McpServerBuilder, McpServerConfig};
