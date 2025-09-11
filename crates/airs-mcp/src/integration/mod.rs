@@ -9,6 +9,7 @@ pub mod error;
 pub mod server;
 
 // Re-export MCP-specific types
+// Re-export MCP-specific types
 pub use client::{McpClient, McpClientBuilder, McpClientConfig, McpSessionState};
 pub use constants::*;
 pub use error::{McpError, McpResult};
