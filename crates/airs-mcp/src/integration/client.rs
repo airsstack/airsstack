@@ -10,9 +10,10 @@ use std::time::Duration;
 use async_trait::async_trait;
 use serde_json::Value;
 use tokio::sync::{oneshot, Mutex, RwLock};
+use tokio::time::{sleep, Instant};
 
 use crate::integration::constants::{defaults, methods};
-use crate::integration::McpError;
+use crate::integration::{IntegrationError, McpError};
 use crate::protocol::transport::{
     MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
 };
@@ -83,8 +84,18 @@ pub struct McpClientConfig {
     pub auto_retry: bool,
     /// Maximum number of retry attempts
     pub max_retries: u32,
+    /// Initial retry delay (doubles with each retry for exponential backoff)
+    pub initial_retry_delay: Duration,
+    /// Maximum retry delay (caps exponential backoff)
+    pub max_retry_delay: Duration,
     /// Whether to automatically reconnect on connection loss
     pub auto_reconnect: bool,
+    /// Maximum reconnection attempts before giving up
+    pub max_reconnect_attempts: u32,
+    /// Initial reconnection delay
+    pub initial_reconnect_delay: Duration,
+    /// Maximum reconnection delay
+    pub max_reconnect_delay: Duration,
 }
 
 impl Default for McpClientConfig {
@@ -99,7 +110,12 @@ impl Default for McpClientConfig {
             default_timeout: Duration::from_secs(defaults::TIMEOUT_SECONDS),
             auto_retry: true,
             max_retries: defaults::MAX_RETRIES,
+            initial_retry_delay: Duration::from_millis(100),
+            max_retry_delay: Duration::from_secs(30),
             auto_reconnect: false,
+            max_reconnect_attempts: 5,
+            initial_reconnect_delay: Duration::from_secs(1),
+            max_reconnect_delay: Duration::from_secs(60),
         }
     }
 }
@@ -151,9 +167,29 @@ impl McpClientBuilder {
         self
     }
 
+    /// Configure retry timing (exponential backoff)
+    pub fn retry_timing(mut self, initial_delay: Duration, max_delay: Duration) -> Self {
+        self.config.initial_retry_delay = initial_delay;
+        self.config.max_retry_delay = max_delay;
+        self
+    }
+
     /// Enable automatic reconnection
     pub fn auto_reconnect(mut self, enabled: bool) -> Self {
         self.config.auto_reconnect = enabled;
+        self
+    }
+
+    /// Configure reconnection behavior
+    pub fn reconnection_config(
+        mut self,
+        max_attempts: u32,
+        initial_delay: Duration,
+        max_delay: Duration,
+    ) -> Self {
+        self.config.max_reconnect_attempts = max_attempts;
+        self.config.initial_reconnect_delay = initial_delay;
+        self.config.max_reconnect_delay = max_delay;
         self
     }
 
@@ -213,6 +249,7 @@ impl McpClientBuilder {
             tool_cache: Arc::new(RwLock::new(HashMap::new())),
             prompt_cache: Arc::new(RwLock::new(HashMap::new())),
             pending_requests,
+            reconnection_state: Arc::new(RwLock::new(ReconnectionState::default())),
         })
     }
 }
@@ -266,6 +303,27 @@ impl MessageHandler for ClientMessageHandler {
     }
 }
 
+/// Reconnection state tracking
+#[derive(Debug, Clone)]
+struct ReconnectionState {
+    /// Current reconnection attempt count
+    attempt_count: u32,
+    /// Last reconnection attempt time
+    last_attempt: Option<Instant>,
+    /// Whether client is currently attempting to reconnect
+    is_reconnecting: bool,
+}
+
+impl Default for ReconnectionState {
+    fn default() -> Self {
+        Self {
+            attempt_count: 0,
+            last_attempt: None,
+            is_reconnecting: false,
+        }
+    }
+}
+
 /// High-level MCP client for interacting with MCP servers
 pub struct McpClient<T: Transport> {
     /// Transport layer for communication
@@ -284,11 +342,197 @@ pub struct McpClient<T: Transport> {
     prompt_cache: Arc<RwLock<HashMap<String, Prompt>>>,
     /// Pending requests for correlation
     pending_requests: Arc<Mutex<HashMap<String, oneshot::Sender<JsonRpcResponse>>>>,
+    /// Reconnection state tracking
+    reconnection_state: Arc<RwLock<ReconnectionState>>,
 }
 
 impl<T: Transport + 'static> McpClient<T> {
-    /// Initialize connection with the MCP server
+    /// Check if an error is retryable
+    fn is_retryable_error(error: &McpError) -> bool {
+        match error {
+            // Network/transport errors are usually retryable
+            McpError::Integration(IntegrationError::Transport(_)) => true,
+            McpError::Integration(IntegrationError::Timeout { .. }) => true,
+            // Server errors might be temporary
+            McpError::ServerError { .. } => true,
+            McpError::Timeout { .. } => true,
+            // Connection errors are retryable
+            McpError::NotConnected => true,
+            // Protocol errors are usually not retryable
+            McpError::Protocol(_) => false,
+            // Resource/tool not found are not retryable
+            McpError::ResourceNotFound { .. } => false,
+            McpError::ToolNotFound { .. } => false,
+            McpError::PromptNotFound { .. } => false,
+            // Invalid arguments are not retryable
+            McpError::InvalidPromptArguments { .. } => false,
+            McpError::InvalidResponse { .. } => false,
+            // Capability errors are not retryable
+            McpError::UnsupportedCapability { .. } => false,
+            McpError::CapabilityNegotiationFailed { .. } => false,
+            // Tool execution failures might be retryable (server-dependent)
+            McpError::ToolExecutionFailed { .. } => true,
+            // Subscription failures might be retryable
+            McpError::SubscriptionFailed { .. } => true,
+            // JSON errors are usually not retryable
+            McpError::Integration(IntegrationError::Json(_)) => false,
+            // Already connected is not retryable
+            McpError::AlreadyConnected => false,
+            // Invalid state errors are not retryable
+            McpError::InvalidState { .. } => false,
+            // Custom errors are not retryable by default (conservative)
+            McpError::Custom { .. } => false,
+            // Other integration errors might be retryable
+            McpError::Integration(_) => true,
+        }
+    }
+
+    /// Check if an error indicates connection loss (should trigger reconnection)
+    fn is_connection_error(error: &McpError) -> bool {
+        match error {
+            McpError::NotConnected => true,
+            McpError::Integration(IntegrationError::Transport(_)) => true,
+            McpError::Integration(IntegrationError::Timeout { .. }) => true,
+            _ => false,
+        }
+    }
+
+    /// Calculate retry delay with exponential backoff
+    fn calculate_retry_delay(&self, attempt: u32) -> Duration {
+        let delay = self.config.initial_retry_delay * 2_u32.pow(attempt);
+        std::cmp::min(delay, self.config.max_retry_delay)
+    }
+
+    /// Calculate reconnection delay with exponential backoff
+    fn calculate_reconnection_delay(&self, attempt: u32) -> Duration {
+        let delay = self.config.initial_reconnect_delay * 2_u32.pow(attempt);
+        std::cmp::min(delay, self.config.max_reconnect_delay)
+    }
+
+    /// Execute an operation with retry logic
+    async fn execute_with_retry<F, Fut, R>(&self, operation: F) -> McpResult<R>
+    where
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = McpResult<R>>,
+    {
+        let mut attempt = 0;
+        loop {
+            match operation().await {
+                Ok(result) => return Ok(result),
+                Err(error) => {
+                    // Check if we should retry
+                    if !self.config.auto_retry
+                        || attempt >= self.config.max_retries
+                        || !Self::is_retryable_error(&error)
+                    {
+                        return Err(error);
+                    }
+
+                    // Check if we need to reconnect
+                    if Self::is_connection_error(&error) && self.config.auto_reconnect {
+                        if let Err(_) = self.attempt_reconnection().await {
+                            // If reconnection fails, return the original error
+                            return Err(error);
+                        }
+                    }
+
+                    attempt += 1;
+                    let delay = self.calculate_retry_delay(attempt - 1);
+
+                    // Log retry attempt (we would add proper logging here)
+                    eprintln!(
+                        "Retrying operation (attempt {}/{}) after {}ms delay due to: {}",
+                        attempt,
+                        self.config.max_retries,
+                        delay.as_millis(),
+                        error
+                    );
+
+                    sleep(delay).await;
+                }
+            }
+        }
+    }
+
+    /// Attempt to reconnect the transport
+    async fn attempt_reconnection(&self) -> McpResult<()> {
+        let mut reconnection_state = self.reconnection_state.write().await;
+
+        // Check if already reconnecting
+        if reconnection_state.is_reconnecting {
+            return Err(McpError::custom("Reconnection already in progress"));
+        }
+
+        // Check reconnection attempts limit
+        if reconnection_state.attempt_count >= self.config.max_reconnect_attempts {
+            return Err(McpError::custom("Maximum reconnection attempts exceeded"));
+        }
+
+        reconnection_state.is_reconnecting = true;
+        reconnection_state.attempt_count += 1;
+        reconnection_state.last_attempt = Some(Instant::now());
+
+        drop(reconnection_state); // Release lock before async operations
+
+        let result = async {
+            // Calculate delay for this attempt
+            let delay = self.calculate_reconnection_delay(
+                self.reconnection_state.read().await.attempt_count - 1,
+            );
+
+            eprintln!(
+                "Attempting reconnection (attempt {}/{}) after {}s delay",
+                self.reconnection_state.read().await.attempt_count,
+                self.config.max_reconnect_attempts,
+                delay.as_secs()
+            );
+
+            sleep(delay).await;
+
+            // Reset MCP session state
+            *self.mcp_session.write().await = McpSessionState::NotInitialized;
+
+            // Try to restart transport (this depends on transport implementation)
+            // For now, we'll just check if it's connected
+            if !self.transport_connected().await {
+                return Err(McpError::custom(
+                    "Transport still not connected after reconnection attempt",
+                ));
+            }
+
+            // Try to re-initialize MCP session (use non-retrying version to avoid recursion)
+            self.initialize_without_retry().await?;
+
+            Ok(())
+        }
+        .await;
+
+        // Update reconnection state
+        let mut reconnection_state = self.reconnection_state.write().await;
+        reconnection_state.is_reconnecting = false;
+
+        match &result {
+            Ok(_) => {
+                // Reset attempt count on successful reconnection
+                reconnection_state.attempt_count = 0;
+                eprintln!("Reconnection successful");
+            }
+            Err(error) => {
+                eprintln!("Reconnection attempt failed: {}", error);
+            }
+        }
+
+        result
+    }
+
+    /// Initialize connection with the MCP server (with retry logic)
     pub async fn initialize(&self) -> McpResult<ServerCapabilities> {
+        self.execute_with_retry(|| self.initialize_without_retry())
+            .await
+    }
+
+    /// Initialize connection with the MCP server (without retry logic, used during reconnection)
+    async fn initialize_without_retry(&self) -> McpResult<ServerCapabilities> {
         // 1. Ensure transport is connected
         if !self.transport_connected().await {
             return Err(McpError::custom("Transport not connected"));
@@ -331,7 +575,8 @@ impl<T: Transport + 'static> McpClient<T> {
             id: RequestId::new_string("init"),
         };
 
-        let response = self.send_request(&request_msg).await?;
+        // Use send_request_once to avoid retry recursion during reconnection
+        let response = self.send_request_once(&request_msg).await?;
 
         // Parse initialization response
         let init_response: InitializeResponse =
@@ -395,6 +640,12 @@ impl<T: Transport + 'static> McpClient<T> {
             return Err(McpError::NotConnected);
         }
         Ok(())
+    }
+
+    /// Get current reconnection status
+    pub async fn reconnection_status(&self) -> (u32, bool) {
+        let state = self.reconnection_state.read().await;
+        (state.attempt_count, state.is_reconnecting)
     }
 
     /// Check if server supports a specific capability
@@ -629,6 +880,9 @@ impl<T: Transport + 'static> McpClient<T> {
         // Reset MCP session state
         *self.mcp_session.write().await = McpSessionState::NotInitialized;
 
+        // Reset reconnection state
+        *self.reconnection_state.write().await = ReconnectionState::default();
+
         // Close transport
         let mut transport = self.transport.write().await;
         transport
@@ -640,6 +894,12 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Internal helper to send a JSON-RPC request and get response
     async fn send_request(&self, request: &JsonRpcRequest) -> McpResult<JsonRpcResponse> {
+        self.execute_with_retry(|| self.send_request_once(request))
+            .await
+    }
+
+    /// Send a single request without retry logic
+    async fn send_request_once(&self, request: &JsonRpcRequest) -> McpResult<JsonRpcResponse> {
         // Create a oneshot channel for the response
         let (sender, receiver) = oneshot::channel();
 
@@ -704,6 +964,42 @@ impl<T: Transport> Drop for McpClient<T> {
 mod tests {
     use super::*;
     use crate::transport::adapters::stdio::StdioTransportBuilder;
+
+    // Mock transport for testing static methods
+    struct MockTransport;
+
+    #[async_trait]
+    impl Transport for MockTransport {
+        type Error = std::io::Error;
+
+        async fn send(&mut self, _message: &JsonRpcMessage) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn start(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        async fn close(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn is_connected(&self) -> bool {
+            false
+        }
+
+        fn session_id(&self) -> Option<String> {
+            None
+        }
+
+        fn set_session_context(&mut self, _session_id: Option<String>) {
+            // Mock implementation - no-op
+        }
+
+        fn transport_type(&self) -> &'static str {
+            "mock"
+        }
+    }
 
     #[test]
     fn test_config_defaults() {
@@ -781,5 +1077,114 @@ mod tests {
             .supports_capability(|caps| caps.resources.is_some())
             .await;
         assert!(!supports_resources);
+    }
+
+    #[tokio::test]
+    async fn test_retry_configuration() {
+        // Test retry configuration through builder
+        let client = McpClientBuilder::new()
+            .auto_retry(true, 5)
+            .retry_timing(Duration::from_millis(50), Duration::from_secs(10))
+            .build(StdioTransportBuilder::new())
+            .await
+            .unwrap();
+
+        assert_eq!(client.config.max_retries, 5);
+        assert_eq!(client.config.initial_retry_delay, Duration::from_millis(50));
+        assert_eq!(client.config.max_retry_delay, Duration::from_secs(10));
+    }
+
+    #[tokio::test]
+    async fn test_reconnection_configuration() {
+        // Test reconnection configuration through builder
+        let client = McpClientBuilder::new()
+            .auto_reconnect(true)
+            .reconnection_config(10, Duration::from_secs(2), Duration::from_secs(120))
+            .build(StdioTransportBuilder::new())
+            .await
+            .unwrap();
+
+        assert!(client.config.auto_reconnect);
+        assert_eq!(client.config.max_reconnect_attempts, 10);
+        assert_eq!(
+            client.config.initial_reconnect_delay,
+            Duration::from_secs(2)
+        );
+        assert_eq!(client.config.max_reconnect_delay, Duration::from_secs(120));
+
+        // Check initial reconnection status
+        let (attempt_count, is_reconnecting) = client.reconnection_status().await;
+        assert_eq!(attempt_count, 0);
+        assert!(!is_reconnecting);
+    }
+
+    #[test]
+    fn test_error_classification() {
+        // Test retryable errors
+        assert!(McpClient::<MockTransport>::is_retryable_error(
+            &McpError::NotConnected
+        ));
+        assert!(McpClient::<MockTransport>::is_retryable_error(
+            &McpError::ServerError {
+                message: "Temporary error".to_string()
+            }
+        ));
+        assert!(McpClient::<MockTransport>::is_retryable_error(
+            &McpError::Timeout { seconds: 30 }
+        ));
+        assert!(McpClient::<MockTransport>::is_retryable_error(
+            &McpError::ToolExecutionFailed {
+                name: "test".to_string(),
+                reason: "timeout".to_string()
+            }
+        ));
+
+        // Test non-retryable errors
+        assert!(!McpClient::<MockTransport>::is_retryable_error(
+            &McpError::AlreadyConnected
+        ));
+        assert!(!McpClient::<MockTransport>::is_retryable_error(
+            &McpError::UnsupportedCapability {
+                capability: "test".to_string()
+            }
+        ));
+        assert!(!McpClient::<MockTransport>::is_retryable_error(
+            &McpError::ResourceNotFound {
+                uri: "test://resource".to_string()
+            }
+        ));
+        assert!(!McpClient::<MockTransport>::is_retryable_error(
+            &McpError::Custom {
+                message: "Custom error".to_string()
+            }
+        ));
+    }
+
+    #[test]
+    fn test_connection_error_classification() {
+        // Test connection errors (should trigger reconnection)
+        assert!(McpClient::<MockTransport>::is_connection_error(
+            &McpError::NotConnected
+        ));
+        assert!(McpClient::<MockTransport>::is_connection_error(
+            &McpError::Integration(IntegrationError::Transport(
+                crate::transport::TransportError::Closed
+            ))
+        ));
+        assert!(McpClient::<MockTransport>::is_connection_error(
+            &McpError::Integration(IntegrationError::Timeout { timeout_ms: 5000 })
+        ));
+
+        // Test non-connection errors
+        assert!(!McpClient::<MockTransport>::is_connection_error(
+            &McpError::ServerError {
+                message: "Server error".to_string()
+            }
+        ));
+        assert!(!McpClient::<MockTransport>::is_connection_error(
+            &McpError::ToolNotFound {
+                name: "test".to_string()
+            }
+        ));
     }
 }

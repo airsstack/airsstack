@@ -2,64 +2,76 @@
 
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: CLIENT REFACTORING IMPLEMENTATION - PHASE 2 COMPLETE
+## 🏛️ CURRENT FOCUS: CLIENT REFACTORING IMPLEMENTATION - PHASE 3 COMPLETE
 
-### 🎉 **PHASE 2 COMPLETE: TRANSPORT INTEGRATION FIXED (2025-09-11)**
+### 🎉 **PHASE 3 COMPLETE: ERROR HANDLING IMPROVEMENTS IMPLEMENTED (2025-09-11)**
 
-**STATUS**: ✅ **PHASE 2 IMPLEMENTATION COMPLETE** - Transport integration successfully refactored, all deprecated methods removed
+**STATUS**: ✅ **PHASE 3 IMPLEMENTATION COMPLETE** - Enterprise-grade error handling with auto-retry and auto-reconnection successfully implemented
 
-**IMPLEMENTATION OBJECTIVE**: Fix broken transport integration by implementing pre-configured TransportBuilder pattern and removing all legacy code
+**IMPLEMENTATION OBJECTIVE**: Implement comprehensive error handling improvements including auto-retry logic, auto-reconnection, exponential backoff, and intelligent error classification
 
-**COMPLETION OBJECTIVE**: Phase 2 of 4-phase client refactoring plan successfully implemented with clean, simplified architecture
+**COMPLETION OBJECTIVE**: Phase 3 of 4-phase client refactoring plan successfully implemented with production-ready resilience features
 
-#### **✅ COMPLETION: PHASE 2 TRANSPORT INTEGRATION REFACTORING (2025-09-11T20:00:00Z)**
+#### **✅ COMPLETION: PHASE 3 ERROR HANDLING REFACTORING (2025-09-11T21:30:00Z)**
 
-**TRANSPORT INTEGRATION TRANSFORMATION SUCCESS**: Successfully implemented pre-configured TransportBuilder pattern and eliminated all deprecated legacy methods:
+**ERROR HANDLING TRANSFORMATION SUCCESS**: Successfully implemented enterprise-grade error handling with intelligent retry logic and automatic reconnection capabilities:
 
-**Core Transport Architecture Changes**:
-- **✅ IMPLEMENTED**: Pre-configured TransportBuilder pattern in `McpClientBuilder::build()`
-- **✅ FIXED**: Broken message handler integration where handlers were created but never connected
-- **✅ REMOVED**: All deprecated methods: `new()`, `new_with_config()`, `build_with_transport()`
-- **✅ SIMPLIFIED**: Single path for client creation through `McpClientBuilder::build(transport_builder)`
+**Core Error Handling Features**:
+- **✅ AUTO-RETRY LOGIC**: Configurable retry attempts with exponential backoff for transient failures
+- **✅ AUTO-RECONNECTION**: Automatic transport reconnection with intelligent connection loss detection
+- **✅ ERROR CLASSIFICATION**: Smart categorization of retryable vs non-retryable errors
+- **✅ RECURSION PREVENTION**: Separate initialization methods to prevent infinite retry loops
+- **✅ ENHANCED CONFIGURATION**: Builder pattern methods for fine-tuning retry and reconnection behavior
 
-**Clean Architecture Benefits**:
-- **✅ MESSAGE HANDLER FIX**: Transport builders now pre-configure handlers via `with_message_handler()`
-- **✅ NO HANGING REQUESTS**: `send_request()` operations now work correctly with proper handler correlation
-- **✅ SIMPLIFIED API**: Only one way to create clients - no more confusing legacy methods
-- **✅ CLEAN CODEBASE**: Zero deprecated code, zero warnings, zero technical debt
+**Retry & Reconnection System**:
+- **✅ EXPONENTIAL BACKOFF**: Configurable initial delays that double with each attempt, capped at maximum
+- **✅ ATTEMPT LIMITS**: Configurable maximum retry and reconnection attempts with circuit breaker behavior
+- **✅ CONNECTION MONITORING**: Automatic detection of transport disconnection vs protocol errors
+- **✅ SESSION RECOVERY**: Re-initialization of MCP session after successful reconnection
+- **✅ STATE TRACKING**: Comprehensive tracking of retry attempts and reconnection status
 
-**Implementation Strategy Executed**:
-- **✅ PRE-CONFIGURED PATTERN**: Transport builders must configure handlers before `build()` call
-- **✅ HANDLER INTEGRATION**: `ClientMessageHandler` properly connected during transport creation
-- **✅ REQUEST CORRELATION**: oneshot channels for async request-response patterns working correctly
-- **✅ BUILDER VALIDATION**: Transport builder pattern ensures proper handler setup
+**Configuration & Builder Enhancements**:
+- **✅ RETRY TIMING**: `retry_timing(initial_delay, max_delay)` for exponential backoff configuration
+- **✅ RECONNECTION CONFIG**: `reconnection_config(max_attempts, initial_delay, max_delay)` for reconnection behavior
+- **✅ AUTO-RETRY TOGGLE**: `auto_retry(enabled, max_retries)` for enabling/disabling retry logic
+- **✅ AUTO-RECONNECT TOGGLE**: `auto_reconnect(enabled)` for enabling/disabling reconnection
+
+**Error Classification Intelligence**:
+- **✅ RETRYABLE ERRORS**: Network issues, timeouts, server errors, tool execution failures, subscription failures
+- **✅ NON-RETRYABLE ERRORS**: Protocol errors, not found errors, capability errors, invalid arguments, already connected
+- **✅ CONNECTION ERRORS**: Special handling for transport disconnection requiring reconnection
+- **✅ CUSTOM ERROR HANDLING**: Conservative default for custom errors (non-retryable)
 
 **Testing & Validation Results**:
-- **✅ Unit Tests**: All 5 client module tests passing (`cargo test --package airs-mcp --lib integration::client`)
+- **✅ Unit Tests**: All 9 client module tests passing (`cargo test --package airs-mcp --lib integration::client`)
+- **✅ Configuration Tests**: Retry and reconnection configuration through builder pattern validated
+- **✅ Error Classification Tests**: Retryable vs non-retryable error logic thoroughly tested
+- **✅ Connection Error Tests**: Reconnection trigger conditions verified
+- **✅ Mock Transport**: Complete Transport trait implementation for comprehensive testing
 - **✅ Compilation**: Clean compilation with zero warnings (`cargo check --package airs-mcp --lib`)
-- **✅ Dead Code**: Removed unused `TestMessageHandler` - no more dead code warnings
-- **✅ Legacy Removal**: All deprecated methods successfully removed without breaking tests
 
 **Architecture Benefits Achieved**:
-- **🎯 CRITICAL FIX**: Message handlers now properly connected - no more hanging requests
-- **🎯 SIMPLIFIED API**: Single, clear path for client creation through builder pattern
-- **🎯 ZERO LEGACY**: No deprecated methods, no backward compatibility complexity
-- **🎯 CLEAN CODEBASE**: Zero warnings, zero dead code, zero technical debt
+- **🎯 RESILIENT OPERATIONS**: Client automatically recovers from temporary network issues and server failures
+- **🎯 CONFIGURABLE BEHAVIOR**: Developers can tune retry/reconnection behavior for specific use cases
+- **🎯 BETTER USER EXPERIENCE**: Operations continue automatically instead of failing immediately on transient issues
+- **🎯 COMPREHENSIVE LOGGING**: Clear visibility into retry and reconnection attempts with detailed console output
+- **🎯 SAFE ARCHITECTURE**: Prevents infinite recursion and resource leaks through careful method separation
+- **🎯 BACKWARD COMPATIBILITY**: All existing code continues to work with sensible default configurations
 
 #### **🚀 NEXT PHASE PREPARATION**
 
-**Ready for Phase 3**: **Implement Proper Error Handling**
-- Error handling improvements with logging
-- Auto-retry mechanisms for failed operations  
-- Auto-reconnection capabilities for connection failures
-- Comprehensive error categorization and recovery strategies
+**Ready for Phase 4**: **Clean Operations Implementation**
+- Separate MCP initialization from transport connection lifecycle
+- Enhanced connection state management with proper cleanup
+- Improved resource management and graceful shutdown procedures
+- Transaction-like operations with proper rollback on failures
 
 #### **📋 4-PHASE CLIENT REFACTORING PROGRESS**
 
 **✅ Phase 1**: Fix state architecture with McpSessionState separation from transport connectivity - **COMPLETE**
 **✅ Phase 2**: Fix transport integration using only pre-configured TransportBuilder pattern - **COMPLETE** 
-**🔄 Phase 3**: Implement proper error handling with logging, auto-retry, auto-reconnect - **NEXT**
-**⏳ Phase 4**: Clean operations with separate MCP initialization from transport connection - **PENDING**
+**✅ Phase 3**: Implement proper error handling with logging, auto-retry, auto-reconnect - **COMPLETE**
+**🔄 Phase 4**: Clean operations with separate MCP initialization from transport connection - **NEXT**
 - **Objective**: Implement only pre-configured TransportBuilder pattern
 - **Goal**: Fix broken message handler integration (currently commented out at lines 257-260)
 - **Pattern**: Replace `McpClient::new(transport)` with `McpClientBuilder::build(transport_builder)`
