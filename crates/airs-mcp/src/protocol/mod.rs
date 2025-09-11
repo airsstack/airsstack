@@ -17,7 +17,6 @@
 //! - `types`: MCP protocol-specific types and enumerations
 //! - `transport`: Transport abstraction traits and implementations
 //! - `errors`: Consolidated error types for all protocol operations
-//! - `internal`: Internal implementation details and optimizations
 //!
 //! # Design Goals
 //!
@@ -39,7 +38,6 @@
 // Module declarations (workspace standard: declarations only in mod.rs)
 pub mod constants;
 pub mod errors;
-pub mod internal;
 pub mod message;
 pub mod transport;
 pub mod types;
