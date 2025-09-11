@@ -1,17 +1,28 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-09  
-**Total Knowledge Docs**: 25  
+**Last Updated**: 2025-09-11  
+**Total Knowledge Docs**: 26  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 13  
+**Documentation Count**: 14  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[MCP Client Refactoring Analysis](./architecture/mcp-client-refactoring-analysis.md)** 🔥 NEW CRITICAL
+  - **Focus**: Comprehensive analysis of fundamental MCP client architectural issues and clean refactoring plan
+  - **Complexity**: Critical - Client completely non-functional due to broken message handler integration and state architecture
+  - **Updated**: 2025-09-11
+  - **Related**: MessageHandler trait necessity, transport-client state separation, JSON-RPC 2.0 correlation patterns
+- **[MCP Client Refactoring Analysis](./architecture/mcp-client-refactoring-analysis.md)** 🔥 NEW CRITICAL
+  - **Focus**: Comprehensive analysis of fundamental MCP client architectural issues and clean refactoring plan
+  - **Complexity**: Critical - Client completely non-functional due to broken message handler integration and state architecture
+  - **Updated**: 2025-09-11
+  - **Related**: MessageHandler trait necessity, transport-client state separation, JSON-RPC 2.0 correlation patterns
+
 - **[Transport Configuration Separation Design](./architecture/transport-configuration-separation-design.md)** 🔥 NEW CRITICAL
   - **Focus**: Revolutionary architectural design separating MCP core configuration from transport-specific configuration
   - **Complexity**: Critical - Solves fundamental design flaws in current McpServer architecture, comprehensive solution
