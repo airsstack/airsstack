@@ -225,9 +225,11 @@ impl McpClientBuilder {
 
     /// Build the MCP client with the given transport builder (pre-configured pattern)
     ///
-    /// This is the only supported way to create an MCP client. The transport builder
-    /// must be pre-configured with a message handler before calling this method.
-    /// This ensures proper message correlation for request-response operations.
+    /// This creates the MCP client but does NOT automatically connect the transport
+    /// or initialize the MCP session. This allows for clean separation of:
+    /// 1. Client creation
+    /// 2. Transport connection via `connect()`
+    /// 3. MCP session initialization via `initialize()`
     ///
     /// # Example
     /// ```rust,no_run
@@ -238,6 +240,15 @@ impl McpClientBuilder {
     ///     .client_info("my-client", "1.0.0")
     ///     .build(StdioTransportBuilder::new())
     ///     .await?;
+    ///
+    /// // Phase 1: Connect transport
+    /// client.connect().await?;
+    ///
+    /// // Phase 2: Initialize MCP session  
+    /// client.initialize().await?;
+    ///
+    /// // Now ready for operations
+    /// let tools = client.list_tools().await?;
     /// # Ok(())
     /// # }
     /// ```
@@ -258,17 +269,14 @@ impl McpClientBuilder {
         });
 
         // Build transport with handler pre-configured (CRITICAL: This fixes the broken pattern!)
-        let mut transport = transport_builder
+        let transport = transport_builder
             .with_message_handler(handler)
             .build()
             .await
             .map_err(|e| McpError::custom(format!("Failed to build transport: {e}")))?;
 
-        // Start the transport
-        transport
-            .start()
-            .await
-            .map_err(|e| McpError::custom(format!("Failed to start transport: {e}")))?;
+        // NOTE: We do NOT start the transport here - this allows clean separation
+        // between client creation and transport connection. Use connect() method.
 
         Ok(McpClient {
             transport: Arc::new(RwLock::new(transport)),
@@ -558,6 +566,80 @@ impl<T: Transport + 'static> McpClient<T> {
         }
 
         result
+    }
+
+    /// Connect the transport layer
+    ///
+    /// This method starts the underlying transport connection. This must be called
+    /// before attempting MCP session initialization via `initialize()`.
+    ///
+    /// # Architecture
+    ///
+    /// This implements clean separation between:
+    /// - **Transport Connection**: Low-level connectivity and message passing  
+    /// - **MCP Session**: Protocol-level handshake and capability negotiation
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
+    /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+    /// # async fn example() -> McpResult<()> {
+    /// let client = McpClientBuilder::new().build(StdioTransportBuilder::new()).await?;
+    ///
+    /// // Step 1: Connect transport
+    /// client.connect().await?;
+    /// assert!(client.transport_connected().await);
+    ///
+    /// // Step 2: Initialize MCP session
+    /// client.initialize().await?;
+    /// assert!(client.is_ready().await);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn connect(&self) -> McpResult<()> {
+        debug!("Starting transport connection");
+
+        let mut transport = self.transport.write().await;
+        transport
+            .start()
+            .await
+            .map_err(|e| McpError::custom(format!("Failed to start transport: {e}")))?;
+
+        info!("Transport connection established");
+        Ok(())
+    }
+
+    /// Disconnect the transport layer
+    ///
+    /// This method closes the underlying transport connection. If an MCP session
+    /// is active, you should call `close()` first for proper cleanup.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
+    /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+    /// # async fn example() -> McpResult<()> {
+    /// let client = McpClientBuilder::new().build(StdioTransportBuilder::new()).await?;
+    /// client.connect().await?;
+    /// client.initialize().await?;
+    ///
+    /// // Proper shutdown sequence:
+    /// client.close().await?;        // Close MCP session
+    /// client.disconnect().await?;   // Close transport
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn disconnect(&self) -> McpResult<()> {
+        debug!("Closing transport connection");
+
+        let mut transport = self.transport.write().await;
+        transport
+            .close()
+            .await
+            .map_err(|e| McpError::custom(format!("Failed to close transport: {e}")))?;
+
+        info!("Transport connection closed");
+        Ok(())
     }
 
     /// Initialize connection with the MCP server (with retry logic)
@@ -935,12 +1017,41 @@ impl<T: Transport + 'static> McpClient<T> {
 
     // Utility Operations
 
-    /// Close the connection to the server with enhanced lifecycle management
+    /// Close the MCP session (protocol-level cleanup)
+    ///
+    /// This method performs MCP session cleanup but does NOT close the transport.
+    /// Use `disconnect()` separately to close the transport connection, or use
+    /// `shutdown_gracefully()` for complete cleanup.
+    ///
+    /// # Clean Architecture
+    ///
+    /// This implements clean separation between:
+    /// - **MCP Session Close**: Protocol cleanup, state reset, pending request cancellation
+    /// - **Transport Close**: Low-level connection termination via `disconnect()`
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
+    /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+    /// # async fn example() -> McpResult<()> {
+    /// let client = McpClientBuilder::new().build(StdioTransportBuilder::new()).await?;
+    /// client.connect().await?;
+    /// client.initialize().await?;
+    ///
+    /// // Clean shutdown - separate concerns:
+    /// client.close().await?;        // Close MCP session
+    /// client.disconnect().await?;   // Close transport
+    ///
+    /// // Or combined:
+    /// // client.shutdown_gracefully(Duration::from_secs(5)).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn close(&self) -> McpResult<()> {
-        debug!("Starting client shutdown");
+        debug!("Starting MCP session closure");
 
         // Phase 1: Cancel pending requests with appropriate errors
-        self.cancel_pending_requests("Client shutdown").await;
+        self.cancel_pending_requests("MCP session closed").await;
 
         // Phase 2: Gracefully close MCP session (send goodbye if needed)
         let current_state = self.mcp_session.read().await.clone();
@@ -957,26 +1068,8 @@ impl<T: Transport + 'static> McpClient<T> {
         // Phase 4: Reset reconnection state
         *self.reconnection_state.write().await = ReconnectionState::default();
 
-        // Phase 5: Close transport with proper error handling
-        let transport_result = {
-            let mut transport = self.transport.write().await;
-            transport.close().await
-        };
-
-        // Handle transport closure errors appropriately
-        match transport_result {
-            Ok(()) => {
-                // Transport closed successfully
-                debug!("Client shutdown completed successfully");
-                Ok(())
-            }
-            Err(e) => {
-                // Don't fail the whole close operation for transport errors
-                // The client is still considered closed
-                warn!(error = %e, "Transport closure failed during shutdown, but client is considered closed");
-                Ok(())
-            }
-        }
+        info!("MCP session closed successfully");
+        Ok(())
     }
 
     /// Cancel all pending requests with an error message
@@ -1013,14 +1106,53 @@ impl<T: Transport + 'static> McpClient<T> {
         }
     }
 
-    /// Attempt graceful shutdown with timeout
+    /// Attempt graceful shutdown with timeout (complete cleanup)
+    ///
+    /// This method performs complete shutdown including both MCP session cleanup
+    /// and transport disconnection. It implements the full clean shutdown sequence:
+    /// 1. Close MCP session (protocol cleanup)
+    /// 2. Disconnect transport (connection cleanup)
+    ///
+    /// If the graceful shutdown times out, it falls back to force shutdown.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
+    /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+    /// # use std::time::Duration;
+    /// # async fn example() -> McpResult<()> {
+    /// let client = McpClientBuilder::new().build(StdioTransportBuilder::new()).await?;
+    /// client.connect().await?;
+    /// client.initialize().await?;
+    ///
+    /// // Complete graceful shutdown with 5-second timeout
+    /// client.shutdown_gracefully(Duration::from_secs(5)).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn shutdown_gracefully(&self, timeout: Duration) -> McpResult<()> {
-        // Try to close gracefully within timeout
-        match tokio::time::timeout(timeout, self.close()).await {
-            Ok(result) => result,
+        debug!("Starting graceful shutdown with timeout: {:?}", timeout);
+
+        // Define the complete shutdown sequence
+        let shutdown_sequence = async {
+            // Step 1: Close MCP session (protocol cleanup)
+            self.close().await?;
+
+            // Step 2: Disconnect transport (connection cleanup)
+            self.disconnect().await?;
+
+            Ok(())
+        };
+
+        // Try to execute gracefully within timeout
+        match tokio::time::timeout(timeout, shutdown_sequence).await {
+            Ok(result) => {
+                info!("Graceful shutdown completed successfully");
+                result
+            }
             Err(_) => {
-                // Graceful shutdown timed out, forcing closure
-                // Force immediate shutdown
+                warn!("Graceful shutdown timed out, forcing closure");
+                // Graceful shutdown timed out, force immediate shutdown
                 self.force_shutdown().await
             }
         }
@@ -1028,6 +1160,8 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Force immediate shutdown without graceful cleanup
     async fn force_shutdown(&self) -> McpResult<()> {
+        warn!("Performing forced shutdown without graceful cleanup");
+
         // Cancel all pending requests immediately
         self.cancel_pending_requests("Forced shutdown").await;
 
@@ -1039,6 +1173,7 @@ impl<T: Transport + 'static> McpClient<T> {
         let mut transport = self.transport.write().await;
         let _ = transport.close().await; // Ignore errors during forced shutdown
 
+        info!("Forced shutdown completed");
         Ok(())
     }
 
