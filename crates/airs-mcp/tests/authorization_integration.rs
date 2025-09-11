@@ -17,14 +17,12 @@ use airs_mcp::authorization::{
     context::{BinaryAuthContext, NoAuthContext, ScopeAuthContext},
     policy::{BinaryAuthorizationPolicy, NoAuthorizationPolicy, ScopeBasedPolicy},
 };
-use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::transport::adapters::http::auth::oauth2::error::HttpAuthError;
 use airs_mcp::transport::adapters::http::{
     auth::middleware::{HttpAuthConfig, HttpAuthRequest, HttpAuthStrategyAdapter},
     axum::{AxumHttpServer, McpHandlersBuilder},
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
-    session::{SessionConfig, SessionManager},
 };
 
 // ================================================================================================
@@ -87,31 +85,17 @@ impl HttpAuthStrategyAdapter for TestAuthAdapter {
 
 async fn create_test_server() -> AxumHttpServer<TestAuthAdapter> {
     let connection_manager = Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
-    let correlation_manager = Arc::new(
-        CorrelationManager::new(CorrelationConfig::default())
-            .await
-            .unwrap(),
-    );
-    let session_manager = Arc::new(SessionManager::new(
-        correlation_manager,
-        SessionConfig::default(),
-    ));
 
     let handlers = McpHandlersBuilder::new();
     let config = HttpTransportConfig::new();
 
-    AxumHttpServer::with_handlers(
-        connection_manager,
-        session_manager,
-        handlers,
-        config,
-    )
-    .await
-    .unwrap()
-    .with_authentication(
-        TestAuthAdapter::new("test", true),
-        HttpAuthConfig::default(),
-    )
+    AxumHttpServer::with_handlers(connection_manager, handlers, config)
+        .await
+        .unwrap()
+        .with_authentication(
+            TestAuthAdapter::new("test", true),
+            HttpAuthConfig::default(),
+        )
 }
 
 // ================================================================================================
@@ -178,32 +162,18 @@ async fn test_server_with_custom_authorization_architecture() {
 async fn test_oauth2_server_builder_architecture() {
     // Test that OAuth2 server creation from scratch works
     let connection_manager = Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
-    let correlation_manager = Arc::new(
-        CorrelationManager::new(CorrelationConfig::default())
-            .await
-            .unwrap(),
-    );
-    let session_manager = Arc::new(SessionManager::new(
-        correlation_manager,
-        SessionConfig::default(),
-    ));
 
     let handlers = McpHandlersBuilder::new();
     let config = HttpTransportConfig::new();
 
     // Create OAuth2 server using the builder pattern
-    let server = AxumHttpServer::with_handlers(
-        connection_manager,
-        session_manager,
-        handlers,
-        config,
-    )
-    .await
-    .unwrap()
-    .with_oauth2_authorization(
-        TestAuthAdapter::new("oauth2_test", true),
-        HttpAuthConfig::default(),
-    );
+    let server = AxumHttpServer::with_handlers(connection_manager, handlers, config)
+        .await
+        .unwrap()
+        .with_oauth2_authorization(
+            TestAuthAdapter::new("oauth2_test", true),
+            HttpAuthConfig::default(),
+        );
 
     // Verify server properties
     assert!(!server.is_bound());

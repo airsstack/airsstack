@@ -16,15 +16,15 @@ use crate::protocol::{
     LoggingConfig, ReadResourceRequest, ServerCapabilities, ServerInfo, SetLoggingRequest,
     SubscribeResourceRequest, UnsubscribeResourceRequest,
 };
-use crate::transport::adapters::http::session::SessionId;
 use crate::transport::error::TransportError;
+use uuid::Uuid;
 
 use super::mcp_handlers::McpHandlers;
 
 /// Process MCP initialize request
 pub async fn process_mcp_initialize(
     _mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     // Parse InitializeRequest from request.params
@@ -68,7 +68,7 @@ pub async fn process_mcp_initialize(
 /// Process MCP list resources request
 pub async fn process_mcp_list_resources(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.resource_provider {
@@ -106,7 +106,7 @@ pub async fn process_mcp_list_resources(
 /// Process MCP list resource templates request
 pub async fn process_mcp_list_resource_templates(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.resource_provider {
@@ -144,7 +144,7 @@ pub async fn process_mcp_list_resource_templates(
 /// Process MCP read resource request
 pub async fn process_mcp_read_resource(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.resource_provider {
@@ -188,7 +188,7 @@ pub async fn process_mcp_read_resource(
 /// Process MCP subscribe resource request
 pub async fn process_mcp_subscribe_resource(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.resource_provider {
@@ -233,7 +233,7 @@ pub async fn process_mcp_subscribe_resource(
 /// Process MCP unsubscribe resource request
 pub async fn process_mcp_unsubscribe_resource(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.resource_provider {
@@ -278,7 +278,7 @@ pub async fn process_mcp_unsubscribe_resource(
 /// Process MCP list tools request
 pub async fn process_mcp_list_tools(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.tool_provider {
@@ -316,7 +316,7 @@ pub async fn process_mcp_list_tools(
 /// Process MCP call tool request
 pub async fn process_mcp_call_tool(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.tool_provider {
@@ -364,7 +364,7 @@ pub async fn process_mcp_call_tool(
 /// Process MCP list prompts request
 pub async fn process_mcp_list_prompts(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.prompt_provider {
@@ -402,7 +402,7 @@ pub async fn process_mcp_list_prompts(
 /// Process MCP get prompt request
 pub async fn process_mcp_get_prompt(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(provider) = &mcp_handlers.prompt_provider {
@@ -450,7 +450,7 @@ pub async fn process_mcp_get_prompt(
 /// Process MCP set logging request
 pub async fn process_mcp_set_logging(
     mcp_handlers: &Arc<McpHandlers>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError> {
     if let Some(handler) = &mcp_handlers.logging_handler {

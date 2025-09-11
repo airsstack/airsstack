@@ -1,4 +1,4 @@
-//! HTTP Streamable GET Handler    let correlation_manager = Arc::new(CorrelationManager::new(CorrelationConfig::default()).await.unwrap());
+//! HTTP Streamable GET Handler
 //!
 //! These tests verify the complete HTTP Streamable GET handler functionality
 //! including SSE streaming, session management, query parameter handling,
@@ -12,13 +12,13 @@ use tokio::sync::broadcast;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::transport::adapters::http::axum::{
     create_router, McpHandlersBuilder, McpSseQueryParams, ServerState, SseEvent,
 };
 use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
-use airs_mcp::transport::adapters::http::connection_manager::{HealthCheckConfig, HttpConnectionManager};
-use airs_mcp::transport::adapters::http::session::{SessionConfig, SessionManager};
+use airs_mcp::transport::adapters::http::connection_manager::{
+    HealthCheckConfig, HttpConnectionManager,
+};
 
 /// Helper to create a test ServerState with all required components
 async fn create_test_server_state() -> ServerState {
@@ -29,17 +29,11 @@ async fn create_test_server_state() -> ServerState {
         health_config,
     ));
 
-    let correlation_config = CorrelationConfig::default();
-    let correlation_manager = Arc::new(CorrelationManager::new(correlation_config).await.unwrap());
-    let session_config = SessionConfig::default();
-    let session_manager = Arc::new(SessionManager::new(correlation_manager, session_config));
-
     let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
     let (sse_broadcaster, _) = broadcast::channel::<SseEvent>(1024);
 
     ServerState {
         connection_manager,
-        session_manager,
         mcp_handlers,
         config,
         sse_broadcaster,
@@ -69,7 +63,6 @@ async fn test_server_state_creation() {
     // Verify all components are properly initialized
     // Instead of null pointer checks, just verify they exist by using Arc::strong_count
     assert!(Arc::strong_count(&state.connection_manager) > 0);
-    assert!(Arc::strong_count(&state.session_manager) > 0);
     assert!(Arc::strong_count(&state.mcp_handlers) > 0);
     assert_eq!(state.config.bind_address.port(), 3000); // Default port
 }
@@ -203,20 +196,13 @@ async fn test_sse_event_types() {
 #[tokio::test]
 async fn test_configuration_integration() {
     let config = HttpTransportConfig::default();
-    let session_config = SessionConfig::default();
     let health_config = HealthCheckConfig::default();
-    let correlation_config = CorrelationConfig::default();
 
     // All configurations should have reasonable defaults
     assert!(config.max_connections > 0, "Should allow connections");
-    assert!(session_config.max_sessions > 0, "Should allow sessions");
     assert!(
         health_config.check_interval.as_secs() > 0,
         "Should have health check interval"
-    );
-    assert!(
-        correlation_config.max_pending_requests > 0,
-        "Should allow pending requests"
     );
 }
 

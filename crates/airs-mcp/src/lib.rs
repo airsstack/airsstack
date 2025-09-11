@@ -176,9 +176,6 @@
 //! For high-throughput scenarios, future versions will include zero-copy
 //! optimizations and buffer pooling strategies.
 
-// Correlation layer modules
-pub mod correlation;
-
 // Integration layer modules
 pub mod integration;
 
@@ -231,9 +228,6 @@ pub use protocol::{
     // MCP Protocol Types
     Uri,
 };
-
-// Re-export correlation types for convenience
-pub use correlation::{CorrelationConfig, CorrelationError, CorrelationManager, CorrelationResult};
 
 // Re-export integration types for convenience
 pub use integration::{

@@ -40,7 +40,6 @@ use uuid::Uuid;
 
 // Layer 3: Internal module imports - using existing AirsStack infrastructure
 use airs_mcp::authentication::strategies::oauth2::OAuth2Strategy;
-use airs_mcp::correlation::manager::{CorrelationConfig, CorrelationManager};
 use airs_mcp::oauth2::{
     config::{CacheConfig, OAuth2Config, ValidationConfig},
     types::JwtClaims,
@@ -55,7 +54,6 @@ use airs_mcp::transport::adapters::http::{
     axum::{AxumHttpServer, McpHandlersBuilder},
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
-    session::{SessionConfig, SessionManager},
 };
 
 /// Test JWT signing keys and JWKS data
@@ -440,27 +438,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         HealthCheckConfig::default(),
     ));
 
-    let correlation_manager =
-        Arc::new(CorrelationManager::new(CorrelationConfig::default()).await?);
-
-    let session_manager = Arc::new(SessionManager::new(
-        correlation_manager,
-        SessionConfig::default(),
-    ));
-
     // Create HTTP transport configuration
     let transport_config = HttpTransportConfig::new()
         .bind_address("127.0.0.1:3001".parse()?)
         .max_connections(1000)
         .request_timeout(Duration::from_secs(30))
-        .session_timeout(Duration::from_secs(1800)) // 30 minutes
         .enable_buffer_pool()
         .buffer_pool_size(100);
 
     // Create the OAuth2-enabled MCP server
     let server = AxumHttpServer::with_handlers(
         connection_manager,
-        session_manager,
         handlers,
         transport_config,
     )

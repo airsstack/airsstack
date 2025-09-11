@@ -89,12 +89,11 @@ pub use http::{
 
 // HTTP Additional Exports (maintaining backward compatibility)
 pub use http::{
-    cache_control, content_types, events, extract_last_event_id, extract_session_id, headers,
+    cache_control, content_types, events, headers,
     BufferPool, BufferPoolStats, BufferStrategy, ConnectionHealth, ConnectionId, ConnectionInfo,
     ConnectionStats, ConnectionStatsSnapshot, DeprecationConfig, DeprecationPhase,
     HealthCheckConfig, HealthCheckResult, HttpSseConfig, MigrationMode, PooledBuffer,
-    RequestParser, SessionConfig, SessionId, SessionManager, SessionStatsSnapshot,
-    SseEndpointConfig, DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
+    RequestParser, SseEndpointConfig, DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
 };
 
 // NOTE: Transport Adapters removed as part of Phase 5.5.6a architectural simplification
@@ -185,13 +184,12 @@ mod tests {
     fn test_backward_compatibility_exports() {
         // Verify backward compatibility exports are maintained
         use crate::transport::adapters::{
-            BufferPool, ConnectionId, HttpSseConfig, SessionId, DEFAULT_MESSAGES_ENDPOINT,
+            BufferPool, ConnectionId, HttpSseConfig, DEFAULT_MESSAGES_ENDPOINT,
             DEFAULT_SSE_ENDPOINT,
         };
 
         // These should be available for backward compatibility
         let _: Option<ConnectionId> = None;
-        let _: Option<SessionId> = None;
         let _: Option<HttpSseConfig> = None;
         let _: Option<BufferPool> = None;
 

@@ -5,7 +5,6 @@
 
 use thiserror::Error;
 
-use crate::correlation::CorrelationError;
 use crate::protocol::errors::ProtocolError;
 use crate::transport::TransportError;
 
@@ -21,10 +20,6 @@ pub enum IntegrationError {
     /// Transport layer error
     #[error("Transport error: {0}")]
     Transport(#[from] TransportError),
-
-    /// Correlation layer error
-    #[error("Correlation error: {0}")]
-    Correlation(#[from] CorrelationError),
 
     /// JSON serialization/deserialization error
     #[error("JSON error: {0}")]
@@ -97,7 +92,7 @@ impl IntegrationError {
 /// MCP-specific error types
 #[derive(Debug, Error)]
 pub enum McpError {
-    /// Integration layer error (JSON-RPC, transport, correlation)
+    /// Integration layer error (JSON-RPC, transport)
     #[error("Integration error: {0}")]
     Integration(#[from] IntegrationError),
 

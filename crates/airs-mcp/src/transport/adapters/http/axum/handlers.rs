@@ -43,7 +43,6 @@ use crate::transport::adapters::http::auth::middleware::{
 };
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
-use crate::transport::adapters::http::session::{ClientInfo, SessionId, SessionManager};
 use crate::transport::error::TransportError;
 
 use super::mcp_handlers::McpHandlers;
@@ -73,14 +72,14 @@ pub struct SseEvent {
     /// JSON data payload
     pub data: Value,
     /// Session ID for correlation
-    pub session_id: SessionId,
+    pub session_id: Uuid,
     /// Timestamp for event ordering
     pub timestamp: DateTime<Utc>,
 }
 
 impl SseEvent {
     /// Create a new SSE event
-    pub fn new(event_type: String, data: Value, session_id: SessionId) -> Self {
+    pub fn new(event_type: String, data: Value, session_id: Uuid) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             event_type,
@@ -119,8 +118,6 @@ pub struct ServerState<
 {
     /// Connection manager for tracking HTTP connections
     pub connection_manager: Arc<HttpConnectionManager>,
-    /// Session manager for handling user sessions
-    pub session_manager: Arc<SessionManager>,
     /// MCP server for processing MCP protocol requests
     pub mcp_handlers: Arc<McpHandlers>,
     /// Server configuration
@@ -265,11 +262,6 @@ where
         serde_json::json!({"jsonrpc": "2.0"})
     };
 
-    // Update session activity
-    if let Err(e) = state.session_manager.update_session_activity(session_id) {
-        tracing::warn!("Failed to update session activity: {}", e);
-    }
-
     Ok(Json(response))
 }
 
@@ -306,7 +298,7 @@ where
     }
 
     // Extract or create session
-    let session_id = if let Some(provided_session_id) = params.session_id {
+    let _session_id = if let Some(provided_session_id) = params.session_id {
         // Try to parse provided session ID
         Uuid::parse_str(&provided_session_id).map_err(|_| {
             (
@@ -375,19 +367,15 @@ where
     }
 
     // Update session activity
-    if let Err(e) = state.session_manager.update_session_activity(session_id) {
-        tracing::warn!("Failed to update session activity: {}", e);
-    }
-
     Ok(sse_builder)
 }
 
 /// Extract session ID from headers or create a new session
 pub async fn extract_or_create_session<A, P, C>(
-    state: &ServerState<A, P, C>,
+    _state: &ServerState<A, P, C>,
     headers: &HeaderMap,
-    peer_addr: SocketAddr,
-) -> Result<SessionId, TransportError>
+    _peer_addr: SocketAddr,
+) -> Result<Uuid, TransportError>
 where
     A: HttpAuthStrategyAdapter + Clone,
     P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
@@ -397,31 +385,19 @@ where
     if let Some(session_header) = headers.get("X-Session-ID") {
         if let Ok(session_str) = session_header.to_str() {
             if let Ok(session_id) = Uuid::parse_str(session_str) {
-                // Validate existing session
-                if state.session_manager.get_session(session_id).is_some() {
-                    return Ok(session_id);
-                }
+                return Ok(session_id);
             }
         }
     }
 
-    // Create new session if none exists or invalid
-    let client_info = ClientInfo {
-        remote_addr: peer_addr,
-        user_agent: headers
-            .get("User-Agent")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string()),
-        client_capabilities: None, // Will be populated during MCP negotiation
-    };
-
-    state.session_manager.create_session(client_info)
+    // Generate new UUID if none exists or invalid
+    Ok(Uuid::new_v4())
 }
 
 /// Process JSON-RPC request with MCP protocol support
 pub async fn process_jsonrpc_request<A, P, C>(
     state: &ServerState<A, P, C>,
-    session_id: SessionId,
+    session_id: Uuid,
     request: JsonRpcRequest,
 ) -> Result<Value, TransportError>
 where
@@ -498,7 +474,7 @@ where
 /// Process JSON-RPC notification (no response expected)
 async fn process_jsonrpc_notification<A, P, C>(
     _state: &ServerState<A, P, C>,
-    _session_id: SessionId,
+    _session_id: Uuid,
     _notification: JsonRpcNotification,
 ) -> Result<(), TransportError>
 where
@@ -549,7 +525,6 @@ where
     C: AuthzContext + Clone,
 {
     let connection_stats = state.connection_manager.get_stats();
-    let session_stats = state.session_manager.get_stats();
 
     let health_data = serde_json::json!({
         "status": "healthy",
@@ -558,10 +533,6 @@ where
             "active": connection_stats.currently_active,
             "total": connection_stats.total_created,
             "limit": connection_stats.max_connections,
-        },
-        "sessions": {
-            "active": session_stats.currently_active,
-            "total": session_stats.total_created,
         },
         "uptime": {
             "status": "operational",
@@ -582,7 +553,6 @@ where
     C: AuthzContext + Clone,
 {
     let connection_stats = state.connection_manager.get_stats();
-    let session_stats = state.session_manager.get_stats();
     let health_result = state.connection_manager.health_check();
 
     let metrics = serde_json::json!({
@@ -599,13 +569,6 @@ where
                 "unhealthy": health_result.unhealthy_connections,
                 "closed": health_result.connections_closed,
             }
-        },
-        "sessions": {
-            "total_created": session_stats.total_created,
-            "currently_active": session_stats.currently_active,
-            "total_requests": session_stats.total_requests,
-            "timeout_cleanups": session_stats.timeout_cleanups,
-            "manual_closures": session_stats.manual_closures,
         }
     });
 

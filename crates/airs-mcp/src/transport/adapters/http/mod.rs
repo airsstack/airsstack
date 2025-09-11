@@ -21,7 +21,6 @@ pub mod context; // NEW: HTTP context for generic MessageHandler pattern
 pub mod engine;
 pub mod handlers; // NEW: Example MessageHandler<HttpContext> implementations
 pub mod parser;
-pub mod session;
 pub mod sse;
 
 pub use auth::OAuth2StrategyAdapter;
@@ -48,11 +47,6 @@ pub type HttpMessageHandler = dyn crate::protocol::MessageHandler<HttpContext>;
 
 /// Type alias for HTTP message context
 pub type HttpMessageContext = crate::protocol::MessageContext<HttpContext>;
-
-pub use session::{
-    extract_last_event_id, extract_session_id, SessionConfig, SessionId, SessionManager,
-    SessionStatsSnapshot,
-};
 
 // SSE transport exports
 pub use sse::{

@@ -71,11 +71,7 @@ use airs_mcp::{
             },
             config::HttpTransportConfig,
             connection_manager::{HttpConnectionManager, HealthCheckConfig},
-            session::{SessionManager, SessionConfig},
         },
-    },
-    correlation::{
-        manager::{CorrelationManager, CorrelationConfig},
     },
 };
 
@@ -754,27 +750,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         health_config, 
     ));
     
-    let correlation_config = CorrelationConfig {
-        default_timeout: chrono::Duration::seconds(30),
-        cleanup_interval: tokio::time::Duration::from_secs(5),
-        max_pending_requests: 10000,
-        enable_tracing: true,
-    };
-    let correlation_manager = Arc::new(
-        CorrelationManager::new(correlation_config).await
-            .map_err(|e| format!("Failed to create correlation manager: {}", e))?
-    );
-    let session_config = SessionConfig {
-        max_idle_time: std::time::Duration::from_secs(3600), // 1 hour
-        cleanup_interval: std::time::Duration::from_secs(300), // 5 minutes
-        max_sessions: 10000,
-        auto_cleanup: true,
-    };
-    let session_manager = Arc::new(SessionManager::new(
-        correlation_manager,
-        session_config,
-    ));
-    
     let processor_config = ProcessorConfig {
         worker_count: 4,
         queue_capacity: 1000,
@@ -821,7 +796,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build the AxumHttpServer with OAuth2 authentication and authorization for MCP
     let mut oauth2_server = AxumHttpServer::new(
         connection_manager,
-        session_manager,
         jsonrpc_processor,
         Arc::new(mcp_handlers_builder.build()),
         http_config.clone(),

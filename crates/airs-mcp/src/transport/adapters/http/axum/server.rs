@@ -39,7 +39,6 @@ use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::adapters::http::engine::{
     HttpEngine, HttpEngineError, HttpMiddleware, McpRequestHandler,
 };
-use crate::transport::adapters::http::session::SessionManager;
 use crate::transport::error::TransportError;
 
 use super::handlers::{create_router, ServerState};
@@ -127,7 +126,6 @@ impl AxumHttpServer<NoAuth> {
     /// Use with_authentication() to add authentication to the server.
     pub async fn new(
         connection_manager: Arc<HttpConnectionManager>,
-        session_manager: Arc<SessionManager>,
         mcp_handlers: Arc<McpHandlers>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
@@ -136,7 +134,6 @@ impl AxumHttpServer<NoAuth> {
 
         let state = ServerState {
             connection_manager,
-            session_manager,
             mcp_handlers,
             config: config.clone(),
             sse_broadcaster,
@@ -157,24 +154,22 @@ impl AxumHttpServer<NoAuth> {
     /// Create a new Axum HTTP server with empty MCP handlers (for testing/development)
     pub async fn new_with_empty_handlers(
         connection_manager: Arc<HttpConnectionManager>,
-        session_manager: Arc<SessionManager>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
 
-        Self::new(connection_manager, session_manager, mcp_handlers, config).await
+        Self::new(connection_manager, mcp_handlers, config).await
     }
 
     /// Create a new Axum HTTP server using a handlers builder
     pub async fn with_handlers(
         connection_manager: Arc<HttpConnectionManager>,
-        session_manager: Arc<SessionManager>,
         handlers_builder: McpHandlersBuilder,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         let mcp_handlers = Arc::new(handlers_builder.build());
 
-        Self::new(connection_manager, session_manager, mcp_handlers, config).await
+        Self::new(connection_manager, mcp_handlers, config).await
     }
 
     /// Add authentication to the server (zero-cost type conversion)
@@ -221,7 +216,6 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -277,7 +271,6 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -328,7 +321,6 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -378,7 +370,6 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -413,7 +404,6 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -453,7 +443,6 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            session_manager: self.state.session_manager,
             mcp_handlers: self.state.mcp_handlers,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
@@ -700,27 +689,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::correlation::manager::{CorrelationConfig, CorrelationManager};
     use crate::transport::adapters::http::connection_manager::HealthCheckConfig;
-    use crate::transport::adapters::http::session::SessionConfig;
 
     async fn create_test_server() -> AxumHttpServer<NoAuth> {
         let connection_manager =
             Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
-        let correlation_manager = Arc::new(
-            CorrelationManager::new(CorrelationConfig::default())
-                .await
-                .unwrap(),
-        );
-        let session_manager = Arc::new(SessionManager::new(
-            correlation_manager,
-            SessionConfig::default(),
-        ));
 
         // Create HTTP transport configuration
         let config = HttpTransportConfig::new();
 
-        AxumHttpServer::new_with_empty_handlers(connection_manager, session_manager, config)
+        AxumHttpServer::new_with_empty_handlers(connection_manager, config)
             .await
             .unwrap()
     }
