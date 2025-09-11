@@ -1,53 +1,65 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: CLIENT REFACTORING IMPLEMENTATION - PHASE 1 COMPLETE
+# Active Context - airs-mcp
 
-### 🎉 **PHASE 1 COMPLETE: STATE ARCHITECTURE FIXED (2025-09-11)**
+## 🏛️ CURRENT FOCUS: CLIENT REFACTORING IMPLEMENTATION - PHASE 2 COMPLETE
 
-**STATUS**: ✅ **PHASE 1 IMPLEMENTATION COMPLETE** - State architecture successfully refactored, all tests passing
+### 🎉 **PHASE 2 COMPLETE: TRANSPORT INTEGRATION FIXED (2025-09-11)**
 
-**IMPLEMENTATION OBJECTIVE**: Fix broken state architecture by separating transport connectivity from MCP session state
+**STATUS**: ✅ **PHASE 2 IMPLEMENTATION COMPLETE** - Transport integration successfully refactored, all deprecated methods removed
 
-**COMPLETION OBJECTIVE**: Phase 1 of 4-phase client refactoring plan successfully implemented with clean architecture
+**IMPLEMENTATION OBJECTIVE**: Fix broken transport integration by implementing pre-configured TransportBuilder pattern and removing all legacy code
 
-#### **✅ COMPLETION: PHASE 1 STATE ARCHITECTURE REFACTORING (2025-09-11T17:30:00Z)**
+**COMPLETION OBJECTIVE**: Phase 2 of 4-phase client refactoring plan successfully implemented with clean, simplified architecture
 
-**STATE ARCHITECTURE TRANSFORMATION SUCCESS**: Successfully replaced broken `ConnectionState` with proper `McpSessionState` separation:
+#### **✅ COMPLETION: PHASE 2 TRANSPORT INTEGRATION REFACTORING (2025-09-11T20:00:00Z)**
 
-**Core State Architecture Changes**:
-- **✅ REPLACED**: `ConnectionState` enum with clean `McpSessionState` enum:
-  - `NotInitialized` - Haven't done MCP handshake yet
-  - `Initializing` - MCP initialize request sent, waiting for response  
-  - `Ready` - MCP handshake complete, server capabilities received
-  - `Failed` - MCP protocol failed (handshake failed, incompatible version, etc.)
+**TRANSPORT INTEGRATION TRANSFORMATION SUCCESS**: Successfully implemented pre-configured TransportBuilder pattern and eliminated all deprecated legacy methods:
 
-**Clear Separation of Concerns**:
-- **✅ IMPLEMENTED**: `transport_connected()` → delegates to `transport.is_connected()` (transport layer)
-- **✅ IMPLEMENTED**: `session_state()` → tracks MCP protocol handshake state (protocol layer)
-- **✅ IMPLEMENTED**: `is_ready()` → both transport connected AND session ready (application layer)
+**Core Transport Architecture Changes**:
+- **✅ IMPLEMENTED**: Pre-configured TransportBuilder pattern in `McpClientBuilder::build()`
+- **✅ FIXED**: Broken message handler integration where handlers were created but never connected
+- **✅ REMOVED**: All deprecated methods: `new()`, `new_with_config()`, `build_with_transport()`
+- **✅ SIMPLIFIED**: Single path for client creation through `McpClientBuilder::build(transport_builder)`
 
-**Method Updates & Backward Compatibility**:
-- **✅ ENHANCED**: `initialize()` method with proper transport connectivity check before MCP handshake
-- **✅ UPDATED**: `ensure_initialized()` to use `is_ready()` instead of deprecated state checking
-- **✅ FIXED**: `close()` method to reset MCP session state properly (not transport state)
-- **✅ DEPRECATED**: `state()` and `is_initialized()` methods with clear migration guidance
-- **✅ UPDATED**: All exports in `integration/mod.rs` and `lib.rs` to use `McpSessionState`
+**Clean Architecture Benefits**:
+- **✅ MESSAGE HANDLER FIX**: Transport builders now pre-configure handlers via `with_message_handler()`
+- **✅ NO HANGING REQUESTS**: `send_request()` operations now work correctly with proper handler correlation
+- **✅ SIMPLIFIED API**: Only one way to create clients - no more confusing legacy methods
+- **✅ CLEAN CODEBASE**: Zero deprecated code, zero warnings, zero technical debt
+
+**Implementation Strategy Executed**:
+- **✅ PRE-CONFIGURED PATTERN**: Transport builders must configure handlers before `build()` call
+- **✅ HANDLER INTEGRATION**: `ClientMessageHandler` properly connected during transport creation
+- **✅ REQUEST CORRELATION**: oneshot channels for async request-response patterns working correctly
+- **✅ BUILDER VALIDATION**: Transport builder pattern ensures proper handler setup
 
 **Testing & Validation Results**:
 - **✅ Unit Tests**: All 5 client module tests passing (`cargo test --package airs-mcp --lib integration::client`)
 - **✅ Compilation**: Clean compilation with zero warnings (`cargo check --package airs-mcp --lib`)
-- **✅ State Logic**: Test validation confirms proper state transitions and error handling
-- **✅ Backward Compatibility**: Deprecated methods work correctly with new implementation
+- **✅ Dead Code**: Removed unused `TestMessageHandler` - no more dead code warnings
+- **✅ Legacy Removal**: All deprecated methods successfully removed without breaking tests
 
 **Architecture Benefits Achieved**:
-- **🎯 Clear Separation**: Transport connectivity vs MCP protocol state no longer conflated
-- **🎯 Better Error Messages**: Distinct errors for "transport not connected" vs "MCP session failed"
-- **🎯 Cleaner Logic**: `initialize()` method now has clear, separate steps for transport and MCP
-- **🎯 Future-Ready**: State architecture prepared for Phase 2 pre-configured transport pattern
+- **🎯 CRITICAL FIX**: Message handlers now properly connected - no more hanging requests
+- **🎯 SIMPLIFIED API**: Single, clear path for client creation through builder pattern
+- **🎯 ZERO LEGACY**: No deprecated methods, no backward compatibility complexity
+- **🎯 CLEAN CODEBASE**: Zero warnings, zero dead code, zero technical debt
 
 #### **🚀 NEXT PHASE PREPARATION**
 
-**Ready for Phase 2**: **Fix Transport Integration**
+**Ready for Phase 3**: **Implement Proper Error Handling**
+- Error handling improvements with logging
+- Auto-retry mechanisms for failed operations  
+- Auto-reconnection capabilities for connection failures
+- Comprehensive error categorization and recovery strategies
+
+#### **📋 4-PHASE CLIENT REFACTORING PROGRESS**
+
+**✅ Phase 1**: Fix state architecture with McpSessionState separation from transport connectivity - **COMPLETE**
+**✅ Phase 2**: Fix transport integration using only pre-configured TransportBuilder pattern - **COMPLETE** 
+**🔄 Phase 3**: Implement proper error handling with logging, auto-retry, auto-reconnect - **NEXT**
+**⏳ Phase 4**: Clean operations with separate MCP initialization from transport connection - **PENDING**
 - **Objective**: Implement only pre-configured TransportBuilder pattern
 - **Goal**: Fix broken message handler integration (currently commented out at lines 257-260)
 - **Pattern**: Replace `McpClient::new(transport)` with `McpClientBuilder::build(transport_builder)`

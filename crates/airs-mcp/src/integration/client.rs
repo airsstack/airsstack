@@ -13,7 +13,9 @@ use tokio::sync::{oneshot, Mutex, RwLock};
 
 use crate::integration::constants::{defaults, methods};
 use crate::integration::McpError;
-use crate::protocol::transport::{MessageContext, MessageHandler, Transport, TransportError};
+use crate::protocol::transport::{
+    MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
+};
 use crate::protocol::RequestId;
 use crate::protocol::{
     CallToolRequest,
@@ -155,12 +157,63 @@ impl McpClientBuilder {
         self
     }
 
-    /// Build the MCP client with the given transport
-    pub async fn build<T: Transport + 'static>(self, transport: T) -> McpResult<McpClient<T>>
+    /// Build the MCP client with the given transport builder (pre-configured pattern)
+    ///
+    /// This is the only supported way to create an MCP client. The transport builder
+    /// must be pre-configured with a message handler before calling this method.
+    /// This ensures proper message correlation for request-response operations.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
+    /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+    /// # async fn example() -> McpResult<()> {
+    /// let client = McpClientBuilder::new()
+    ///     .client_info("my-client", "1.0.0")
+    ///     .build(StdioTransportBuilder::new())
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn build<TB: TransportBuilder + 'static>(
+        self,
+        transport_builder: TB,
+    ) -> McpResult<McpClient<TB::Transport>>
     where
-        T::Error: 'static,
+        TB::Transport: 'static,
+        TB::Error: 'static,
     {
-        McpClient::new_with_config(transport, self.config).await
+        // Create pending requests map
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create client message handler with proper context
+        let handler = Arc::new(ClientMessageHandler {
+            pending_requests: pending_requests.clone(),
+        });
+
+        // Build transport with handler pre-configured (CRITICAL: This fixes the broken pattern!)
+        let mut transport = transport_builder
+            .with_message_handler(handler)
+            .build()
+            .await
+            .map_err(|e| McpError::custom(format!("Failed to build transport: {e}")))?;
+
+        // Start the transport
+        transport
+            .start()
+            .await
+            .map_err(|e| McpError::custom(format!("Failed to start transport: {e}")))?;
+
+        Ok(McpClient {
+            transport: Arc::new(RwLock::new(transport)),
+            config: self.config,
+            mcp_session: Arc::new(RwLock::new(McpSessionState::NotInitialized)),
+            server_capabilities: Arc::new(RwLock::new(None)),
+            resource_cache: Arc::new(RwLock::new(HashMap::new())),
+            tool_cache: Arc::new(RwLock::new(HashMap::new())),
+            prompt_cache: Arc::new(RwLock::new(HashMap::new())),
+            pending_requests,
+        })
     }
 }
 
@@ -234,49 +287,6 @@ pub struct McpClient<T: Transport> {
 }
 
 impl<T: Transport + 'static> McpClient<T> {
-    /// Create a new MCP client with the given transport
-    pub async fn new(transport: T) -> McpResult<Self> {
-        McpClientBuilder::new().build(transport).await
-    }
-
-    /// Create a new MCP client with configuration
-    pub(crate) async fn new_with_config(
-        mut transport: T,
-        config: McpClientConfig,
-    ) -> McpResult<Self>
-    where
-        T::Error: 'static,
-    {
-        // Create pending requests map
-        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
-
-        // TODO(DEBT): Client should use pre-configured transport pattern
-        // For now, we'll need to add set_message_handler back to Transport trait
-        // or implement a ClientTransportBuilder pattern
-        // Create and set message handler
-        let _handler = Arc::new(ClientMessageHandler {
-            pending_requests: pending_requests.clone(),
-        });
-        // transport.set_message_handler(handler); // TODO: Fix this pattern
-
-        // Start the transport
-        transport
-            .start()
-            .await
-            .map_err(|e| McpError::custom(format!("Failed to start transport: {e}")))?;
-
-        Ok(Self {
-            transport: Arc::new(RwLock::new(transport)),
-            config,
-            mcp_session: Arc::new(RwLock::new(McpSessionState::NotInitialized)),
-            server_capabilities: Arc::new(RwLock::new(None)),
-            resource_cache: Arc::new(RwLock::new(HashMap::new())),
-            tool_cache: Arc::new(RwLock::new(HashMap::new())),
-            prompt_cache: Arc::new(RwLock::new(HashMap::new())),
-            pending_requests,
-        })
-    }
-
     /// Initialize connection with the MCP server
     pub async fn initialize(&self) -> McpResult<ServerCapabilities> {
         // 1. Ensure transport is connected
@@ -693,27 +703,7 @@ impl<T: Transport> Drop for McpClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::{JsonRpcMessage, MessageHandler, TransportBuilder};
-    use crate::transport::adapters::stdio::{StdioMessageContext, StdioTransportBuilder};
-
-    // Simple test message handler for integration tests
-    #[derive(Debug)]
-    struct TestMessageHandler;
-
-    #[async_trait]
-    impl MessageHandler<()> for TestMessageHandler {
-        async fn handle_message(&self, _message: JsonRpcMessage, _context: StdioMessageContext) {
-            // Simple test handler - just ignore messages
-        }
-
-        async fn handle_error(&self, _error: TransportError) {
-            // Simple test handler - just ignore errors
-        }
-
-        async fn handle_close(&self) {
-            // Simple test handler - no cleanup needed
-        }
-    }
+    use crate::transport::adapters::stdio::StdioTransportBuilder;
 
     #[test]
     fn test_config_defaults() {
@@ -743,18 +733,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_creation() {
-        // Note: This test requires a mock transport for full testing
-        // For now, we just test the creation logic using the new builder pattern
-        let handler = Arc::new(TestMessageHandler);
-        let transport = StdioTransportBuilder::new()
-            .with_message_handler(handler)
-            .build()
-            .await
-            .unwrap();
-
+        // Test the new pre-configured transport builder pattern
         let client = McpClientBuilder::new()
             .client_info("test", "1.0")
-            .build(transport)
+            .build(StdioTransportBuilder::new())
             .await
             .unwrap();
 
@@ -768,14 +750,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_state_management() {
-        let handler = Arc::new(TestMessageHandler);
-        let transport = StdioTransportBuilder::new()
-            .with_message_handler(handler)
-            .build()
+        // Test with the new pre-configured pattern
+        let client = McpClientBuilder::new()
+            .build(StdioTransportBuilder::new())
             .await
             .unwrap();
-
-        let client = McpClient::new(transport).await.unwrap();
 
         // Initial state should be not initialized
         assert_eq!(
@@ -791,14 +770,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_capability_checking() {
-        let handler = Arc::new(TestMessageHandler);
-        let transport = StdioTransportBuilder::new()
-            .with_message_handler(handler)
-            .build()
+        // Test with the new pre-configured pattern
+        let client = McpClientBuilder::new()
+            .build(StdioTransportBuilder::new())
             .await
             .unwrap();
-
-        let client = McpClient::new(transport).await.unwrap();
 
         // Should return false when no capabilities are set
         let supports_resources = client
