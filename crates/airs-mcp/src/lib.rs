@@ -231,8 +231,8 @@ pub use protocol::{
 
 // Re-export integration types for convenience
 pub use integration::{
-    ConnectionState, IntegrationError, IntegrationResult, McpClient, McpClientBuilder,
-    McpClientConfig, McpError, McpResult, McpServer,
+    IntegrationError, IntegrationResult, McpClient, McpClientBuilder, McpClientConfig, McpError,
+    McpResult, McpServer, McpSessionState,
 };
 
 // Re-export transport types for convenience

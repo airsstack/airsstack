@@ -53,16 +53,16 @@ use crate::protocol::{JsonRpcMessage, JsonRpcRequest, JsonRpcResponse};
 /// Type alias for MCP client results
 pub type McpResult<T> = Result<T, McpError>;
 
-/// Connection state of the MCP client
+/// MCP Protocol Session State (separate from transport connectivity)
 #[derive(Debug, Clone, PartialEq)]
-pub enum ConnectionState {
-    /// Not connected to any server
-    Disconnected,
-    /// Connected but not initialized
-    Connected,
-    /// Fully initialized and ready for operations
-    Initialized,
-    /// Connection failed or lost
+pub enum McpSessionState {
+    /// Haven't done MCP handshake yet
+    NotInitialized,
+    /// MCP initialize request sent, waiting for response
+    Initializing,
+    /// MCP handshake complete, server capabilities received
+    Ready,
+    /// MCP protocol failed (handshake failed, incompatible version, etc.)
     Failed,
 }
 
@@ -219,8 +219,8 @@ pub struct McpClient<T: Transport> {
     transport: Arc<RwLock<T>>,
     /// Client configuration
     config: McpClientConfig,
-    /// Current connection state
-    state: Arc<RwLock<ConnectionState>>,
+    /// Current MCP session state (separate from transport connectivity)
+    mcp_session: Arc<RwLock<McpSessionState>>,
     /// Server capabilities (available after initialization)
     server_capabilities: Arc<RwLock<Option<ServerCapabilities>>>,
     /// Cached resources for efficient access
@@ -268,7 +268,7 @@ impl<T: Transport + 'static> McpClient<T> {
         Ok(Self {
             transport: Arc::new(RwLock::new(transport)),
             config,
-            state: Arc::new(RwLock::new(ConnectionState::Disconnected)),
+            mcp_session: Arc::new(RwLock::new(McpSessionState::NotInitialized)),
             server_capabilities: Arc::new(RwLock::new(None)),
             resource_cache: Arc::new(RwLock::new(HashMap::new())),
             tool_cache: Arc::new(RwLock::new(HashMap::new())),
@@ -279,18 +279,26 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Initialize connection with the MCP server
     pub async fn initialize(&self) -> McpResult<ServerCapabilities> {
-        // Check current state
+        // 1. Ensure transport is connected
+        if !self.transport_connected().await {
+            return Err(McpError::custom("Transport not connected"));
+        }
+
+        // 2. Check current MCP session state
         {
-            let state = self.state.read().await;
-            match *state {
-                ConnectionState::Initialized => return Err(McpError::already_connected()),
-                ConnectionState::Failed => return Err(McpError::custom("Connection failed")),
-                _ => {}
+            let session_state = self.mcp_session.read().await;
+            match *session_state {
+                McpSessionState::Ready => return Err(McpError::already_connected()),
+                McpSessionState::Initializing => {
+                    return Err(McpError::custom("Initialization already in progress"))
+                }
+                McpSessionState::Failed => return Err(McpError::custom("MCP session failed")),
+                McpSessionState::NotInitialized => {}
             }
         }
 
-        // Update state to connected
-        *self.state.write().await = ConnectionState::Connected;
+        // 3. Update MCP session state to initializing
+        *self.mcp_session.write().await = McpSessionState::Initializing;
 
         // Create initialization request
         let request = InitializeRequest::with_version(
@@ -329,23 +337,41 @@ impl<T: Transport + 'static> McpClient<T> {
             .map_err(|e| McpError::invalid_response(format!("Invalid server capabilities: {e}")))?;
         *self.server_capabilities.write().await = Some(server_caps.clone());
 
-        // Update state to initialized
-        *self.state.write().await = ConnectionState::Initialized;
+        // 4. Update MCP session state to ready
+        *self.mcp_session.write().await = McpSessionState::Ready;
 
         Ok(server_caps)
     }
 
-    /// Get current connection state
-    pub async fn state(&self) -> ConnectionState {
-        self.state.read().await.clone()
+    /// Check if transport is connected
+    pub async fn transport_connected(&self) -> bool {
+        self.transport.read().await.is_connected()
     }
 
-    /// Check if client is initialized and ready for operations
+    /// Get current MCP session state
+    pub async fn session_state(&self) -> McpSessionState {
+        self.mcp_session.read().await.clone()
+    }
+
+    /// Check if client is ready for MCP operations
+    pub async fn is_ready(&self) -> bool {
+        self.transport_connected().await
+            && matches!(self.session_state().await, McpSessionState::Ready)
+    }
+
+    /// Get current connection state (deprecated - use session_state() instead)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use session_state() instead for MCP protocol state"
+    )]
+    pub async fn state(&self) -> McpSessionState {
+        self.session_state().await
+    }
+
+    /// Check if client is initialized and ready for operations (deprecated - use is_ready() instead)
+    #[deprecated(since = "0.2.0", note = "Use is_ready() instead")]
     pub async fn is_initialized(&self) -> bool {
-        matches!(
-            self.state.read().await.clone(),
-            ConnectionState::Initialized
-        )
+        self.is_ready().await
     }
 
     /// Get server capabilities (available after initialization)
@@ -355,7 +381,7 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Ensure client is initialized, returning an error if not
     async fn ensure_initialized(&self) -> McpResult<()> {
-        if !self.is_initialized().await {
+        if !self.is_ready().await {
             return Err(McpError::NotConnected);
         }
         Ok(())
@@ -590,7 +616,10 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Close the connection to the server
     pub async fn close(&self) -> McpResult<()> {
-        *self.state.write().await = ConnectionState::Disconnected;
+        // Reset MCP session state
+        *self.mcp_session.write().await = McpSessionState::NotInitialized;
+
+        // Close transport
         let mut transport = self.transport.write().await;
         transport
             .close()
@@ -665,7 +694,7 @@ impl<T: Transport> Drop for McpClient<T> {
 mod tests {
     use super::*;
     use crate::protocol::{JsonRpcMessage, MessageHandler, TransportBuilder};
-    use crate::transport::adapters::stdio::{StdioTransportBuilder, StdioMessageContext};
+    use crate::transport::adapters::stdio::{StdioMessageContext, StdioTransportBuilder};
 
     // Simple test message handler for integration tests
     #[derive(Debug)]
@@ -722,15 +751,18 @@ mod tests {
             .build()
             .await
             .unwrap();
-            
+
         let client = McpClientBuilder::new()
             .client_info("test", "1.0")
             .build(transport)
             .await
             .unwrap();
 
-        assert_eq!(client.state().await, ConnectionState::Disconnected);
-        assert!(!client.is_initialized().await);
+        assert_eq!(
+            client.session_state().await,
+            McpSessionState::NotInitialized
+        );
+        assert!(!client.is_ready().await);
         assert!(client.server_capabilities().await.is_none());
     }
 
@@ -742,12 +774,15 @@ mod tests {
             .build()
             .await
             .unwrap();
-            
+
         let client = McpClient::new(transport).await.unwrap();
 
-        // Initial state should be disconnected
-        assert_eq!(client.state().await, ConnectionState::Disconnected);
-        assert!(!client.is_initialized().await);
+        // Initial state should be not initialized
+        assert_eq!(
+            client.session_state().await,
+            McpSessionState::NotInitialized
+        );
+        assert!(!client.is_ready().await);
 
         // Operations should fail when not initialized
         let result = client.list_resources().await;
@@ -762,7 +797,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-            
+
         let client = McpClient::new(transport).await.unwrap();
 
         // Should return false when no capabilities are set
