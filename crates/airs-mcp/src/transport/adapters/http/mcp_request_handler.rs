@@ -5,7 +5,6 @@
 //! to provide type-safe provider injection while maintaining zero runtime overhead.
 
 // Layer 1: Standard library imports
-use std::collections::HashMap;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
@@ -14,11 +13,10 @@ use serde_json::Value;
 // Layer 3: Internal module imports
 use crate::integration::LoggingHandler;
 use crate::protocol::{
-    CallToolResult, GetPromptResult, InitializeRequest, InitializeResponse, JsonRpcRequest,
-    JsonRpcResponse, ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult,
-    ListToolsResult, LoggingCapabilities, PromptCapabilities, ReadResourceResult,
-    ResourceCapabilities, ServerCapabilities, ServerInfo, SubscribeResourceRequest,
-    ToolCapabilities, UnsubscribeResourceRequest,
+    CallToolRequest, GetPromptRequest, GetPromptResult, InitializeRequest, InitializeResponse,
+    JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig, PromptCapabilities,
+    ReadResourceRequest, ReadResourceResult, ResourceCapabilities, ServerCapabilities, ServerInfo,
+    SetLoggingRequest, SubscribeResourceRequest, ToolCapabilities, UnsubscribeResourceRequest,
 };
 use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 use crate::transport::adapters::http::engine::{
@@ -143,23 +141,42 @@ where
         request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         // Parse InitializeRequest from request.params
-        let _init_request: InitializeRequest =
+        let init_request: InitializeRequest =
             serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
                 HttpEngineError::Engine {
                     message: format!("Invalid initialization request: {e}"),
                 }
             })?;
 
-        // Create initialize response
-        let capabilities_value = serde_json::to_value(&self.server_capabilities).map_err(|e| {
+        // Validate protocol version compatibility
+        let current_version = crate::protocol::ProtocolVersion::current();
+        if !current_version.is_compatible_with(&init_request.protocol_version) {
+            return Err(HttpEngineError::Engine {
+                message: format!(
+                    "Protocol version mismatch: client version '{}', server version '{}'",
+                    init_request.protocol_version.as_str(),
+                    current_version.as_str()
+                ),
+            });
+        }
+
+        // TODO(ENHANCEMENT): Store client capabilities for later use in session
+        // For now, we acknowledge the client capabilities but don't store them
+        // In a full implementation, we would:
+        // 1. Store init_request.capabilities in session context
+        // 2. Use client capabilities to optimize responses
+        // 3. Validate that client supports required features
+
+        // Return server capabilities based on configured providers
+        let capabilities_json = serde_json::to_value(&self.server_capabilities).map_err(|e| {
             HttpEngineError::Engine {
                 message: format!("Failed to serialize server capabilities: {e}"),
             }
         })?;
 
         let response = InitializeResponse {
-            protocol_version: crate::protocol::ProtocolVersion::current(),
-            capabilities: capabilities_value,
+            protocol_version: current_version,
+            capabilities: capabilities_json,
             server_info: self.server_info.clone(),
         };
 
@@ -183,10 +200,10 @@ where
                         message: format!("Resource provider error: {e}"),
                     })?;
 
-            let result = ListResourcesResult::new(resources);
-            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to serialize resources: {e}"),
-            })
+            // Return direct result structure to match original implementation
+            Ok(serde_json::json!({
+                "resources": resources
+            }))
         } else {
             Err(HttpEngineError::Engine {
                 message: "No resource provider configured".to_string(),
@@ -201,21 +218,20 @@ where
         request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.resource_provider {
-            // Extract URI from params
-            let params = request.params.unwrap_or_default();
-            let uri = params.get("uri").and_then(|v| v.as_str()).ok_or_else(|| {
-                HttpEngineError::Engine {
-                    message: "Missing or invalid 'uri' parameter".to_string(),
-                }
-            })?;
+            // Parse ReadResourceRequest from request.params
+            let read_request: ReadResourceRequest =
+                serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                    HttpEngineError::Engine {
+                        message: format!("Invalid read resource request: {e}"),
+                    }
+                })?;
 
-            let contents =
-                provider
-                    .read_resource(uri)
-                    .await
-                    .map_err(|e| HttpEngineError::Engine {
-                        message: format!("Resource provider error: {e}"),
-                    })?;
+            let contents = provider
+                .read_resource(read_request.uri.as_str())
+                .await
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Resource provider error: {e}"),
+                })?;
 
             let result = ReadResourceResult::new(contents);
             serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
@@ -242,10 +258,10 @@ where
                     message: format!("Tool provider error: {e}"),
                 })?;
 
-            let result = ListToolsResult::new(tools);
-            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to serialize tools: {e}"),
-            })
+            // Return direct result structure to match original implementation
+            Ok(serde_json::json!({
+                "tools": tools
+            }))
         } else {
             Err(HttpEngineError::Engine {
                 message: "No tool provider configured".to_string(),
@@ -260,33 +276,34 @@ where
         request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.tool_provider {
-            let params = request.params.unwrap_or_default();
+            // Parse CallToolRequest from request.params
+            let call_request: CallToolRequest =
+                serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                    HttpEngineError::Engine {
+                        message: format!("Invalid call tool request: {e}"),
+                    }
+                })?;
 
-            // Extract name from params
-            let name = params.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
-                HttpEngineError::Engine {
-                    message: "Missing or invalid 'name' parameter".to_string(),
+            match provider
+                .call_tool(&call_request.name, call_request.arguments)
+                .await
+            {
+                Ok(content) => {
+                    // Return success result with content and isError: false
+                    Ok(serde_json::json!({
+                        "content": content,
+                        "isError": false
+                    }))
                 }
-            })?;
-
-            // Extract arguments from params (default to empty object if not provided)
-            let arguments = params
-                .get("arguments")
-                .cloned()
-                .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
-
-            let contents =
-                provider
-                    .call_tool(name, arguments)
-                    .await
-                    .map_err(|e| HttpEngineError::Engine {
-                        message: format!("Tool provider error: {e}"),
-                    })?;
-
-            let result = CallToolResult::success(contents);
-            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to serialize tool result: {e}"),
-            })
+                Err(e) => {
+                    // Tool provider errors are returned as successful results with isError flag
+                    Ok(serde_json::json!({
+                        "content": [],
+                        "isError": true,
+                        "errorMessage": e.to_string()
+                    }))
+                }
+            }
         } else {
             Err(HttpEngineError::Engine {
                 message: "No tool provider configured".to_string(),
@@ -308,10 +325,10 @@ where
                     message: format!("Prompt provider error: {e}"),
                 })?;
 
-            let result = ListPromptsResult::new(prompts);
-            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to serialize prompts: {e}"),
-            })
+            // Return direct result structure to match original implementation
+            Ok(serde_json::json!({
+                "prompts": prompts
+            }))
         } else {
             Err(HttpEngineError::Engine {
                 message: "No prompt provider configured".to_string(),
@@ -326,31 +343,19 @@ where
         request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.prompt_provider {
-            let params = request.params.unwrap_or_default();
-
-            // Extract name from params
-            let name = params.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
-                HttpEngineError::Engine {
-                    message: "Missing or invalid 'name' parameter".to_string(),
-                }
-            })?;
-
-            // Extract arguments from params (default to empty map if not provided)
-            let arguments = params
-                .get("arguments")
-                .and_then(|v| v.as_object())
-                .map(|obj| {
-                    obj.iter()
-                        .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-                        .collect::<HashMap<String, String>>()
-                })
-                .unwrap_or_default();
-
-            let (description, messages) =
-                provider.get_prompt(name, arguments).await.map_err(|e| {
+            // Parse GetPromptRequest from request.params
+            let prompt_request: GetPromptRequest =
+                serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
                     HttpEngineError::Engine {
-                        message: format!("Prompt provider error: {e}"),
+                        message: format!("Invalid get prompt request: {e}"),
                     }
+                })?;
+
+            let (description, messages) = provider
+                .get_prompt(&prompt_request.name, prompt_request.arguments)
+                .await
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Prompt provider error: {e}"),
                 })?;
 
             let result = GetPromptResult::new(Some(description), messages);
@@ -379,10 +384,10 @@ where
                         message: format!("Resource provider error: {e}"),
                     })?;
 
-            let result = ListResourceTemplatesResult::new(resource_templates);
-            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to serialize resource templates result: {e}"),
-            })
+            // Return direct result structure to match original implementation (camelCase field name)
+            Ok(serde_json::json!({
+                "resourceTemplates": resource_templates
+            }))
         } else {
             Err(HttpEngineError::Engine {
                 message: "No resource provider configured".to_string(),
@@ -410,7 +415,7 @@ where
                     message: format!("Resource provider error: {e}"),
                 })?;
 
-            // Return empty success result for subscribe operations
+            // Return empty result for subscribe operations (matches original implementation)
             Ok(serde_json::json!({}))
         } else {
             Err(HttpEngineError::Engine {
@@ -439,7 +444,7 @@ where
                     message: format!("Resource provider error: {e}"),
                 })?;
 
-            // Return empty success result for unsubscribe operations
+            // Return empty result for unsubscribe operations (matches original implementation)
             Ok(serde_json::json!({}))
         } else {
             Err(HttpEngineError::Engine {
@@ -455,24 +460,35 @@ where
         request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref handler) = self.logging_handler {
-            let params = request.params.unwrap_or_default();
-
-            // Extract level from params - this should be a LoggingConfig object
-            let logging_config =
-                serde_json::from_value(params).map_err(|e| HttpEngineError::Engine {
-                    message: format!("Invalid set logging request: {e}"),
+            // Parse SetLoggingRequest from request.params
+            let logging_request: SetLoggingRequest =
+                serde_json::from_value(request.params.unwrap_or_default()).map_err(|e| {
+                    HttpEngineError::Engine {
+                        message: format!("Invalid set logging request: {e}"),
+                    }
                 })?;
 
-            let result =
-                handler
-                    .set_logging(logging_config)
-                    .await
-                    .map_err(|e| HttpEngineError::Engine {
-                        message: format!("Logging handler error: {e}"),
-                    })?;
-
-            // Return success response with the result
-            Ok(serde_json::json!({ "success": result }))
+            match handler
+                .set_logging(LoggingConfig {
+                    level: logging_request.level,
+                })
+                .await
+            {
+                Ok(success) => {
+                    // Return success response with proper JSON-RPC structure
+                    Ok(serde_json::json!({
+                        "success": success,
+                        "message": if success {
+                            "Logging configuration updated"
+                        } else {
+                            "Failed to update logging configuration"
+                        }
+                    }))
+                }
+                Err(e) => Err(HttpEngineError::Engine {
+                    message: format!("Logging handler error: {e}"),
+                }),
+            }
         } else {
             Err(HttpEngineError::Engine {
                 message: "No logging handler configured".to_string(),
@@ -548,7 +564,7 @@ where
         match response_mode {
             ResponseMode::Json => Ok(HttpResponse::json(response_body)),
             ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
-            ResponseMode::Streaming => Ok(HttpResponse::json(response_body)), // Default to JSON for now
+            ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
         }
     }
 }

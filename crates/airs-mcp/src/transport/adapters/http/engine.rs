@@ -126,6 +126,24 @@ impl HttpResponse {
         }
     }
 
+    /// Create a streaming response (chunked transfer encoding)
+    pub fn streaming(body: Vec<u8>) -> Self {
+        let mut headers = std::collections::HashMap::new();
+        headers.insert(
+            "content-type".to_string(),
+            "application/octet-stream".to_string(),
+        );
+        headers.insert("transfer-encoding".to_string(), "chunked".to_string());
+        headers.insert("cache-control".to_string(), "no-cache".to_string());
+
+        Self {
+            body,
+            status: 200,
+            headers,
+            mode: ResponseMode::Streaming,
+        }
+    }
+
     /// Create an error response
     pub fn error(status: u16, message: &str) -> Self {
         let body = format!(r#"{{"error": "{message}"}}"#).into_bytes();
