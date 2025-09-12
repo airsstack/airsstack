@@ -65,6 +65,68 @@ impl<E: HttpEngine> HttpTransport<E> {
 }
 ```
 
+### Generic Transport Adapter Pattern
+
+**The Architectural Challenge**: We need to connect two different architectural patterns:
+
+1. **HttpEngine Architecture**: HTTP server lifecycle (bind, start, handle requests)
+2. **Transport Trait**: Message-based communication (send/receive bytes)
+
+**Generic Transport Solution**: `HttpTransport<E: HttpEngine>` wraps an HttpEngine inside a Transport-compatible interface, solving the impedance mismatch between HTTP request/response semantics and Transport's message-based semantics.
+
+**Implementation Architecture**:
+```rust
+pub struct HttpTransport<E: HttpEngine> {
+    engine: E,                          // Zero-cost generic wrapping
+    message_queue: MessageQueue,        // Coordinate send/receive with HTTP
+    server_handle: Option<JoinHandle<()>>,
+    session_manager: SessionManager,    // Handle concurrent HTTP sessions
+}
+
+impl<E: HttpEngine> Transport for HttpTransport<E> {
+    async fn send(&mut self, message: Vec<u8>) -> Result<(), TransportError> {
+        // HTTP Server mode: Queue response for current session
+        // HTTP Client mode: Make HTTP request with message as body
+        self.message_queue.queue_outgoing(message).await
+    }
+    
+    async fn receive(&mut self) -> Result<Vec<u8>, TransportError> {
+        // HTTP Server mode: Wait for next incoming HTTP request body
+        // HTTP Client mode: Wait for HTTP response body
+        self.message_queue.wait_incoming().await
+    }
+    
+    async fn start(&mut self) -> Result<(), TransportError> {
+        // Delegate to engine lifecycle: bind() + start()
+        // But manage message queue coordination
+        self.engine.bind(self.config.bind_address).await?;
+        let handle = tokio::spawn(async move {
+            self.engine.start().await
+        });
+        self.server_handle = Some(handle);
+        Ok(())
+    }
+}
+```
+
+**Session Coordination Strategy**:
+- **Multiple HTTP Sessions**: Each HTTP request creates a temporary session context
+- **Transport Semantics**: Single send/receive stream expected by McpServer
+- **Coordination Layer**: MessageQueue coordinates between Transport's linear expectations and HTTP's concurrent reality
+
+**Error Mapping**:
+```rust
+impl From<HttpEngineError> for TransportError {
+    fn from(error: HttpEngineError) -> Self {
+        match error {
+            HttpEngineError::BindFailed => TransportError::Connection { message: "HTTP bind failed".to_string() },
+            HttpEngineError::RequestFailed => TransportError::Protocol { message: "HTTP request failed".to_string() },
+            // ... complete error mapping
+        }
+    }
+}
+```
+
 ### Direct MCP Integration Pattern
 
 **Eliminate JSON-RPC Layer**:
@@ -133,10 +195,19 @@ impl HttpTransportBuilder<AxumHttpServer> {
 - **Workspace Compliance**: Satisfies §5.1 (no `Box<dyn Trait>`)
 
 ### Architecture Alignment
-- **McpServer Integration**: `HttpTransport<E>` implements `Transport` trait
-- **Clean Abstractions**: Proper separation between generic and concrete layers
+- **McpServer Integration**: `HttpTransport<E>` implements `Transport` trait for seamless integration
+- **Generic Transport Pattern**: Clean adapter that wraps HttpEngine without sacrificing performance
+- **Clean Abstractions**: Proper separation between HTTP engine specifics and Transport interface
 - **Builder Pattern**: Consistent configuration across all layers
-- **Future Proof**: Easy extension for new engine implementations
+- **Future Proof**: Easy extension for new engine implementations (WebSocket, gRPC, etc.)
+
+## Generic Transport Benefits
+
+### Architectural Advantages
+- **Impedance Mismatch Resolution**: Cleanly adapts HTTP request/response to message-based Transport semantics
+- **Session Management**: Handles concurrent HTTP sessions through unified Transport interface
+- **Zero-Cost Abstraction**: Generic wrapping with no runtime overhead
+- **Engine Agnostic**: Works with any HttpEngine implementation (Axum, Warp, Hyper)
 
 ## Usage Patterns
 
@@ -195,10 +266,11 @@ server.start().await?;
 2. Update router to use `Extension<AxumMcpRequestHandler>`
 3. Simplify `handle_mcp_request()` to direct delegation
 
-### Phase 3: Transport Layer
-1. Implement `HttpTransport<E: HttpEngine>` with generics
+### Phase 3: Generic Transport Layer
+1. Implement `HttpTransport<E: HttpEngine>` with generic wrapping
 2. Add `Transport` trait implementation for `McpServer` compatibility
-3. Create `HttpTransportBuilder<E>` with engine-specific methods
+3. Implement message queue and session coordination for HTTP semantics adaptation
+4. Create `HttpTransportBuilder<E>` with engine-specific methods
 
 ### Phase 4: Cleanup
 1. Delete `mcp_operations.rs`, `mcp_handlers.rs`

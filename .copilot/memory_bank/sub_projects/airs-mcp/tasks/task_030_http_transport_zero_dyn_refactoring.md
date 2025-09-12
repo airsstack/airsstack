@@ -39,15 +39,18 @@ Through detailed architectural analysis, we identified several critical issues w
 - [ ] **Direct Handler Usage**: Simplify `handle_mcp_request()` to delegate directly to handler
 
 ### Phase 4: Generic HttpTransport & Builder
-- [ ] **Generic HttpTransport**: `HttpTransport<E: HttpEngine>` with associated handler type
+- [ ] **Generic HttpTransport**: `HttpTransport<E: HttpEngine>` with associated handler type  
 - [ ] **Transport Trait Implementation**: Implement `Transport` for `McpServer` compatibility
 - [ ] **Generic Builder**: `HttpTransportBuilder<E>` with engine-specific configuration methods
-- [ ] **Pre-configured Builders**: OAuth2, custom auth builder methods for common patterns
+- [ ] **Engine Integration**: Bridge HttpEngine architecture to high-level Transport abstraction
 
-### Phase 5: Authentication Integration
+### Phase 5: Authentication Integration  
 - [ ] **Engine-Layer Auth**: Keep existing AxumHttpServer authentication builder methods
 - [ ] **Builder Delegation**: HttpTransportBuilder delegates auth config to engine builders
 - [ ] **Factory Methods**: `with_oauth2_engine()`, `with_custom_auth_engine()` for common patterns
+- [ ] **Pre-configured Builders**: OAuth2, custom auth builder methods for common patterns
+
+### Phase 6: Legacy Component Removal & Integration
 - [ ] **Manual Configuration**: Direct engine access for advanced scenarios
 
 ### Phase 6: Legacy Component Removal & Integration
@@ -72,15 +75,15 @@ Through detailed architectural analysis, we identified several critical issues w
 | 3.1 | Remove McpHandlers from ServerState | not_started | 2025-09-12 | Pending Phase 3 implementation |
 | 3.2 | Update AxumHttpServer constructor | not_started | 2025-09-12 | Pending Phase 3 implementation |
 | 3.3 | Simplify router and handlers | not_started | 2025-09-12 | Pending Phase 3 implementation |
-| 4.1 | Generic HttpTransport implementation | not_started | 2025-09-12 | Pending Phase 4 implementation |
-| 4.2 | Transport trait implementation | not_started | 2025-09-12 | Pending Phase 4 implementation |
-| 4.3 | Generic HttpTransportBuilder | not_started | 2025-09-12 | Pending Phase 4 implementation |
-| 5.1 | Preserve AxumHttpServer auth builders | not_started | 2025-09-12 | Pending Phase 5 implementation |
-| 5.2 | HttpTransportBuilder auth delegation | not_started | 2025-09-12 | Pending Phase 5 implementation |
-| 5.3 | Pre-configured engine builders | not_started | 2025-09-12 | Pending Phase 5 implementation |
-| 6.1 | Delete legacy components | not_started | 2025-09-12 | Pending Phase 6 implementation |
-| 6.2 | Update examples and documentation | not_started | 2025-09-12 | Pending Phase 6 implementation |
-| 6.3 | Validate McpServer integration | not_started | 2025-09-12 | Pending Phase 6 implementation |
+| 4.1 | Generic HttpTransport<E: HttpEngine> implementation | not_started | 2025-09-12 | Ready for Phase 4 - Bridge engine architecture to Transport trait |
+| 4.2 | Transport trait implementation for McpServer compatibility | not_started | 2025-09-12 | Ready for Phase 4 - Enable McpServer<T> integration |
+| 4.3 | Generic HttpTransportBuilder<E> with engine configuration | not_started | 2025-09-12 | Ready for Phase 4 - Engine-specific configuration methods |
+| 5.1 | Preserve AxumHttpServer auth builders | not_started | 2025-09-12 | Pending Phase 5 - Keep existing authentication patterns |
+| 5.2 | HttpTransportBuilder auth delegation | not_started | 2025-09-12 | Pending Phase 5 - Delegate auth config to engine builders |
+| 5.3 | Pre-configured engine builders | not_started | 2025-09-12 | Pending Phase 5 - Factory methods for common auth patterns |
+| 6.1 | Delete legacy components | not_started | 2025-09-12 | Pending Phase 6 - Remove mcp_operations.rs and unused code |
+| 6.2 | Update examples and documentation | not_started | 2025-09-12 | Pending Phase 6 - Refresh all examples and docs |
+| 6.3 | Validate McpServer integration | not_started | 2025-09-12 | Pending Phase 6 - Final integration testing |
 
 ## Progress Log
 
