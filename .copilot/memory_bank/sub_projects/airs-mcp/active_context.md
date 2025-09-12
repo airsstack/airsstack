@@ -31,17 +31,25 @@
 - Type-safe provider injection with compile-time validation
 - Builder supports with_* methods for each provider type
 
-### 🔄 **PHASE 2 ACTIVE: DIRECT MCP HANDLER IMPLEMENTATION (Started)**
+### 🔄 **PHASE 2 ACTIVE: DIRECT MCP HANDLER IMPLEMENTATION (Started - Planning Complete)**
 
 **🔄 Direct MCP Processing (Subtask 2.1 - In Progress)**:
 - AxumMcpRequestHandler now processes MCP requests directly
 - Eliminated JSON-RPC intermediary layer for better performance
 - Still need to complete migration of all logic from mcp_operations.rs
 
+**📋 Migration Planning Complete (Subtask 2.2 - Pending Approval)**:
+- **Comprehensive Analysis**: 11 MCP operation functions identified for migration (~500 lines)
+- **Current State**: 8 handler stubs exist, 3 additional handlers needed
+- **Migration Scope**: Complete logic preservation with zero shortcuts
+- **Critical Requirements**: Identical behavior, complete error handling, provider type safety
+- **Implementation Plan**: 4-step migration strategy documented
+- **Status**: Awaiting permission to proceed with comprehensive migration
+
 **⏳ Next Steps**:
-- **Subtask 2.2**: Complete migration of MCP logic from mcp_operations.rs to AxumMcpRequestHandler
-- **Phase 3**: AxumHttpServer simplification
-- **Phase 4**: Generic HttpTransport & Builder implementation
+- **Pending**: Approval for Phase 2 comprehensive migration plan
+- **After Approval**: Begin Step 1 - Extend AxumMcpRequestHandler with missing methods
+- **Following**: Complete migration of all 11 MCP operations with full logic preservation
 
 ### 📊 **QUALITY GATES ACHIEVED**:
 - ✅ **Zero compilation warnings**: `cargo check --workspace` passes

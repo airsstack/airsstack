@@ -58,7 +58,7 @@ Through detailed architectural analysis, we identified several critical issues w
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 35%
+**Overall Status:** in_progress - 37%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -67,7 +67,7 @@ Through detailed architectural analysis, we identified several critical issues w
 | 1.2 | Generic AxumMcpRequestHandler with provider types | complete | 2025-09-12 | ✅ Implemented with R, T, P, L type parameters |
 | 1.3 | Default provider implementations | complete | 2025-09-12 | ✅ NoResourceProvider, NoToolProvider, etc. in defaults.rs |
 | 2.1 | Direct MCP processing without JSON-RPC layer | in_progress | 2025-09-12 | 🔄 AxumMcpRequestHandler processes MCP directly |
-| 2.2 | Migrate logic from mcp_operations.rs | not_started | 2025-09-12 | Ready for implementation |
+| 2.2 | Migrate logic from mcp_operations.rs | pending | 2025-09-12 | 📋 Detailed plan complete - 11 functions scope analyzed |
 | 2.3 | Generic builder pattern for handler | complete | 2025-09-12 | ✅ AxumMcpRequestHandlerBuilder with type refinement |
 | 3.1 | Remove McpHandlers from ServerState | not_started | 2025-09-12 | Pending Phase 3 implementation |
 | 3.2 | Update AxumHttpServer constructor | not_started | 2025-09-12 | Pending Phase 3 implementation |
@@ -84,7 +84,50 @@ Through detailed architectural analysis, we identified several critical issues w
 
 ## Progress Log
 
-### 2025-09-12 - Phase 1 Completion
+### 2025-09-12 - Phase 2 Implementation Plan Documentation
+- 📋 **Detailed Phase 2 Analysis Complete**: Comprehensive analysis of mcp_operations.rs migration scope
+- **Migration Scope Identified**: 11 MCP operation functions need complete migration (~500 lines of logic)
+- **Current vs Target State**:
+  - **mcp_operations.rs**: 11 functions with complete JSON-RPC + provider interaction logic
+  - **AxumMcpRequestHandler**: 8 handler stubs, need 3 additional handlers + complete logic migration
+  - **Gap**: All complex logic, error handling, and provider interactions need migration
+- **Critical Requirements Documented**: Zero shortcuts, complete logic preservation, identical behavior
+- **Permission Required**: Awaiting approval for comprehensive migration implementation
+
+#### **Phase 2 Detailed Implementation Plan**:
+
+**MIGRATION SCOPE - 11 Functions to Migrate**:
+1. `process_mcp_initialize` → `handle_initialize` (existing stub)
+2. `process_mcp_list_resources` → `handle_list_resources` (existing stub)  
+3. `process_mcp_list_resource_templates` → NEW `handle_list_resource_templates`
+4. `process_mcp_read_resource` → `handle_read_resource` (existing stub)
+5. `process_mcp_subscribe_resource` → NEW `handle_subscribe_resource`
+6. `process_mcp_unsubscribe_resource` → NEW `handle_unsubscribe_resource`
+7. `process_mcp_list_tools` → `handle_list_tools` (existing stub)
+8. `process_mcp_call_tool` → `handle_call_tool` (existing stub)
+9. `process_mcp_list_prompts` → `handle_list_prompts` (existing stub)
+10. `process_mcp_get_prompt` → `handle_get_prompt` (existing stub)
+11. `process_mcp_set_logging` → `handle_set_logging` (existing stub)
+
+**IMPLEMENTATION STEPS**:
+- **Step 1**: Extend AxumMcpRequestHandler with 3 missing method handlers
+- **Step 2**: Migrate complete logic with zero shortcuts (all ~500 lines)
+  - Full parameter parsing (no simplifications)
+  - Complete error handling (all error cases)
+  - Provider interaction logic (all provider methods)
+  - Response formatting (proper MCP response types)
+  - JSON-RPC compliance (maintain protocol compliance)
+- **Step 3**: Handle provider type safety with generic types `<R, T, P, L>`
+- **Step 4**: Response type migration using proper MCP protocol types
+
+**CRITICAL REQUIREMENTS - NO SHORTCUTS**:
+- Every line of logic from mcp_operations.rs must be preserved or improved
+- All error cases must be handled identically
+- All provider method calls must be migrated exactly
+- All response formats must match current behavior exactly
+- JSON-RPC protocol compliance must be maintained perfectly
+
+**NEXT ACTION**: Awaiting permission to proceed with comprehensive migration
 - ✅ **Completed subtask 1.1**: HttpEngine trait redesigned with associated Handler type
   - Removed `Arc<dyn McpRequestHandler>` pattern from HttpEngine trait
   - Added `type Handler: McpRequestHandler + Send + Sync + 'static` associated type
