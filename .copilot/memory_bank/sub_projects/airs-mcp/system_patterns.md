@@ -22,7 +22,99 @@
 - **Security Boundaries**: Client-host-server isolation, token audience validation, PKCE implementation
 - **Transport Integration**: OAuth middleware patterns with HTTP Streamable transport compatibility
 
-## Transport Layer Architecture Pattern ✅ COMPLETE (2025-09-10)
+## HTTP Transport Architecture Patterns
+
+### Zero-Dyn Generic Architecture (TASK-030)
+
+**Pattern**: Eliminate all `Arc<dyn Trait>` patterns using associated types and generic constraints for zero-cost abstractions.
+
+**Implementation**:
+```rust
+// Associated Types Pattern
+trait HttpEngine {
+    type Handler: McpRequestHandler;  // No dyn!
+    fn register_mcp_handler(&mut self, handler: Self::Handler);
+}
+
+// Generic Transport  
+struct HttpTransport<E: HttpEngine> {
+    engine: E,  // Concrete type
+}
+
+// Generic Handler with Provider Types
+struct AxumMcpRequestHandler<R, T, P, L> 
+where R: ResourceProvider, T: ToolProvider, P: PromptProvider, L: LoggingHandler
+{
+    resource_provider: Option<R>,  // Concrete types
+    tool_provider: Option<T>,
+    prompt_provider: Option<P>, 
+    logging_handler: Option<L>,
+}
+```
+
+**Benefits**: Compile-time optimization, zero dynamic dispatch, type safety, workspace standards compliance.
+
+### Direct MCP Integration Pattern 
+
+**Pattern**: Eliminate JSON-RPC intermediary layer for direct HTTP → MCP processing.
+
+**Current (Problematic)**:
+```
+HTTP Request → JSON-RPC Parse → mcp_operations.rs → MCP Response
+```
+
+**New (Direct)**:
+```
+HTTP Request → AxumMcpRequestHandler → MCP Response
+```
+
+**Implementation**: Single `handle_request()` method processes HTTP directly to MCP without serialization overhead.
+
+### Engine-Layer Authentication Pattern
+
+**Pattern**: Keep authentication/authorization at concrete engine implementations, not in generic abstractions.
+
+**Structure**:
+- **HttpEngine Trait**: Core lifecycle only (bind, start, shutdown)
+- **AxumHttpServer**: OAuth2, custom auth via builder patterns
+- **HttpTransportBuilder**: Delegates engine-specific configuration
+
+**Usage**:
+```rust
+// OAuth2 engine configuration
+let transport = HttpTransportBuilder::with_oauth2_engine(
+    connection_manager, oauth2_adapter, auth_config
+).await?.build().await?;
+
+// Manual engine configuration
+let server = AxumHttpServer::new(deps).await?
+    .with_oauth2_authorization(adapter, config);
+let transport = HttpTransportBuilder::with_custom_engine(server).build().await?;
+```
+
+### McpServer Integration Pattern
+
+**Pattern**: Ensure HTTP transport implements `Transport` trait for high-level `McpServer<T>` wrapper compatibility.
+
+**Application Flow**:
+```rust
+// 1. Configure providers and handlers
+let handler = AxumMcpRequestHandlerBuilder::new()
+    .with_resource_provider(provider).build();
+
+// 2. Configure transport with auth
+let mut transport = HttpTransportBuilder::with_oauth2_engine(...).build().await?;
+transport.register_mcp_handler(handler);
+transport.bind(addr).await?;
+
+// 3. High-level server abstraction
+let server = McpServer::new(transport);  // Transport trait
+server.start().await?;  // Delegates to transport.start()
+```
+
+**Integration Requirements**: `HttpTransport<E>` implements `Transport`, proper error mapping, lifecycle delegation.
+
+## Transport Architecture Patterns
 
 ### Generic MessageHandler Architecture Pattern
 **ARCHITECTURAL ACHIEVEMENT**: Unified transport layer architecture using generic MessageHandler pattern for all transport types.

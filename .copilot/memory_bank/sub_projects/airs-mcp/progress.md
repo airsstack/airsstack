@@ -6,6 +6,34 @@
 
 ## Latest Achievement 🎉
 
+### 🚀 TASK-030 PLANNED: HTTP TRANSPORT ZERO-DYN ARCHITECTURE REFACTORING 🚀 2025-09-12
+
+**ARCHITECTURAL PLANNING COMPLETE**: Comprehensive analysis and planning for complete HTTP transport refactoring to eliminate all `dyn` patterns and implement zero-cost generic abstractions.
+
+#### **🎯 ARCHITECTURAL ANALYSIS COMPLETE**
+
+**✅ Problem Identification**:
+- **Dual MCP Handling**: Unused `mcp_handler` field alongside active `mcp_handlers` causing architectural confusion
+- **JSON-RPC Overhead**: Triple processing (HTTP → JSON-RPC → mcp_operations.rs) with unnecessary serialization
+- **Dynamic Dispatch**: Multiple `Arc<dyn Trait>` patterns violating workspace standards (§5.1)
+- **Code Duplication**: `handlers.rs` and `mcp_operations.rs` contain duplicate MCP logic
+- **Integration Gap**: HTTP transport doesn't implement `Transport` trait for `McpServer` compatibility
+
+**✅ Solution Architecture**:
+- **Zero-Dyn Pattern**: Associated types (`trait HttpEngine { type Handler: McpRequestHandler; }`)
+- **Direct MCP Integration**: Single HTTP → AxumMcpRequestHandler → MCP response path
+- **Generic Constraints**: `HttpTransport<E: HttpEngine>` eliminating all `Box<dyn Trait>`
+- **Engine-Layer Auth**: Preserve AxumHttpServer authentication builders, delegate from transport builders
+- **McpServer Integration**: Full compatibility with `McpServer<T: Transport>` abstraction
+
+**✅ Implementation Strategy**:
+- **6 Phases Defined**: Core traits → Direct handler → Server simplification → Generic transport → Auth integration → Legacy cleanup
+- **18 Subtasks**: Comprehensive refactoring with clear deliverables and validation points
+- **Quality Gates**: Zero warnings, all tests pass, workspace standards compliance
+- **Usage Examples**: Simple default, OAuth2, custom authentication patterns documented
+
+**✅ Next Phase Ready**: Phase 1 - Core trait redesign with associated types
+
 ### 🎉 TASK-029 PHASE 2.1 COMPLETE: SIMPLE-MCP-SERVER MODERNIZATION SUCCESS 🎉 2025-09-12
 
 **MODERNIZATION ACHIEVEMENT**: Successfully updated `simple-mcp-server` example to latest Generic MessageHandler<()> architecture, fixing critical MCP Inspector compatibility issue.

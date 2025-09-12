@@ -1,12 +1,36 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: TASK-029 PHASE 2.1 COMPLETE - EXAMPLES MODERNIZATION ACTIVE
+## 🏛️ CURRENT FOCUS: TASK-030 PLANNED - HTTP TRANSPORT ARCHITECTURAL REFACTORING
 
-### 🎉 **PHASE 2.1 COMPLETE: SIMPLE-MCP-SERVER MODERNIZATION SUCCESS (2025-09-12)**
+### � **NEW TASK PLANNED: TASK-030 - HTTP TRANSPORT ZERO-DYN ARCHITECTURE REFACTORING (2025-09-12)**
 
-**STATUS**: ✅ **PHASE 2.1 COMPLETE** - Successfully modernized simple-mcp-server to Generic MessageHandler<()> architecture with MCP Inspector validation
+**STATUS**: ⏳ **PLANNED** - Complete architectural refactoring of HTTP transport to eliminate all `dyn` patterns and implement zero-cost generic abstractions
 
-**CURRENT OBJECTIVE**: Phase 2.2 - Modernize mcp-remote-server-apikey with HTTP transport patterns from TASK-028
+**ARCHITECTURAL VISION**: Transform HTTP transport from dual-layer JSON-RPC architecture to direct McpRequestHandler integration with associated types pattern
+
+### 📋 **ARCHITECTURAL DECISIONS DOCUMENTED (2025-09-12)**
+
+**✅ ZERO-DYN ARCHITECTURE**: Complete elimination of `Arc<dyn Trait>` patterns using:
+- **Associated Types**: `HttpEngine` trait with `type Handler: McpRequestHandler` 
+- **Generic Constraints**: `HttpTransport<E: HttpEngine>` instead of `Box<dyn Trait>`
+- **Concrete Types**: Direct `AxumMcpRequestHandler` storage, no dynamic dispatch
+
+**✅ DIRECT MCP INTEGRATION**: Remove JSON-RPC intermediary layer:
+- **Legacy Pattern**: HTTP → JSON-RPC → mcp_operations.rs → MCP Response
+- **New Pattern**: HTTP → AxumMcpRequestHandler → MCP Response (direct)
+- **Eliminate**: `mcp_operations.rs`, `McpHandlers`, dual processing paths
+
+**✅ ENGINE-LAYER AUTHENTICATION**: Keep authentication/authorization at concrete engine level:
+- **HttpEngine Trait**: Core server lifecycle only (bind, start, shutdown, register_mcp_handler)
+- **AxumHttpServer**: OAuth2, custom auth, middleware via builder patterns
+- **HttpTransportBuilder**: Delegates engine-specific config to concrete implementations
+
+**✅ MCPSERVER INTEGRATION**: Ensure compatibility with `McpServer<T: Transport>` abstraction:
+- **HttpTransport implements Transport**: For high-level `McpServer` wrapper
+- **Application Flow**: Builder → HttpTransport → McpServer → start()
+- **Configuration Flow**: Providers → Handler → Transport → Server → Start
+
+**CURRENT OBJECTIVE**: Task creation and Phase 1 implementation planning
 
 #### **✅ ACHIEVEMENT: SIMPLE-MCP-SERVER MODERNIZATION + CRITICAL BUG FIX (2025-09-12)**
 

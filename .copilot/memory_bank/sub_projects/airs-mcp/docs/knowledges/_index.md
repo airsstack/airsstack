@@ -12,6 +12,12 @@
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[HTTP Transport Zero-Dyn Architecture](./architecture/http-transport-zero-dyn-architecture.md)** 🚀 NEW PLANNING
+  - **Focus**: Zero-dyn HTTP transport architecture using associated types, direct MCP integration, engine-layer authentication
+  - **Complexity**: High - Complete elimination of dynamic dispatch, major architectural refactoring
+  - **Updated**: 2025-09-12
+  - **Related**: TASK-030, workspace standards compliance, McpServer integration patterns
+
 - **[Client Refactoring Phase 1 Completion](./architecture/client-refactoring-phase1-completion.md)** 🎉 NEW COMPLETE
   - **Focus**: Phase 1 completion log for state architecture fix - ConnectionState → McpSessionState transformation
   - **Complexity**: Complete - All tests passing, clean separation of transport vs protocol state achieved
