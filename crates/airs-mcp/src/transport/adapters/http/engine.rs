@@ -38,7 +38,6 @@
 
 // Layer 1: Standard library imports
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
@@ -196,6 +195,9 @@ pub trait HttpEngine: Send + Sync {
     /// Engine configuration type
     type Config: Clone + Send + Sync;
 
+    /// MCP request handler type - eliminates dynamic dispatch
+    type Handler: McpRequestHandler + Send + Sync + 'static;
+
     /// Create a new HTTP engine with the given configuration
     ///
     /// # Arguments
@@ -245,8 +247,8 @@ pub trait HttpEngine: Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `handler` - MCP request handler implementation
-    fn register_mcp_handler(&mut self, handler: Arc<dyn McpRequestHandler>);
+    /// * `handler` - MCP request handler implementation (concrete type, no dynamic dispatch)
+    fn register_mcp_handler(&mut self, handler: Self::Handler);
 
     /// Register authentication manager
     ///

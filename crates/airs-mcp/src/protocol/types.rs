@@ -557,11 +557,28 @@ pub struct PromptCapabilities {
     pub list_changed: Option<bool>,
 }
 
+impl Default for PromptCapabilities {
+    fn default() -> Self {
+        Self {
+            list_changed: Some(false),
+        }
+    }
+}
+
 /// Resource capabilities
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourceCapabilities {
     pub subscribe: Option<bool>,
     pub list_changed: Option<bool>,
+}
+
+impl Default for ResourceCapabilities {
+    fn default() -> Self {
+        Self {
+            subscribe: Some(false),
+            list_changed: Some(false),
+        }
+    }
 }
 
 /// Tool capabilities
@@ -1115,6 +1132,149 @@ impl Default for ServerConfig {
                 "MCP server with configurable capabilities. Use appropriate authentication method."
                     .to_string(),
             ),
+        }
+    }
+}
+
+// ================================================================================
+// MCP Response Types
+// ================================================================================
+
+/// Result of calling a tool
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CallToolResult {
+    /// Content returned by the tool
+    pub content: Vec<Content>,
+    /// Whether the tool call failed
+    #[serde(default)]
+    pub is_error: bool,
+}
+
+impl CallToolResult {
+    /// Create a successful tool result
+    pub fn success(content: Vec<Content>) -> Self {
+        Self {
+            content,
+            is_error: false,
+        }
+    }
+
+    /// Create an error tool result
+    pub fn error(content: Vec<Content>) -> Self {
+        Self {
+            content,
+            is_error: true,
+        }
+    }
+}
+
+/// Result of reading a resource
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ReadResourceResult {
+    /// Contents of the resource
+    pub contents: Vec<Content>,
+}
+
+impl ReadResourceResult {
+    /// Create a new resource read result
+    pub fn new(contents: Vec<Content>) -> Self {
+        Self { contents }
+    }
+}
+
+/// Result of getting a prompt
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GetPromptResult {
+    /// Description of the prompt
+    pub description: Option<String>,
+    /// Prompt messages
+    pub messages: Vec<PromptMessage>,
+}
+
+impl GetPromptResult {
+    /// Create a new prompt result
+    pub fn new(description: Option<String>, messages: Vec<PromptMessage>) -> Self {
+        Self { description, messages }
+    }
+}
+
+/// Result of listing resources
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListResourcesResult {
+    /// List of resources
+    pub resources: Vec<Resource>,
+    /// Next page cursor if applicable
+    pub next_cursor: Option<String>,
+}
+
+impl ListResourcesResult {
+    /// Create a new resource list result
+    pub fn new(resources: Vec<Resource>) -> Self {
+        Self {
+            resources,
+            next_cursor: None,
+        }
+    }
+
+    /// Create a new resource list result with pagination
+    pub fn with_cursor(resources: Vec<Resource>, next_cursor: Option<String>) -> Self {
+        Self {
+            resources,
+            next_cursor,
+        }
+    }
+}
+
+/// Result of listing tools
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListToolsResult {
+    /// List of tools
+    pub tools: Vec<Tool>,
+    /// Next page cursor if applicable
+    pub next_cursor: Option<String>,
+}
+
+impl ListToolsResult {
+    /// Create a new tool list result
+    pub fn new(tools: Vec<Tool>) -> Self {
+        Self {
+            tools,
+            next_cursor: None,
+        }
+    }
+
+    /// Create a new tool list result with pagination
+    pub fn with_cursor(tools: Vec<Tool>, next_cursor: Option<String>) -> Self {
+        Self {
+            tools,
+            next_cursor,
+        }
+    }
+}
+
+/// Result of listing prompts
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListPromptsResult {
+    /// List of prompts
+    pub prompts: Vec<Prompt>,
+    /// Next page cursor if applicable
+    pub next_cursor: Option<String>,
+}
+
+impl ListPromptsResult {
+    /// Create a new prompt list result
+    pub fn new(prompts: Vec<Prompt>) -> Self {
+        Self {
+            prompts,
+            next_cursor: None,
+        }
+    }
+
+    /// Create a new prompt list result with pagination
+    pub fn with_cursor(prompts: Vec<Prompt>, next_cursor: Option<String>) -> Self {
+        Self {
+            prompts,
+            next_cursor,
         }
     }
 }

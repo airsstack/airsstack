@@ -565,6 +565,7 @@ where
 {
     type Error = TransportError;
     type Config = HttpTransportConfig;
+    type Handler = super::super::DefaultAxumMcpRequestHandler;
 
     /// Create a new HTTP engine with the given configuration
     fn new(_config: Self::Config) -> Result<Self, Self::Error>
@@ -640,8 +641,11 @@ where
     }
 
     /// Register the MCP request handler
-    fn register_mcp_handler(&mut self, handler: Arc<dyn McpRequestHandler>) {
-        self.mcp_handler = Some(handler);
+    fn register_mcp_handler(&mut self, handler: Self::Handler) {
+        // For now, we'll need to store the handler in a way that's compatible 
+        // with the existing server state. This is a transitional implementation.
+        // TODO: Update ServerState to use concrete handler type in Phase 3
+        self.mcp_handler = Some(std::sync::Arc::new(handler));
     }
 
     /// Register authentication middleware

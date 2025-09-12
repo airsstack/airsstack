@@ -18,8 +18,11 @@ pub mod builder; // NEW: Pre-configured transport builder
 pub mod config;
 pub mod connection_manager;
 pub mod context; // NEW: HTTP context for generic MessageHandler pattern
+pub mod defaults; // NEW: Zero-cost default provider implementations
 pub mod engine;
 pub mod handlers; // NEW: Example MessageHandler<HttpContext> implementations
+pub mod mcp_request_handler; // NEW: Generic MCP request handler with zero-cost abstractions
+pub mod mcp_request_handler_builder; // NEW: Type-safe builder for MCP request handler
 pub mod parser;
 pub mod sse;
 
@@ -34,11 +37,17 @@ pub use connection_manager::{
     HealthCheckConfig, HealthCheckResult, HttpConnectionManager,
 };
 pub use context::HttpContext; // NEW: HTTP context for generic MessageHandler pattern
+pub use defaults::{
+    DefaultAxumMcpRequestHandler, NoLoggingHandler, NoPromptProvider, NoResourceProvider,
+    NoToolProvider,
+}; // NEW: Zero-cost defaults
 pub use engine::{
     AuthenticationContext, HttpEngine, HttpEngineError, HttpMiddleware, HttpResponse,
     McpRequestHandler, ResponseMode,
 };
 pub use handlers::{EchoHttpHandler, McpHttpHandler, StaticFileHandler}; // NEW: Example HTTP message handlers
+pub use mcp_request_handler::AxumMcpRequestHandler; // NEW: Generic MCP request handler
+pub use mcp_request_handler_builder::AxumMcpRequestHandlerBuilder; // NEW: Type-safe builder
 pub use parser::RequestParser;
 
 // Type aliases for convenience (as per Phase 5.5.5 requirements)
