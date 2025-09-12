@@ -13,10 +13,11 @@ use serde_json::Value;
 // Layer 3: Internal module imports
 use crate::integration::LoggingHandler;
 use crate::protocol::{
-    CallToolRequest, GetPromptRequest, GetPromptResult, InitializeRequest, InitializeResponse,
-    JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig, PromptCapabilities,
-    ReadResourceRequest, ReadResourceResult, ResourceCapabilities, ServerCapabilities, ServerInfo,
-    SetLoggingRequest, SubscribeResourceRequest, ToolCapabilities, UnsubscribeResourceRequest,
+    constants::methods, CallToolRequest, GetPromptRequest, GetPromptResult, InitializeRequest,
+    InitializeResponse, JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig,
+    PromptCapabilities, ReadResourceRequest, ReadResourceResult, ResourceCapabilities,
+    ServerCapabilities, ServerInfo, SetLoggingRequest, SubscribeResourceRequest, ToolCapabilities,
+    UnsubscribeResourceRequest,
 };
 use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 use crate::transport::adapters::http::engine::{
@@ -135,7 +136,7 @@ where
     }
 
     /// Handle MCP initialize request
-    async fn handle_initialize(
+    pub async fn handle_initialize(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -186,7 +187,7 @@ where
     }
 
     /// Handle MCP list resources request
-    async fn handle_list_resources(
+    pub async fn handle_list_resources(
         &self,
         _session_id: &str,
         _request: JsonRpcRequest,
@@ -212,7 +213,7 @@ where
     }
 
     /// Handle MCP read resource request
-    async fn handle_read_resource(
+    pub async fn handle_read_resource(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -245,7 +246,7 @@ where
     }
 
     /// Handle MCP list tools request
-    async fn handle_list_tools(
+    pub async fn handle_list_tools(
         &self,
         _session_id: &str,
         _request: JsonRpcRequest,
@@ -270,7 +271,7 @@ where
     }
 
     /// Handle MCP call tool request
-    async fn handle_call_tool(
+    pub async fn handle_call_tool(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -312,7 +313,7 @@ where
     }
 
     /// Handle MCP list prompts request
-    async fn handle_list_prompts(
+    pub async fn handle_list_prompts(
         &self,
         _session_id: &str,
         _request: JsonRpcRequest,
@@ -337,7 +338,7 @@ where
     }
 
     /// Handle MCP get prompt request
-    async fn handle_get_prompt(
+    pub async fn handle_get_prompt(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -370,7 +371,7 @@ where
     }
 
     /// Handle MCP list resource templates request
-    async fn handle_list_resource_templates(
+    pub async fn handle_list_resource_templates(
         &self,
         _session_id: &str,
         _request: JsonRpcRequest,
@@ -396,7 +397,7 @@ where
     }
 
     /// Handle MCP subscribe resource request
-    async fn handle_subscribe_resource(
+    pub async fn handle_subscribe_resource(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -425,7 +426,7 @@ where
     }
 
     /// Handle MCP unsubscribe resource request
-    async fn handle_unsubscribe_resource(
+    pub async fn handle_unsubscribe_resource(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -454,7 +455,7 @@ where
     }
 
     /// Handle MCP set logging request
-    async fn handle_set_logging(
+    pub async fn handle_set_logging(
         &self,
         _session_id: &str,
         request: JsonRpcRequest,
@@ -523,23 +524,25 @@ where
 
         // Route to appropriate handler based on method
         let result = match request.method.as_str() {
-            "initialize" => self.handle_initialize(&session_id, request).await?,
-            "resources/list" => self.handle_list_resources(&session_id, request).await?,
-            "resources/templates" => {
+            methods::INITIALIZE => self.handle_initialize(&session_id, request).await?,
+            methods::RESOURCES_LIST => self.handle_list_resources(&session_id, request).await?,
+            methods::RESOURCES_TEMPLATES_LIST => {
                 self.handle_list_resource_templates(&session_id, request)
                     .await?
             }
-            "resources/read" => self.handle_read_resource(&session_id, request).await?,
-            "resources/subscribe" => self.handle_subscribe_resource(&session_id, request).await?,
-            "resources/unsubscribe" => {
+            methods::RESOURCES_READ => self.handle_read_resource(&session_id, request).await?,
+            methods::RESOURCES_SUBSCRIBE => {
+                self.handle_subscribe_resource(&session_id, request).await?
+            }
+            methods::RESOURCES_UNSUBSCRIBE => {
                 self.handle_unsubscribe_resource(&session_id, request)
                     .await?
             }
-            "tools/list" => self.handle_list_tools(&session_id, request).await?,
-            "tools/call" => self.handle_call_tool(&session_id, request).await?,
-            "prompts/list" => self.handle_list_prompts(&session_id, request).await?,
-            "prompts/get" => self.handle_get_prompt(&session_id, request).await?,
-            "logging/setLevel" => self.handle_set_logging(&session_id, request).await?,
+            methods::TOOLS_LIST => self.handle_list_tools(&session_id, request).await?,
+            methods::TOOLS_CALL => self.handle_call_tool(&session_id, request).await?,
+            methods::PROMPTS_LIST => self.handle_list_prompts(&session_id, request).await?,
+            methods::PROMPTS_GET => self.handle_get_prompt(&session_id, request).await?,
+            methods::LOGGING_SET_LEVEL => self.handle_set_logging(&session_id, request).await?,
             _ => {
                 return Err(HttpEngineError::Engine {
                     message: format!("Unknown method: {}", request.method),

@@ -45,9 +45,6 @@ use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
 use crate::transport::error::TransportError;
 
-use super::mcp_handlers::McpHandlers;
-use super::mcp_operations::*;
-
 /// SSE stream query parameters for HTTP Streamable GET requests
 #[derive(Debug, Deserialize)]
 pub struct McpSseQueryParams {
@@ -118,8 +115,9 @@ pub struct ServerState<
 {
     /// Connection manager for tracking HTTP connections
     pub connection_manager: Arc<HttpConnectionManager>,
-    /// MCP server for processing MCP protocol requests
-    pub mcp_handlers: Arc<McpHandlers>,
+    /// Direct MCP request handler for processing MCP protocol requests
+    pub mcp_handler:
+        Option<Arc<crate::transport::adapters::http::defaults::DefaultAxumMcpRequestHandler>>,
     /// Server configuration
     pub config: HttpTransportConfig,
     /// Broadcast channel for SSE events
@@ -394,7 +392,7 @@ where
     Ok(Uuid::new_v4())
 }
 
-/// Process JSON-RPC request with MCP protocol support
+/// Process JSON-RPC request with MCP protocol support using direct handler
 pub async fn process_jsonrpc_request<A, P, C>(
     state: &ServerState<A, P, C>,
     session_id: Uuid,
@@ -405,12 +403,27 @@ where
     P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
     C: AuthzContext + Clone,
 {
-    // Route MCP requests to appropriate handlers based on method
+    // Get the registered MCP handler
+    let mcp_handler = state
+        .mcp_handler
+        .as_ref()
+        .ok_or_else(|| TransportError::Format {
+            message: "No MCP handler registered. Call register_mcp_handler() first.".into(),
+        })?;
+
+    // Convert session_id to string for handler interface
+    let session_id_str = session_id.to_string();
+
+    // Route MCP requests to appropriate handler methods based on method
     match request.method.as_str() {
         // MCP Initialization
-        mcp_methods::INITIALIZE => {
-            process_mcp_initialize(&state.mcp_handlers, session_id, request).await
-        }
+        mcp_methods::INITIALIZE => mcp_handler
+            .as_ref()
+            .handle_initialize(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Initialize error: {}", e),
+            }),
         mcp_methods::INITIALIZED => {
             // Notification - no response needed, but this shouldn't be called for requests
             Ok(serde_json::json!({
@@ -421,42 +434,82 @@ where
         }
 
         // Resource Methods
-        mcp_methods::RESOURCES_LIST => {
-            process_mcp_list_resources(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::RESOURCES_TEMPLATES_LIST => {
-            process_mcp_list_resource_templates(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::RESOURCES_READ => {
-            process_mcp_read_resource(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::RESOURCES_SUBSCRIBE => {
-            process_mcp_subscribe_resource(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::RESOURCES_UNSUBSCRIBE => {
-            process_mcp_unsubscribe_resource(&state.mcp_handlers, session_id, request).await
-        }
+        mcp_methods::RESOURCES_LIST => mcp_handler
+            .as_ref()
+            .handle_list_resources(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("List resources error: {}", e),
+            }),
+        mcp_methods::RESOURCES_TEMPLATES_LIST => mcp_handler
+            .as_ref()
+            .handle_list_resource_templates(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("List resource templates error: {}", e),
+            }),
+        mcp_methods::RESOURCES_READ => mcp_handler
+            .as_ref()
+            .handle_read_resource(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Read resource error: {}", e),
+            }),
+        mcp_methods::RESOURCES_SUBSCRIBE => mcp_handler
+            .as_ref()
+            .handle_subscribe_resource(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Subscribe resource error: {}", e),
+            }),
+        mcp_methods::RESOURCES_UNSUBSCRIBE => mcp_handler
+            .as_ref()
+            .handle_unsubscribe_resource(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Unsubscribe resource error: {}", e),
+            }),
 
         // Tool Methods
-        mcp_methods::TOOLS_LIST => {
-            process_mcp_list_tools(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::TOOLS_CALL => {
-            process_mcp_call_tool(&state.mcp_handlers, session_id, request).await
-        }
+        mcp_methods::TOOLS_LIST => mcp_handler
+            .as_ref()
+            .handle_list_tools(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("List tools error: {}", e),
+            }),
+        mcp_methods::TOOLS_CALL => mcp_handler
+            .as_ref()
+            .handle_call_tool(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Call tool error: {}", e),
+            }),
 
         // Prompt Methods
-        mcp_methods::PROMPTS_LIST => {
-            process_mcp_list_prompts(&state.mcp_handlers, session_id, request).await
-        }
-        mcp_methods::PROMPTS_GET => {
-            process_mcp_get_prompt(&state.mcp_handlers, session_id, request).await
-        }
+        mcp_methods::PROMPTS_LIST => mcp_handler
+            .as_ref()
+            .handle_list_prompts(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("List prompts error: {}", e),
+            }),
+        mcp_methods::PROMPTS_GET => mcp_handler
+            .as_ref()
+            .handle_get_prompt(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Get prompt error: {}", e),
+            }),
 
         // Logging Methods
-        mcp_methods::LOGGING_SET_LEVEL => {
-            process_mcp_set_logging(&state.mcp_handlers, session_id, request).await
-        }
+        mcp_methods::LOGGING_SET_LEVEL => mcp_handler
+            .as_ref()
+            .handle_set_logging(&session_id_str, request)
+            .await
+            .map_err(|e| TransportError::Format {
+                message: format!("Set logging error: {}", e),
+            }),
 
         // Unknown method - return method not found error
         _ => Ok(serde_json::json!({

@@ -42,7 +42,6 @@ use crate::transport::adapters::http::engine::{
 use crate::transport::error::TransportError;
 
 use super::handlers::{create_router, ServerState};
-use super::mcp_handlers::{McpHandlers, McpHandlersBuilder};
 
 /// Zero-cost no authentication adapter for default server behavior
 ///
@@ -120,13 +119,13 @@ where
 }
 
 impl AxumHttpServer<NoAuth> {
-    /// Create a new Axum HTTP server with the specified configuration and handlers
+    /// Create a new Axum HTTP server with the specified configuration
     ///
     /// Creates a server with NoAuth (no authentication) as the default.
     /// Use with_authentication() to add authentication to the server.
+    /// Use register_mcp_handler() to inject the MCP request handler.
     pub async fn new(
         connection_manager: Arc<HttpConnectionManager>,
-        mcp_handlers: Arc<McpHandlers>,
         config: HttpTransportConfig,
     ) -> Result<Self, TransportError> {
         // Create SSE broadcast channel for HTTP Streamable support
@@ -134,7 +133,7 @@ impl AxumHttpServer<NoAuth> {
 
         let state = ServerState {
             connection_manager,
-            mcp_handlers,
+            mcp_handler: None, // Will be set via register_mcp_handler()
             config: config.clone(),
             sse_broadcaster,
             auth_middleware: None,     // NoAuth has no middleware
@@ -149,27 +148,6 @@ impl AxumHttpServer<NoAuth> {
             mcp_handler: None,
             middleware: Vec::new(),
         })
-    }
-
-    /// Create a new Axum HTTP server with empty MCP handlers (for testing/development)
-    pub async fn new_with_empty_handlers(
-        connection_manager: Arc<HttpConnectionManager>,
-        config: HttpTransportConfig,
-    ) -> Result<Self, TransportError> {
-        let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
-
-        Self::new(connection_manager, mcp_handlers, config).await
-    }
-
-    /// Create a new Axum HTTP server using a handlers builder
-    pub async fn with_handlers(
-        connection_manager: Arc<HttpConnectionManager>,
-        handlers_builder: McpHandlersBuilder,
-        config: HttpTransportConfig,
-    ) -> Result<Self, TransportError> {
-        let mcp_handlers = Arc::new(handlers_builder.build());
-
-        Self::new(connection_manager, mcp_handlers, config).await
     }
 
     /// Add authentication to the server (zero-cost type conversion)
@@ -216,7 +194,7 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
@@ -271,7 +249,7 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
@@ -321,7 +299,7 @@ impl AxumHttpServer<NoAuth> {
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: Some(auth_middleware),
@@ -370,7 +348,7 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
@@ -404,7 +382,7 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
@@ -443,7 +421,7 @@ where
 
         let new_state = ServerState {
             connection_manager: self.state.connection_manager,
-            mcp_handlers: self.state.mcp_handlers,
+            mcp_handler: self.state.mcp_handler,
             config: self.state.config,
             sse_broadcaster: self.state.sse_broadcaster,
             auth_middleware: self.state.auth_middleware, // Preserve authentication
@@ -642,10 +620,10 @@ where
 
     /// Register the MCP request handler
     fn register_mcp_handler(&mut self, handler: Self::Handler) {
-        // For now, we'll need to store the handler in a way that's compatible 
-        // with the existing server state. This is a transitional implementation.
-        // TODO: Update ServerState to use concrete handler type in Phase 3
-        self.mcp_handler = Some(std::sync::Arc::new(handler));
+        let handler_arc = std::sync::Arc::new(handler);
+        // Store the handler in both locations during the transition
+        self.mcp_handler = Some(handler_arc.clone());
+        self.state.mcp_handler = Some(handler_arc);
     }
 
     /// Register authentication middleware
@@ -702,7 +680,7 @@ mod tests {
         // Create HTTP transport configuration
         let config = HttpTransportConfig::new();
 
-        AxumHttpServer::new_with_empty_handlers(connection_manager, config)
+        AxumHttpServer::new(connection_manager, config)
             .await
             .unwrap()
     }
