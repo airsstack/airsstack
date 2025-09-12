@@ -982,7 +982,7 @@ pub struct ListResourceTemplatesResponse {
 }
 
 /// Resource template for dynamic resources
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourceTemplate {
     pub uri_template: String,
     pub name: String,
@@ -1274,6 +1274,33 @@ impl ListPromptsResult {
     pub fn with_cursor(prompts: Vec<Prompt>, next_cursor: Option<String>) -> Self {
         Self {
             prompts,
+            next_cursor,
+        }
+    }
+}
+
+/// Result of listing resource templates
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ListResourceTemplatesResult {
+    /// List of resource templates
+    pub resource_templates: Vec<ResourceTemplate>,
+    /// Next page cursor if applicable
+    pub next_cursor: Option<String>,
+}
+
+impl ListResourceTemplatesResult {
+    /// Create a new resource templates list result
+    pub fn new(resource_templates: Vec<ResourceTemplate>) -> Self {
+        Self {
+            resource_templates,
+            next_cursor: None,
+        }
+    }
+
+    /// Create a new resource templates list result with pagination
+    pub fn with_cursor(resource_templates: Vec<ResourceTemplate>, next_cursor: Option<String>) -> Self {
+        Self {
+            resource_templates,
             next_cursor,
         }
     }

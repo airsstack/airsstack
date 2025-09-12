@@ -14,11 +14,11 @@ use serde_json::Value;
 // Layer 3: Internal module imports
 use crate::integration::LoggingHandler;
 use crate::protocol::{
-    CallToolResult, GetPromptResult, InitializeRequest, 
-    InitializeResponse, JsonRpcRequest, JsonRpcResponse, ListPromptsResult, ListResourcesResult, 
-    ListToolsResult, LoggingCapabilities, PromptCapabilities, 
-    ReadResourceResult, ResourceCapabilities, ServerCapabilities, ServerInfo, 
-    ToolCapabilities,
+    CallToolResult, GetPromptResult, InitializeRequest, InitializeResponse, JsonRpcRequest,
+    JsonRpcResponse, ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult,
+    ListToolsResult, LoggingCapabilities, PromptCapabilities, ReadResourceResult,
+    ResourceCapabilities, ServerCapabilities, ServerInfo, SubscribeResourceRequest,
+    ToolCapabilities, UnsubscribeResourceRequest,
 };
 use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 use crate::transport::adapters::http::engine::{
@@ -43,7 +43,7 @@ use super::defaults::{NoLoggingHandler, NoPromptProvider, NoResourceProvider, No
 ///
 /// ```rust
 /// use airs_mcp::transport::adapters::http::defaults::DefaultAxumMcpRequestHandler;
-/// 
+///
 /// // Default handler with no providers
 /// let handler = DefaultAxumMcpRequestHandler::new();
 ///
@@ -98,25 +98,25 @@ where
         logging_handler: Option<L>,
     ) -> Self {
         let server_capabilities = ServerCapabilities {
-            resources: if resource_provider.is_some() { 
-                Some(ResourceCapabilities::default()) 
-            } else { 
-                None 
+            resources: if resource_provider.is_some() {
+                Some(ResourceCapabilities::default())
+            } else {
+                None
             },
-            tools: if tool_provider.is_some() { 
-                Some(ToolCapabilities::default()) 
-            } else { 
-                None 
+            tools: if tool_provider.is_some() {
+                Some(ToolCapabilities::default())
+            } else {
+                None
             },
-            prompts: if prompt_provider.is_some() { 
-                Some(PromptCapabilities::default()) 
-            } else { 
-                None 
+            prompts: if prompt_provider.is_some() {
+                Some(PromptCapabilities::default())
+            } else {
+                None
             },
-            logging: if logging_handler.is_some() { 
-                Some(LoggingCapabilities::default()) 
-            } else { 
-                None 
+            logging: if logging_handler.is_some() {
+                Some(LoggingCapabilities::default())
+            } else {
+                None
             },
             experimental: None,
         };
@@ -175,12 +175,13 @@ where
         _request: JsonRpcRequest,
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.resource_provider {
-            let resources = provider
-                .list_resources()
-                .await
-                .map_err(|e| HttpEngineError::Engine {
-                    message: format!("Resource provider error: {e}"),
-                })?;
+            let resources =
+                provider
+                    .list_resources()
+                    .await
+                    .map_err(|e| HttpEngineError::Engine {
+                        message: format!("Resource provider error: {e}"),
+                    })?;
 
             let result = ListResourcesResult::new(resources);
             serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
@@ -202,19 +203,19 @@ where
         if let Some(ref provider) = self.resource_provider {
             // Extract URI from params
             let params = request.params.unwrap_or_default();
-            let uri = params
-                .get("uri")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| HttpEngineError::Engine {
+            let uri = params.get("uri").and_then(|v| v.as_str()).ok_or_else(|| {
+                HttpEngineError::Engine {
                     message: "Missing or invalid 'uri' parameter".to_string(),
-                })?;
+                }
+            })?;
 
-            let contents = provider
-                .read_resource(uri)
-                .await
-                .map_err(|e| HttpEngineError::Engine {
-                    message: format!("Resource provider error: {e}"),
-                })?;
+            let contents =
+                provider
+                    .read_resource(uri)
+                    .await
+                    .map_err(|e| HttpEngineError::Engine {
+                        message: format!("Resource provider error: {e}"),
+                    })?;
 
             let result = ReadResourceResult::new(contents);
             serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
@@ -260,27 +261,27 @@ where
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.tool_provider {
             let params = request.params.unwrap_or_default();
-            
+
             // Extract name from params
-            let name = params
-                .get("name")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| HttpEngineError::Engine {
+            let name = params.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
+                HttpEngineError::Engine {
                     message: "Missing or invalid 'name' parameter".to_string(),
-                })?;
-            
+                }
+            })?;
+
             // Extract arguments from params (default to empty object if not provided)
             let arguments = params
                 .get("arguments")
                 .cloned()
                 .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
 
-            let contents = provider
-                .call_tool(name, arguments)
-                .await
-                .map_err(|e| HttpEngineError::Engine {
-                    message: format!("Tool provider error: {e}"),
-                })?;
+            let contents =
+                provider
+                    .call_tool(name, arguments)
+                    .await
+                    .map_err(|e| HttpEngineError::Engine {
+                        message: format!("Tool provider error: {e}"),
+                    })?;
 
             let result = CallToolResult::success(contents);
             serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
@@ -326,15 +327,14 @@ where
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref provider) = self.prompt_provider {
             let params = request.params.unwrap_or_default();
-            
+
             // Extract name from params
-            let name = params
-                .get("name")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| HttpEngineError::Engine {
+            let name = params.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
+                HttpEngineError::Engine {
                     message: "Missing or invalid 'name' parameter".to_string(),
-                })?;
-            
+                }
+            })?;
+
             // Extract arguments from params (default to empty map if not provided)
             let arguments = params
                 .get("arguments")
@@ -346,11 +346,11 @@ where
                 })
                 .unwrap_or_default();
 
-            let (description, messages) = provider
-                .get_prompt(name, arguments)
-                .await
-                .map_err(|e| HttpEngineError::Engine {
-                    message: format!("Prompt provider error: {e}"),
+            let (description, messages) =
+                provider.get_prompt(name, arguments).await.map_err(|e| {
+                    HttpEngineError::Engine {
+                        message: format!("Prompt provider error: {e}"),
+                    }
                 })?;
 
             let result = GetPromptResult::new(Some(description), messages);
@@ -364,6 +364,90 @@ where
         }
     }
 
+    /// Handle MCP list resource templates request
+    async fn handle_list_resource_templates(
+        &self,
+        _session_id: &str,
+        _request: JsonRpcRequest,
+    ) -> Result<Value, HttpEngineError> {
+        if let Some(ref provider) = self.resource_provider {
+            let resource_templates =
+                provider
+                    .list_resource_templates()
+                    .await
+                    .map_err(|e| HttpEngineError::Engine {
+                        message: format!("Resource provider error: {e}"),
+                    })?;
+
+            let result = ListResourceTemplatesResult::new(resource_templates);
+            serde_json::to_value(result).map_err(|e| HttpEngineError::Engine {
+                message: format!("Failed to serialize resource templates result: {e}"),
+            })
+        } else {
+            Err(HttpEngineError::Engine {
+                message: "No resource provider configured".to_string(),
+            })
+        }
+    }
+
+    /// Handle MCP subscribe resource request
+    async fn handle_subscribe_resource(
+        &self,
+        _session_id: &str,
+        request: JsonRpcRequest,
+    ) -> Result<Value, HttpEngineError> {
+        if let Some(ref provider) = self.resource_provider {
+            let params = request.params.unwrap_or_default();
+            let subscribe_request: SubscribeResourceRequest = serde_json::from_value(params)
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Invalid subscribe resource request: {e}"),
+                })?;
+
+            provider
+                .subscribe_to_resource(subscribe_request.uri.as_str())
+                .await
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Resource provider error: {e}"),
+                })?;
+
+            // Return empty success result for subscribe operations
+            Ok(serde_json::json!({}))
+        } else {
+            Err(HttpEngineError::Engine {
+                message: "No resource provider configured".to_string(),
+            })
+        }
+    }
+
+    /// Handle MCP unsubscribe resource request
+    async fn handle_unsubscribe_resource(
+        &self,
+        _session_id: &str,
+        request: JsonRpcRequest,
+    ) -> Result<Value, HttpEngineError> {
+        if let Some(ref provider) = self.resource_provider {
+            let params = request.params.unwrap_or_default();
+            let unsubscribe_request: UnsubscribeResourceRequest = serde_json::from_value(params)
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Invalid unsubscribe resource request: {e}"),
+                })?;
+
+            provider
+                .unsubscribe_from_resource(unsubscribe_request.uri.as_str())
+                .await
+                .map_err(|e| HttpEngineError::Engine {
+                    message: format!("Resource provider error: {e}"),
+                })?;
+
+            // Return empty success result for unsubscribe operations
+            Ok(serde_json::json!({}))
+        } else {
+            Err(HttpEngineError::Engine {
+                message: "No resource provider configured".to_string(),
+            })
+        }
+    }
+
     /// Handle MCP set logging request
     async fn handle_set_logging(
         &self,
@@ -372,20 +456,20 @@ where
     ) -> Result<Value, HttpEngineError> {
         if let Some(ref handler) = self.logging_handler {
             let params = request.params.unwrap_or_default();
-            
-            // Extract level from params - this should be a LoggingConfig object
-            let logging_config = serde_json::from_value(params).map_err(|e| {
-                HttpEngineError::Engine {
-                    message: format!("Invalid set logging request: {e}"),
-                }
-            })?;
 
-            let result = handler
-                .set_logging(logging_config)
-                .await
-                .map_err(|e| HttpEngineError::Engine {
-                    message: format!("Logging handler error: {e}"),
+            // Extract level from params - this should be a LoggingConfig object
+            let logging_config =
+                serde_json::from_value(params).map_err(|e| HttpEngineError::Engine {
+                    message: format!("Invalid set logging request: {e}"),
                 })?;
+
+            let result =
+                handler
+                    .set_logging(logging_config)
+                    .await
+                    .map_err(|e| HttpEngineError::Engine {
+                        message: format!("Logging handler error: {e}"),
+                    })?;
 
             // Return success response with the result
             Ok(serde_json::json!({ "success": result }))
@@ -413,11 +497,10 @@ where
         _auth_context: Option<AuthenticationContext>,
     ) -> Result<HttpResponse, HttpEngineError> {
         // Parse JSON-RPC request
-        let request: JsonRpcRequest = serde_json::from_slice(&request_data).map_err(|e| {
-            HttpEngineError::Engine {
+        let request: JsonRpcRequest =
+            serde_json::from_slice(&request_data).map_err(|e| HttpEngineError::Engine {
                 message: format!("Failed to parse JSON-RPC request: {e}"),
-            }
-        })?;
+            })?;
 
         // Clone the request ID before routing to handlers
         let request_id = request.id.clone();
@@ -426,7 +509,16 @@ where
         let result = match request.method.as_str() {
             "initialize" => self.handle_initialize(&session_id, request).await?,
             "resources/list" => self.handle_list_resources(&session_id, request).await?,
+            "resources/templates" => {
+                self.handle_list_resource_templates(&session_id, request)
+                    .await?
+            }
             "resources/read" => self.handle_read_resource(&session_id, request).await?,
+            "resources/subscribe" => self.handle_subscribe_resource(&session_id, request).await?,
+            "resources/unsubscribe" => {
+                self.handle_unsubscribe_resource(&session_id, request)
+                    .await?
+            }
             "tools/list" => self.handle_list_tools(&session_id, request).await?,
             "tools/call" => self.handle_call_tool(&session_id, request).await?,
             "prompts/list" => self.handle_list_prompts(&session_id, request).await?,
@@ -448,10 +540,8 @@ where
         };
 
         // Serialize response
-        let response_body = serde_json::to_vec(&response).map_err(|e| {
-            HttpEngineError::Engine {
-                message: format!("Failed to serialize response: {e}"),
-            }
+        let response_body = serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
+            message: format!("Failed to serialize response: {e}"),
         })?;
 
         // Return appropriate response format
@@ -464,9 +554,5 @@ where
 }
 
 /// Type alias for the default handler with no providers
-pub type DefaultAxumMcpRequestHandler = AxumMcpRequestHandler<
-    NoResourceProvider,
-    NoToolProvider,
-    NoPromptProvider,
-    NoLoggingHandler,
->;
+pub type DefaultAxumMcpRequestHandler =
+    AxumMcpRequestHandler<NoResourceProvider, NoToolProvider, NoPromptProvider, NoLoggingHandler>;
