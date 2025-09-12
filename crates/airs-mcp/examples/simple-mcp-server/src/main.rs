@@ -1,12 +1,22 @@
-use airs_mcp::integration::mcp::McpServerBuilder;
-use airs_mcp::integration::mcp::{McpError, PromptProvider, ResourceProvider, ToolProvider};
-use airs_mcp::shared::protocol::{
-    Content, MimeType, Prompt, PromptArgument, PromptMessage, Resource, Tool, Uri,
-};
+// Layer 1: Standard library imports
+use std::collections::HashMap;
+use std::sync::Arc;
+
+// Layer 2: Third-party crate imports
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use std::collections::HashMap;
-use tokio;
+
+// Layer 3: Internal module imports
+use airs_mcp::integration::{McpError, McpServer};
+use airs_mcp::protocol::types::{
+    Content, MimeType, Prompt, PromptArgument, PromptMessage, Resource, Tool, Uri,
+};
+use airs_mcp::protocol::{
+    JsonRpcMessage, JsonRpcMessageTrait, JsonRpcRequest, JsonRpcResponse, MessageContext,
+    MessageHandler, TransportBuilder, TransportError,
+};
+use airs_mcp::providers::{PromptProvider, ResourceProvider, ToolProvider};
+use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 
 // Professional logging imports
 use tracing::{error, info, instrument, warn};
@@ -129,7 +139,6 @@ impl ToolProvider for SimpleToolProvider {
         let tools = vec![
             Tool {
                 name: "add".to_string(),
-                title: Some("Add Numbers".to_string()),
                 description: Some("Add two numbers together".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -142,7 +151,6 @@ impl ToolProvider for SimpleToolProvider {
             },
             Tool {
                 name: "greet".to_string(),
-                title: Some("Greet User".to_string()),
                 description: Some("Generate a greeting message".to_string()),
                 input_schema: json!({
                     "type": "object",
@@ -253,13 +261,12 @@ impl PromptProvider for SimplePromptProvider {
                     .unwrap_or_else(|| "".to_string());
 
                 let prompt_text = format!(
-                    "Please review the following {} code and provide feedback:\n\n```{}\n{}\n```\n\nFocus on:\n- Code quality and best practices\n- Potential bugs or issues\n- Performance considerations\n- Readability and maintainability",
-                    language, language, code
+                    "Please review the following {language} code and provide feedback:\n\n```{language}\n{code}\n```\n\nFocus on:\n- Code quality and best practices\n- Potential bugs or issues\n- Performance considerations\n- Readability and maintainability"
                 );
 
                 (
                     "Code review prompt template".to_string(),
-                    vec![PromptMessage::user(prompt_text)],
+                    vec![PromptMessage::user(Content::text(prompt_text))],
                 )
             }
             "explain_concept" => {
@@ -273,19 +280,280 @@ impl PromptProvider for SimplePromptProvider {
                     .unwrap_or_else(|| "intermediate".to_string());
 
                 let prompt_text = format!(
-                    "Please explain the concept of '{}' at a {} level. Include:\n- Clear definition\n- Key principles\n- Practical examples\n- Common use cases",
-                    concept, level
+                    "Please explain the concept of '{concept}' at a {level} level. Include:\n- Clear definition\n- Key principles\n- Practical examples\n- Common use cases"
                 );
 
                 (
                     "Technical concept explanation template".to_string(),
-                    vec![PromptMessage::user(prompt_text)],
+                    vec![PromptMessage::user(Content::text(prompt_text))],
                 )
             }
             _ => return Err(McpError::prompt_not_found(name)),
         };
 
         Ok((description, messages))
+    }
+}
+
+/// Simple MCP Handler - Wraps existing providers for new MessageHandler architecture
+///
+/// This handler preserves all existing business logic while adapting to the modern
+/// Generic MessageHandler<()> pattern. All provider implementations remain unchanged.
+#[derive(Debug)]
+struct SimpleMcpHandler {
+    resource_provider: SimpleResourceProvider,
+    tool_provider: SimpleToolProvider,
+    prompt_provider: SimplePromptProvider,
+}
+
+impl SimpleMcpHandler {
+    /// Create a new handler with the existing providers
+    pub fn new(
+        resource_provider: SimpleResourceProvider,
+        tool_provider: SimpleToolProvider,
+        prompt_provider: SimplePromptProvider,
+    ) -> Self {
+        Self {
+            resource_provider,
+            tool_provider,
+            prompt_provider,
+        }
+    }
+
+    /// Handle MCP protocol requests using existing provider logic
+    async fn handle_mcp_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        match request.method.as_str() {
+            "initialize" => {
+                info!("Handling initialize request");
+                let result = json!({
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "resources": {
+                            "subscribe": false,
+                            "listChanged": false
+                        },
+                        "tools": {
+                            "listChanged": false
+                        },
+                        "prompts": {
+                            "listChanged": false
+                        }
+                    },
+                    "serverInfo": {
+                        "name": "simple-mcp-server",
+                        "version": env!("CARGO_PKG_VERSION")
+                    }
+                });
+                JsonRpcResponse::success(result, request.id)
+            }
+            "resources/list" => {
+                info!("Handling resources/list request");
+                match self.resource_provider.list_resources().await {
+                    Ok(resources) => {
+                        let result = json!({ "resources": resources });
+                        JsonRpcResponse::success(result, request.id)
+                    }
+                    Err(e) => {
+                        error!(error = %e, "Failed to list resources");
+                        let error_data = json!({
+                            "code": -32603,
+                            "message": format!("Failed to list resources: {}", e)
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                }
+            }
+            "resources/read" => {
+                info!("Handling resources/read request");
+                if let Some(params) = request.params {
+                    if let Some(uri) = params.get("uri").and_then(|u| u.as_str()) {
+                        match self.resource_provider.read_resource(uri).await {
+                            Ok(contents) => {
+                                let result = json!({ "contents": contents });
+                                JsonRpcResponse::success(result, request.id)
+                            }
+                            Err(e) => {
+                                error!(error = %e, uri = %uri, "Failed to read resource");
+                                let error_data = json!({
+                                    "code": -32603,
+                                    "message": format!("Failed to read resource: {}", e)
+                                });
+                                JsonRpcResponse::error(error_data, Some(request.id))
+                            }
+                        }
+                    } else {
+                        let error_data = json!({
+                            "code": -32602,
+                            "message": "Missing required parameter: uri"
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                } else {
+                    let error_data = json!({
+                        "code": -32602,
+                        "message": "Missing parameters"
+                    });
+                    JsonRpcResponse::error(error_data, Some(request.id))
+                }
+            }
+            "tools/list" => {
+                info!("Handling tools/list request");
+                match self.tool_provider.list_tools().await {
+                    Ok(tools) => {
+                        let result = json!({ "tools": tools });
+                        JsonRpcResponse::success(result, request.id)
+                    }
+                    Err(e) => {
+                        error!(error = %e, "Failed to list tools");
+                        let error_data = json!({
+                            "code": -32603,
+                            "message": format!("Failed to list tools: {}", e)
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                }
+            }
+            "tools/call" => {
+                info!("Handling tools/call request");
+                if let Some(params) = request.params {
+                    if let Some(name) = params.get("name").and_then(|n| n.as_str()) {
+                        let arguments = params
+                            .get("arguments")
+                            .cloned()
+                            .unwrap_or_else(|| json!({}));
+                        match self.tool_provider.call_tool(name, arguments).await {
+                            Ok(result) => {
+                                let result_json = json!({ "content": result });
+                                JsonRpcResponse::success(result_json, request.id)
+                            }
+                            Err(e) => {
+                                error!(error = %e, tool = %name, "Failed to call tool");
+                                let error_data = json!({
+                                    "code": -32603,
+                                    "message": format!("Failed to call tool: {}", e)
+                                });
+                                JsonRpcResponse::error(error_data, Some(request.id))
+                            }
+                        }
+                    } else {
+                        let error_data = json!({
+                            "code": -32602,
+                            "message": "Missing required parameter: name"
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                } else {
+                    let error_data = json!({
+                        "code": -32602,
+                        "message": "Missing parameters"
+                    });
+                    JsonRpcResponse::error(error_data, Some(request.id))
+                }
+            }
+            "prompts/list" => {
+                info!("Handling prompts/list request");
+                match self.prompt_provider.list_prompts().await {
+                    Ok(prompts) => {
+                        let result = json!({ "prompts": prompts });
+                        JsonRpcResponse::success(result, request.id)
+                    }
+                    Err(e) => {
+                        error!(error = %e, "Failed to list prompts");
+                        let error_data = json!({
+                            "code": -32603,
+                            "message": format!("Failed to list prompts: {}", e)
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                }
+            }
+            "prompts/get" => {
+                info!("Handling prompts/get request");
+                if let Some(params) = request.params {
+                    if let Some(name) = params.get("name").and_then(|n| n.as_str()) {
+                        let arguments = params
+                            .get("arguments")
+                            .and_then(|a| a.as_object())
+                            .map(|obj| {
+                                obj.iter()
+                                    .filter_map(|(k, v)| {
+                                        v.as_str().map(|s| (k.clone(), s.to_string()))
+                                    })
+                                    .collect::<HashMap<String, String>>()
+                            })
+                            .unwrap_or_default();
+                        match self.prompt_provider.get_prompt(name, arguments).await {
+                            Ok((description, messages)) => {
+                                let result = json!({
+                                    "description": description,
+                                    "messages": messages
+                                });
+                                JsonRpcResponse::success(result, request.id)
+                            }
+                            Err(e) => {
+                                error!(error = %e, prompt = %name, "Failed to get prompt");
+                                let error_data = json!({
+                                    "code": -32603,
+                                    "message": format!("Failed to get prompt: {}", e)
+                                });
+                                JsonRpcResponse::error(error_data, Some(request.id))
+                            }
+                        }
+                    } else {
+                        let error_data = json!({
+                            "code": -32602,
+                            "message": "Missing required parameter: name"
+                        });
+                        JsonRpcResponse::error(error_data, Some(request.id))
+                    }
+                } else {
+                    let error_data = json!({
+                        "code": -32602,
+                        "message": "Missing parameters"
+                    });
+                    JsonRpcResponse::error(error_data, Some(request.id))
+                }
+            }
+            _ => {
+                warn!(method = %request.method, "Unknown method");
+                let error_data = json!({
+                    "code": -32601,
+                    "message": format!("Method not found: {}", request.method)
+                });
+                JsonRpcResponse::error(error_data, Some(request.id))
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl MessageHandler<()> for SimpleMcpHandler {
+    async fn handle_message(&self, message: JsonRpcMessage, _context: MessageContext<()>) {
+        match message {
+            JsonRpcMessage::Request(request) => {
+                let response = self.handle_mcp_request(request).await;
+                // For STDIO transport, we need to write the response to stdout
+                if let Ok(response_json) = response.to_json() {
+                    println!("{response_json}");
+                }
+            }
+            JsonRpcMessage::Notification(notification) => {
+                info!(method = %notification.method, "Received notification");
+                // Handle notifications as needed
+            }
+            JsonRpcMessage::Response(response) => {
+                info!(id = ?response.id, "Received response");
+                // Handle responses as needed
+            }
+        }
+    }
+
+    async fn handle_error(&self, error: TransportError) {
+        error!(error = %error, "Transport error occurred");
+    }
+
+    async fn handle_close(&self) {
+        info!("Transport connection closed");
     }
 }
 
@@ -301,31 +569,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Server initialization starting"
     );
 
-    // Create STDIO transport
-    info!("Creating STDIO transport...");
-    let transport = airs_mcp::transport::StdioTransport::new()
+    // Create MCP handler with all providers (preserving existing business logic)
+    info!("Creating MCP handler with providers...");
+    let handler = Arc::new(SimpleMcpHandler::new(
+        SimpleResourceProvider,
+        SimpleToolProvider,
+        SimplePromptProvider,
+    ));
+    info!("✅ MCP handler created successfully");
+
+    // Create STDIO transport with pre-configured handler
+    info!("Building STDIO transport with handler...");
+    let transport = StdioTransportBuilder::new()
+        .with_message_handler(handler)
+        .build()
         .await
         .map_err(|e| {
-            error!(error = %e, "Failed to create STDIO transport");
+            error!(error = %e, "Failed to build STDIO transport");
             e
         })?;
-    info!("✅ STDIO transport created successfully");
+    info!("✅ STDIO transport built successfully");
 
-    // Create the MCP server with all providers
-    info!("Building MCP server with providers...");
-    let server = McpServerBuilder::new()
-        .server_info("simple-mcp-server", env!("CARGO_PKG_VERSION"))
-        .with_resource_provider(SimpleResourceProvider)
-        .with_tool_provider(SimpleToolProvider)
-        .with_prompt_provider(SimplePromptProvider)
-        .build(transport)
-        .await
-        .map_err(|e| {
-            error!(error = %e, "Failed to build MCP server");
-            e
-        })?;
-
-    info!("✅ MCP Server initialized successfully!");
+    // Create the MCP server (simple lifecycle wrapper)
+    info!("Creating MCP server...");
+    let server = McpServer::new(transport);
+    info!("✅ MCP Server created successfully!");
     info!("📋 Available capabilities:");
     info!("   - Resources: file system examples");
     info!("   - Tools: add, greet");
@@ -333,10 +601,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("🔗 Server ready for MCP client connections via STDIO");
 
     // Start the server with error handling
-    info!("Starting MCP server event loop...");
-    if let Err(e) = server.run().await {
+    info!("Starting MCP server...");
+    if let Err(e) = server.start().await {
         error!(error = %e, "Server error occurred");
         return Err(e.into());
+    }
+
+    // Keep the server running - wait for Ctrl+C
+    info!("MCP server is running. Press Ctrl+C to stop.");
+
+    // Wait for shutdown signal
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => {
+            info!("Received Ctrl+C signal, shutting down...");
+        }
+        Err(err) => {
+            error!(error = %err, "Unable to listen for shutdown signal");
+        }
+    }
+
+    // Graceful shutdown
+    info!("Shutting down MCP server...");
+    if let Err(e) = server.shutdown().await {
+        error!(error = %e, "Error during server shutdown");
     }
 
     info!("🛑 MCP Server shutdown completed");

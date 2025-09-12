@@ -1,14 +1,43 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: CLIENT REFACTORING COMPLETE - ALL 4 PHASES FINISHED
+## 🏛️ CURRENT FOCUS: TASK-029 PHASE 2.1 COMPLETE - EXAMPLES MODERNIZATION ACTIVE
 
-### 🎉 **ALL PHASES COMPLETE: 4-PHASE MCP CLIENT REFACTORING FINISHED (2025-09-11)**
+### 🎉 **PHASE 2.1 COMPLETE: SIMPLE-MCP-SERVER MODERNIZATION SUCCESS (2025-09-12)**
 
-**STATUS**: ✅ **ALL 4 PHASES COMPLETE** - Comprehensive MCP client refactoring successfully completed with production-ready architecture and clean operations
+**STATUS**: ✅ **PHASE 2.1 COMPLETE** - Successfully modernized simple-mcp-server to Generic MessageHandler<()> architecture with MCP Inspector validation
 
-**REFACTORING OBJECTIVE**: Complete overhaul of MCP client with enhanced error handling, observability, testing infrastructure, and clean operations architecture
+**CURRENT OBJECTIVE**: Phase 2.2 - Modernize mcp-remote-server-apikey with HTTP transport patterns from TASK-028
 
-**COMPLETION OBJECTIVE**: All phases of the 4-phase client refactoring plan successfully completed - MCP client now production-ready with comprehensive feature set
+#### **✅ ACHIEVEMENT: SIMPLE-MCP-SERVER MODERNIZATION + CRITICAL BUG FIX (2025-09-12)**
+
+**MODERNIZATION SUCCESS**: Successfully updated `simple-mcp-server` to latest Generic MessageHandler<()> architecture:
+
+**✅ Architecture Updates**:
+- **SimpleMcpHandler Wrapper**: Created MessageHandler<()> wrapper preserving all business logic
+- **StdioTransportBuilder Pattern**: Replaced old McpServerBuilder with pre-configured transport pattern 
+- **Import Modernization**: Updated to unified protocol module (airs_mcp::protocol::types)
+- **Provider Logic Preserved**: All ResourceProvider, ToolProvider, PromptProvider implementations unchanged
+- **Lifecycle Management**: Proper server lifecycle with graceful shutdown handling
+
+**🐛 Critical Bug Fix**:
+- **Tool Serialization Issue**: Fixed MCP Inspector tool loading failure
+- **Root Cause**: Tool struct serialized `input_schema` (snake_case) but MCP protocol expects `inputSchema` (camelCase)
+- **Solution**: Added `#[serde(rename = "inputSchema")]` to Tool struct in protocol/types.rs
+- **Validation**: MCP Inspector now successfully loads and executes tools (add, greet)
+
+**✅ Quality Metrics**:
+- Zero compilation warnings achieved
+- All MCP capabilities validated in Inspector (Resources, Tools, Prompts)
+- Proper server lifecycle management
+- Workspace standards compliance maintained
+
+#### **🔄 NEXT FOCUS: PHASE 2.2 - MCP-REMOTE-SERVER-APIKEY MODERNIZATION**
+
+**Upcoming Work**: Modernize HTTP remote server with ApiKey authentication using:
+- HttpTransportBuilder from TASK-028 architecture
+- MessageHandler<HttpContext> pattern
+- Remove old ConcurrentProcessor dependencies
+- Update to unified protocol imports
 
 #### **✅ COMPLETION: COMPREHENSIVE 4-PHASE REFACTORING (2025-09-11T22:30:00Z)**
 
