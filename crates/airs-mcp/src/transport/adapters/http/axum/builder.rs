@@ -39,7 +39,7 @@ use crate::transport::error::TransportError;
 /// // Tier 3: Advanced configuration
 /// let server = AxumHttpServerBuilder::default()
 ///     .max_connections(2000)
-///     .request_timeout(Duration::from_secs(60))
+///     .session_timeout(Duration::from_secs(60))
 ///     .build();
 /// ```
 /// ```
