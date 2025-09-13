@@ -5,11 +5,9 @@
 
 mod builder;
 mod handlers;
-mod mcp_handlers;
 mod server;
 
 // Re-export key types for convenience
 pub use builder::AxumHttpServerBuilder;
 pub use handlers::{create_router, McpSseQueryParams, ServerState, SseEvent};
-pub use mcp_handlers::{McpHandlers, McpHandlersBuilder};
 pub use server::{AxumHttpServer, NoAuth};

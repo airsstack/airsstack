@@ -25,6 +25,7 @@ use crate::transport::error::TransportError;
 ///
 /// ```rust
 /// use airs_mcp::transport::adapters::http::axum::AxumHttpServerBuilder;
+/// use std::time::Duration;
 ///
 /// // Tier 1: Complete beginner (parameter-free)
 /// let server = AxumHttpServerBuilder::default().build();
@@ -36,24 +37,11 @@ use crate::transport::error::TransportError;
 ///     .build();
 ///
 /// // Tier 3: Advanced configuration
-/// let config = HttpTransportConfig::new()
+/// let server = AxumHttpServerBuilder::default()
 ///     .max_connections(2000)
-///     .session_timeout(Duration::from_secs(600));
-///
-/// let server = AxumHttpServerBuilder::default()
-///     .with_config(config)
+///     .request_timeout(Duration::from_secs(60))
 ///     .build();
-///
-/// // Tier 4: Expert control (fully custom components)
-/// let connection_manager = Arc::new(HttpConnectionManager::new(
-///     5000,
-///     custom_health_config
-/// ));
-///
-/// let server = AxumHttpServerBuilder::default()
-///     .with_connection_manager(connection_manager)
-///     .with_config(custom_config)
-///     .build();
+/// ```
 /// ```
 #[derive(Debug)]
 pub struct AxumHttpServerBuilder {

@@ -44,15 +44,7 @@ use super::defaults::{NoLoggingHandler, NoPromptProvider, NoResourceProvider, No
 /// use airs_mcp::transport::adapters::http::defaults::DefaultAxumMcpRequestHandler;
 ///
 /// // Default handler with no providers
-/// let handler = DefaultAxumMcpRequestHandler::new();
-///
-/// // Handler with specific providers
-/// let handler = AxumMcpRequestHandler::new(
-///     Some(my_resource_provider),
-///     Some(my_tool_provider),
-///     None, // No prompt provider
-///     None, // No logging handler
-/// );
+/// let handler = DefaultAxumMcpRequestHandler::new(None, None, None, None);
 /// ```
 pub struct AxumMcpRequestHandler<R, T, P, L>
 where

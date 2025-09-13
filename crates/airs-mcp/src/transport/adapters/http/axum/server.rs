@@ -570,17 +570,22 @@ where
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// use airs_mcp::transport::adapters::http::AxumMcpRequestHandler;
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::DefaultAxumMcpRequestHandler;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
     ///
-    /// let custom_handler = AxumMcpRequestHandler::new(
-    ///     Some(my_resource_provider),
-    ///     Some(my_tool_provider),
-    ///     Some(my_prompt_provider),
-    ///     Some(my_logging_handler),
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let custom_handler = DefaultAxumMcpRequestHandler::new(
+    ///     None, // No resource provider
+    ///     None, // No tool provider  
+    ///     None, // No prompt provider
+    ///     None, // No logging handler
     /// );
     ///
+    /// let mut server = AxumHttpServer::default();
     /// server.register_custom_mcp_handler(custom_handler);
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn register_custom_mcp_handler<H>(&mut self, handler: H)
     where

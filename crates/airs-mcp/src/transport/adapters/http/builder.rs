@@ -61,16 +61,17 @@ impl From<HttpEngineError> for TransportError {
 /// # Usage
 ///
 /// ```rust,no_run
-/// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+/// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, AxumHttpServer};
+/// use airs_mcp::transport::adapters::http::DefaultAxumMcpRequestHandler;
 /// use airs_mcp::integration::server::McpServer;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// // Phase 4: Basic zero-dyn transport for testing
-/// let mut transport = HttpTransportBuilder::with_placeholder_engine()
+/// // Modern zero configuration transport
+/// let mut transport = HttpTransportBuilder::<AxumHttpServer>::with_default()?
 ///     .build().await?;
 ///
 /// // Register MCP handler for direct HTTP processing
-/// let handler = (); // Placeholder handler for Phase 4
+/// let handler = DefaultAxumMcpRequestHandler::new(None, None, None, None);
 /// transport.register_mcp_handler(handler);
 ///
 /// // Use with McpServer (just lifecycle wrapper)
@@ -246,20 +247,18 @@ impl<E: HttpEngine> Transport for HttpTransport<E> {
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+/// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, AxumHttpServer};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// // Phase 4: With placeholder engine for testing/development
-/// let transport = HttpTransportBuilder::with_placeholder_engine()
+/// // Tier 1: Zero configuration (beginner-friendly)
+/// let transport = HttpTransportBuilder::<AxumHttpServer>::with_default()?
 ///     .build().await?;
 ///
-/// // Phase 5: With concrete engine configuration (to be implemented)
-/// // let transport = HttpTransportBuilder::with_axum_engine(connection_manager, config).await?
-/// //     .configure_engine(|engine| {
-/// //         engine.register_middleware(custom_middleware);
-/// //     })
-/// //     .bind("127.0.0.1:8080".parse()?).await?
-/// //     .build().await?;
+/// // Tier 2: Pre-configured engine
+/// let engine = AxumHttpServer::default();
+/// let transport = HttpTransportBuilder::with_engine(engine)?
+///     .bind("127.0.0.1:8080".parse()?).await?
+///     .build().await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -429,7 +428,7 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// // Pre-configured engines for common patterns
-    /// let engine = AxumHttpServer::with_auth(auth_config)?;
+    /// let engine = AxumHttpServer::default();
     /// let transport = HttpTransportBuilder::with_engine(engine)?
     ///     .bind("127.0.0.1:8080".parse()?).await?
     ///     .build().await?;
@@ -469,10 +468,7 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// // Full builder pattern control
     /// let transport = HttpTransportBuilder::with_configured_engine(|| {
-    ///     AxumHttpServer::builder()
-    ///         .with_oauth2_authorization(oauth2_config)
-    ///         .with_custom_middleware(middleware)
-    ///         .build()
+    ///     Result::<AxumHttpServer, std::io::Error>::Ok(AxumHttpServer::default())
     /// })?
     /// .bind("127.0.0.1:8080".parse()?).await?
     /// .build().await?;
@@ -516,12 +512,11 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
     /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn load_config_from_db() -> Result<(), std::io::Error> { Ok(()) }
     /// // Complex async engine construction
     /// let transport = HttpTransportBuilder::with_configured_engine_async(|| async {
-    ///     let oauth2_config = load_oauth2_config_from_db().await?;
-    ///     AxumHttpServer::builder()
-    ///         .with_oauth2_authorization(oauth2_config)
-    ///         .build()
+    ///     load_config_from_db().await?;
+    ///     Result::<AxumHttpServer, std::io::Error>::Ok(AxumHttpServer::default())
     /// }).await?
     /// .bind("127.0.0.1:8080".parse()?).await?
     /// .build().await?;
