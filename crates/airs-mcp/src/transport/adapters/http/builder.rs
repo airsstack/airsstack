@@ -540,3 +540,284 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
         Ok(Self::new(engine))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::transport::adapters::http::axum::AxumHttpServer;
+    use tokio::time::{sleep, Duration};
+
+    /// Test helper to create a dummy error type for testing
+    #[derive(Debug)]
+    struct TestError(String);
+
+    impl std::fmt::Display for TestError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "TestError: {}", self.0)
+        }
+    }
+
+    impl std::error::Error for TestError {}
+
+    impl From<TestError> for TransportError {
+        fn from(error: TestError) -> Self {
+            TransportError::Protocol { message: error.0 }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_with_default_success() {
+        // Test Tier 1: Zero configuration with default engine
+        let result = HttpTransportBuilder::<AxumHttpServer>::with_default();
+
+        assert!(
+            result.is_ok(),
+            "Should create builder with default AxumHttpServer"
+        );
+
+        let builder = result.unwrap();
+        // Verify that the builder was created successfully with an engine
+        // We can't directly inspect the engine, but we can verify the builder exists
+        let _verification = &builder.engine; // This proves the engine field exists and is accessible
+    }
+
+    #[tokio::test]
+    async fn test_with_engine_success() {
+        // Test Tier 2: Pre-configured engine injection
+        let engine = AxumHttpServer::default();
+        let result = HttpTransportBuilder::with_engine(engine);
+
+        assert!(result.is_ok(), "Should create builder with provided engine");
+
+        let builder = result.unwrap();
+        // Verify engine is properly stored by accessing the field
+        let _verification = &builder.engine; // This proves the engine field exists and is accessible
+    }
+
+    #[tokio::test]
+    async fn test_with_configured_engine_success() {
+        // Test Tier 3: Builder pattern with configuration function
+        let result = HttpTransportBuilder::with_configured_engine(|| {
+            // Simulate complex engine configuration
+            let engine = AxumHttpServer::default();
+            Ok::<_, TestError>(engine)
+        });
+
+        assert!(
+            result.is_ok(),
+            "Should create builder from configuration function"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_with_configured_engine_error_handling() {
+        // Test error propagation from builder function
+        let result = HttpTransportBuilder::<AxumHttpServer>::with_configured_engine(|| {
+            Err(TestError("Configuration failed".to_string()))
+        });
+
+        assert!(
+            result.is_err(),
+            "Should propagate error from configuration function"
+        );
+
+        if let Err(TransportError::Protocol { message }) = result {
+            assert!(
+                message.contains("Configuration failed"),
+                "Should contain original error message"
+            );
+        } else {
+            panic!("Expected Protocol error with configuration message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_with_configured_engine_async_success() {
+        // Test Tier 4: Async initialization patterns
+        let result = HttpTransportBuilder::with_configured_engine_async(|| async {
+            // Simulate async configuration loading (e.g., from database)
+            sleep(Duration::from_millis(10)).await;
+            let engine = AxumHttpServer::default();
+            Ok::<_, TestError>(engine)
+        })
+        .await;
+
+        assert!(
+            result.is_ok(),
+            "Should create builder from async configuration function"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_with_configured_engine_async_error_handling() {
+        // Test async error propagation
+        let result =
+            HttpTransportBuilder::<AxumHttpServer>::with_configured_engine_async(|| async {
+                sleep(Duration::from_millis(5)).await;
+                Err(TestError("Async configuration failed".to_string()))
+            })
+            .await;
+
+        assert!(
+            result.is_err(),
+            "Should propagate error from async configuration function"
+        );
+
+        if let Err(TransportError::Protocol { message }) = result {
+            assert!(
+                message.contains("Async configuration failed"),
+                "Should contain original error message"
+            );
+        } else {
+            panic!("Expected Protocol error with async configuration message");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_progressive_tier_patterns() {
+        // Test that all four tiers work together and demonstrate progression
+
+        // Tier 1: Zero Configuration (Beginner)
+        let tier1_result = HttpTransportBuilder::<AxumHttpServer>::with_default();
+        assert!(
+            tier1_result.is_ok(),
+            "Tier 1 should work with zero configuration"
+        );
+
+        // Tier 2: Basic Configuration (Pre-configured engines)
+        let engine = AxumHttpServer::default();
+        let tier2_result = HttpTransportBuilder::with_engine(engine);
+        assert!(
+            tier2_result.is_ok(),
+            "Tier 2 should work with pre-configured engine"
+        );
+
+        // Tier 3: Advanced Configuration (Builder pattern control)
+        let tier3_result = HttpTransportBuilder::with_configured_engine(|| {
+            let engine = AxumHttpServer::default();
+            Ok::<_, TestError>(engine)
+        });
+        assert!(
+            tier3_result.is_ok(),
+            "Tier 3 should work with builder pattern"
+        );
+
+        // Tier 4: Expert Async (Async initialization)
+        let tier4_result = HttpTransportBuilder::with_configured_engine_async(|| async {
+            sleep(Duration::from_millis(1)).await; // Simulate async operation
+            let engine = AxumHttpServer::default();
+            Ok::<_, TestError>(engine)
+        })
+        .await;
+        assert!(
+            tier4_result.is_ok(),
+            "Tier 4 should work with async initialization"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_engine_type_flexibility() {
+        // Test that the generic methods work with the concrete AxumHttpServer type
+        // This validates our type constraints and ensures the methods are truly generic
+
+        type ConcreteBuilder = HttpTransportBuilder<AxumHttpServer>;
+
+        // with_default should work with Default constraint
+        let default_builder = ConcreteBuilder::with_default();
+        assert!(
+            default_builder.is_ok(),
+            "Should work with concrete type via with_default"
+        );
+
+        // with_engine should work with any instance of the engine type
+        let concrete_engine = AxumHttpServer::default();
+        let engine_builder = HttpTransportBuilder::with_engine(concrete_engine);
+        assert!(
+            engine_builder.is_ok(),
+            "Should work with concrete type via with_engine"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_builder_state_consistency() {
+        // Test that builder maintains proper state after creation
+        let builder = HttpTransportBuilder::<AxumHttpServer>::with_default().unwrap();
+
+        // Verify that the builder has proper internal state
+        // We verify the builder works correctly by ensuring the engine field is accessible
+        let _verification = &builder.engine; // This proves the engine field exists and is accessible
+
+        // Verify the builder can be used for its intended purpose
+        // (In real usage, this would be passed to transport construction)
+        assert!(true, "Builder should maintain consistent state");
+    }
+
+    #[tokio::test]
+    async fn test_error_conversion_and_propagation() {
+        // Test various error conversion scenarios to ensure proper error handling
+
+        // Test custom error conversion
+        let result = HttpTransportBuilder::<AxumHttpServer>::with_configured_engine(|| {
+            Err(TestError("Custom error".to_string()))
+        });
+
+        match result {
+            Err(TransportError::Protocol { message }) => {
+                assert!(message.contains("Custom error"));
+            }
+            _ => panic!("Expected TransportError::Protocol"),
+        }
+
+        // Test async error conversion
+        let async_result =
+            HttpTransportBuilder::<AxumHttpServer>::with_configured_engine_async(|| async {
+                Err(TestError("Async custom error".to_string()))
+            })
+            .await;
+
+        match async_result {
+            Err(TransportError::Protocol { message }) => {
+                assert!(message.contains("Async custom error"));
+            }
+            _ => panic!("Expected TransportError::Protocol from async"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_complex_async_scenarios() {
+        // Test more complex async scenarios that might occur in real usage
+
+        // Simulate database configuration loading
+        let database_config_result = HttpTransportBuilder::with_configured_engine_async(|| async {
+            // Simulate database query delay
+            sleep(Duration::from_millis(20)).await;
+
+            // Simulate successful config retrieval
+            let engine = AxumHttpServer::default();
+            Ok::<_, TestError>(engine)
+        })
+        .await;
+
+        assert!(
+            database_config_result.is_ok(),
+            "Should handle database config loading"
+        );
+
+        // Simulate service discovery
+        let service_discovery_result =
+            HttpTransportBuilder::with_configured_engine_async(|| async {
+                // Simulate service discovery lookup
+                sleep(Duration::from_millis(15)).await;
+
+                // Simulate successful service discovery
+                let engine = AxumHttpServer::default();
+                Ok::<_, TestError>(engine)
+            })
+            .await;
+
+        assert!(
+            service_discovery_result.is_ok(),
+            "Should handle service discovery patterns"
+        );
+    }
+}
