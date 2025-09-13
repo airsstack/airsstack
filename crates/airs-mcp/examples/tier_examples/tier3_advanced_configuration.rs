@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "127.0.0.1:8080"
             .parse()
             .map_err(|e| TransportError::Connection {
-                message: format!("Failed to parse address: {}", e),
+                message: format!("Failed to parse address: {e}"),
             })?,
     )
     .await?
@@ -149,7 +149,7 @@ async fn create_multi_auth_transport() -> Result<HttpTransport<AxumHttpServer>, 
         "127.0.0.1:8443"
             .parse()
             .map_err(|e| TransportError::Connection {
-                message: format!("Failed to parse address: {}", e),
+                message: format!("Failed to parse address: {e}"),
             })?,
     )
     .await?
@@ -197,7 +197,7 @@ async fn create_custom_middleware_transport(
         "127.0.0.1:8090"
             .parse()
             .map_err(|e| TransportError::Connection {
-                message: format!("Failed to parse address: {}", e),
+                message: format!("Failed to parse address: {e}"),
             })?,
     )
     .await?
@@ -237,7 +237,7 @@ async fn create_resilient_transport() -> Result<HttpTransport<AxumHttpServer>, T
         "127.0.0.1:8091"
             .parse()
             .map_err(|e| TransportError::Connection {
-                message: format!("Failed to parse address: {}", e),
+                message: format!("Failed to parse address: {e}"),
             })?,
     )
     .await?

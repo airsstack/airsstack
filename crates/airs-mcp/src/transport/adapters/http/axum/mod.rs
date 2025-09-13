@@ -6,7 +6,6 @@
 mod builder;
 mod handlers;
 mod mcp_handlers;
-mod mcp_operations;
 mod server;
 
 // Re-export key types for convenience

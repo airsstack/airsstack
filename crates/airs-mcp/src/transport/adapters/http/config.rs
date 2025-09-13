@@ -274,12 +274,12 @@ impl TransportConfig for HttpTransportConfig {
 
     fn effective_capabilities(&self) -> ServerCapabilities {
         if let Some(server_cfg) = &self.server_config {
-            let caps = server_cfg.capabilities.clone();
+            
 
             // HTTP-specific capability enhancements
             // HTTP can support all MCP features including experimental ones
 
-            caps
+            server_cfg.capabilities.clone()
         } else {
             ServerCapabilities::default()
         }

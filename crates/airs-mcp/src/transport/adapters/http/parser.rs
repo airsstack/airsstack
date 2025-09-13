@@ -108,13 +108,11 @@ impl RequestParser {
                     Ok(value)
                 }
                 Err(e) => Err(TransportError::ParseError(format!(
-                    "JSON parsing error: {}",
-                    e
+                    "JSON parsing error: {e}"
                 ))),
             },
             Err(e) => Err(TransportError::ParseError(format!(
-                "UTF-8 parsing error: {}",
-                e
+                "UTF-8 parsing error: {e}"
             ))),
         }
     }
@@ -191,8 +189,7 @@ impl RequestParser {
                             }
                             Err(e) => {
                                 return Err(TransportError::ParseError(format!(
-                                    "JSON parsing error: {}",
-                                    e
+                                    "JSON parsing error: {e}"
                                 )))
                             }
                         }
@@ -202,8 +199,7 @@ impl RequestParser {
                 Ok(requests)
             }
             Err(e) => Err(TransportError::ParseError(format!(
-                "UTF-8 parsing error: {}",
-                e
+                "UTF-8 parsing error: {e}"
             ))),
         }
     }

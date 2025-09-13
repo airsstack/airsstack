@@ -24,7 +24,7 @@ impl From<HttpEngineError> for TransportError {
                 message: "HTTP engine not bound to address".to_string(),
             },
             HttpEngineError::AlreadyBound { addr } => TransportError::Connection {
-                message: format!("HTTP engine already bound to address: {}", addr),
+                message: format!("HTTP engine already bound to address: {addr}"),
             },
             HttpEngineError::AlreadyRunning => TransportError::Connection {
                 message: "HTTP engine already running".to_string(),
@@ -171,7 +171,7 @@ impl<E: HttpEngine> Transport for HttpTransport<E> {
                 .start()
                 .await
                 .map_err(|e| TransportError::Connection {
-                    message: format!("Failed to start HTTP engine: {}", e),
+                    message: format!("Failed to start HTTP engine: {e}"),
                 })?;
 
             self.is_connected = true;
@@ -190,7 +190,7 @@ impl<E: HttpEngine> Transport for HttpTransport<E> {
             .shutdown()
             .await
             .map_err(|e| TransportError::Connection {
-                message: format!("Failed to shutdown HTTP engine: {}", e),
+                message: format!("Failed to shutdown HTTP engine: {e}"),
             })?;
 
         self.is_connected = false;

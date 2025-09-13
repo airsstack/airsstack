@@ -105,7 +105,7 @@ impl AxumHttpServerBuilder {
     /// This creates or modifies the internal config to set max_connections.
     /// Provides simpler API for common configuration needs.
     pub fn max_connections(mut self, max_connections: usize) -> Self {
-        let config = self.config.unwrap_or_else(HttpTransportConfig::new);
+        let config = self.config.unwrap_or_default();
         self.config = Some(config.max_connections(max_connections));
         self
     }
@@ -115,8 +115,8 @@ impl AxumHttpServerBuilder {
     /// This creates or modifies the internal config to change the bind port
     /// while keeping the host as 127.0.0.1.
     pub fn bind_port(mut self, port: u16) -> Self {
-        let config = self.config.unwrap_or_else(HttpTransportConfig::new);
-        let bind_address = format!("127.0.0.1:{}", port)
+        let config = self.config.unwrap_or_default();
+        let bind_address = format!("127.0.0.1:{port}")
             .parse()
             .expect("Valid bind address");
         self.config = Some(config.bind_address(bind_address));
@@ -127,7 +127,7 @@ impl AxumHttpServerBuilder {
     ///
     /// This creates or modifies the internal config to set session timeout.
     pub fn session_timeout(mut self, timeout: std::time::Duration) -> Self {
-        let config = self.config.unwrap_or_else(HttpTransportConfig::new);
+        let config = self.config.unwrap_or_default();
         self.config = Some(config.session_timeout(timeout));
         self
     }
@@ -143,7 +143,7 @@ impl AxumHttpServerBuilder {
     /// Returns TransportError if server construction fails due to invalid
     /// configuration or resource allocation issues.
     pub fn build(self) -> Result<AxumHttpServer, TransportError> {
-        let config = self.config.unwrap_or_else(HttpTransportConfig::new);
+        let config = self.config.unwrap_or_default();
 
         let connection_manager = self
             .connection_manager

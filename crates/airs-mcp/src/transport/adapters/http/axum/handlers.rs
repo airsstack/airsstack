@@ -415,7 +415,7 @@ where
 
     // Serialize the request to bytes for the McpRequestHandler trait
     let request_data = serde_json::to_vec(&request).map_err(|e| TransportError::Format {
-        message: format!("Failed to serialize request: {}", e),
+        message: format!("Failed to serialize request: {e}"),
     })?;
 
     // Use the McpRequestHandler trait method
@@ -428,12 +428,12 @@ where
         )
         .await
         .map_err(|e| TransportError::Format {
-            message: format!("MCP handler error: {}", e),
+            message: format!("MCP handler error: {e}"),
         })?;
 
     // Deserialize the response data back to JSON
     serde_json::from_slice(&response.body).map_err(|e| TransportError::Format {
-        message: format!("Failed to deserialize response: {}", e),
+        message: format!("Failed to deserialize response: {e}"),
     })
 }
 

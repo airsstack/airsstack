@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         apply_runtime_optimizations(engine);
     })
     .bind("127.0.0.1:8080".parse().map_err(|e| TransportError::Connection { 
-        message: format!("Failed to parse address: {}", e) 
+        message: format!("Failed to parse address: {e}") 
     })?).await?
     .build().await?;
 
@@ -156,7 +156,7 @@ async fn create_multitenant_transport() -> Result<HttpTransport<AxumHttpServer>,
         Ok::<_, TransportError>(AxumHttpServer::default())
     }).await?
     .bind("127.0.0.1:8100".parse().map_err(|e| TransportError::Connection { 
-        message: format!("Failed to parse address: {}", e) 
+        message: format!("Failed to parse address: {e}") 
     })?).await?
     .build().await?;
 
@@ -194,7 +194,7 @@ async fn create_service_discovery_transport() -> Result<HttpTransport<AxumHttpSe
         Ok::<_, TransportError>(AxumHttpServer::default())
     }).await?
     .bind("127.0.0.1:8110".parse().map_err(|e| TransportError::Connection { 
-        message: format!("Failed to parse address: {}", e) 
+        message: format!("Failed to parse address: {e}") 
     })?).await?
     .build().await?;
 
@@ -224,7 +224,7 @@ async fn create_dynamic_config_transport() -> Result<HttpTransport<AxumHttpServe
         Ok::<_, TransportError>(AxumHttpServer::default())
     }).await?
     .bind("127.0.0.1:8120".parse().map_err(|e| TransportError::Connection { 
-        message: format!("Failed to parse address: {}", e) 
+        message: format!("Failed to parse address: {e}") 
     })?).await?
     .build().await?;
 
@@ -256,7 +256,7 @@ async fn create_cloud_native_transport() -> Result<HttpTransport<AxumHttpServer>
         Ok::<_, TransportError>(AxumHttpServer::default())
     }).await?
     .bind("127.0.0.1:8130".parse().map_err(|e| TransportError::Connection { 
-        message: format!("Failed to parse address: {}", e) 
+        message: format!("Failed to parse address: {e}") 
     })?).await?
     .build().await?;
 

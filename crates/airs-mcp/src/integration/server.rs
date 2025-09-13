@@ -57,7 +57,7 @@ impl<T: Transport + 'static> McpServer<T> {
         let mut transport = self.transport.lock().await;
         transport.start().await.map_err(|e| {
             McpError::Integration(super::error::IntegrationError::Other {
-                message: format!("Failed to start transport: {}", e),
+                message: format!("Failed to start transport: {e}"),
             })
         })?;
 
@@ -69,7 +69,7 @@ impl<T: Transport + 'static> McpServer<T> {
         let mut transport = self.transport.lock().await;
         transport.close().await.map_err(|e| {
             McpError::Integration(super::error::IntegrationError::Other {
-                message: format!("Failed to close transport: {}", e),
+                message: format!("Failed to close transport: {e}"),
             })
         })?;
 

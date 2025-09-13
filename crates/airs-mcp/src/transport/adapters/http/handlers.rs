@@ -207,7 +207,7 @@ impl MessageHandler<HttpContext> for McpHttpHandler {
     }
 
     async fn handle_error(&self, error: TransportError) {
-        println!("MCP HTTP handler transport error: {:?}", error);
+        println!("MCP HTTP handler transport error: {error:?}");
         // Could implement error recovery, metrics collection, etc.
     }
 
@@ -349,14 +349,14 @@ impl MessageHandler<HttpContext> for EchoHttpHandler {
     }
 
     async fn handle_error(&self, error: TransportError) {
-        println!("Echo handler transport error: {:?}", error);
+        println!("Echo handler transport error: {error:?}");
     }
 
     async fn handle_close(&self) {
         let final_count = self
             .message_count
             .load(std::sync::atomic::Ordering::Relaxed);
-        println!("Echo handler closing (processed {} messages)", final_count);
+        println!("Echo handler closing (processed {final_count} messages)");
     }
 }
 
@@ -488,7 +488,7 @@ impl StaticFileHandler {
 
         // Security check
         if !self.is_safe_path(path) {
-            println!("Blocked unsafe path: {}", path);
+            println!("Blocked unsafe path: {path}");
             let error_data = json!({
                 "code": -32600,
                 "message": "Invalid file path"
@@ -528,7 +528,7 @@ impl StaticFileHandler {
                 });
                 JsonRpcResponse::success(listing, request.id.clone())
             } else {
-                println!("File not found: {}", path);
+                println!("File not found: {path}");
                 let error_data = json!({
                     "code": -32404,
                     "message": format!("File not found: {}", path)
@@ -587,7 +587,7 @@ impl MessageHandler<HttpContext> for StaticFileHandler {
     }
 
     async fn handle_error(&self, error: TransportError) {
-        println!("Static file handler transport error: {:?}", error);
+        println!("Static file handler transport error: {error:?}");
     }
 
     async fn handle_close(&self) {
@@ -595,8 +595,7 @@ impl MessageHandler<HttpContext> for StaticFileHandler {
             .request_count
             .load(std::sync::atomic::Ordering::Relaxed);
         println!(
-            "Static file handler closing (served {} requests)",
-            total_requests
+            "Static file handler closing (served {total_requests} requests)"
         );
     }
 }

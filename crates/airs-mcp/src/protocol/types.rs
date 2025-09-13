@@ -512,7 +512,6 @@ pub struct Tool {
 }
 
 /// Capability system definitions
-
 /// Client capabilities for MCP protocol
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ClientCapabilities {
@@ -543,13 +542,9 @@ pub struct RootsCapabilities {
 
 /// Logging capabilities
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default)]
 pub struct LoggingCapabilities {}
 
-impl Default for LoggingCapabilities {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 /// Prompt capabilities
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -839,6 +834,12 @@ pub struct ListResourcesRequest {
     pub cursor: Option<String>,
 }
 
+impl Default for ListResourcesRequest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ListResourcesRequest {
     /// Create a new list resources request
     pub fn new() -> Self {
@@ -877,6 +878,12 @@ pub struct ListPromptsRequest {
     pub cursor: Option<String>,
 }
 
+impl Default for ListPromptsRequest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ListPromptsRequest {
     /// Create a new list prompts request
     pub fn new() -> Self {
@@ -913,6 +920,12 @@ pub struct ListPromptsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListToolsRequest {
     pub cursor: Option<String>,
+}
+
+impl Default for ListToolsRequest {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ListToolsRequest {
@@ -1062,15 +1075,6 @@ impl CallToolResponse {
         Self {
             content: vec![Content::text(error)],
             is_error: Some(true),
-        }
-    }
-}
-
-impl LoggingConfig {
-    /// Create default logging configuration
-    pub fn default() -> Self {
-        Self {
-            level: LogLevel::Info,
         }
     }
 }
