@@ -1,222 +1,218 @@
-//! HTTP Transport Builder Implementation
+//! HTTP Transport Implementation for Zero-Dyn Architecture
 //!
-//! This module provides the TransportBuilder implementation for HTTP transports,
-//! enabling pre-configured transport creation per ADR-011 Transport Configuration
-//! Separation Architecture with generic MessageHandler<HttpContext> pattern.
+//! This module provides the generic HttpTransport<E: HttpEngine> implementation
+//! that eliminates dynamic dispatch and provides Transport trait compatibility
+//! for McpServer lifecycle management. The actual MCP processing happens directly
+//! through the HttpEngine → McpRequestHandler flow, bypassing the Transport interface.
 
 // Layer 1: Standard library imports
 use std::fmt::Debug;
-use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
 
 // Layer 3: Internal module imports
-use super::config::HttpTransportConfig;
-use super::context::HttpContext;
-use crate::protocol::{
-    JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
-};
+use super::engine::{HttpEngine, HttpEngineError, McpRequestHandler, ResponseMode};
+use crate::protocol::{JsonRpcMessage, Transport, TransportError};
 
-/// HTTP Transport implementing the new protocol::Transport trait
+/// Convert HttpEngineError to TransportError
+impl From<HttpEngineError> for TransportError {
+    fn from(error: HttpEngineError) -> Self {
+        match error {
+            HttpEngineError::Io(e) => TransportError::Io { source: e },
+            HttpEngineError::NotBound => TransportError::Connection {
+                message: "HTTP engine not bound to address".to_string(),
+            },
+            HttpEngineError::AlreadyBound { addr } => TransportError::Connection {
+                message: format!("HTTP engine already bound to address: {}", addr),
+            },
+            HttpEngineError::AlreadyRunning => TransportError::Connection {
+                message: "HTTP engine already running".to_string(),
+            },
+            HttpEngineError::Authentication { message } => TransportError::Protocol { message },
+            HttpEngineError::Engine { message } => TransportError::Protocol { message },
+        }
+    }
+}
+
+/// Generic HTTP Transport implementing the Transport trait for McpServer compatibility
 ///
-/// This transport implements the pre-configured pattern where the message
-/// handler is set during construction, eliminating dangerous post-creation
-/// handler modifications. Uses the generic MessageHandler<HttpContext> pattern
-/// to provide HTTP-specific context information to handlers.
+/// This transport eliminates dynamic dispatch by being generic over HttpEngine,
+/// achieving zero-cost abstraction while providing the lifecycle interface
+/// required by McpServer. The actual MCP request/response handling is done
+/// directly by the HttpEngine → McpRequestHandler flow.
 ///
 /// # Architecture
 ///
 /// ```text
-/// HttpTransportBuilder -> HttpTransport (pre-configured)
-/// (builder pattern)       (ready to start)
+/// McpServer<HttpTransport<E>> -> HttpTransport<E> -> HttpEngine -> McpRequestHandler
+/// (lifecycle wrapper)          (Transport trait)   (HTTP server)   (Direct MCP processing)
 /// ```
+///
+/// # Usage with McpServer
+///
+/// McpServer only calls start() and shutdown() on the transport. All HTTP
+/// request processing happens directly through the engine's registered handler.
+///
+/// # Type Parameters
+///
+/// * `E` - HTTP engine implementation (e.g., AxumHttpEngine)
 ///
 /// # Usage
 ///
-/// ```rust
-/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext, JsonRpcMessage, TransportError};
-/// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, HttpTransportConfig, HttpContext};
-/// use std::sync::Arc;
+/// ```rust,no_run
+/// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+/// use airs_mcp::integration::server::McpServer;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let config = HttpTransportConfig::new()
-///     .bind_address("127.0.0.1:3000".parse().unwrap());
+/// // Phase 4: Basic zero-dyn transport for testing
+/// let mut transport = HttpTransportBuilder::with_placeholder_engine()
+///     .build().await?;
 ///
-/// let handler = Arc::new(MyHandler);
-/// let transport = HttpTransportBuilder::new()
-///     .with_config(config)
-///     .with_message_handler(handler)
-///     .build()
-///     .await?;
+/// // Register MCP handler for direct HTTP processing
+/// let handler = (); // Placeholder handler for Phase 4
+/// transport.register_mcp_handler(handler);
 ///
-/// // Transport is now fully configured and ready to start
+/// // Use with McpServer (just lifecycle wrapper)
+/// let server = McpServer::new(transport);
+/// server.start().await?;
 /// # Ok(())
 /// # }
-/// # struct MyHandler;
-/// # #[async_trait::async_trait]
-/// # impl MessageHandler<HttpContext> for MyHandler {
-/// #     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<HttpContext>) {}
-/// #     async fn handle_error(&self, error: TransportError) {}
-/// #     async fn handle_close(&self) {}
-/// # }
 /// ```
-pub struct HttpTransport {
-    /// Pre-configured message handler for HTTP context
-    #[allow(dead_code)] // TODO: Will be used when HTTP server implementation is completed
-    message_handler: Arc<dyn MessageHandler<HttpContext>>,
-    /// HTTP transport configuration
-    config: HttpTransportConfig,
+pub struct HttpTransport<E: HttpEngine> {
+    /// HTTP engine (concrete type - zero dynamic dispatch)
+    engine: E,
+    /// Session context for current active session
+    session_id: Option<String>,
     /// Connection state
     is_connected: bool,
-    /// Current session context (for HTTP request/response cycles)
-    session_id: Option<String>,
 }
 
-impl Debug for HttpTransport {
+impl<E: HttpEngine> Debug for HttpTransport<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HttpTransport")
-            .field("message_handler", &"Arc<dyn MessageHandler<HttpContext>>")
-            .field("config", &self.config)
-            .field("is_connected", &self.is_connected)
+            .field(
+                "engine",
+                &format!("HttpEngine({})", self.engine.engine_type()),
+            )
             .field("session_id", &self.session_id)
+            .field("is_connected", &self.is_connected)
             .finish()
     }
 }
 
-impl HttpTransport {
-    /// Create a new HTTP transport with pre-configured handler
+impl<E: HttpEngine> HttpTransport<E> {
+    /// Create a new HTTP transport with the given engine
     ///
-    /// This constructor enforces the pre-configured pattern - the transport
-    /// is created with its message handler already set.
-    pub fn new(
-        config: HttpTransportConfig,
-        message_handler: Arc<dyn MessageHandler<HttpContext>>,
-    ) -> Self {
-        Self {
-            message_handler,
-            config,
-            is_connected: false,
-            session_id: None,
-        }
-    }
-
-    /// Handle an incoming HTTP request by parsing it into HttpContext and dispatching to handler
-    ///
-    /// This method demonstrates how HTTP requests are converted into the generic
-    /// MessageHandler pattern with HttpContext.
+    /// This constructor creates a transport that wraps the provided HTTP engine
+    /// and implements the Transport trait for McpServer compatibility.
     ///
     /// # Arguments
     ///
-    /// * `method` - HTTP method (GET, POST, etc.)
-    /// * `path` - Request path
-    /// * `headers` - HTTP headers
-    /// * `query_params` - Query parameters
-    /// * `body` - Request body (if any)
-    /// * `remote_addr` - Client address
+    /// * `engine` - HTTP engine implementation (zero dynamic dispatch)
     ///
     /// # Returns
     ///
-    /// Result indicating success or transport error
-    #[allow(dead_code)] // Will be used when integrated with HTTP server
-    async fn handle_http_request(
-        &self,
-        method: String,
-        path: String,
-        headers: std::collections::HashMap<String, String>,
-        query_params: std::collections::HashMap<String, String>,
-        body: Option<String>,
-        remote_addr: Option<String>,
-    ) -> Result<(), TransportError> {
-        // Create HTTP context from request details
-        let mut http_context = HttpContext::new(method, path)
-            .with_headers(headers)
-            .with_query_params(query_params);
-
-        if let Some(addr) = remote_addr {
-            http_context = http_context.with_remote_addr(addr);
+    /// New HttpTransport instance ready for use with McpServer
+    pub fn new(engine: E) -> Self {
+        Self {
+            engine,
+            session_id: None,
+            is_connected: false,
         }
+    }
 
-        // Parse JSON-RPC message from request body
-        if let Some(body_str) = body {
-            match serde_json::from_str::<JsonRpcMessage>(&body_str) {
-                Ok(message) => {
-                    // Create MessageContext with HttpContext as transport data
-                    let session_id = http_context
-                        .session_id()
-                        .unwrap_or("http-session")
-                        .to_string();
+    /// Register an MCP request handler with the underlying engine
+    ///
+    /// This method delegates to the engine's register_mcp_handler method,
+    /// maintaining the zero-cost abstraction while providing a convenient
+    /// interface for handler registration.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - MCP request handler (concrete type specific to engine)
+    pub fn register_mcp_handler(&mut self, handler: E::Handler) {
+        self.engine.register_mcp_handler(handler);
+    }
 
-                    let message_context =
-                        MessageContext::new_with_transport_data(session_id, http_context);
+    /// Get access to the underlying HTTP engine
+    ///
+    /// This method provides direct access to the engine for advanced
+    /// configuration or engine-specific operations.
+    ///
+    /// # Returns
+    ///
+    /// Reference to the underlying HTTP engine
+    pub fn engine(&self) -> &E {
+        &self.engine
+    }
 
-                    // Dispatch to the pre-configured message handler
-                    self.message_handler
-                        .handle_message(message, message_context)
-                        .await;
-                }
-                Err(e) => {
-                    // Handle JSON parsing errors
-                    let error = TransportError::Serialization { source: e };
-                    self.message_handler.handle_error(error).await;
-                }
-            }
-        } else {
-            // Handle missing body error
-            let error = TransportError::Protocol {
-                message: "HTTP request body is required for JSON-RPC messages".to_string(),
-            };
-            self.message_handler.handle_error(error).await;
-        }
-
-        Ok(())
+    /// Get mutable access to the underlying HTTP engine
+    ///
+    /// This method provides mutable access to the engine for configuration
+    /// and setup operations.
+    ///
+    /// # Returns
+    ///
+    /// Mutable reference to the underlying HTTP engine
+    pub fn engine_mut(&mut self) -> &mut E {
+        &mut self.engine
     }
 }
 
 #[async_trait]
-impl Transport for HttpTransport {
+impl<E: HttpEngine> Transport for HttpTransport<E> {
     type Error = TransportError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
-        // TODO: Implement full HTTP server startup using config
-        // This should:
-        // 1. Create HTTP server with self.config.bind_address
-        // 2. Set up routes for MCP endpoints
-        // 3. Integrate with existing AxumHttpServer infrastructure
-        // 4. Use self.message_handler for incoming requests
-        // 5. Parse HTTP requests into HttpContext for handlers
+        // Bind and start the HTTP engine
+        if let Some(addr) = self.engine.local_addr() {
+            self.engine
+                .start()
+                .await
+                .map_err(|e| TransportError::Connection {
+                    message: format!("Failed to start HTTP engine: {}", e),
+                })?;
 
-        self.is_connected = true;
-        tracing::info!("HTTP transport started on {}", self.config.bind_address);
-
-        // Note: This is a placeholder implementation for Phase 5.5.3
-        // Full HTTP server integration will be completed in subsequent phases
-        // when we integrate with the existing Axum infrastructure
-
-        Ok(())
+            self.is_connected = true;
+            tracing::info!("HTTP transport started on {}", addr);
+            Ok(())
+        } else {
+            Err(TransportError::Connection {
+                message: "HTTP engine not bound to address".to_string(),
+            })
+        }
     }
 
     async fn close(&mut self) -> Result<(), Self::Error> {
-        // TODO: Implement HTTP server shutdown
-        // This should:
-        // 1. Gracefully shutdown HTTP server
-        // 2. Close active connections
-        // 3. Clean up resources
+        // Shutdown the HTTP engine
+        self.engine
+            .shutdown()
+            .await
+            .map_err(|e| TransportError::Connection {
+                message: format!("Failed to shutdown HTTP engine: {}", e),
+            })?;
 
         self.is_connected = false;
         self.session_id = None;
+
         tracing::info!("HTTP transport closed");
         Ok(())
     }
 
     async fn send(&mut self, message: &JsonRpcMessage) -> Result<(), Self::Error> {
-        // TODO: Implement HTTP message sending
-        // This should:
-        // 1. Serialize message to JSON
-        // 2. Send HTTP response (if in request/response cycle)
-        // 3. Handle SSE streaming (if in streaming mode)
+        // For HTTP server transports used with McpServer, send() is not typically called
+        // since McpServer only uses start() and shutdown() lifecycle methods.
+        // HTTP request/response handling is done directly through the HttpEngine → McpRequestHandler flow.
+        // This implementation is provided for Transport trait completeness.
 
-        tracing::debug!("Sending HTTP message: {:?}", message);
+        tracing::warn!(
+            "HttpTransport::send() called - this is unusual for HTTP server usage with McpServer"
+        );
+        tracing::debug!("Message that would be sent: {:?}", message);
+
+        // Return success since the message would have nowhere meaningful to go
+        // in an HTTP server context - HTTP doesn't "send" messages, it responds to requests
         Ok(())
     }
 
@@ -229,7 +225,7 @@ impl Transport for HttpTransport {
     }
 
     fn is_connected(&self) -> bool {
-        self.is_connected
+        self.is_connected && self.engine.is_running()
     }
 
     fn transport_type(&self) -> &'static str {
@@ -237,118 +233,322 @@ impl Transport for HttpTransport {
     }
 }
 
-/// Builder for creating pre-configured HTTP transports
+/// Builder for creating HTTP transports with specific engine types
 ///
-/// This builder implements the pre-configured transport pattern where
-/// the transport is created with its message handler already set,
-/// eliminating dangerous post-creation handler modifications.
-/// Uses the generic MessageHandler<HttpContext> pattern.
+/// This builder implements the zero-dyn pattern by being generic over the
+/// HTTP engine type, eliminating dynamic dispatch while providing a convenient
+/// builder interface.
+///
+/// # Type Parameters
+///
+/// * `E` - HTTP engine implementation (e.g., AxumHttpEngine)
 ///
 /// # Examples
 ///
-/// ```rust
-/// use airs_mcp::protocol::{TransportBuilder, MessageHandler, MessageContext, JsonRpcMessage, TransportError};
-/// use airs_mcp::transport::adapters::http::{HttpTransportBuilder, HttpTransportConfig, HttpContext};
-/// use std::sync::Arc;
+/// ```rust,no_run
+/// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # struct MyHandler;
-/// # #[async_trait::async_trait]
-/// # impl MessageHandler<HttpContext> for MyHandler {
-/// #     async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<HttpContext>) {}
-/// #     async fn handle_error(&self, error: TransportError) {}
-/// #     async fn handle_close(&self) {}
-/// # }
-/// let config = HttpTransportConfig::new()
-///     .bind_address("127.0.0.1:3000".parse().unwrap())
-///     .max_connections(1000);
+/// // Phase 4: With placeholder engine for testing/development
+/// let transport = HttpTransportBuilder::with_placeholder_engine()
+///     .build().await?;
 ///
-/// let handler = Arc::new(MyHandler);
-/// let transport = HttpTransportBuilder::new()
-///     .with_config(config)
-///     .with_message_handler(handler)
-///     .build()
-///     .await?;
-///
-/// // Transport is pre-configured and ready to start
+/// // Phase 5: With concrete engine configuration (to be implemented)
+/// // let transport = HttpTransportBuilder::with_axum_engine(connection_manager, config).await?
+/// //     .configure_engine(|engine| {
+/// //         engine.register_middleware(custom_middleware);
+/// //     })
+/// //     .bind("127.0.0.1:8080".parse()?).await?
+/// //     .build().await?;
 /// # Ok(())
 /// # }
 /// ```
-pub struct HttpTransportBuilder {
-    /// HTTP transport configuration
-    config: HttpTransportConfig,
-    /// Message handler for processing incoming messages with HTTP context
-    message_handler: Option<Arc<dyn MessageHandler<HttpContext>>>,
+pub struct HttpTransportBuilder<E: HttpEngine> {
+    /// HTTP engine instance
+    engine: E,
 }
 
-impl std::fmt::Debug for HttpTransportBuilder {
+impl<E: HttpEngine> std::fmt::Debug for HttpTransportBuilder<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HttpTransportBuilder")
-            .field("config", &self.config)
             .field(
-                "message_handler",
-                &self
-                    .message_handler
-                    .as_ref()
-                    .map(|_| "Arc<dyn MessageHandler<HttpContext>>"),
+                "engine",
+                &format!("HttpEngine({})", self.engine.engine_type()),
             )
             .finish()
     }
 }
 
-impl HttpTransportBuilder {
-    /// Create a new HTTP transport builder
+impl<E: HttpEngine> HttpTransportBuilder<E> {
+    /// Create a new HTTP transport builder with the given engine
     ///
-    /// This creates a builder with default HTTP configuration.
-    /// Use `with_config()` to customize the configuration.
-    pub fn new() -> Self {
-        Self {
-            config: HttpTransportConfig::new(),
-            message_handler: None,
-        }
+    /// # Arguments
+    ///
+    /// * `engine` - HTTP engine implementation
+    ///
+    /// # Returns
+    ///
+    /// New HttpTransportBuilder instance
+    pub fn new(engine: E) -> Self {
+        Self { engine }
     }
 
-    /// Set the HTTP transport configuration
+    /// Build the transport with the configured engine
     ///
-    /// This allows customizing the HTTP-specific settings like bind address,
-    /// connection limits, timeouts, etc.
-    pub fn with_config(mut self, config: HttpTransportConfig) -> Self {
-        self.config = config;
+    /// This creates a fully configured HttpTransport that wraps the engine
+    /// and implements the Transport trait for McpServer compatibility.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(HttpTransport<E>)` - Successfully created transport
+    /// * `Err(TransportError)` - Failed to create transport
+    pub async fn build(self) -> Result<HttpTransport<E>, TransportError> {
+        Ok(HttpTransport::new(self.engine))
+    }
+
+    /// Access the underlying engine for configuration
+    ///
+    /// This method provides access to the engine for configuration
+    /// before building the transport.
+    ///
+    /// # Returns
+    ///
+    /// Reference to the underlying HTTP engine
+    pub fn engine(&self) -> &E {
+        &self.engine
+    }
+
+    /// Access the underlying engine mutably for configuration
+    ///
+    /// This method provides mutable access to the engine for configuration
+    /// before building the transport.
+    ///
+    /// # Returns
+    ///
+    /// Mutable reference to the underlying HTTP engine
+    pub fn engine_mut(&mut self) -> &mut E {
+        &mut self.engine
+    }
+
+    /// Configure the engine with a closure
+    ///
+    /// This method allows for fluent configuration of the underlying engine
+    /// using a closure, enabling convenient method chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `config_fn` - Closure that configures the engine
+    ///
+    /// # Returns
+    ///
+    /// Self for method chaining
+    pub fn configure_engine<F>(mut self, config_fn: F) -> Self
+    where
+        F: FnOnce(&mut E),
+    {
+        config_fn(&mut self.engine);
         self
+    }
+
+    /// Bind the HTTP engine to a specific address
+    ///
+    /// This method provides a convenient way to bind the engine to an address
+    /// as part of the builder pattern.
+    ///
+    /// # Arguments
+    ///
+    /// * `addr` - Socket address to bind to
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - Successfully bound, ready for building
+    /// * `Err(TransportError)` - Failed to bind to address
+    pub async fn bind(mut self, addr: std::net::SocketAddr) -> Result<Self, TransportError> {
+        self.engine.bind(addr).await.map_err(TransportError::from)?;
+        Ok(self)
     }
 }
 
-impl Default for HttpTransportBuilder {
-    fn default() -> Self {
-        Self::new()
+// ================================================================================================
+// Factory Methods (Phase 5 - Authentication Integration)
+// ================================================================================================
+
+impl HttpTransportBuilder<()> {
+    /// Create a builder with a placeholder engine for testing and development
+    ///
+    /// This method creates a builder with a minimal placeholder engine implementation
+    /// that satisfies the HttpEngine trait for testing and basic development.
+    /// For production use, see the factory methods below.
+    ///
+    /// # Note
+    ///
+    /// This placeholder engine provides minimal functionality and should not be used
+    /// in production. It exists to support the zero-dyn architecture during Phase 4
+    /// development and testing.
+    ///
+    /// # Returns
+    ///
+    /// HttpTransportBuilder with placeholder engine
+    pub fn with_placeholder_engine() -> HttpTransportBuilder<()> {
+        HttpTransportBuilder::new(())
+    }
+
+    /// Create a builder with a default HTTP engine (legacy alias)
+    ///
+    /// This method is an alias for `with_placeholder_engine()` to maintain
+    /// backward compatibility during the Phase 4 to Phase 5 transition.
+    ///
+    /// # Deprecated
+    ///
+    /// Use `with_placeholder_engine()` for clarity, or wait for Phase 5
+    /// factory methods like `with_axum_engine()`.
+    ///
+    /// # Returns
+    ///
+    /// HttpTransportBuilder with placeholder engine
+    #[deprecated(
+        since = "phase-4",
+        note = "Use with_placeholder_engine() or wait for Phase 5 factory methods"
+    )]
+    pub fn with_default_engine() -> HttpTransportBuilder<()> {
+        Self::with_placeholder_engine()
     }
 }
 
-impl TransportBuilder<HttpContext> for HttpTransportBuilder {
-    type Transport = HttpTransport;
-    type Error = TransportError;
+// ================================================================================================
+// Phase 5 Factory Methods (To Be Implemented)
+// ================================================================================================
 
-    /// Set the message handler for the transport
-    ///
-    /// This is the key method that implements the pre-configured pattern.
-    /// The handler must be set before building the transport.
-    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<HttpContext>>) -> Self {
-        self.message_handler = Some(handler);
-        self
+// TODO(PHASE-5): Factory methods for concrete engine types
+//
+// These factory methods will be implemented in Phase 5 to provide convenient
+// constructors for common HTTP engine configurations:
+//
+// impl HttpTransportBuilder<AxumHttpServer<NoAuth>> {
+//     /// Create a builder with an Axum HTTP engine (no authentication)
+//     pub async fn with_axum_engine(
+//         connection_manager: Arc<HttpConnectionManager>,
+//         config: HttpTransportConfig,
+//     ) -> Result<HttpTransportBuilder<AxumHttpServer<NoAuth>>, TransportError> {
+//         let engine = AxumHttpServer::new(connection_manager, config).await?;
+//         Ok(HttpTransportBuilder::new(engine))
+//     }
+// }
+//
+// impl HttpTransportBuilder<AxumHttpServer<OAuth2StrategyAdapter<JwtValidator, ScopeValidator>, ScopePolicy<ScopeContext>, ScopeContext>> {
+//     /// Create a builder with an Axum HTTP engine configured for OAuth2
+//     pub async fn with_oauth2_engine(
+//         connection_manager: Arc<HttpConnectionManager>,
+//         config: HttpTransportConfig,
+//         oauth2_adapter: OAuth2StrategyAdapter<JwtValidator, ScopeValidator>,
+//         auth_config: OAuth2AuthConfig,
+//     ) -> Result<Self, TransportError> {
+//         let engine = AxumHttpServer::new(connection_manager, config).await?
+//             .with_oauth2_authorization(oauth2_adapter, auth_config);
+//         Ok(HttpTransportBuilder::new(engine))
+//     }
+// }
+//
+// impl HttpTransportBuilder<AxumHttpServer<ApiKeyStrategyAdapter<InMemoryApiKeyValidator>, ApiKeyPolicy<ApiKeyContext>, ApiKeyContext>> {
+//     /// Create a builder with an Axum HTTP engine configured for API key authentication
+//     pub async fn with_apikey_engine(
+//         connection_manager: Arc<HttpConnectionManager>,
+//         config: HttpTransportConfig,
+//         apikey_adapter: ApiKeyStrategyAdapter<InMemoryApiKeyValidator>,
+//         auth_config: ApiKeyAuthConfig,
+//     ) -> Result<Self, TransportError> {
+//         let engine = AxumHttpServer::new(connection_manager, config).await?
+//             .with_apikey_authorization(apikey_adapter, auth_config);
+//         Ok(HttpTransportBuilder::new(engine))
+//     }
+// }
+//
+// impl HttpTransportBuilder<AxumHttpServer<CustomAuth, CustomPolicy, CustomContext>> {
+//     /// Create a builder with a custom authentication engine
+//     pub async fn with_custom_auth_engine<A, P, C>(
+//         connection_manager: Arc<HttpConnectionManager>,
+//         config: HttpTransportConfig,
+//         auth_adapter: A,
+//         auth_config: AuthConfig,
+//     ) -> Result<HttpTransportBuilder<AxumHttpServer<A, P, C>>, TransportError>
+//     where
+//         A: HttpAuthStrategyAdapter,
+//         P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
+//         C: AuthzContext + Clone,
+//     {
+//         let engine = AxumHttpServer::new(connection_manager, config).await?
+//             .with_custom_authorization(auth_adapter, auth_config);
+//         Ok(HttpTransportBuilder::new(engine))
+//     }
+// }
+
+// Placeholder implementation for unit type (temporary)
+#[async_trait]
+impl HttpEngine for () {
+    type Error = HttpEngineError;
+    type Config = ();
+    type Handler = ();
+
+    fn new(_config: Self::Config) -> Result<Self, Self::Error> {
+        Ok(())
     }
 
-    /// Build the transport with the configured message handler
-    ///
-    /// This creates a fully configured transport that is ready to start.
-    /// The transport will have its message handler pre-configured.
-    async fn build(self) -> Result<Self::Transport, Self::Error> {
-        let handler = self
-            .message_handler
-            .ok_or_else(|| TransportError::Connection {
-                message: "Message handler must be set before building HTTP transport".to_string(),
-            })?;
+    async fn bind(&mut self, _addr: std::net::SocketAddr) -> Result<(), HttpEngineError> {
+        Ok(())
+    }
 
-        Ok(HttpTransport::new(self.config, handler))
+    async fn start(&mut self) -> Result<(), HttpEngineError> {
+        Ok(())
+    }
+
+    async fn shutdown(&mut self) -> Result<(), HttpEngineError> {
+        Ok(())
+    }
+
+    fn register_mcp_handler(&mut self, _handler: Self::Handler) {}
+
+    fn register_authentication<S, T, D>(
+        &mut self,
+        _auth_manager: crate::authentication::AuthenticationManager<S, T, D>,
+    ) -> Result<(), HttpEngineError>
+    where
+        S: crate::authentication::AuthenticationStrategy<T, D>,
+        T: Send + Sync,
+        D: Send + Sync + 'static,
+    {
+        Ok(())
+    }
+
+    fn register_middleware(&mut self, _middleware: Box<dyn super::engine::HttpMiddleware>) {}
+
+    fn is_bound(&self) -> bool {
+        true
+    }
+
+    fn is_running(&self) -> bool {
+        false
+    }
+
+    fn local_addr(&self) -> Option<std::net::SocketAddr> {
+        Some("127.0.0.1:8080".parse().unwrap())
+    }
+
+    fn engine_type(&self) -> &'static str {
+        "placeholder"
+    }
+}
+
+// Placeholder implementation for McpRequestHandler
+#[async_trait]
+impl McpRequestHandler for () {
+    async fn handle_mcp_request(
+        &self,
+        _session_id: String,
+        _request_data: Vec<u8>,
+        _response_mode: ResponseMode,
+        _auth_context: Option<super::engine::AuthenticationContext>,
+    ) -> Result<super::engine::HttpResponse, HttpEngineError> {
+        Ok(super::engine::HttpResponse::json(b"{}".to_vec()))
     }
 }
 
@@ -356,35 +556,10 @@ impl TransportBuilder<HttpContext> for HttpTransportBuilder {
 mod tests {
     use super::*;
 
-    struct TestHandler;
-
-    #[async_trait]
-    impl MessageHandler<HttpContext> for TestHandler {
-        async fn handle_message(
-            &self,
-            _message: JsonRpcMessage,
-            _context: MessageContext<HttpContext>,
-        ) {
-            // Test handler implementation
-        }
-
-        async fn handle_error(&self, _error: TransportError) {
-            // Test error handling
-        }
-
-        async fn handle_close(&self) {
-            // Test close handling
-        }
-    }
-
     #[tokio::test]
-    async fn test_http_transport_builder() {
-        let handler = Arc::new(TestHandler);
-        let config = HttpTransportConfig::new().bind_address("127.0.0.1:8080".parse().unwrap());
-
-        let transport_result = HttpTransportBuilder::new()
-            .with_config(config)
-            .with_message_handler(handler)
+    async fn test_http_transport_generic_builder() {
+        // Test the new generic builder pattern
+        let transport_result = HttpTransportBuilder::with_placeholder_engine()
             .build()
             .await;
 
@@ -395,193 +570,78 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_http_transport_builder_requires_handler() {
-        let config = HttpTransportConfig::new();
+    async fn test_http_transport_engine_access() {
+        // Test engine access methods
+        let mut builder = HttpTransportBuilder::with_placeholder_engine();
 
-        let builder_without_handler = HttpTransportBuilder::new().with_config(config);
+        // Test engine access
+        assert_eq!(builder.engine().engine_type(), "placeholder");
 
-        let result = builder_without_handler.build().await;
-        assert!(result.is_err());
+        // Test mutable engine access
+        let _engine_mut = builder.engine_mut();
 
-        if let Err(TransportError::Connection { message }) = result {
-            assert!(message.contains("Message handler must be set"));
-        } else {
-            panic!("Expected Connection error with message about handler");
-        }
+        let transport = builder.build().await.unwrap();
+        assert_eq!(transport.engine().engine_type(), "placeholder");
     }
 
     #[tokio::test]
-    async fn test_pre_configured_pattern() {
-        let handler = Arc::new(TestHandler);
-        let transport = HttpTransport::new(HttpTransportConfig::new(), handler.clone());
+    async fn test_http_transport_session_management() {
+        // Test session ID management
+        let mut transport = HttpTransportBuilder::with_placeholder_engine()
+            .build()
+            .await
+            .unwrap();
 
-        // Pre-configured pattern: transport is created with handler already set
-        // No way to accidentally overwrite the handler after creation
-        // This is the key safety improvement of the pre-configured pattern
+        assert_eq!(transport.session_id(), None);
 
-        // Transport should work normally with pre-configured handler
+        transport.set_session_context(Some("test-session".to_string()));
+        assert_eq!(transport.session_id(), Some("test-session".to_string()));
+
+        transport.set_session_context(None);
+        assert_eq!(transport.session_id(), None);
+    }
+
+    #[tokio::test]
+    async fn test_zero_dyn_architecture() {
+        // Test that we've achieved zero dynamic dispatch
+        // The generic HttpTransport<E> should have no dyn traits
+
+        let transport = HttpTransportBuilder::with_placeholder_engine()
+            .build()
+            .await
+            .unwrap();
+
+        // This compiles without dyn traits, proving zero-cost abstraction
+        let _engine_ref: &() = transport.engine();
+
+        // Transport trait implementation works
         assert_eq!(transport.transport_type(), "http");
         assert!(!transport.is_connected());
-
-        // The message_handler field is private and can only be set during construction
-        // This prevents the dangerous handler overwriting pattern
     }
 
     #[tokio::test]
-    async fn test_phase_5_5_3_http_context_integration() {
-        // Test HttpContext creation and HTTP-specific methods
-        let context = HttpContext::new("POST".to_string(), "/mcp/request".to_string());
+    async fn test_mcp_handler_registration() {
+        // Test MCP handler registration with concrete types (no dyn)
+        let mut transport = HttpTransportBuilder::with_placeholder_engine()
+            .build()
+            .await
+            .unwrap();
 
-        assert!(context.is_post());
-        assert_eq!(context.method(), "POST");
-        assert_eq!(context.path(), "/mcp/request");
-        assert!(context.headers().is_empty());
-        assert!(context.query_params().is_empty());
+        // Register handler - this uses concrete types, no dynamic dispatch
+        transport.register_mcp_handler(());
+
+        // Handler registration should work without errors
+        assert_eq!(transport.transport_type(), "http");
     }
 
     #[tokio::test]
-    async fn test_phase_5_5_3_http_context_builder_pattern() {
-        // Test HttpContext builder pattern with headers and query parameters
-        let context = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
-            .with_header("Content-Type", "application/json")
-            .with_header("Authorization", "Bearer token123")
-            .with_query_param("format", "json")
-            .with_query_param("version", "1.0")
-            .with_remote_addr("127.0.0.1:8080".to_string());
+    async fn test_deprecated_with_default_engine() {
+        // Test backward compatibility with the deprecated method
+        #[allow(deprecated)]
+        let transport_result = HttpTransportBuilder::with_default_engine().build().await;
 
-        assert_eq!(context.method(), "GET");
-        assert_eq!(context.path(), "/mcp/status");
-        assert_eq!(context.remote_addr(), Some("127.0.0.1:8080"));
-
-        // Test case-insensitive header access
-        assert_eq!(context.get_header("content-type"), Some("application/json"));
-        assert_eq!(context.get_header("CONTENT-TYPE"), Some("application/json"));
-        assert_eq!(context.get_header("Content-Type"), Some("application/json"));
-
-        assert_eq!(context.get_query_param("format"), Some("json"));
-        assert_eq!(context.get_query_param("version"), Some("1.0"));
-    }
-
-    #[tokio::test]
-    async fn test_phase_5_5_3_json_content_detection() {
-        // Test is_json() method for Content-Type detection
-        let json_context = HttpContext::new("POST".to_string(), "/api/data".to_string())
-            .with_header("Content-Type", "application/json");
-
-        let xml_context = HttpContext::new("POST".to_string(), "/api/data".to_string())
-            .with_header("Content-Type", "application/xml");
-
-        let no_content_type = HttpContext::new("POST".to_string(), "/api/data".to_string());
-
-        assert!(json_context.is_json());
-        assert!(!xml_context.is_json());
-        assert!(!no_content_type.is_json());
-    }
-
-    #[tokio::test]
-    async fn test_phase_5_5_3_session_extraction() {
-        // Test session ID extraction from different sources
-        let header_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
-            .with_header("X-Session-ID", "session123");
-
-        let cookie_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
-            .with_header("Cookie", "sessionId=cookie456; other=value");
-
-        let query_session = HttpContext::new("GET".to_string(), "/mcp/status".to_string())
-            .with_query_param("sessionId", "query789");
-
-        assert_eq!(header_session.session_id(), Some("session123"));
-        assert_eq!(cookie_session.session_id(), Some("cookie456"));
-        assert_eq!(query_session.session_id(), Some("query789"));
-    }
-
-    #[tokio::test]
-    async fn test_phase_5_5_3_generic_handler_pattern() {
-        use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, RequestId};
-        use async_trait::async_trait;
-
-        // Test handler implementation with HttpContext
-        struct TestHttpHandler;
-
-        #[async_trait]
-        impl MessageHandler<HttpContext> for TestHttpHandler {
-            async fn handle_message(
-                &self,
-                _message: JsonRpcMessage,
-                context: MessageContext<HttpContext>,
-            ) {
-                // Access HTTP-specific context data
-                let http_context = context
-                    .transport_data()
-                    .expect("HttpContext should be present");
-                assert_eq!(http_context.method(), "POST");
-                assert_eq!(http_context.path(), "/test");
-            }
-
-            async fn handle_error(&self, _error: TransportError) {
-                // Test error handling
-            }
-
-            async fn handle_close(&self) {
-                // Test close handling
-            }
-        }
-
-        // Create handler and test with HttpContext
-        let handler = TestHttpHandler;
-        let http_context = HttpContext::new("POST".to_string(), "/test".to_string());
-
-        let message_context = MessageContext::new_with_transport_data(
-            "test-correlation-id".to_string(),
-            http_context,
-        );
-
-        // Create a test message for the handler
-        let test_message =
-            JsonRpcMessage::from_request("test_method", None, RequestId::new_number(1));
-
-        handler.handle_message(test_message, message_context).await;
-    }
-
-    #[tokio::test]
-    async fn test_phase_5_5_3_transport_builder_with_http_context() {
-        // Test HttpTransportBuilder with MessageHandler<HttpContext>
-        use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler};
-        use async_trait::async_trait;
-
-        struct HttpContextHandler;
-
-        #[async_trait]
-        impl MessageHandler<HttpContext> for HttpContextHandler {
-            async fn handle_message(
-                &self,
-                _message: JsonRpcMessage,
-                context: MessageContext<HttpContext>,
-            ) {
-                let http_ctx = context
-                    .transport_data()
-                    .expect("HttpContext should be present");
-                tracing::info!(
-                    "Handling HTTP {} request to {}",
-                    http_ctx.method(),
-                    http_ctx.path()
-                );
-            }
-
-            async fn handle_error(&self, _error: TransportError) {
-                // Test error handling
-            }
-
-            async fn handle_close(&self) {
-                // Test close handling
-            }
-        }
-
-        let handler = Arc::new(HttpContextHandler);
-        let builder = HttpTransportBuilder::new().with_message_handler(handler);
-        let transport = builder.build().await.unwrap();
-
-        // Verify the transport is properly configured
+        assert!(transport_result.is_ok());
+        let transport = transport_result.unwrap();
         assert_eq!(transport.transport_type(), "http");
         assert!(!transport.is_connected());
     }

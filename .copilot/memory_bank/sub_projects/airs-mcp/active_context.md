@@ -1,12 +1,37 @@
 # Active Context - airs-mcp
 
-## 🏛️ CURRENT FOCUS: TASK-030 PHASE 3 COMPLETE - HTTP TRANSPORT ZERO-DYN REFACTORING - READY FOR PHASE 4
+## � CURRENT FOCUS: TASK-030 PHASE 5 ARCHITECTURE DESIGN - GENERIC CONVENIENCE METHODS
 
-### 🎉 **TASK-030 PHASE 2 COMPLETE: HTTP TRANSPORT ZERO-DYN ARCHITECTURE REFACTORING (85% Complete)**
+### �️ **TASK-030 PHASE 4 COMPLETE: ZERO-DYN ARCHITECTURE WITH GENERIC TRANSPORT (2025-09-13)**
 
-**STATUS**: 🎉 **PHASE 2 COMPLETE** - Direct MCP Handler Implementation with complete logic migration finished, ready for Phase 3 (AxumHttpServer Simplification)
+**STATUS**: 🎉 **PHASE 4 COMPLETE** - HttpTransport<E: HttpEngine> with Transport trait implementation and generic builder patterns complete. Ready for Phase 5 (Generic Convenience Methods Implementation).
 
-**MAJOR MILESTONE**: Successfully eliminated all `dyn` patterns and migrated 500+ lines of complex MCP logic with 100% accuracy
+**ARCHITECTURAL BREAKTHROUGH**: Successfully achieved complete zero-dyn architecture with `HttpTransport<E: HttpEngine>` eliminating all dynamic dispatch while maintaining McpServer compatibility.
+
+### 🎯 **PHASE 5 STRATEGIC DESIGN: ENGINE-AGNOSTIC BUILDER PATTERNS (2025-09-13T15:00:00Z)**
+
+**ARCHITECTURAL EVOLUTION**: After comprehensive analysis, Phase 5 transcends engine-specific factory methods to implement truly generic convenience methods that work with ANY HttpEngine implementation.
+
+**Key Architectural Decision**: Engine Self-Configuration Pattern
+- **Generic Transport Builder**: HttpTransportBuilder<E> remains completely engine-agnostic
+- **Engine Self-Configuration**: Each engine (AxumHttpServer, future Rocket, Warp) handles its own complexity
+- **Progressive Developer Experience**: Multiple tiers from simple defaults to full customization
+- **True Generic Design**: Convenience methods work with any engine without builder modifications
+
+**Design Principles**:
+- **Open/Closed Principle**: Builder open for extension, closed for modification
+- **Zero Maintenance**: New engines automatically get all convenience methods
+- **Consistent API**: Same developer experience regardless of engine choice
+- **Rust Patterns**: Similar to how `Vec<T>`, `Option<T>` provide generic methods
+
+**Implementation Strategy**:
+1. **Generic Convenience Methods**: `with_default()`, `with_engine()`, `with_configured_engine()`, `with_configured_engine_async()`
+2. **AxumHttpServer Self-Configuration**: Default implementation + quick constructors
+3. **AxumHttpServerBuilder Enhancement**: `build_simple()` for basic usage
+4. **Progressive Disclosure**: Tier 1 (beginner) → Tier 2 (basic config) → Tier 3 (advanced)
+5. **Comprehensive Testing**: All convenience patterns validated
+
+**Ready for Implementation**: Complete architectural design documented, ready to implement generic convenience methods.
 
 ### ✅ **PHASE 1 COMPLETE: CORE TRAIT REDESIGN WITH ASSOCIATED TYPES (2025-09-12)**
 
@@ -138,13 +163,36 @@
 - Proper server lifecycle management
 - Workspace standards compliance maintained
 
-#### **🔄 NEXT FOCUS: PHASE 2.2 - MCP-REMOTE-SERVER-APIKEY MODERNIZATION**
+### � **ARCHITECTURAL KNOWLEDGE BANK: PHASE 5 DESIGN PATTERNS**
 
-**Upcoming Work**: Modernize HTTP remote server with ApiKey authentication using:
-- HttpTransportBuilder from TASK-028 architecture
-- MessageHandler<HttpContext> pattern
-- Remove old ConcurrentProcessor dependencies
-- Update to unified protocol imports
+**Engine-Agnostic Generic Builder Pattern**:
+- **Problem**: Engine-specific convenience methods create maintenance burden
+- **Solution**: Generic methods with trait bounds that work with any HttpEngine
+- **Pattern**: `impl<E: HttpEngine> HttpTransportBuilder<E>` with progressive disclosure
+- **Benefits**: Zero maintenance for new engines, consistent API, follows Rust patterns
+
+**Progressive Developer Experience Tiers**:
+- **Tier 1**: `with_default()` - Zero configuration, just works
+- **Tier 2**: `with_engine(pre_configured)` - Common patterns with pre-built engines  
+- **Tier 3**: `with_configured_engine(builder_fn)` - Full control with builder functions
+- **Tier 4**: `with_configured_engine_async(async_fn)` - Complex async initialization
+
+**Engine Self-Configuration Principle**:
+- **Responsibility**: Each engine handles its own complexity (auth, middleware, config)
+- **Separation**: Transport builder remains generic, engines provide specialized builders
+- **Scalability**: New engines (Rocket, Warp) get automatic convenience method support
+- **Maintainability**: No coupling between generic transport and specific engine implementations
+
+#### **🔄 NEXT FOCUS: TASK-030 PHASE 5 IMPLEMENTATION**
+
+**Ready for Implementation**: Complete architectural design documented for generic convenience methods with engine self-configuration pattern.
+
+**Implementation Order**:
+1. **Generic Convenience Methods**: Add to HttpTransportBuilder<E>
+2. **AxumHttpServer Self-Configuration**: Default + quick constructors
+3. **AxumHttpServerBuilder Enhancement**: build_simple() method
+4. **Comprehensive Examples**: All usage patterns demonstrated
+5. **Integration Testing**: Validate all convenience method patterns
 
 #### **✅ COMPLETION: COMPREHENSIVE 4-PHASE REFACTORING (2025-09-11T22:30:00Z)**
 

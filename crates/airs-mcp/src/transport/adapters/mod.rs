@@ -82,18 +82,17 @@ pub use stdio::{
 
 // HTTP Transport - Self-contained module
 pub use http::{
-    EchoHttpHandler, HttpConnectionManager, HttpContext, HttpMessageContext,
-    HttpMessageHandler, HttpTransport, HttpTransportBuilder,
-    HttpTransportConfig, McpHttpHandler, StaticFileHandler,
+    EchoHttpHandler, HttpConnectionManager, HttpContext, HttpMessageContext, HttpMessageHandler,
+    HttpTransport, HttpTransportBuilder, HttpTransportConfig, McpHttpHandler, StaticFileHandler,
 };
 
 // HTTP Additional Exports (maintaining backward compatibility)
 pub use http::{
-    cache_control, content_types, events, headers,
-    BufferPool, BufferPoolStats, BufferStrategy, ConnectionHealth, ConnectionId, ConnectionInfo,
-    ConnectionStats, ConnectionStatsSnapshot, DeprecationConfig, DeprecationPhase,
-    HealthCheckConfig, HealthCheckResult, HttpSseConfig, MigrationMode, PooledBuffer,
-    RequestParser, SseEndpointConfig, DEFAULT_MESSAGES_ENDPOINT, DEFAULT_SSE_ENDPOINT,
+    cache_control, content_types, events, headers, BufferPool, BufferPoolStats, BufferStrategy,
+    ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot,
+    DeprecationConfig, DeprecationPhase, HealthCheckConfig, HealthCheckResult, HttpSseConfig,
+    MigrationMode, PooledBuffer, RequestParser, SseEndpointConfig, DEFAULT_MESSAGES_ENDPOINT,
+    DEFAULT_SSE_ENDPOINT,
 };
 
 // NOTE: Transport Adapters removed as part of Phase 5.5.6a architectural simplification
@@ -125,10 +124,12 @@ mod tests {
     #[test]
     fn test_http_type_aliases_available() {
         // Verify HTTP type aliases are correctly exposed
-        use crate::transport::adapters::{HttpContext, HttpMessageHandler, HttpTransport};
+        use crate::transport::adapters::http::HttpTransport;
+        use crate::transport::adapters::{HttpContext, HttpMessageHandler};
 
         // These should compile without error, proving the type aliases work
-        let _: Option<HttpTransport> = None;
+        // Note: HttpTransport is now generic, so we use unit type for testing
+        let _: Option<HttpTransport<()>> = None;
         let _: Option<HttpContext> = None;
         let _: Option<&HttpMessageHandler> = None; // Use as reference to dyn trait
     }
@@ -154,8 +155,9 @@ mod tests {
         let _stdio_transport: Option<StdioTransport> = None;
 
         // HTTP module usage (completely independent)
+        // Note: HttpTransport is now generic, so we use unit type for testing
         use crate::transport::adapters::http::HttpTransport;
-        let _http_transport: Option<HttpTransport> = None;
+        let _http_transport: Option<HttpTransport<()>> = None;
 
         // Both modules should be usable without cross-dependencies
     }
@@ -165,8 +167,10 @@ mod tests {
         // Verify all expected symbols are re-exported cleanly
 
         // Core transport types should be available
-        use crate::transport::adapters::{HttpTransport, StdioTransport};
-        let _: Option<HttpTransport> = None;
+        use crate::transport::adapters::http::HttpTransport;
+        use crate::transport::adapters::stdio::StdioTransport;
+        // Note: HttpTransport is now generic, so we use unit type for testing
+        let _: Option<HttpTransport<()>> = None;
         let _: Option<StdioTransport> = None;
 
         // Context types should be available
