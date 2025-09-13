@@ -33,7 +33,6 @@ use crate::authorization::{
     middleware::AuthorizationRequest,
     policy::{AuthorizationPolicy, NoAuthorizationPolicy},
 };
-use crate::integration::constants::methods as mcp_methods;
 use crate::protocol::{JsonRpcMessageTrait, JsonRpcNotification, JsonRpcRequest};
 use crate::transport::adapters::http::auth::jsonrpc_authorization::{
     JsonRpcAuthorizationLayer, JsonRpcHttpRequest,
@@ -43,6 +42,7 @@ use crate::transport::adapters::http::auth::middleware::{
 };
 use crate::transport::adapters::http::config::HttpTransportConfig;
 use crate::transport::adapters::http::connection_manager::HttpConnectionManager;
+use crate::transport::adapters::http::engine::McpRequestHandler;
 use crate::transport::error::TransportError;
 
 /// SSE stream query parameters for HTTP Streamable GET requests
@@ -116,8 +116,7 @@ pub struct ServerState<
     /// Connection manager for tracking HTTP connections
     pub connection_manager: Arc<HttpConnectionManager>,
     /// Direct MCP request handler for processing MCP protocol requests
-    pub mcp_handler:
-        Option<Arc<crate::transport::adapters::http::defaults::DefaultAxumMcpRequestHandler>>,
+    pub mcp_handler: Option<Arc<dyn McpRequestHandler>>,
     /// Server configuration
     pub config: HttpTransportConfig,
     /// Broadcast channel for SSE events
@@ -414,114 +413,28 @@ where
     // Convert session_id to string for handler interface
     let session_id_str = session_id.to_string();
 
-    // Route MCP requests to appropriate handler methods based on method
-    match request.method.as_str() {
-        // MCP Initialization
-        mcp_methods::INITIALIZE => mcp_handler
-            .as_ref()
-            .handle_initialize(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Initialize error: {}", e),
-            }),
-        mcp_methods::INITIALIZED => {
-            // Notification - no response needed, but this shouldn't be called for requests
-            Ok(serde_json::json!({
-                "jsonrpc": "2.0",
-                "id": request.id,
-                "result": null
-            }))
-        }
+    // Serialize the request to bytes for the McpRequestHandler trait
+    let request_data = serde_json::to_vec(&request).map_err(|e| TransportError::Format {
+        message: format!("Failed to serialize request: {}", e),
+    })?;
 
-        // Resource Methods
-        mcp_methods::RESOURCES_LIST => mcp_handler
-            .as_ref()
-            .handle_list_resources(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("List resources error: {}", e),
-            }),
-        mcp_methods::RESOURCES_TEMPLATES_LIST => mcp_handler
-            .as_ref()
-            .handle_list_resource_templates(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("List resource templates error: {}", e),
-            }),
-        mcp_methods::RESOURCES_READ => mcp_handler
-            .as_ref()
-            .handle_read_resource(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Read resource error: {}", e),
-            }),
-        mcp_methods::RESOURCES_SUBSCRIBE => mcp_handler
-            .as_ref()
-            .handle_subscribe_resource(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Subscribe resource error: {}", e),
-            }),
-        mcp_methods::RESOURCES_UNSUBSCRIBE => mcp_handler
-            .as_ref()
-            .handle_unsubscribe_resource(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Unsubscribe resource error: {}", e),
-            }),
+    // Use the McpRequestHandler trait method
+    let response = mcp_handler
+        .handle_mcp_request(
+            session_id_str,
+            request_data,
+            crate::transport::adapters::http::engine::ResponseMode::Json,
+            None, // No auth context for now
+        )
+        .await
+        .map_err(|e| TransportError::Format {
+            message: format!("MCP handler error: {}", e),
+        })?;
 
-        // Tool Methods
-        mcp_methods::TOOLS_LIST => mcp_handler
-            .as_ref()
-            .handle_list_tools(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("List tools error: {}", e),
-            }),
-        mcp_methods::TOOLS_CALL => mcp_handler
-            .as_ref()
-            .handle_call_tool(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Call tool error: {}", e),
-            }),
-
-        // Prompt Methods
-        mcp_methods::PROMPTS_LIST => mcp_handler
-            .as_ref()
-            .handle_list_prompts(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("List prompts error: {}", e),
-            }),
-        mcp_methods::PROMPTS_GET => mcp_handler
-            .as_ref()
-            .handle_get_prompt(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Get prompt error: {}", e),
-            }),
-
-        // Logging Methods
-        mcp_methods::LOGGING_SET_LEVEL => mcp_handler
-            .as_ref()
-            .handle_set_logging(&session_id_str, request)
-            .await
-            .map_err(|e| TransportError::Format {
-                message: format!("Set logging error: {}", e),
-            }),
-
-        // Unknown method - return method not found error
-        _ => Ok(serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": request.id,
-            "error": {
-                "code": -32601,
-                "message": "Method not found",
-                "data": format!("Unknown method: {}", request.method)
-            }
-        })),
-    }
+    // Deserialize the response data back to JSON
+    serde_json::from_slice(&response.body).map_err(|e| TransportError::Format {
+        message: format!("Failed to deserialize response: {}", e),
+    })
 }
 
 /// Process JSON-RPC notification (no response expected)

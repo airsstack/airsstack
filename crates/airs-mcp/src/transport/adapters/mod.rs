@@ -124,12 +124,13 @@ mod tests {
     #[test]
     fn test_http_type_aliases_available() {
         // Verify HTTP type aliases are correctly exposed
+        use crate::transport::adapters::http::axum::{AxumHttpServer, NoAuth};
         use crate::transport::adapters::http::HttpTransport;
         use crate::transport::adapters::{HttpContext, HttpMessageHandler};
 
         // These should compile without error, proving the type aliases work
-        // Note: HttpTransport is now generic, so we use unit type for testing
-        let _: Option<HttpTransport<()>> = None;
+        // Note: HttpTransport is now generic, so we use AxumHttpServer for testing
+        let _: Option<HttpTransport<AxumHttpServer<NoAuth>>> = None;
         let _: Option<HttpContext> = None;
         let _: Option<&HttpMessageHandler> = None; // Use as reference to dyn trait
     }
@@ -155,9 +156,10 @@ mod tests {
         let _stdio_transport: Option<StdioTransport> = None;
 
         // HTTP module usage (completely independent)
-        // Note: HttpTransport is now generic, so we use unit type for testing
+        // Note: HttpTransport is now generic, so we use AxumHttpServer for testing
+        use crate::transport::adapters::http::axum::{AxumHttpServer, NoAuth};
         use crate::transport::adapters::http::HttpTransport;
-        let _http_transport: Option<HttpTransport<()>> = None;
+        let _http_transport: Option<HttpTransport<AxumHttpServer<NoAuth>>> = None;
 
         // Both modules should be usable without cross-dependencies
     }
@@ -167,10 +169,11 @@ mod tests {
         // Verify all expected symbols are re-exported cleanly
 
         // Core transport types should be available
+        use crate::transport::adapters::http::axum::{AxumHttpServer, NoAuth};
         use crate::transport::adapters::http::HttpTransport;
         use crate::transport::adapters::stdio::StdioTransport;
-        // Note: HttpTransport is now generic, so we use unit type for testing
-        let _: Option<HttpTransport<()>> = None;
+        // Note: HttpTransport is now generic, so we use AxumHttpServer for testing
+        let _: Option<HttpTransport<AxumHttpServer<NoAuth>>> = None;
         let _: Option<StdioTransport> = None;
 
         // Context types should be available

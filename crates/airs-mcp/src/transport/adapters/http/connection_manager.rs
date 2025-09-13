@@ -67,6 +67,7 @@ impl Default for HealthCheckConfig {
 ///
 /// Manages connection lifecycle, health checking, and resource limits.
 /// Uses deadpool for efficient connection pooling and includes rate limiting.
+#[derive(Debug)]
 pub struct HttpConnectionManager {
     /// Active connections tracked by ID
     active_connections: Arc<DashMap<ConnectionId, ConnectionInfo>>,

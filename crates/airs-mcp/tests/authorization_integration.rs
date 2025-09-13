@@ -20,9 +20,11 @@ use airs_mcp::authorization::{
 use airs_mcp::transport::adapters::http::auth::oauth2::error::HttpAuthError;
 use airs_mcp::transport::adapters::http::{
     auth::middleware::{HttpAuthConfig, HttpAuthRequest, HttpAuthStrategyAdapter},
-    axum::{AxumHttpServer, McpHandlersBuilder},
+    axum::AxumHttpServer,
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
+    defaults::DefaultAxumMcpRequestHandler,
+    engine::HttpEngine,
 };
 
 // ================================================================================================
@@ -86,16 +88,18 @@ impl HttpAuthStrategyAdapter for TestAuthAdapter {
 async fn create_test_server() -> AxumHttpServer<TestAuthAdapter> {
     let connection_manager = Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
 
-    let handlers = McpHandlersBuilder::new();
+    let handlers = DefaultAxumMcpRequestHandler::new(None, None, None, None);
     let config = HttpTransportConfig::new();
 
-    AxumHttpServer::with_handlers(connection_manager, handlers, config)
-        .await
+    let mut server = AxumHttpServer::from_parts(connection_manager, config)
         .unwrap()
         .with_authentication(
             TestAuthAdapter::new("test", true),
             HttpAuthConfig::default(),
-        )
+        );
+    
+    server.register_mcp_handler(handlers);
+    server
 }
 
 // ================================================================================================
@@ -163,17 +167,18 @@ async fn test_oauth2_server_builder_architecture() {
     // Test that OAuth2 server creation from scratch works
     let connection_manager = Arc::new(HttpConnectionManager::new(10, HealthCheckConfig::default()));
 
-    let handlers = McpHandlersBuilder::new();
+    let handlers = DefaultAxumMcpRequestHandler::new(None, None, None, None);
     let config = HttpTransportConfig::new();
 
     // Create OAuth2 server using the builder pattern
-    let server = AxumHttpServer::with_handlers(connection_manager, handlers, config)
-        .await
+    let mut server = AxumHttpServer::from_parts(connection_manager, config)
         .unwrap()
         .with_oauth2_authorization(
             TestAuthAdapter::new("oauth2_test", true),
             HttpAuthConfig::default(),
         );
+
+    server.register_mcp_handler(handlers);
 
     // Verify server properties
     assert!(!server.is_bound());

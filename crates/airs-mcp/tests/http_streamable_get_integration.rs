@@ -13,12 +13,14 @@ use tokio::time::timeout;
 use uuid::Uuid;
 
 use airs_mcp::transport::adapters::http::axum::{
-    create_router, McpHandlersBuilder, McpSseQueryParams, ServerState, SseEvent,
+    create_router, McpSseQueryParams, ServerState, SseEvent,
 };
 use airs_mcp::transport::adapters::http::config::HttpTransportConfig;
 use airs_mcp::transport::adapters::http::connection_manager::{
     HealthCheckConfig, HttpConnectionManager,
 };
+use airs_mcp::transport::adapters::http::defaults::DefaultAxumMcpRequestHandler;
+use airs_mcp::transport::adapters::http::engine::McpRequestHandler;
 
 /// Helper to create a test ServerState with all required components
 async fn create_test_server_state() -> ServerState {
@@ -29,12 +31,14 @@ async fn create_test_server_state() -> ServerState {
         health_config,
     ));
 
-    let mcp_handlers = Arc::new(McpHandlersBuilder::new().build());
+    let mcp_handler: Option<Arc<dyn McpRequestHandler>> = Some(Arc::new(
+        DefaultAxumMcpRequestHandler::new(None, None, None, None),
+    ));
     let (sse_broadcaster, _) = broadcast::channel::<SseEvent>(1024);
 
     ServerState {
         connection_manager,
-        mcp_handlers,
+        mcp_handler,
         config,
         sse_broadcaster,
         auth_middleware: None,
@@ -63,7 +67,10 @@ async fn test_server_state_creation() {
     // Verify all components are properly initialized
     // Instead of null pointer checks, just verify they exist by using Arc::strong_count
     assert!(Arc::strong_count(&state.connection_manager) > 0);
-    assert!(Arc::strong_count(&state.mcp_handlers) > 0);
+    assert!(state.mcp_handler.is_some());
+    if let Some(ref handler) = state.mcp_handler {
+        assert!(Arc::strong_count(handler) > 0);
+    }
     assert_eq!(state.config.bind_address.port(), 3000); // Default port
 }
 

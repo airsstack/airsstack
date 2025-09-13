@@ -150,6 +150,36 @@ impl AxumHttpServer<NoAuth> {
         })
     }
 
+    /// Create a new Axum HTTP server synchronously (for builder pattern support)
+    ///
+    /// This is a synchronous version of `new()` that creates the server immediately
+    /// without async setup. Used internally by the builder pattern and Default implementation.
+    pub fn from_parts(
+        connection_manager: Arc<HttpConnectionManager>,
+        config: HttpTransportConfig,
+    ) -> Result<Self, TransportError> {
+        // Create SSE broadcast channel for HTTP Streamable support
+        let (sse_broadcaster, _receiver) = broadcast::channel(1000);
+
+        let state = ServerState {
+            connection_manager,
+            mcp_handler: None, // Will be set via register_mcp_handler()
+            config: config.clone(),
+            sse_broadcaster,
+            auth_middleware: None,     // NoAuth has no middleware
+            authorization_layer: None, // NoAuth has no authorization layer
+        };
+
+        Ok(Self {
+            state,
+            listener: None,
+            local_addr: None,
+            is_running: false,
+            mcp_handler: None,
+            middleware: Vec::new(),
+        })
+    }
+
     /// Add authentication to the server (zero-cost type conversion)
     ///
     /// Converts the server from NoAuth to a specific authentication strategy.
@@ -528,6 +558,39 @@ where
     pub fn local_addr(&self) -> Option<SocketAddr> {
         self.local_addr
     }
+
+    /// Register a custom MCP request handler
+    ///
+    /// This method allows registration of any type that implements `McpRequestHandler`,
+    /// enabling the use of custom providers without the constraints of the HttpEngine trait.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - Any type implementing McpRequestHandler
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp::transport::adapters::http::AxumMcpRequestHandler;
+    ///
+    /// let custom_handler = AxumMcpRequestHandler::new(
+    ///     Some(my_resource_provider),
+    ///     Some(my_tool_provider),
+    ///     Some(my_prompt_provider),
+    ///     Some(my_logging_handler),
+    /// );
+    ///
+    /// server.register_custom_mcp_handler(custom_handler);
+    /// ```
+    pub fn register_custom_mcp_handler<H>(&mut self, handler: H)
+    where
+        H: McpRequestHandler + Send + Sync + 'static,
+    {
+        let handler_arc = std::sync::Arc::new(handler);
+        // Store the handler in both locations
+        self.mcp_handler = Some(handler_arc.clone());
+        self.state.mcp_handler = Some(handler_arc);
+    }
 }
 
 // ================================================================================================
@@ -665,6 +728,25 @@ where
     /// Get the engine type identifier
     fn engine_type(&self) -> &'static str {
         "axum"
+    }
+}
+
+impl Default for AxumHttpServer<NoAuth> {
+    /// Create a default AxumHttpServer with sensible defaults
+    ///
+    /// This enables parameter-free construction as required by Phase 5.2.
+    /// Uses the builder pattern internally to create default dependencies.
+    ///
+    /// # Panics
+    ///
+    /// Panics if default dependencies cannot be created. This should only
+    /// happen in extreme resource exhaustion scenarios.
+    fn default() -> Self {
+        use crate::transport::adapters::http::axum::AxumHttpServerBuilder;
+
+        AxumHttpServerBuilder::default()
+            .build()
+            .expect("Default AxumHttpServer construction should never fail")
     }
 }
 

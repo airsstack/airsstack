@@ -51,9 +51,10 @@ use airs_mcp::providers::{
 };
 use airs_mcp::transport::adapters::http::{
     auth::{middleware::HttpAuthConfig, oauth2::OAuth2StrategyAdapter},
-    axum::{AxumHttpServer, McpHandlersBuilder},
+    axum::AxumHttpServer,
     config::HttpTransportConfig,
     connection_manager::{HealthCheckConfig, HttpConnectionManager},
+    AxumMcpRequestHandler,
 };
 
 /// Test JWT signing keys and JWKS data
@@ -423,14 +424,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // Create MCP handlers with providers
-    let handlers = McpHandlersBuilder::new()
-        .with_resource_provider(Arc::new(
-            FileSystemResourceProvider::new(&temp_path.canonicalize()?)
-                .expect("Failed to create filesystem provider"),
-        ))
-        .with_tool_provider(Arc::new(MathToolProvider::new()))
-        .with_prompt_provider(Arc::new(CodeReviewPromptProvider::new()))
-        .with_logging_handler(Arc::new(StructuredLoggingHandler::new()));
+    let resource_provider = FileSystemResourceProvider::new(&temp_path.canonicalize()?)
+        .expect("Failed to create filesystem provider");
+    let tool_provider = MathToolProvider::new();
+    let prompt_provider = CodeReviewPromptProvider::new();
+    let logging_handler = StructuredLoggingHandler::new();
+
+    let handlers = AxumMcpRequestHandler::new(
+        Some(resource_provider),
+        Some(tool_provider),
+        Some(prompt_provider),
+        Some(logging_handler),
+    );
 
     // Create server infrastructure
     let connection_manager = Arc::new(HttpConnectionManager::new(
@@ -447,13 +452,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .buffer_pool_size(100);
 
     // Create the OAuth2-enabled MCP server
-    let server = AxumHttpServer::with_handlers(
-        connection_manager,
-        handlers,
-        transport_config,
-    )
-    .await?
-    .with_authentication(oauth2_adapter, auth_config);
+    let mut server = AxumHttpServer::from_parts(connection_manager, transport_config)?
+        .with_authentication(oauth2_adapter, auth_config);
+
+    server.register_custom_mcp_handler(handlers);
 
     info!("✅ OAuth2 MCP Server configured successfully");
     info!("🌐 Server will bind to: http://127.0.0.1:3001");
