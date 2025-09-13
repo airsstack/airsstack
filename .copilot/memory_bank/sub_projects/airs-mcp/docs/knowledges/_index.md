@@ -1,17 +1,23 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-11  
-**Total Knowledge Docs**: 27  
+**Last Updated**: 2025-09-13  
+**Total Knowledge Docs**: 28  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 15  
+**Documentation Count**: 16  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[TASK-030 Phase 5: Generic Builder Architecture](./task-030-phase-5-generic-builder-architecture.md)** 🎯 NEW ARCHITECTURAL
+  - **Focus**: Engine-agnostic generic convenience methods for HttpTransportBuilder, progressive developer experience (4 tiers)
+  - **Complexity**: High - True generic design eliminating engine-specific coupling, comprehensive convenience method architecture
+  - **Updated**: 2025-09-13
+  - **Related**: TASK-030 Phase 5 implementation, zero-maintenance engine support, Open/Closed Principle compliance
+
 - **[HTTP Transport Zero-Dyn Architecture](./architecture/http-transport-zero-dyn-architecture.md)** 🚀 NEW PLANNING
   - **Focus**: Zero-dyn HTTP transport architecture using associated types, direct MCP integration, engine-layer authentication
   - **Complexity**: High - Complete elimination of dynamic dispatch, major architectural refactoring

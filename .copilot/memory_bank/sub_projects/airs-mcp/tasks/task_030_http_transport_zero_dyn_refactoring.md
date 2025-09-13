@@ -231,9 +231,11 @@ let transport = HttpTransportBuilder::with_configured_engine_async(|| async {
 | 4.1 | Generic HttpTransport<E: HttpEngine> implementation | complete | 2025-09-13 | ✅ Implemented with zero-dyn architecture, HttpTransport<E> with engine, session_id, is_connected fields |
 | 4.2 | Transport trait implementation for McpServer compatibility | complete | 2025-09-13 | ✅ Full Transport trait impl: start(), close(), send(), session management for McpServer integration |
 | 4.3 | Generic HttpTransportBuilder<E> with engine configuration | complete | 2025-09-13 | ✅ Builder with configure_engine(), bind() methods, factory patterns for Phase 5 |
-| 5.1 | Preserve AxumHttpServer auth builders | in_progress | 2025-09-13 | Starting Phase 5 - Verify existing authentication patterns preserved |
-| 5.2 | HttpTransportBuilder auth delegation | not_started | 2025-09-13 | Pending Phase 5 - Delegate auth config to engine builders |
-| 5.3 | Pre-configured engine builders | not_started | 2025-09-13 | Pending Phase 5 - Factory methods for common auth patterns |
+| 5.1 | Generic convenience methods implementation | not_started | 2025-09-13 | Phase 5.1 - Add with_default(), with_engine(), with_configured_engine(), with_configured_engine_async() |
+| 5.2 | AxumHttpServer self-configuration enhancement | not_started | 2025-09-13 | Phase 5.2 - Implement Default trait, quick constructors (with_auth, with_oauth2) |
+| 5.3 | Progressive developer experience tiers | not_started | 2025-09-13 | Phase 5.3 - Tier 1-4 usage patterns, comprehensive examples |
+| 5.4 | Integration testing & validation | not_started | 2025-09-13 | Phase 5.4 - Test all convenience methods, authentication patterns, error handling |
+| 5.5 | Documentation & examples update | not_started | 2025-09-13 | Phase 5.5 - API docs, migration guide, progressive disclosure examples |
 | 6.1 | Delete legacy components | not_started | 2025-09-12 | Pending Phase 6 - Remove mcp_operations.rs and unused code |
 | 6.2 | Update examples and documentation | not_started | 2025-09-12 | Pending Phase 6 - Refresh all examples and docs |
 | 6.3 | Validate McpServer integration | not_started | 2025-09-12 | Pending Phase 6 - Final integration testing |
@@ -282,6 +284,146 @@ server.start().await?;  // Works seamlessly
 ```
 
 **Ready for Phase 5**: Authentication Integration with concrete engine implementations.
+
+### 2025-09-13T16:00:00Z - 📋 PHASE 5 COMPREHENSIVE DEVELOPMENT PLAN DOCUMENTED
+
+#### 🎯 **DETAILED PHASE 5 IMPLEMENTATION STRATEGY**: Generic Convenience Methods Architecture
+
+**Strategic Framework**: Engine-Agnostic Builder Pattern with Progressive Developer Experience
+
+**Core Architecture Principles**:
+1. **True Generic Design**: Methods work with ANY HttpEngine implementation (current and future)
+2. **Engine Self-Configuration**: Each engine handles its own complexity (authentication, middleware)
+3. **Progressive Experience**: Four tiers from beginner to expert usage
+4. **Zero Maintenance**: New engines automatically receive all convenience methods
+
+#### **Phase 5.1: Generic Convenience Methods Implementation**
+
+**Core Methods to Implement**:
+```rust
+impl<E: HttpEngine> HttpTransportBuilder<E> {
+    // Tier 1: Zero configuration
+    pub fn with_default() -> Result<Self, TransportError> where E: Default
+    
+    // Tier 2: Pre-configured engines  
+    pub fn with_engine(engine: E) -> Result<Self, TransportError>
+    
+    // Tier 3: Builder pattern support
+    pub fn with_configured_engine<F, R>(builder_fn: F) -> Result<Self, TransportError>
+    
+    // Tier 4: Async initialization
+    pub async fn with_configured_engine_async<F, Fut, R>(builder_fn: F) -> Result<Self, TransportError>
+}
+```
+
+**Implementation Tasks**:
+- [ ] Add generic convenience methods to HttpTransportBuilder<E>
+- [ ] Implement error handling with Into<TransportError> conversions
+- [ ] Add comprehensive documentation with tier-specific examples
+- [ ] Write unit tests for all generic method patterns
+
+#### **Phase 5.2: AxumHttpServer Self-Configuration Enhancement**
+
+**Enhanced AxumHttpServer API**:
+```rust
+impl Default for AxumHttpServer<NoAuth> { fn default() -> Self }
+impl AxumHttpServer<NoAuth> {
+    pub fn builder() -> AxumHttpServerBuilder
+    pub fn with_auth(config) -> Result<Self, Error>
+    pub fn with_oauth2(config) -> Result<Self, Error>
+}
+```
+
+**Implementation Tasks**:
+- [ ] Implement Default trait for AxumHttpServer<NoAuth>
+- [ ] Add quick constructor methods for common authentication patterns
+- [ ] Preserve existing authentication builder patterns
+- [ ] Update AxumHttpServerBuilder with build_simple() method
+
+#### **Phase 5.3: Progressive Developer Experience Tiers**
+
+**Tier 1 (Beginner)**: Zero Configuration
+```rust
+let transport = HttpTransportBuilder::<AxumHttpServer>::with_default()?
+    .bind("127.0.0.1:8080".parse()?).await?
+    .build().await?;
+```
+
+**Tier 2 (Basic)**: Pre-configured Engines
+```rust
+let engine = AxumHttpServer::with_auth(auth_config)?;
+let transport = HttpTransportBuilder::with_engine(engine)?
+    .bind("127.0.0.1:8080".parse()?).await?
+    .build().await?;
+```
+
+**Tier 3 (Advanced)**: Builder Pattern Control
+```rust
+let transport = HttpTransportBuilder::with_configured_engine(|| {
+    AxumHttpServer::builder()
+        .with_oauth2_authorization(oauth2_config)
+        .with_custom_middleware(middleware)
+        .build()
+})?
+.configure_engine(|engine| { /* post-config */ })
+.bind("127.0.0.1:8080".parse()?).await?
+.build().await?;
+```
+
+**Tier 4 (Expert)**: Async Initialization
+```rust
+let transport = HttpTransportBuilder::with_configured_engine_async(|| async {
+    let oauth2_config = load_oauth2_config_from_db().await?;
+    AxumHttpServer::builder()
+        .with_oauth2_authorization(oauth2_config)
+        .with_async_middleware(async_middleware).await?
+        .build()
+}).await?
+.configure_engine(|engine| { engine.set_timeouts(Duration::from_secs(30)); })
+.bind("127.0.0.1:8080".parse()?).await?
+.build().await?;
+```
+
+#### **Phase 5.4: Integration Testing & Validation**
+
+**Test Coverage Requirements**:
+- [ ] Generic method tests with different engines
+- [ ] Default implementation functionality tests
+- [ ] Authentication pattern integration tests (OAuth2, API Key, custom)
+- [ ] Error handling and propagation tests
+- [ ] Type safety and compile-time validation tests
+
+#### **Phase 5.5: Documentation & Examples**
+
+**Documentation Strategy**:
+- [ ] Progressive disclosure API documentation (all four tiers)
+- [ ] Engine developer guide for new framework implementations
+- [ ] Migration guide from Phase 4 patterns to Phase 5 generic patterns
+- [ ] Best practices guide for tier selection
+
+**Quality Gates**:
+- [ ] Zero compilation warnings: `cargo check --workspace`
+- [ ] All tests pass: `cargo test --workspace`
+- [ ] Clippy clean: `cargo clippy --workspace --all-targets --all-features`
+- [ ] Workspace standards compliance (§2.1, §3.2, §4.3, §5.1)
+- [ ] Complete API documentation with examples
+
+**Benefits of Phase 5 Implementation**:
+1. **Developer Experience**: Progressive learning curve from beginner to expert
+2. **True Scalability**: Works with any current or future HttpEngine implementation
+3. **Zero Maintenance**: New engines automatically receive all convenience methods
+4. **Type Safety**: Compile-time validation prevents runtime errors
+5. **Performance**: Zero-cost abstractions with no runtime overhead
+
+**Timeline Estimate**: 4-5 days for complete Phase 5 implementation
+- Phase 5.1-5.2: Core implementation (2 days)
+- Phase 5.3: Usage pattern validation (1 day)
+- Phase 5.4: Testing & integration (1 day)
+- Phase 5.5: Documentation & examples (1 day)
+
+**Next Action**: Begin Phase 5.1 implementation with generic convenience methods
+
+**Architectural Reference**: See comprehensive architectural design in `docs/knowledges/task-030-phase-5-generic-builder-architecture.md` for detailed implementation patterns, progressive developer experience tiers, and engine self-configuration strategies.
 
 ### 2025-09-13T10:00:00Z - 🎉 PHASE 3 FINALIZATION: DEPRECATED CODE CLEANUP & METHOD CONSTANTS
 
