@@ -78,3 +78,20 @@ num_cpus.workspace = true
 [[bench]]
 name = "message_processing"
 harness = false
+
+# Phase 5.3: Progressive Developer Experience Tier Examples
+[[example]]
+name = "tier1_zero_configuration"
+path = "examples/tier_examples/tier1_zero_configuration.rs"
+
+[[example]]
+name = "tier2_basic_configuration"
+path = "examples/tier_examples/tier2_basic_configuration.rs"
+
+[[example]]
+name = "tier3_advanced_configuration"
+path = "examples/tier_examples/tier3_advanced_configuration.rs"
+
+[[example]]
+name = "tier4_expert_async"
+path = "examples/tier_examples/tier4_expert_async.rs"
