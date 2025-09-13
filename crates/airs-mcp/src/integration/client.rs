@@ -342,8 +342,7 @@ impl MessageHandler for ClientMessageHandler {
 }
 
 /// Reconnection state tracking
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 struct ReconnectionState {
     /// Current reconnection attempt count
     attempt_count: u32,
@@ -352,7 +351,6 @@ struct ReconnectionState {
     /// Whether client is currently attempting to reconnect
     is_reconnecting: bool,
 }
-
 
 /// High-level MCP client for interacting with MCP servers
 pub struct McpClient<T: Transport> {
@@ -419,7 +417,12 @@ impl<T: Transport + 'static> McpClient<T> {
 
     /// Check if an error indicates connection loss (should trigger reconnection)
     fn is_connection_error(error: &McpError) -> bool {
-        matches!(error, McpError::NotConnected | McpError::Integration(IntegrationError::Transport(_)) | McpError::Integration(IntegrationError::Timeout { .. }))
+        matches!(
+            error,
+            McpError::NotConnected
+                | McpError::Integration(IntegrationError::Transport(_))
+                | McpError::Integration(IntegrationError::Timeout { .. })
+        )
     }
 
     /// Calculate retry delay with exponential backoff
@@ -454,11 +457,13 @@ impl<T: Transport + 'static> McpClient<T> {
                     }
 
                     // Check if we need to reconnect
-                    if Self::is_connection_error(&error) && self.config.auto_reconnect
-                        && (self.attempt_reconnection().await).is_err() {
-                            // If reconnection fails, return the original error
-                            return Err(error);
-                        }
+                    if Self::is_connection_error(&error)
+                        && self.config.auto_reconnect
+                        && (self.attempt_reconnection().await).is_err()
+                    {
+                        // If reconnection fails, return the original error
+                        return Err(error);
+                    }
 
                     attempt += 1;
                     let delay = self.calculate_retry_delay(attempt - 1);
@@ -682,13 +687,16 @@ impl<T: Transport + 'static> McpClient<T> {
             };
 
             // Use send_request_once to avoid retry recursion during reconnection
-            let response = self.send_request_once(&request_msg).await.inspect_err(|_e| {
-                // Mark session as failed on communication error
-                let session_ref = self.mcp_session.clone();
-                tokio::spawn(async move {
-                    *session_ref.write().await = McpSessionState::Failed;
-                });
-            })?;
+            let response = self
+                .send_request_once(&request_msg)
+                .await
+                .inspect_err(|_e| {
+                    // Mark session as failed on communication error
+                    let session_ref = self.mcp_session.clone();
+                    tokio::spawn(async move {
+                        *session_ref.write().await = McpSessionState::Failed;
+                    });
+                })?;
 
             // Parse initialization response
             let init_response: InitializeResponse =
@@ -1928,10 +1936,9 @@ mod tests {
             self
         }
 
-        async fn build(
-            self,
-        ) -> Result<Self::Transport, Self::Error>
-        { Ok(self.transport) }
+        async fn build(self) -> Result<Self::Transport, Self::Error> {
+            Ok(self.transport)
+        }
     }
 
     // Comprehensive Lifecycle Tests
