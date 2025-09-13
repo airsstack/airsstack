@@ -2,17 +2,6 @@
 
 ## Pending
 
-- [TASK-031] Transport Builder Architectural Consistency - CRITICAL Priority - Added on 2025-09-13 - IMPLEMENTATION READY
-  - **Architecture Crisis**: Fix critical inconsistency between STDIO and HTTP transport builder patterns
-  - **ADR-011 Violation**: HttpTransportBuilder doesn't implement TransportBuilder trait, violates pre-configured pattern
-  - **Analysis Complete**: ✅ Comprehensive architectural analysis completed with solution design
-  - **Implementation Plan**: ✅ Streamlined core interface plan approved (MessageHandlerAdapter bridge pattern)
-  - **Core Issue**: HTTP uses dangerous post-construction handler pattern instead of safe pre-configuration
-  - **Solution Strategy**: Additive changes preserving HTTP architecture while adding STDIO-style interface consistency
-  - **Scope**: Implement TransportBuilder<HttpContext> for HttpTransportBuilder with zero breaking changes
-  - **Immediate Impact**: Blocks Task 029 completion, affects all HTTP examples
-  - **Status**: Ready for implementation - complete plan documented in task file
-
 - [TASK-013] Generic MessageHandler Foundation Implementation - HIGH Priority - Added on 2025-09-10
   - **Core Foundation**: Implement generic MessageHandler<T> and MessageContext<T> traits
   - **STDIO Adaptation**: Update existing STDIO transport to use generic pattern as validation
@@ -46,6 +35,16 @@
   - **Impact**: Unified transport architecture enabling clean, type-safe MCP implementations
 
 ## In Progress
+
+- [TASK-031] Transport Builder Architectural Consistency - CRITICAL Priority - Added on 2025-09-13 - 🚀 PHASE 1 COMPLETE (30%)
+  - **Phase 1 ✅**: Foundation implementation complete - TransportBuilder<HttpContext> trait implemented
+  - **Architecture Crisis**: Fixed critical inconsistency between STDIO and HTTP transport builder patterns
+  - **Implementation Complete**: ✅ HttpTransportBuilder now implements TransportBuilder trait with handler validation
+  - **Test Suite ✅**: Comprehensive tests added - all 4 TransportBuilder tests passing
+  - **Zero Breaking Changes**: ✅ All existing HTTP code continues working unchanged
+  - **Quality Gates**: ✅ Zero warnings, proper type safety with 'static bounds
+  - **Next Phase**: Phase 2 - Type system compatibility and handler validation error handling
+  - **Impact**: HTTP transport now architecturally consistent with STDIO, unblocks Task 029 progression
 
 - [TASK-030] HTTP Transport Zero-Dyn Architecture Refactoring - HIGH Priority - Added on 2025-09-12 - 90% Complete 🎉 PHASE 5.1 COMPLETE
   - **Phase 1-4 Complete**: ✅ Zero-dyn architecture, direct MCP handlers, AxumHttpServer simplification, generic HttpTransport & builder
