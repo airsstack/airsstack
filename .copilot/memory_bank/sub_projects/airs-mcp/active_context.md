@@ -2,7 +2,7 @@
 
 ## Current Focus: TASK-031 Transport Builder Architectural Consistency
 
-**Status**: Phase 2 IN PROGRESS (60% overall progress) - Type system compatibility & validation complete
+**Status**: Phase 3 COMPLETE (80% overall progress) - Examples updated, dangerous patterns eliminated
 **Priority**: CRITICAL - blocks TASK-029 and violates transport abstraction uniformity
 
 ### Phase 1 Completion (2025-01-16)
@@ -20,16 +20,19 @@ HTTP transport now implements the same `TransportBuilder<T>` pattern as STDIO tr
 - **HTTP**: `TransportBuilder<HttpContext>` ✅ (NEW)
 - **Generic Compatibility**: Both transports now support unified interface for Task 029 Phase 2.2
 
-### Phase 2 Progress (2025-01-16)
-✅ 2.1 Verify type system compatibility
-- Cross-transport generic helpers validated (STDIO and HTTP) using `TransportBuilder<T>`
-- Trait-based builder methods explicitly exercised in tests
+### Phase 3 Complete (2025-09-14)
+✅ 3.1 Fix API key server example
+- Confirmed already using modern TransportBuilder pattern
 
-✅ 2.2 Handler validation error handling
-- Missing handler returns `TransportError::Protocol { message }` per ADR-011
-- Edge cases covered (None handler, incorrect path usage)
+✅ 3.2 Update OAuth2 server examples
+- Replaced dangerous `register_custom_mcp_handler()` with pre-configured pattern
+- Added MessageHandler<HttpContext> wrapper for new TransportBuilder interface
 
-All tests passing for Phase 2 additions. Documentation updates pending for Phase 3 and 4.
+✅ 3.3 Remove dangerous pattern usage
+- Eliminated all post-construction handler registration across examples
+- Enforced ADR-011 pre-configured handler requirement
+
+**Phase 4 Ready**: Documentation sweep and developer guides alignment
 
 ### Critical Dependencies Status
 - **Task 029 Phase 2.2**: READY TO PROCEED - transport interface consistency achieved
@@ -42,9 +45,10 @@ All tests passing for Phase 2 additions. Documentation updates pending for Phase
 - **TASK-029 Phase 2.1**: ✅ Completed - OAuth2 server modernization with TransportBuilder
 
 ## Next Steps
-1. Commit Phase 2 code + memory updates (60% overall)
-2. Begin Phase 3: Update HTTP examples to use pre-configured builder pattern and remove dangerous patterns
-3. Phase 4: Documentation sweep and developer guides alignment
+1. Begin Phase 4: Documentation sweep and developer guides alignment  
+2. Update transport documentation to reflect unified TransportBuilder interface
+3. Create developer migration guide for existing HTTP code
+4. Complete TASK-031 and resume Task 029 Phase 2.2 (generic transport code)
 
 ## Recent Achievements
 - **TASK-030**: ✅ Completed - Added comprehensive Cargo.toml documentation

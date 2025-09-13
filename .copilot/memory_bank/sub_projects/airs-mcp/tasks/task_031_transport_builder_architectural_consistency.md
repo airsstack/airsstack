@@ -182,7 +182,7 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 60% (Phase 1 + Phase 2 Complete)
+**Overall Status:** in_progress - 80% (Phase 1 + Phase 2 + Phase 3 Complete)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -192,9 +192,9 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 | 1.3 | Update HttpTransport with handler storage | complete | 2025-09-13 | ✅ Handler storage and setter methods added |
 | 2.1 | Verify type system compatibility | complete | 2025-09-13 | ✅ Generic helper functions validated across STDIO/HTTP |
 | 2.2 | Add handler validation error handling | complete | 2025-09-13 | ✅ Protocol error on missing handler; ADR-011 alignment |
-| 3.1 | Fix API key server example | not_started | 2025-09-13 | Phase 3: Immediate impact on Task 029 |
-| 3.2 | Update OAuth2 server examples | not_started | 2025-09-13 | Phase 3: Workspace consistency |
-| 3.3 | Remove dangerous pattern usage | not_started | 2025-09-13 | Phase 3: Security and architecture |
+| 3.1 | Fix API key server example | complete | 2025-09-14 | ✅ Already using modern pattern - no changes needed |
+| 3.2 | Update OAuth2 server examples | complete | 2025-09-14 | ✅ Replaced register_custom_mcp_handler with TransportBuilder |
+| 3.3 | Remove dangerous pattern usage | complete | 2025-09-14 | ✅ Eliminated post-construction handler registration |
 | 4.1 | Add transport interface consistency tests | complete | 2025-09-13 | ✅ Comprehensive test suite added |
 | 4.2 | Update all transport documentation | not_started | 2025-09-13 | Phase 4: Developer experience |
 
@@ -246,14 +246,28 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 ### 2025-09-13 (Phase 2 Implementation Complete)
 - **🎉 PHASE 2 TYPE SYSTEM COMPATIBILITY & VALIDATION COMPLETED**
 - **Subtask 2.1 ✅**: Cross-transport generic tests confirm `TransportBuilder<T>` works uniformly
-    - Implemented tests for HTTP/STDIO generic helper usage; aligned session initialization assumptions
+  - Implemented tests for HTTP/STDIO generic helper usage; aligned session initialization assumptions
 - **Subtask 2.2 ✅**: Handler validation error handling
-    - Missing handler returns `TransportError::Protocol { message }`; edge cases covered
+  - Missing handler returns `TransportError::Protocol { message }`; edge cases covered
 - **Quality Validation ✅**: All tests passing with adjusted assertions and imports
 - **Files Modified**: `crates/airs-mcp/src/transport/adapters/http/builder.rs`
 - **Next Phase**: Proceed to Phase 3 (examples update and pattern cleanup)
 
-### 2025-09-13 (Detailed Analysis Session)
+### 2025-09-14 (Phase 3 Implementation Complete)
+- **🎉 PHASE 3 EXAMPLES UPDATE & DANGEROUS PATTERN ELIMINATION COMPLETED**
+- **Subtask 3.1 ✅**: API key server example review
+  - Confirmed already using modern pattern; no changes required
+- **Subtask 3.2 ✅**: OAuth2 server example updated
+  - Replaced dangerous `server.register_custom_mcp_handler(handlers)` pattern
+  - Implemented pre-configured `HttpTransportBuilder::new(engine).with_message_handler(handler).build()`
+  - Added MessageHandler<HttpContext> wrapper for compatibility
+- **Subtask 3.3 ✅**: Dangerous pattern elimination
+  - Eliminated all post-construction handler registration patterns
+  - Enforced ADR-011 pre-configured handler requirement
+- **Quality Validation ✅**: OAuth2 example compiles successfully with zero warnings
+- **Files Modified**: `crates/airs-mcp/examples/mcp-inspector-oauth2-server.rs`
+- **Architecture Achievement**: All HTTP examples now use safe, pre-configured TransportBuilder pattern
+- **Next Phase**: Ready for Phase 4 (documentation sweep and developer guides)### 2025-09-13 (Detailed Analysis Session)
 **DEBT-ARCH-001**: Transport Builder Pattern Inconsistency
 - **Location**: `/src/transport/adapters/http/builder.rs`
 - **Issue**: HttpTransportBuilder doesn't implement TransportBuilder<HttpContext>
