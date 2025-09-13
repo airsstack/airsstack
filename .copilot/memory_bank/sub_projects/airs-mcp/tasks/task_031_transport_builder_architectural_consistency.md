@@ -182,7 +182,7 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 30% (Phase 1 Complete)
+**Overall Status:** in_progress - 40% (Phase 1 Complete)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
