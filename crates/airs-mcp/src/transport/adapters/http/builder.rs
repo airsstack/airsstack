@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 
 // Layer 3: Internal module imports
-use super::engine::{HttpEngine, HttpEngineError, McpRequestHandler, ResponseMode};
+use super::engine::{HttpEngine, HttpEngineError};
 use crate::protocol::{JsonRpcMessage, Transport, TransportError};
 
 /// Convert HttpEngineError to TransportError
@@ -367,282 +367,176 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
         self.engine.bind(addr).await.map_err(TransportError::from)?;
         Ok(self)
     }
-}
 
-// ================================================================================================
-// Factory Methods (Phase 5 - Authentication Integration)
-// ================================================================================================
+    // ================================================================================================
+    // Phase 5: Generic Convenience Methods (Engine-Agnostic)
+    // ================================================================================================
 
-impl HttpTransportBuilder<()> {
-    /// Create a builder with a placeholder engine for testing and development
+    /// Create builder with default engine instance (Tier 1: Beginner)
     ///
-    /// This method creates a builder with a minimal placeholder engine implementation
-    /// that satisfies the HttpEngine trait for testing and basic development.
-    /// For production use, see the factory methods below.
+    /// This is the simplest way to create an HTTP transport builder. It creates
+    /// a default instance of the engine type and wraps it in a builder.
     ///
-    /// # Note
+    /// # Type Parameters
     ///
-    /// This placeholder engine provides minimal functionality and should not be used
-    /// in production. It exists to support the zero-dyn architecture during Phase 4
-    /// development and testing.
+    /// * `E` - HTTP engine type that must implement both HttpEngine and Default
     ///
     /// # Returns
     ///
-    /// HttpTransportBuilder with placeholder engine
-    pub fn with_placeholder_engine() -> HttpTransportBuilder<()> {
-        HttpTransportBuilder::new(())
-    }
-
-    /// Create a builder with a default HTTP engine (legacy alias)
+    /// * `Ok(HttpTransportBuilder<E>)` - Builder with default engine
+    /// * `Err(TransportError)` - Failed to create default engine
     ///
-    /// This method is an alias for `with_placeholder_engine()` to maintain
-    /// backward compatibility during the Phase 4 to Phase 5 transition.
+    /// # Examples
     ///
-    /// # Deprecated
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
     ///
-    /// Use `with_placeholder_engine()` for clarity, or wait for Phase 5
-    /// factory methods like `with_axum_engine()`.
-    ///
-    /// # Returns
-    ///
-    /// HttpTransportBuilder with placeholder engine
-    #[deprecated(
-        since = "phase-4",
-        note = "Use with_placeholder_engine() or wait for Phase 5 factory methods"
-    )]
-    pub fn with_default_engine() -> HttpTransportBuilder<()> {
-        Self::with_placeholder_engine()
-    }
-}
-
-// ================================================================================================
-// Phase 5 Factory Methods (To Be Implemented)
-// ================================================================================================
-
-// TODO(PHASE-5): Factory methods for concrete engine types
-//
-// These factory methods will be implemented in Phase 5 to provide convenient
-// constructors for common HTTP engine configurations:
-//
-// impl HttpTransportBuilder<AxumHttpServer<NoAuth>> {
-//     /// Create a builder with an Axum HTTP engine (no authentication)
-//     pub async fn with_axum_engine(
-//         connection_manager: Arc<HttpConnectionManager>,
-//         config: HttpTransportConfig,
-//     ) -> Result<HttpTransportBuilder<AxumHttpServer<NoAuth>>, TransportError> {
-//         let engine = AxumHttpServer::new(connection_manager, config).await?;
-//         Ok(HttpTransportBuilder::new(engine))
-//     }
-// }
-//
-// impl HttpTransportBuilder<AxumHttpServer<OAuth2StrategyAdapter<JwtValidator, ScopeValidator>, ScopePolicy<ScopeContext>, ScopeContext>> {
-//     /// Create a builder with an Axum HTTP engine configured for OAuth2
-//     pub async fn with_oauth2_engine(
-//         connection_manager: Arc<HttpConnectionManager>,
-//         config: HttpTransportConfig,
-//         oauth2_adapter: OAuth2StrategyAdapter<JwtValidator, ScopeValidator>,
-//         auth_config: OAuth2AuthConfig,
-//     ) -> Result<Self, TransportError> {
-//         let engine = AxumHttpServer::new(connection_manager, config).await?
-//             .with_oauth2_authorization(oauth2_adapter, auth_config);
-//         Ok(HttpTransportBuilder::new(engine))
-//     }
-// }
-//
-// impl HttpTransportBuilder<AxumHttpServer<ApiKeyStrategyAdapter<InMemoryApiKeyValidator>, ApiKeyPolicy<ApiKeyContext>, ApiKeyContext>> {
-//     /// Create a builder with an Axum HTTP engine configured for API key authentication
-//     pub async fn with_apikey_engine(
-//         connection_manager: Arc<HttpConnectionManager>,
-//         config: HttpTransportConfig,
-//         apikey_adapter: ApiKeyStrategyAdapter<InMemoryApiKeyValidator>,
-//         auth_config: ApiKeyAuthConfig,
-//     ) -> Result<Self, TransportError> {
-//         let engine = AxumHttpServer::new(connection_manager, config).await?
-//             .with_apikey_authorization(apikey_adapter, auth_config);
-//         Ok(HttpTransportBuilder::new(engine))
-//     }
-// }
-//
-// impl HttpTransportBuilder<AxumHttpServer<CustomAuth, CustomPolicy, CustomContext>> {
-//     /// Create a builder with a custom authentication engine
-//     pub async fn with_custom_auth_engine<A, P, C>(
-//         connection_manager: Arc<HttpConnectionManager>,
-//         config: HttpTransportConfig,
-//         auth_adapter: A,
-//         auth_config: AuthConfig,
-//     ) -> Result<HttpTransportBuilder<AxumHttpServer<A, P, C>>, TransportError>
-//     where
-//         A: HttpAuthStrategyAdapter,
-//         P: AuthorizationPolicy<C, AuthorizationRequest<JsonRpcHttpRequest>> + Clone,
-//         C: AuthzContext + Clone,
-//     {
-//         let engine = AxumHttpServer::new(connection_manager, config).await?
-//             .with_custom_authorization(auth_adapter, auth_config);
-//         Ok(HttpTransportBuilder::new(engine))
-//     }
-// }
-
-// Placeholder implementation for unit type (temporary)
-#[async_trait]
-impl HttpEngine for () {
-    type Error = HttpEngineError;
-    type Config = ();
-    type Handler = ();
-
-    fn new(_config: Self::Config) -> Result<Self, Self::Error> {
-        Ok(())
-    }
-
-    async fn bind(&mut self, _addr: std::net::SocketAddr) -> Result<(), HttpEngineError> {
-        Ok(())
-    }
-
-    async fn start(&mut self) -> Result<(), HttpEngineError> {
-        Ok(())
-    }
-
-    async fn shutdown(&mut self) -> Result<(), HttpEngineError> {
-        Ok(())
-    }
-
-    fn register_mcp_handler(&mut self, _handler: Self::Handler) {}
-
-    fn register_authentication<S, T, D>(
-        &mut self,
-        _auth_manager: crate::authentication::AuthenticationManager<S, T, D>,
-    ) -> Result<(), HttpEngineError>
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Simplest possible usage - just works
+    /// let transport = HttpTransportBuilder::<AxumHttpServer>::with_default()?
+    ///     .bind("127.0.0.1:8080".parse()?).await?
+    ///     .build().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn with_default() -> Result<Self, TransportError>
     where
-        S: crate::authentication::AuthenticationStrategy<T, D>,
-        T: Send + Sync,
-        D: Send + Sync + 'static,
+        E: Default + HttpEngine,
     {
-        Ok(())
+        Ok(Self::new(E::default()))
     }
 
-    fn register_middleware(&mut self, _middleware: Box<dyn super::engine::HttpMiddleware>) {}
-
-    fn is_bound(&self) -> bool {
-        true
+    /// Create builder with pre-configured engine (Tier 2: Basic Configuration)
+    ///
+    /// This method accepts a pre-configured engine instance and wraps it in a builder.
+    /// Useful when you want to configure the engine first and then create the transport.
+    ///
+    /// # Arguments
+    ///
+    /// * `engine` - Pre-configured HTTP engine instance
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(HttpTransportBuilder<E>)` - Builder with the provided engine
+    /// * `Err(TransportError)` - Failed to create builder (currently always succeeds)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Pre-configured engines for common patterns
+    /// let engine = AxumHttpServer::with_auth(auth_config)?;
+    /// let transport = HttpTransportBuilder::with_engine(engine)?
+    ///     .bind("127.0.0.1:8080".parse()?).await?
+    ///     .build().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn with_engine(engine: E) -> Result<Self, TransportError> {
+        Ok(Self::new(engine))
     }
 
-    fn is_running(&self) -> bool {
-        false
+    /// Create builder using engine builder function (Tier 3: Advanced Configuration)
+    ///
+    /// This method accepts a closure that returns a configured engine. The closure
+    /// is called immediately to create the engine. This provides full control over
+    /// engine configuration while maintaining the builder pattern.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `F` - Closure type that returns Result<E, R>
+    /// * `R` - Error type that can be converted to TransportError
+    ///
+    /// # Arguments
+    ///
+    /// * `builder_fn` - Closure that creates and configures the engine
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(HttpTransportBuilder<E>)` - Builder with configured engine
+    /// * `Err(TransportError)` - Failed to create or configure engine
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Full builder pattern control
+    /// let transport = HttpTransportBuilder::with_configured_engine(|| {
+    ///     AxumHttpServer::builder()
+    ///         .with_oauth2_authorization(oauth2_config)
+    ///         .with_custom_middleware(middleware)
+    ///         .build()
+    /// })?
+    /// .bind("127.0.0.1:8080".parse()?).await?
+    /// .build().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn with_configured_engine<F, R>(builder_fn: F) -> Result<Self, TransportError>
+    where
+        F: FnOnce() -> Result<E, R>,
+        R: Into<TransportError>,
+    {
+        let engine = builder_fn().map_err(Into::into)?;
+        Ok(Self::new(engine))
     }
 
-    fn local_addr(&self) -> Option<std::net::SocketAddr> {
-        Some("127.0.0.1:8080".parse().unwrap())
-    }
-
-    fn engine_type(&self) -> &'static str {
-        "placeholder"
-    }
-}
-
-// Placeholder implementation for McpRequestHandler
-#[async_trait]
-impl McpRequestHandler for () {
-    async fn handle_mcp_request(
-        &self,
-        _session_id: String,
-        _request_data: Vec<u8>,
-        _response_mode: ResponseMode,
-        _auth_context: Option<super::engine::AuthenticationContext>,
-    ) -> Result<super::engine::HttpResponse, HttpEngineError> {
-        Ok(super::engine::HttpResponse::json(b"{}".to_vec()))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_http_transport_generic_builder() {
-        // Test the new generic builder pattern
-        let transport_result = HttpTransportBuilder::with_placeholder_engine()
-            .build()
-            .await;
-
-        assert!(transport_result.is_ok());
-        let transport = transport_result.unwrap();
-        assert_eq!(transport.transport_type(), "http");
-        assert!(!transport.is_connected());
-    }
-
-    #[tokio::test]
-    async fn test_http_transport_engine_access() {
-        // Test engine access methods
-        let mut builder = HttpTransportBuilder::with_placeholder_engine();
-
-        // Test engine access
-        assert_eq!(builder.engine().engine_type(), "placeholder");
-
-        // Test mutable engine access
-        let _engine_mut = builder.engine_mut();
-
-        let transport = builder.build().await.unwrap();
-        assert_eq!(transport.engine().engine_type(), "placeholder");
-    }
-
-    #[tokio::test]
-    async fn test_http_transport_session_management() {
-        // Test session ID management
-        let mut transport = HttpTransportBuilder::with_placeholder_engine()
-            .build()
-            .await
-            .unwrap();
-
-        assert_eq!(transport.session_id(), None);
-
-        transport.set_session_context(Some("test-session".to_string()));
-        assert_eq!(transport.session_id(), Some("test-session".to_string()));
-
-        transport.set_session_context(None);
-        assert_eq!(transport.session_id(), None);
-    }
-
-    #[tokio::test]
-    async fn test_zero_dyn_architecture() {
-        // Test that we've achieved zero dynamic dispatch
-        // The generic HttpTransport<E> should have no dyn traits
-
-        let transport = HttpTransportBuilder::with_placeholder_engine()
-            .build()
-            .await
-            .unwrap();
-
-        // This compiles without dyn traits, proving zero-cost abstraction
-        let _engine_ref: &() = transport.engine();
-
-        // Transport trait implementation works
-        assert_eq!(transport.transport_type(), "http");
-        assert!(!transport.is_connected());
-    }
-
-    #[tokio::test]
-    async fn test_mcp_handler_registration() {
-        // Test MCP handler registration with concrete types (no dyn)
-        let mut transport = HttpTransportBuilder::with_placeholder_engine()
-            .build()
-            .await
-            .unwrap();
-
-        // Register handler - this uses concrete types, no dynamic dispatch
-        transport.register_mcp_handler(());
-
-        // Handler registration should work without errors
-        assert_eq!(transport.transport_type(), "http");
-    }
-
-    #[tokio::test]
-    async fn test_deprecated_with_default_engine() {
-        // Test backward compatibility with the deprecated method
-        #[allow(deprecated)]
-        let transport_result = HttpTransportBuilder::with_default_engine().build().await;
-
-        assert!(transport_result.is_ok());
-        let transport = transport_result.unwrap();
-        assert_eq!(transport.transport_type(), "http");
-        assert!(!transport.is_connected());
+    /// Create builder using async engine builder function (Tier 4: Expert)
+    ///
+    /// This method accepts an async closure that returns a configured engine. This
+    /// enables complex async initialization patterns like loading configuration from
+    /// databases or external services.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `F` - Closure type that returns Future<Output = Result<E, R>>
+    /// * `Fut` - Future type returned by the closure
+    /// * `R` - Error type that can be converted to TransportError
+    ///
+    /// # Arguments
+    ///
+    /// * `builder_fn` - Async closure that creates and configures the engine
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(HttpTransportBuilder<E>)` - Builder with configured engine
+    /// * `Err(TransportError)` - Failed to create or configure engine
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airs_mcp::transport::adapters::http::HttpTransportBuilder;
+    /// use airs_mcp::transport::adapters::http::axum::AxumHttpServer;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Complex async engine construction
+    /// let transport = HttpTransportBuilder::with_configured_engine_async(|| async {
+    ///     let oauth2_config = load_oauth2_config_from_db().await?;
+    ///     AxumHttpServer::builder()
+    ///         .with_oauth2_authorization(oauth2_config)
+    ///         .build()
+    /// }).await?
+    /// .bind("127.0.0.1:8080".parse()?).await?
+    /// .build().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn with_configured_engine_async<F, Fut, R>(
+        builder_fn: F,
+    ) -> Result<Self, TransportError>
+    where
+        F: FnOnce() -> Fut,
+        Fut: std::future::Future<Output = Result<E, R>>,
+        R: Into<TransportError>,
+    {
+        let engine = builder_fn().await.map_err(Into::into)?;
+        Ok(Self::new(engine))
     }
 }
