@@ -1,5 +1,32 @@
 # Progress - airs-mcp
 
+## 🚨 CRITICAL ARCHITECTURE DISCOVERY (2025-09-13)
+
+### ✅ COMPREHENSIVE ARCHITECTURAL ANALYSIS COMPLETE
+**Major Achievement**: Completed comprehensive 4-layer AIRS-MCP architectural analysis revealing:
+- **Protocol Layer**: ✅ Excellent generic MessageHandler<T> foundation ready for production
+- **Transport Layer**: ❌ Critical STDIO vs HTTP architectural inconsistency discovered  
+- **Integration Layer**: 🟡 Functional but transport-dependent patterns
+- **Providers Layer**: ✅ Production-ready comprehensive authentication/authorization
+
+### 🚨 CRITICAL DISCOVERY: TASK-031 Transport Builder Architecture Crisis
+**Blocking Issue**: HTTP and STDIO transports follow completely different builder patterns:
+- **STDIO**: ✅ Correctly implements `TransportBuilder<()>` per ADR-011
+- **HTTP**: ❌ Missing `TransportBuilder<HttpContext>` interface, uses dangerous post-construction pattern
+- **Impact**: Violates transport abstraction uniformity, blocks generic transport code, affects all HTTP examples
+
+### 📋 IMPLEMENTATION PLAN COMPLETE
+**Solution Ready**: Developed comprehensive MessageHandlerAdapter bridge pattern:
+- **Approach**: Preserve sophisticated HTTP engine architecture while adding STDIO-style interface consistency
+- **Strategy**: Additive changes with zero breaking changes to existing codebase
+- **Scope**: Core interface implementation only - no performance optimizations or legacy support
+- **Components**: Enhanced McpRequestHandler, HttpContext methods, MessageHandlerAdapter bridge, TransportBuilder<HttpContext> implementation
+
+### 🔄 CURRENT STATUS
+- **TASK-031**: ✅ Implementation plan complete and approved - ready for execution
+- **TASK-029**: 🚫 Phase 2.2 blocked by TASK-031 - will resume after transport interface consistency
+- **Architecture**: 📖 Comprehensive knowledge base documented for future reference
+
 ## Latest Achievement 🎉
 
 ### 🎉 TASK-030 PHASE 5.4 COMPLETE: INTEGRATION TESTING & VALIDATION 🎉 2025-09-13T17:00:00Z

@@ -2,9 +2,30 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-09-01T22:00:00Z
-**updated_on:** 2025-09-13T17:00:00Z  
-**by:** task_030_phase_5_4_integration_testing_complete  
-**status:** phase_5_complete_production_ready
+**updated_on:** 2025-09-13T18:00:00Z  
+**by:** task_031_transport_builder_architectural_crisis_discovered  
+**status:** critical_architecture_issue_identified
+
+# 🚨 TASK-031 CREATED: TRANSPORT BUILDER ARCHITECTURAL CRISIS - 2025-09-13T18:00:00Z
+
+## 🔥 CRITICAL DISCOVERY: ARCHITECTURE INCONSISTENCY VIOLATES CORE DESIGN PRINCIPLES
+
+**Crisis Identified**: During Task 029 Phase 2.2 (API key server modernization), discovered that STDIO and HTTP transports follow completely different builder patterns, violating the fundamental principle that "transport abstractions should be protocol-agnostic."
+
+**Architecture Violation**: 
+- **STDIO Transport**: ✅ Correctly implements `TransportBuilder<()>` with safe pre-configured handlers
+- **HTTP Transport**: ❌ Missing `TransportBuilder<HttpContext>` implementation, uses dangerous post-construction pattern
+- **Impact**: Breaks ADR-011 Transport Configuration Separation, creates security issues, blocks examples
+
+**Immediate Actions Taken**:
+1. **Task Created**: TASK-031 Transport Builder Architectural Consistency (CRITICAL priority)
+2. **Memory Bank Updated**: Documented complete technical analysis and implementation plan
+3. **Dependencies Identified**: Blocks Task 029 completion and all HTTP examples
+4. **Solution Designed**: Implementation plan for `TransportBuilder<HttpContext>` trait
+
+**Required Fix**: Implement missing `TransportBuilder<HttpContext>` for `HttpTransportBuilder` to achieve architectural consistency and eliminate dangerous patterns.
+
+**Workspace Impact**: All HTTP-based examples currently use architecturally inconsistent patterns that violate safety principles.
 
 # 🎉 TASK-030 PHASE 5.4 COMPLETE: INTEGRATION TESTING & VALIDATION - 2025-09-13T17:00:00Z
 

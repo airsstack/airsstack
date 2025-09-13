@@ -1,22 +1,33 @@
 # Knowledge Documentation Index - airs-mcp
 
 **Last Updated**: 2025-09-13  
-**Total Knowledge Docs**: 28  
+**Total Knowledge Docs**: 30  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 16  
+**Documentation Count**: 18  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[Comprehensive Architectural Analysis](./architecture/comprehensive_architectural_analysis.md)** 🏗️ NEW COMPLETE ANALYSIS - CRITICAL
+  - **Focus**: Complete 4-layer architecture analysis revealing critical Transport Builder inconsistency crisis and comprehensive usage patterns
+  - **Complexity**: Complete - Detailed analysis of Protocol, Transport, Integration, Providers + Examples showing STDIO working vs HTTP broken
+  - **Updated**: 2025-09-13
+  - **Related**: TASK-031 Transport Builder Architectural Consistency, production readiness assessment, architectural maturity matrix
 - **[TASK-030 Phase 5: Generic Builder Architecture](./task-030-phase-5-generic-builder-architecture.md)** 🎯 NEW ARCHITECTURAL
   - **Focus**: Engine-agnostic generic convenience methods for HttpTransportBuilder, progressive developer experience (4 tiers)
   - **Complexity**: High - True generic design eliminating engine-specific coupling, comprehensive convenience method architecture
   - **Updated**: 2025-09-13
   - **Related**: TASK-030 Phase 5 implementation, zero-maintenance engine support, Open/Closed Principle compliance
+
+- **[STDIO Transport Reference Complete](./architecture/stdio_transport_reference_complete.md)** 📚 NEW REFERENCE - TASK-031
+  - **Focus**: Complete STDIO implementation demonstrating correct TransportBuilder<()> pattern for HTTP architectural consistency
+  - **Complexity**: Reference - Complete working example showing pre-configured handler pattern, ADR-011 compliance
+  - **Updated**: 2025-09-13
+  - **Related**: TASK-031 Transport Builder Architectural Consistency, ADR-011 Transport Configuration Separation
 
 - **[HTTP Transport Zero-Dyn Architecture](./architecture/http-transport-zero-dyn-architecture.md)** 🚀 NEW PLANNING
   - **Focus**: Zero-dyn HTTP transport architecture using associated types, direct MCP integration, engine-layer authentication

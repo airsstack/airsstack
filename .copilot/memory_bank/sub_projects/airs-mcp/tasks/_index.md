@@ -2,6 +2,17 @@
 
 ## Pending
 
+- [TASK-031] Transport Builder Architectural Consistency - CRITICAL Priority - Added on 2025-09-13 - IMPLEMENTATION READY
+  - **Architecture Crisis**: Fix critical inconsistency between STDIO and HTTP transport builder patterns
+  - **ADR-011 Violation**: HttpTransportBuilder doesn't implement TransportBuilder trait, violates pre-configured pattern
+  - **Analysis Complete**: ✅ Comprehensive architectural analysis completed with solution design
+  - **Implementation Plan**: ✅ Streamlined core interface plan approved (MessageHandlerAdapter bridge pattern)
+  - **Core Issue**: HTTP uses dangerous post-construction handler pattern instead of safe pre-configuration
+  - **Solution Strategy**: Additive changes preserving HTTP architecture while adding STDIO-style interface consistency
+  - **Scope**: Implement TransportBuilder<HttpContext> for HttpTransportBuilder with zero breaking changes
+  - **Immediate Impact**: Blocks Task 029 completion, affects all HTTP examples
+  - **Status**: Ready for implementation - complete plan documented in task file
+
 - [TASK-013] Generic MessageHandler Foundation Implementation - HIGH Priority - Added on 2025-09-10
   - **Core Foundation**: Implement generic MessageHandler<T> and MessageContext<T> traits
   - **STDIO Adaptation**: Update existing STDIO transport to use generic pattern as validation
@@ -44,21 +55,21 @@
   - **Quality Gates**: ✅ Zero compilation errors, ✅ Placeholder code removed, ✅ Workspace standards compliance
   - **Impact**: Production-ready zero-cost HTTP transport with scalable generic convenience methods architecture
 
-- [TASK-029] MCP Inspector Testing & Examples Architecture Modernization - HIGH Priority - Added on 2025-09-05 - 65% Complete 🔄 PHASE 2.1 COMPLETE
+- [TASK-029] MCP Inspector Testing & Examples Architecture Modernization - HIGH Priority - Added on 2025-09-05 - 65% Complete 🔄 BLOCKED BY TASK-031
   - **Phase 1 Complete**: ✅ MCP Inspector integration testing validated (all capabilities working)
   - **Phase 2.1 Complete**: ✅ simple-mcp-server modernized to Generic MessageHandler<()> architecture, Tool serialization bug fixed
-  - **Phase 2 Active**: 🔄 Remaining examples architecture modernization (6 examples need Generic MessageHandler update)
+  - **Phase 2.2 BLOCKED**: � mcp-remote-server-apikey modernization blocked by TASK-031 (HTTP transport architecture issue)
+  - **Blocking Issue**: HTTP transport missing TransportBuilder<HttpContext> interface - prevents consistent API key example
   - **Objective**: Update all examples to use latest Generic MessageHandler<T> architecture from TASK-028
   - **Achievement**: Successfully validated MCP Inspector compatibility with modernized STDIO transport
   - **Impact**: Ensures production-ready examples that demonstrate the new unified protocol architecture
-  - **Dependencies**: TASK-028 Generic MessageHandler architecture (✅ complete)
-  - **Next Phase**: 2.2 - mcp-remote-server-apikey HTTP transport modernization
+  - **Dependencies**: TASK-031 (Transport Builder Consistency) must be resolved first
+  - **Next Phase After Unblock**: 2.2 - mcp-remote-server-apikey HTTP transport modernization
   - **Integration Testing**: Verify HTTP remote server works with MCP Inspector using ApiKey authentication
   - **Functionality Validation**: Test all MCP capabilities (Resources, Tools, Prompts) over authenticated HTTP
   - **Authentication Testing**: Validate ApiKey authentication integration with MCP ecosystem tooling
   - **Error Handling**: Verify proper error handling and edge case management
   - **Documentation Validation**: Ensure example documentation matches actual behavior
-  - **Dependencies**: TASK005 Zero-Cost Authentication implementation (complete), MCP Inspector knowledge base
   - **Impact**: Ensures our HTTP MCP server implementation is ecosystem-compatible and production-ready
 
 - [TASK024] HTTP Streamable Dynamic Mode Selection - Medium Priority - Added on 2025-08-26
