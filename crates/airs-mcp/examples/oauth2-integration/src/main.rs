@@ -45,6 +45,7 @@ use airs_mcp::{
     },
 };
 
+mod auth_flow;
 mod config;
 mod jwks;
 mod server;

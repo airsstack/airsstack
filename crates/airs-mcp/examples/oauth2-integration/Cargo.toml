@@ -26,6 +26,8 @@ axum = { version = "0.7", features = ["json"] }
 jsonwebtoken = "9.3"
 rsa = "0.9"
 base64 = "0.22"
+sha2 = "0.10"
+urlencoding = "2.1"
 
 # Data & Serialization (Layer 5)
 serde = { version = "1.0", features = ["derive"] }
