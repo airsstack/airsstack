@@ -14,10 +14,10 @@ use serde_json::{json, Value};
 use crate::integration::LoggingHandler;
 use crate::protocol::{
     constants::methods, CallToolRequest, GetPromptRequest, GetPromptResult, InitializeRequest,
-    InitializeResponse, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig,
-    PromptCapabilities, ReadResourceRequest, ReadResourceResult, ResourceCapabilities,
-    ServerCapabilities, ServerInfo, SetLoggingRequest, SubscribeResourceRequest, ToolCapabilities,
-    UnsubscribeResourceRequest,
+    InitializeResponse, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, LoggingCapabilities,
+    LoggingConfig, PromptCapabilities, ReadResourceRequest, ReadResourceResult,
+    ResourceCapabilities, ServerCapabilities, ServerInfo, SetLoggingRequest,
+    SubscribeResourceRequest, ToolCapabilities, UnsubscribeResourceRequest,
 };
 use crate::providers::{PromptProvider, ResourceProvider, ToolProvider};
 use crate::transport::adapters::http::engine::{
@@ -509,7 +509,7 @@ where
                 // Handle request and send response
                 let request_id = request.id.clone();
                 let result = self.handle_mcp_method(&session_id, request).await?;
-                
+
                 // Create JSON-RPC response
                 let response = JsonRpcResponse {
                     jsonrpc: "2.0".to_string(),
@@ -519,9 +519,10 @@ where
                 };
 
                 // Serialize response
-                let response_body = serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
-                    message: format!("Failed to serialize response: {e}"),
-                })?;
+                let response_body =
+                    serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
+                        message: format!("Failed to serialize response: {e}"),
+                    })?;
 
                 // Return appropriate response format
                 match response_mode {
@@ -538,10 +539,10 @@ where
                     params: notification.params,
                     id: crate::protocol::RequestId::new_string("notification"), // Temporary ID for internal processing
                 };
-                
+
                 // Handle notification but don't send response
                 self.handle_mcp_method(&session_id, request).await?;
-                
+
                 // Return empty 204 No Content response for notifications
                 Ok(HttpResponse {
                     body: vec![],
