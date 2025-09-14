@@ -38,7 +38,11 @@ impl OAuth2McpServerState {
 /// JWKS endpoint handler for JWT validation
 async fn jwks_endpoint(State(state): State<OAuth2McpServerState>) -> Json<Value> {
     debug!("🔍 JWKS endpoint requested");
-    debug!("📋 JWKS response: {}", serde_json::to_string_pretty(&state.test_keys.jwks_response).unwrap_or_else(|_| "Failed to serialize".to_string()));
+    debug!(
+        "📋 JWKS response: {}",
+        serde_json::to_string_pretty(&state.test_keys.jwks_response)
+            .unwrap_or_else(|_| "Failed to serialize".to_string())
+    );
     Json(state.test_keys.jwks_response.clone())
 }
 
@@ -144,8 +148,8 @@ async fn server_info() -> Json<Value> {
 
 /// Create mock JWKS server for JWT validation
 pub async fn start_mock_jwks_server(
-    test_keys: TestKeys, 
-    oauth2_config: OAuth2Config
+    test_keys: TestKeys,
+    oauth2_config: OAuth2Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/.well-known/jwks.json", get(jwks_endpoint))
@@ -153,10 +157,10 @@ pub async fn start_mock_jwks_server(
         .route("/info", get(server_info))
         .with_state(OAuth2McpServerState::new(test_keys, oauth2_config));
 
-    let listener = TcpListener::bind("127.0.0.1:3002").await?;
-    info!("🔑 Mock JWKS server started on http://127.0.0.1:3002");
-    info!("📋 JWKS endpoint: http://127.0.0.1:3002/.well-known/jwks.json");
-    info!("🎫 Test tokens: http://127.0.0.1:3002/auth/tokens");
+    let listener = TcpListener::bind("127.0.0.1:3004").await?;
+    info!("🔑 Mock JWKS server started on http://127.0.0.1:3004");
+    info!("📋 JWKS endpoint: http://127.0.0.1:3004/.well-known/jwks.json");
+    info!("🎫 Test tokens: http://127.0.0.1:3004/auth/tokens");
 
     tokio::spawn(async move {
         if let Err(e) = axum::serve(listener, app).await {

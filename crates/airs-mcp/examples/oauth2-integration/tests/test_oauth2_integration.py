@@ -43,9 +43,12 @@ class OAuth2MCPTester:
         self.server_pid: Optional[int] = None
         self.results: List[TestResult] = []
         
-        # Server configuration
-        self.server_url = "http://localhost:3001/mcp"
-        self.jwks_url = "http://localhost:3002"
+        # Server configuration (updated for three-server proxy architecture)
+        self.mcp_direct_url = "http://localhost:3001/mcp"  # Direct MCP server
+        self.proxy_url = "http://localhost:3002"           # Proxy server (recommended endpoint)
+        self.server_url = f"{self.proxy_url}/mcp"          # MCP through proxy
+        self.custom_routes_url = "http://localhost:3003"   # Custom OAuth2 routes
+        self.jwks_url = "http://localhost:3004"            # JWKS server
         self.auth_tokens_url = f"{self.jwks_url}/auth/tokens"
         
         # Test tokens storage
@@ -148,62 +151,106 @@ class OAuth2MCPTester:
             print(f"Server started with PID: {self.server_pid}")
             print(f"Server logs: ../logs/server_integration.log")
             
+            # Wait for all servers to be ready
+            return self.wait_for_server()
+            
         except Exception as e:
             print(f"Failed to start server: {e}")
             return False
     
     def wait_for_server(self, max_attempts: int = 30) -> bool:
-        """Wait for the server to be ready"""
-        self.log("⏳ Waiting for OAuth2 MCP Server to be ready...")
+        """Wait for the three-server architecture to be ready"""
+        self.log("⏳ Waiting for OAuth2 Three-Server Architecture to be ready...")
         
+        # Step 1: Wait for Direct MCP Server (port 3001)
+        self.log("  🔍 Checking Direct MCP Server (port 3001)...")
         for attempt in range(max_attempts):
             try:
-                # Check MCP endpoint (should return 401/403 for auth)
-                response = requests.get(self.server_url, timeout=2)
+                response = requests.get(self.mcp_direct_url, timeout=2)
                 if response.status_code in [401, 403, 405]:
-                    self.log_success(f"OAuth2 MCP Server is ready! (HTTP {response.status_code})")
+                    self.log_success(f"  ✅ Direct MCP Server ready (HTTP {response.status_code})")
                     break
             except requests.exceptions.RequestException:
                 pass
-            
             time.sleep(1)
-            self.log(f"Attempt {attempt + 1}/{max_attempts}...", "DEBUG")
         else:
-            self.add_result("Server Startup", False, "Server failed to start within timeout")
+            self.add_result("Direct MCP Server", False, "Failed to start within timeout")
             return False
         
-        # Wait for JWKS server
-        self.log("⏳ Waiting for OAuth2 JWKS Server to be ready...")
+        # Step 2: Wait for Proxy Server (port 3002)
+        self.log("  🔍 Checking Proxy Server (port 3002)...")
+        for attempt in range(max_attempts):
+            try:
+                response = requests.get(self.server_url, timeout=2)
+                if response.status_code in [401, 403, 405]:
+                    self.log_success(f"  ✅ Proxy Server ready (HTTP {response.status_code})")
+                    break
+            except requests.exceptions.RequestException:
+                pass
+            time.sleep(1)
+        else:
+            self.add_result("Proxy Server", False, "Failed to start within timeout")
+            return False
+        
+        # Step 3: Wait for JWKS Server (port 3004)
+        self.log("  🔍 Checking JWKS Server (port 3004)...")
         for attempt in range(max_attempts):
             try:
                 response = requests.get(self.auth_tokens_url, timeout=2)
                 if response.status_code == 200:
-                    self.log_success("OAuth2 JWKS Server is ready!")
-                    return True
+                    self.log_success("  ✅ JWKS Server ready!")
+                    break
             except requests.exceptions.RequestException:
                 pass
-            
             time.sleep(1)
+        else:
+            self.add_result("JWKS Server", False, "Failed to start within timeout")
+            return False
         
-        self.add_result("JWKS Server Startup", False, "JWKS server failed to start within timeout")
-        return False
+        # Step 4: Test OAuth2 Discovery (optional but useful)
+        try:
+            discovery_url = f"{self.custom_routes_url}/.well-known/oauth-authorization-server"
+            response = requests.get(discovery_url, timeout=2)
+            if response.status_code == 200:
+                self.log_success("  ✅ OAuth2 Discovery endpoint ready!")
+            else:
+                self.log_warning(f"  OAuth2 Discovery returned HTTP {response.status_code}")
+        except requests.exceptions.RequestException:
+            self.log_warning("  OAuth2 Discovery endpoint not accessible")
+        
+        self.log_success("🚀 All servers in three-server architecture are ready!")
+        return True
     
     def test_connectivity(self) -> bool:
-        """Test basic connectivity to servers"""
-        self.log("🔍 Testing Basic Connectivity...")
+        """Test basic connectivity to all servers in the architecture"""
+        self.log("🔍 Testing Three-Server Architecture Connectivity...")
         
-        # Test MCP endpoint (should require auth)
+        # Test Direct MCP endpoint (should require auth)
         try:
-            response = requests.get(self.server_url, timeout=5)
+            response = requests.get(self.mcp_direct_url, timeout=5)
             if response.status_code in [401, 403, 404, 405]:
-                self.add_result("MCP Endpoint", True, 
+                self.add_result("Direct MCP Endpoint", True, 
                               f"Accessible (HTTP {response.status_code} - auth required as expected)")
             else:
-                self.add_result("MCP Endpoint", False, 
+                self.add_result("Direct MCP Endpoint", False, 
                               f"Unexpected status code: {response.status_code}")
                 return False
         except Exception as e:
-            self.add_result("MCP Endpoint", False, f"Connection failed: {e}")
+            self.add_result("Direct MCP Endpoint", False, f"Connection failed: {e}")
+            return False
+        
+        # Test Proxy MCP endpoint (should require auth)
+        try:
+            response = requests.get(self.server_url, timeout=5)
+            if response.status_code in [401, 403, 404, 405]:
+                self.add_result("Proxy MCP Endpoint", True, 
+                              f"Accessible (HTTP {response.status_code} - auth required as expected)")
+            else:
+                self.add_result("Proxy MCP Endpoint", False, 
+                              f"Unexpected status code: {response.status_code}")
+                return False
+        except Exception as e:
+            self.add_result("Proxy MCP Endpoint", False, f"Connection failed: {e}")
             return False
         
         # Test JWKS endpoint
@@ -218,6 +265,116 @@ class OAuth2MCPTester:
         except Exception as e:
             self.add_result("JWKS Server", False, f"Connection failed: {e}")
             return False
+        
+        # Test OAuth2 Discovery endpoint
+        try:
+            discovery_url = f"{self.custom_routes_url}/.well-known/oauth-authorization-server"
+            response = requests.get(discovery_url, timeout=5)
+            if response.status_code == 200:
+                self.add_result("OAuth2 Discovery", True, "Accessible")
+            else:
+                self.add_result("OAuth2 Discovery", False, 
+                              f"Unexpected status code: {response.status_code}")
+                # Don't return False - this is optional
+        except Exception as e:
+            self.add_result("OAuth2 Discovery", False, f"Connection failed: {e}")
+            # Don't return False - this is optional
+        
+        return True
+    
+    def test_proxy_vs_direct_access(self) -> bool:
+        """Test that proxy and direct access both work with the same token"""
+        self.log("🔄 Testing Proxy vs Direct Access...")
+        
+        if not self.tokens or 'full' not in self.tokens:
+            self.add_result("Proxy vs Direct", False, "No full access token available")
+            return False
+        
+        full_token = self.tokens['full']
+        initialize_params = {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+                "name": "Proxy-Test-Client",
+                "version": "1.0.0"
+            }
+        }
+        
+        # Test direct access to MCP server
+        self.log("  Testing direct MCP server access...", "DEBUG")
+        direct_response = None
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {full_token}"
+            }
+            payload = {
+                "jsonrpc": "2.0",
+                "id": "proxy-test-direct",
+                "method": "initialize",
+                "params": initialize_params
+            }
+            
+            response = requests.post(self.mcp_direct_url, 
+                                   json=payload, 
+                                   headers=headers, 
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                direct_response = response.json()
+                if 'result' in direct_response:
+                    self.add_result("Direct MCP Access", True, "Initialize successful")
+                else:
+                    self.add_result("Direct MCP Access", False, "No result in response")
+            else:
+                self.add_result("Direct MCP Access", False, f"HTTP {response.status_code}")
+                
+        except Exception as e:
+            self.add_result("Direct MCP Access", False, f"Error: {e}")
+        
+        # Test proxy access to MCP server
+        self.log("  Testing proxy MCP server access...", "DEBUG")
+        proxy_response = None
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {full_token}"
+            }
+            payload = {
+                "jsonrpc": "2.0",
+                "id": "proxy-test-proxy",
+                "method": "initialize",
+                "params": initialize_params
+            }
+            
+            response = requests.post(self.server_url, 
+                                   json=payload, 
+                                   headers=headers, 
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                proxy_response = response.json()
+                if 'result' in proxy_response:
+                    self.add_result("Proxy MCP Access", True, "Initialize successful")
+                else:
+                    self.add_result("Proxy MCP Access", False, "No result in response")
+            else:
+                self.add_result("Proxy MCP Access", False, f"HTTP {response.status_code}")
+                
+        except Exception as e:
+            self.add_result("Proxy MCP Access", False, f"Error: {e}")
+        
+        # Compare responses
+        if direct_response and proxy_response and 'result' in direct_response and 'result' in proxy_response:
+            direct_server = direct_response['result'].get('serverInfo', {}).get('name', 'unknown')
+            proxy_server = proxy_response['result'].get('serverInfo', {}).get('name', 'unknown')
+            
+            if direct_server == proxy_server:
+                self.add_result("Response Consistency", True, 
+                              f"Both return same server: {direct_server}")
+            else:
+                self.add_result("Response Consistency", False, 
+                              f"Different servers: direct={direct_server}, proxy={proxy_server}")
         
         return True
     
@@ -438,6 +595,10 @@ class OAuth2MCPTester:
             
             # Authentication
             if not self.fetch_tokens():
+                return False
+            
+            # Test proxy vs direct access (requires tokens)
+            if not self.test_proxy_vs_direct_access():
                 return False
             
             # MCP Protocol tests

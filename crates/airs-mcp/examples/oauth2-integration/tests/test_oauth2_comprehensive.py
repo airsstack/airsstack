@@ -43,9 +43,12 @@ class ComprehensiveOAuth2Tester:
         self.server_pid: Optional[int] = None
         self.results: List[TestResult] = []
         
-        # Server configuration
-        self.server_url = "http://localhost:3001/mcp"
-        self.jwks_url = "http://localhost:3002"
+        # Server configuration (updated for three-server proxy architecture)
+        self.mcp_direct_url = "http://localhost:3001/mcp"  # Direct MCP server
+        self.proxy_url = "http://localhost:3002"           # Proxy server
+        self.server_url = f"{self.proxy_url}/mcp"          # MCP through proxy (recommended)
+        self.custom_routes_url = "http://localhost:3003"   # Custom OAuth2 routes
+        self.jwks_url = "http://localhost:3004"            # JWKS server
         self.auth_tokens_url = f"{self.jwks_url}/auth/tokens"
         
         # Test tokens storage

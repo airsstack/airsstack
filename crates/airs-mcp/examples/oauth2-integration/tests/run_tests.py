@@ -11,6 +11,7 @@ Test Types:
     basic        Run basic functionality test (default, recommended)
     comprehensive Run comprehensive integration test
     advanced     Run advanced integration test with all features
+    flow         Run OAuth2 authorization flow test with PKCE validation
     all          Run all test suites in sequence
     
 Options:
@@ -70,6 +71,7 @@ Examples:
     python3 run_tests.py                    # Run basic test
     python3 run_tests.py basic --debug      # Run basic test with debug output
     python3 run_tests.py comprehensive      # Run comprehensive test
+    python3 run_tests.py flow               # Run OAuth2 authorization flow test
     python3 run_tests.py all               # Run all tests
     python3 run_tests.py basic --no-cleanup # Keep server running after test
         """
@@ -79,7 +81,7 @@ Examples:
         "test_type", 
         nargs="?", 
         default="basic",
-        choices=["basic", "comprehensive", "advanced", "all"],
+        choices=["basic", "comprehensive", "advanced", "flow", "all"],
         help="Type of test to run (default: basic)"
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
@@ -94,7 +96,8 @@ Examples:
     test_scripts = {
         "basic": "test_oauth2_basic.py",
         "comprehensive": "test_oauth2_comprehensive.py", 
-        "advanced": "test_oauth2_integration.py"
+        "advanced": "test_oauth2_integration.py",
+        "flow": "test_oauth2_authorization_flow.py"
     }
     
     success_count = 0
@@ -102,7 +105,7 @@ Examples:
     
     if args.test_type == "all":
         # Run all tests in sequence
-        for test_name in ["basic", "comprehensive", "advanced"]:
+        for test_name in ["basic", "comprehensive", "advanced", "flow"]:
             total_tests += 1
             if run_test(test_scripts[test_name], args.debug, args.no_cleanup):
                 success_count += 1

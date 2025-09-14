@@ -8,7 +8,7 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
-    time::{Duration, SystemTime},
+    time::{Duration, Instant, SystemTime},
 };
 
 // Layer 2: Third-party crate imports
@@ -27,6 +27,17 @@ use uuid::Uuid;
 
 // Layer 3: Internal module imports
 use crate::tokens::{generate_test_token, TestKeys, TokenConfig};
+
+/// Application state for OAuth2 flow management
+#[derive(Clone)]
+pub struct AppState {
+    /// Test keys for JWT operations
+    pub test_keys: TestKeys,
+    /// Active OAuth2 flows indexed by authorization code
+    pub flows: Arc<Mutex<HashMap<String, OAuth2FlowState>>>,
+    /// Server start time for uptime tracking
+    pub start_time: Instant,
+}
 
 /// OAuth2 authorization request parameters (RFC 6749)
 #[derive(Debug, Deserialize)]
@@ -110,6 +121,7 @@ pub struct AuthorizationCode {
     /// Whether the code has been used (single-use only)
     pub used: bool,
     /// State parameter for CSRF protection
+    #[allow(dead_code)]
     pub state: Option<String>,
 }
 
@@ -166,6 +178,7 @@ pub struct OAuth2FlowState {
 
 impl OAuth2FlowState {
     /// Create new OAuth2 flow state
+    #[allow(dead_code)]
     pub fn new(test_keys: TestKeys) -> Self {
         Self {
             auth_codes: Arc::new(Mutex::new(HashMap::new())),
@@ -412,7 +425,7 @@ pub async fn oauth_token_handler(
         &token_config.subject,
         &scope_strs,
         "mcp-server",
-        "https://auth.example.com",
+        "https://example.com",
         token_config.expires_minutes,
         &state.test_keys.encoding_key,
     )
@@ -494,10 +507,10 @@ pub async fn oauth2_metadata_handler() -> Result<Json<Value>, StatusCode> {
     info!("OAuth2 metadata discovery endpoint accessed");
 
     let metadata = json!({
-        "issuer": "https://auth.example.com",
+        "issuer": "https://example.com",
         "authorization_endpoint": "http://127.0.0.1:3003/authorize",
         "token_endpoint": "http://127.0.0.1:3003/token",
-        "jwks_uri": "http://127.0.0.1:3003/.well-known/jwks.json",
+        "jwks_uri": "http://127.0.0.1:3004/.well-known/jwks.json",
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code"],
         "code_challenge_methods_supported": ["S256", "plain"],
@@ -524,4 +537,243 @@ pub async fn oauth2_metadata_handler() -> Result<Json<Value>, StatusCode> {
     );
 
     Ok(Json(metadata))
+}
+
+/// Create OAuth2 routes application (for custom routes server)
+pub fn create_oauth2_routes_app(
+    test_keys: TestKeys,
+) -> Result<axum::Router, Box<dyn std::error::Error + Send + Sync>> {
+    use axum::{
+        routing::{get, post},
+        Router,
+    };
+    use tower_http::{
+        cors::{Any, CorsLayer},
+        trace::TraceLayer,
+    };
+
+    // Create OAuth2 flow state (main state)
+    let oauth2_state = OAuth2FlowState {
+        auth_codes: Arc::new(Mutex::new(HashMap::new())),
+        test_keys: test_keys.clone(),
+        token_configs: TokenConfig::all_configs(),
+    };
+
+    // Create AppState for dev tools
+    let app_state = AppState {
+        test_keys,
+        flows: Arc::new(Mutex::new(HashMap::new())),
+        start_time: Instant::now(),
+    };
+
+    // Create separate routers for different state types
+    let oauth2_router = Router::new()
+        .route(
+            "/.well-known/oauth-authorization-server",
+            get(oauth2_metadata_handler),
+        )
+        .route("/authorize", get(authorize_handler))
+        .route("/token", post(oauth_token_handler))
+        .with_state(oauth2_state);
+
+    let dev_router = Router::new()
+        .route("/dev", get(dev_dashboard_handler))
+        .route("/dev/", get(dev_dashboard_handler))
+        .route("/dev/flows", get(dev_flows_handler))
+        .route("/dev/tokens", get(dev_tokens_handler))
+        .route("/health", get(health_handler))
+        .route("/status", get(status_handler))
+        .with_state(app_state);
+
+    // Merge the routers
+    let app = oauth2_router.merge(dev_router).layer(
+        tower::ServiceBuilder::new()
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(
+                        tower_http::trace::DefaultMakeSpan::new()
+                            .level(tracing::Level::INFO)
+                            .include_headers(true),
+                    )
+                    .on_request(
+                        tower_http::trace::DefaultOnRequest::new().level(tracing::Level::INFO),
+                    )
+                    .on_response(
+                        tower_http::trace::DefaultOnResponse::new()
+                            .level(tracing::Level::INFO)
+                            .latency_unit(tower_http::LatencyUnit::Micros),
+                    )
+                    .on_failure(
+                        tower_http::trace::DefaultOnFailure::new().level(tracing::Level::ERROR),
+                    ),
+            )
+            .layer(
+                CorsLayer::new()
+                    .allow_origin(Any)
+                    .allow_methods(Any)
+                    .allow_headers(Any)
+                    .allow_credentials(false)
+                    .expose_headers(Any)
+                    .max_age(std::time::Duration::from_secs(86400)), // 24 hours
+            ),
+    );
+
+    Ok(app)
+}
+
+/// Development dashboard handler
+async fn dev_dashboard_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let uptime = state.start_time.elapsed();
+    let flows_count = state.flows.lock().unwrap().len();
+
+    let html = format!(
+        r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth2 MCP Integration - Dev Dashboard</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+        .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+        .section {{ margin: 20px 0; padding: 15px; background: #ecf0f1; border-radius: 5px; }}
+        .endpoint {{ font-family: monospace; background: #34495e; color: white; padding: 8px; border-radius: 3px; margin: 5px 0; }}
+        .status {{ color: #27ae60; font-weight: bold; }}
+        a {{ color: #3498db; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 OAuth2 MCP Integration - Development Dashboard</h1>
+        
+        <div class="section">
+            <h2>📊 Server Status</h2>
+            <p><strong>Status:</strong> <span class="status">Running</span></p>
+            <p><strong>Uptime:</strong> {:.2?}</p>
+            <p><strong>Active Flows:</strong> {}</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔗 Available Endpoints</h2>
+            <div class="endpoint">GET /.well-known/oauth-authorization-server</div>
+            <div class="endpoint">GET /authorize?response_type=code&client_id=test&redirect_uri=...</div>
+            <div class="endpoint">POST /token</div>
+            <div class="endpoint">GET /health</div>
+            <div class="endpoint">GET /status</div>
+        </div>
+        
+        <div class="section">
+            <h2>🛠️ Development Tools</h2>
+            <p><a href="/dev/flows">📋 View Active OAuth2 Flows</a></p>
+            <p><a href="/dev/tokens">🎫 Generate Test Tokens</a></p>
+        </div>
+        
+        <div class="section">
+            <h2>🎯 MCP Inspector Configuration</h2>
+            <p><strong>Server URL:</strong> <code>http://127.0.0.1:3002/mcp</code></p>
+            <p><strong>Auth Type:</strong> OAuth2</p>
+            <p><strong>Discovery URL:</strong> <code>http://127.0.0.1:3002/.well-known/oauth-authorization-server</code></p>
+            <p><strong>Client ID:</strong> <code>test-client-id</code></p>
+            <p><strong>Enable PKCE:</strong> Yes</p>
+        </div>
+    </div>
+</body>
+</html>
+"#,
+        uptime, flows_count
+    );
+
+    axum::response::Html(html)
+}
+
+/// Development flows viewer
+async fn dev_flows_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let flows = state.flows.lock().unwrap();
+
+    // Create a simple serializable summary instead of trying to serialize OAuth2FlowState
+    let flows_summary: std::collections::HashMap<String, serde_json::Value> = flows
+        .iter()
+        .map(|(k, _v)| {
+            (
+                k.clone(),
+                serde_json::json!({
+                    "status": "active",
+                    "type": "oauth2_flow"
+                }),
+            )
+        })
+        .collect();
+
+    axum::response::Json(serde_json::json!({
+        "active_flows": flows_summary,
+        "count": flows.len(),
+        "uptime": format!("{:.2?}", state.start_time.elapsed())
+    }))
+}
+
+/// Development tokens generator  
+async fn dev_tokens_handler(State(state): State<AppState>) -> impl IntoResponse {
+    use crate::tokens::generate_test_token;
+
+    let tokens = vec![
+        ("full", ("user-full", vec!["mcp:*"], 60)),
+        ("tools", ("user-tools", vec!["mcp:tools:*"], 60)),
+        ("resources", ("user-resources", vec!["mcp:resources:*"], 60)),
+        (
+            "readonly",
+            (
+                "user-readonly",
+                vec!["mcp:tools:read", "mcp:resources:read", "mcp:prompts:read"],
+                60,
+            ),
+        ),
+    ];
+
+    let mut generated_tokens = HashMap::new();
+
+    for (name, (subject, scopes, expires_minutes)) in tokens {
+        let scope_refs: Vec<&str> = scopes.iter().map(|s| &**s).collect();
+        match generate_test_token(
+            subject,
+            &scope_refs,
+            "mcp-server",
+            "https://example.com",
+            expires_minutes,
+            &state.test_keys.encoding_key,
+        ) {
+            Ok(token) => {
+                generated_tokens.insert(name, token);
+            }
+            Err(e) => {
+                error!("Failed to generate {} token: {}", name, e);
+            }
+        }
+    }
+
+    axum::response::Json(serde_json::json!({
+        "tokens": generated_tokens,
+        "usage": "Use these tokens as Bearer tokens in Authorization header",
+        "example": "Authorization: Bearer <token>"
+    }))
+}
+
+/// Health check handler
+async fn health_handler() -> impl IntoResponse {
+    axum::response::Json(serde_json::json!({
+        "status": "healthy",
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
+/// Status handler  
+async fn status_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let flows_count = state.flows.lock().unwrap().len();
+
+    axum::response::Json(serde_json::json!({
+        "status": "running",
+        "uptime": format!("{:.2?}", state.start_time.elapsed()),
+        "active_flows": flows_count,
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
 }

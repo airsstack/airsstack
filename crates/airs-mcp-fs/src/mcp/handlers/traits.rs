@@ -9,8 +9,8 @@ use serde_json::Value;
 
 // Layer 3: Internal module imports
 // Layer 3a: AIRS foundation crates (prioritized)
-use airs_mcp::integration::mcp::McpResult;
-use airs_mcp::shared::protocol::Content;
+use airs_mcp::integration::McpResult;
+use airs_mcp::protocol::types::Content;
 
 /// Trait for file operation handlers
 ///

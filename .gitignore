@@ -84,6 +84,9 @@ Desktop.ini
 # Agent work directories (if using automation tools)
 .agent_work/
 
+# OAuth2 test resources (test data, not needed in repo)
+oauth2_test_resources/
+
 # Local environment configuration
 .env.local
 .env.*.local

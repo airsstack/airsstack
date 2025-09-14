@@ -30,9 +30,11 @@ class BasicOAuth2Test:
         self.server_process: Optional[subprocess.Popen] = None
         self.server_pid: Optional[int] = None
         
-        # Server configuration
-        self.server_url = "http://localhost:3001/mcp"
-        self.auth_tokens_url = "http://localhost:3002/auth/tokens"
+        # Server configuration (updated for three-server proxy architecture)
+        self.mcp_direct_url = "http://localhost:3001/mcp"    # Direct MCP server
+        self.proxy_url = "http://localhost:3002"             # Proxy server
+        self.server_url = f"{self.proxy_url}/mcp"            # MCP through proxy (recommended)
+        self.auth_tokens_url = "http://localhost:3004/auth/tokens"  # JWKS server
         
     def log(self, message: str, level: str = "INFO"):
         """Log a message"""

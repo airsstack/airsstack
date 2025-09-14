@@ -173,7 +173,11 @@ pip3 install requests
 ### Server Requirements
 The tests automatically:
 - Build the OAuth2 MCP server (`cargo build --bin oauth2-mcp-server`)
-- Start the server on ports 3001 (MCP) and 3002 (JWKS)
+- Start the three-server architecture on ports:
+  - 3001: Direct MCP server
+  - 3002: Proxy server (recommended endpoint)
+  - 3003: Custom OAuth2 routes
+  - 3004: JWKS server
 - Clean up processes after testing
 
 ### Manual Server Control
@@ -187,7 +191,7 @@ pkill -f oauth2-mcp-server
 cargo run
 
 # Check if ports are in use
-lsof -ti :3001 :3002
+lsof -ti :3001 :3002 :3003 :3004
 ```
 
 ## 🐛 Troubleshooting
@@ -199,7 +203,7 @@ lsof -ti :3001 :3002
 # Kill existing processes
 pkill -f oauth2-mcp-server
 # Or kill specific PIDs
-kill $(lsof -ti :3001 :3002)
+kill $(lsof -ti :3001 :3002 :3003 :3004)
 ```
 
 #### Build Failures
@@ -244,18 +248,19 @@ Debug mode provides:
 If automated tests fail, verify manually:
 
 ```bash
-# 1. Start server
+# 1. Start server (three-server architecture)
 cargo run
 
 # 2. Check endpoints (in another terminal)
-curl http://localhost:3001/mcp          # Should return 401
-curl http://localhost:3002/auth/tokens  # Should return JSON
+curl http://localhost:3001/mcp          # Direct MCP - Should return 401
+curl http://localhost:3002/mcp          # Proxy MCP - Should return 401 (recommended)
+curl http://localhost:3004/auth/tokens  # JWKS Server - Should return JSON
 
-# 3. Test with token
+# 3. Test with token through proxy (recommended)
 curl -H "Authorization: Bearer TOKEN_HERE" \
      -H "Content-Type: application/json" \
-     -d '{"jsonrpc":"2.0","id":"test","method":"initialize","params":{}}' \
-     http://localhost:3001/mcp
+     -d '{"jsonrpc":"2.0","id":"test","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' \
+     http://localhost:3002/mcp
 ```
 
 ## 🎯 Integration with Development Workflow
