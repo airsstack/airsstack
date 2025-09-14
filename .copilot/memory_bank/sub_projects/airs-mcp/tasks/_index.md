@@ -2,6 +2,16 @@
 
 ## Pending
 
+- [TASK-032] OAuth2 Integration MCP Inspector Compatibility Implementation - HIGH Priority - Added on 2025-09-14
+  - **OAuth2 Authorization Flow**: Complete implementation of `/authorize` and `/token` endpoints with PKCE support
+  - **Three-Server Proxy Architecture**: Smart proxy (3002) + Custom routes (3003) + MCP server (3001) for MCP Inspector compatibility
+  - **Authorization Code Management**: Thread-safe in-memory storage with expiration and cleanup
+  - **OAuth2 Discovery**: RFC 8414 compliant `/.well-known/oauth-authorization-server` metadata endpoint
+  - **MCP Inspector Integration**: Full compatibility with OAuth2 discovery and authorization flow testing
+  - **Dependencies**: None (enhances existing oauth2-integration example)
+  - **References**: oauth2_mcp_inspector_requirements_analysis.md, oauth2_mcp_inspector_integration_findings.md, mcp-remote-server-oauth2 example
+  - **Impact**: Transform oauth2-integration from JWT validation to complete OAuth2 authorization server with MCP Inspector compatibility
+
 - [TASK-013] Generic MessageHandler Foundation Implementation - HIGH Priority - Added on 2025-09-10
   - **Core Foundation**: Implement generic MessageHandler<T> and MessageContext<T> traits
   - **STDIO Adaptation**: Update existing STDIO transport to use generic pattern as validation
