@@ -1,7 +1,7 @@
 //! OAuth2 MCP Integration Server
 //!
 //! This is the main entry point for the OAuth2 MCP Integration example.
-//! It demonstrates complete OAuth2 authentication and authorization integration 
+//! It demonstrates complete OAuth2 authentication and authorization integration
 //! with the AirsStack MCP HTTP transport server.
 //!
 //! Features:
@@ -131,8 +131,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Use the TransportBuilder pattern to create a properly configured transport
     let transport = HttpTransportBuilder::with_engine(engine)?
-        .bind(transport_config.bind_address).await?
-        .build().await?;
+        .bind(transport_config.bind_address)
+        .await?
+        .build()
+        .await?;
 
     // Create MCP server with the properly configured transport
     let mcp_server = McpServer::new(transport);
@@ -146,10 +148,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("✅ OAuth2 MCP Server running successfully!");
     info!("🌐 Ready to accept MCP requests at http://127.0.0.1:3001/mcp");
-    
+
     // Wait for shutdown signal
     tokio::signal::ctrl_c().await?;
-    
+
     info!("🛑 Shutdown signal received, stopping server...");
     mcp_server.shutdown().await?;
 
