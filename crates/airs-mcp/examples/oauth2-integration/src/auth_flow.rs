@@ -425,7 +425,7 @@ pub async fn oauth_token_handler(
         &token_config.subject,
         &scope_strs,
         "mcp-server",
-        "https://example.com",
+        "http://127.0.0.1:3002",
         token_config.expires_minutes,
         &state.test_keys.encoding_key,
     )
@@ -507,9 +507,10 @@ pub async fn oauth2_metadata_handler() -> Result<Json<Value>, StatusCode> {
     info!("OAuth2 metadata discovery endpoint accessed");
 
     let metadata = json!({
-        "issuer": "https://example.com",
+        "issuer": "http://127.0.0.1:3002",
         "authorization_endpoint": "http://127.0.0.1:3003/authorize",
         "token_endpoint": "http://127.0.0.1:3003/token",
+        "registration_endpoint": "http://127.0.0.1:3003/register",
         "jwks_uri": "http://127.0.0.1:3004/.well-known/jwks.json",
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code"],
@@ -537,6 +538,137 @@ pub async fn oauth2_metadata_handler() -> Result<Json<Value>, StatusCode> {
     );
 
     Ok(Json(metadata))
+}
+
+/// OAuth2 Protected Resource Metadata endpoint (RFC 8705)
+/// Returns protected resource server configuration for client discovery
+pub async fn oauth2_protected_resource_handler() -> Result<Json<Value>, StatusCode> {
+    info!("OAuth2 protected resource metadata endpoint accessed");
+
+    let metadata = json!({
+        "resource_documentation": "https://example.com/docs/mcp-api",
+        "resource_registration_endpoint": "http://127.0.0.1:3002/register",
+        "revocation_endpoint": "http://127.0.0.1:3003/revoke",
+        "introspection_endpoint": "http://127.0.0.1:3003/introspect",
+        "authorization_servers": ["http://127.0.0.1:3002"],
+        "jwks_uri": "http://127.0.0.1:3004/.well-known/jwks.json",
+        "bearer_methods_supported": ["header", "body", "query"],
+        "resource_signing_alg_values_supported": ["RS256"],
+        "authorization_encryption_alg_values_supported": ["RSA1_5", "RSA-OAEP"],
+        "authorization_encryption_enc_values_supported": ["A128CBC-HS256", "A192CBC-HS384", "A256CBC-HS512"],
+        "scopes_supported": [
+            "mcp:tools:execute",
+            "mcp:resources:read",
+            "mcp:resources:write",
+            "mcp:resources:list",
+            "mcp:tools:read",
+            "mcp:prompts:read",
+            "mcp:prompts:list",
+            "mcp:*"
+        ],
+        "mcp_protocol_version": "2025-06-18",
+        "mcp_capabilities": [
+            "tools",
+            "resources",
+            "prompts",
+            "logging"
+        ]
+    });
+
+    debug!(
+        "OAuth2 protected resource metadata: {}",
+        serde_json::to_string_pretty(&metadata)
+            .unwrap_or_else(|_| "Failed to serialize".to_string())
+    );
+
+    Ok(Json(metadata))
+}
+
+/// OAuth2 Protected Resource Metadata for MCP endpoint (RFC 8705)
+/// Returns MCP-specific protected resource configuration
+pub async fn oauth2_protected_resource_mcp_handler() -> Result<Json<Value>, StatusCode> {
+    info!("OAuth2 protected resource metadata for /mcp endpoint accessed");
+
+    let metadata = json!({
+        "resource": "/mcp",
+        "resource_documentation": "http://127.0.0.1:3002/docs/mcp-api",
+        "authorization_servers": ["http://127.0.0.1:3002"],
+        "jwks_uri": "http://127.0.0.1:3004/.well-known/jwks.json",
+        "bearer_methods_supported": ["header"],
+        "resource_signing_alg_values_supported": ["RS256"],
+        "scopes_supported": [
+            "mcp:tools:execute",
+            "mcp:resources:read",
+            "mcp:resources:write",
+            "mcp:resources:list",
+            "mcp:tools:read",
+            "mcp:prompts:read",
+            "mcp:prompts:list",
+            "mcp:*"
+        ],
+        "mcp_protocol_version": "2025-06-18",
+        "mcp_capabilities": [
+            "tools",
+            "resources",
+            "prompts",
+            "logging"
+        ],
+        "mcp_transport": "http",
+        "mcp_endpoint": "http://127.0.0.1:3002/mcp",
+        "authentication_required": true,
+        "token_type": "Bearer"
+    });
+
+    debug!(
+        "OAuth2 MCP-specific metadata: {}",
+        serde_json::to_string_pretty(&metadata)
+            .unwrap_or_else(|_| "Failed to serialize".to_string())
+    );
+
+    Ok(Json(metadata))
+}
+
+/// Dynamic Client Registration endpoint (RFC 7591)
+/// Allows clients to register themselves at runtime
+pub async fn client_registration_handler(
+    Json(request): Json<Value>,
+) -> Result<Json<Value>, StatusCode> {
+    info!("Dynamic client registration request received");
+
+    debug!(
+        "Client registration request: {}",
+        serde_json::to_string_pretty(&request)
+            .unwrap_or_else(|_| "Failed to serialize".to_string())
+    );
+
+    // Generate a simple client ID and secret for this demo
+    let client_id = format!("mcp_client_{}", chrono::Utc::now().timestamp());
+    let client_secret = format!(
+        "secret_{}",
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    );
+
+    // For this demo, we accept any registration request
+    let response = json!({
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "client_id_issued_at": chrono::Utc::now().timestamp(),
+        "client_secret_expires_at": 0, // Never expires in this demo
+        "redirect_uris": request.get("redirect_uris").unwrap_or(&json!(["http://localhost:6274/oauth/"])),
+        "grant_types": ["authorization_code"],
+        "response_types": ["code"],
+        "token_endpoint_auth_method": "none", // For PKCE flow
+        "application_type": "native"
+    });
+
+    info!(
+        "Generated client registration: client_id={}, response={}",
+        client_id,
+        serde_json::to_string_pretty(&response)
+            .unwrap_or_else(|_| "Failed to serialize".to_string())
+    );
+
+    Ok(Json(response))
 }
 
 /// Create OAuth2 routes application (for custom routes server)
@@ -572,8 +704,17 @@ pub fn create_oauth2_routes_app(
             "/.well-known/oauth-authorization-server",
             get(oauth2_metadata_handler),
         )
+        .route(
+            "/.well-known/oauth-protected-resource",
+            get(oauth2_protected_resource_handler),
+        )
+        .route(
+            "/.well-known/oauth-protected-resource/mcp",
+            get(oauth2_protected_resource_mcp_handler),
+        )
         .route("/authorize", get(authorize_handler))
         .route("/token", post(oauth_token_handler))
+        .route("/register", post(client_registration_handler))
         .with_state(oauth2_state);
 
     let dev_router = Router::new()
@@ -738,7 +879,7 @@ async fn dev_tokens_handler(State(state): State<AppState>) -> impl IntoResponse 
             subject,
             &scope_refs,
             "mcp-server",
-            "https://example.com",
+            "http://127.0.0.1:3002",
             expires_minutes,
             &state.test_keys.encoding_key,
         ) {

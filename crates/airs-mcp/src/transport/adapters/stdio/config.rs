@@ -5,6 +5,8 @@
 
 use std::path::PathBuf;
 
+use serde_json::{self, json};
+
 use crate::protocol::transport::TransportConfig;
 use crate::protocol::types::{ServerCapabilities, ServerConfig};
 
@@ -186,8 +188,8 @@ impl TransportConfig for StdioTransportConfig {
             let mut caps = server_cfg.capabilities.clone();
 
             // STDIO-specific capability modifications
-            // Remove experimental features that don't work well over STDIO
-            caps.experimental = None;
+            // Set experimental to empty object for compatibility
+            caps.experimental = Some(json!({}));
 
             // STDIO doesn't support certain streaming patterns
             if let Some(ref mut resources) = caps.resources {

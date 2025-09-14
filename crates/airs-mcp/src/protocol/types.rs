@@ -37,6 +37,7 @@ use std::fmt;
 
 // Layer 2: Third-party crate imports
 use serde::{Deserialize, Serialize};
+use serde_json::{self, json};
 
 // Layer 3: Internal module imports
 use crate::protocol::errors::{ProtocolError, ProtocolResult};
@@ -56,11 +57,11 @@ use crate::protocol::constants::methods;
 ///
 /// // Create current protocol version
 /// let version = ProtocolVersion::current();
-/// assert_eq!(version.as_str(), "2024-11-05");
+/// assert_eq!(version.as_str(), "2025-06-18");
 ///
 /// // Create custom version with validation
-/// let version = ProtocolVersion::new("2024-11-05")?;
-/// assert_eq!(version.as_str(), "2024-11-05");
+/// let version = ProtocolVersion::new("2025-06-18")?;
+/// assert_eq!(version.as_str(), "2025-06-18");
 ///
 /// // Invalid version format fails
 /// let result = ProtocolVersion::new("invalid");
@@ -72,7 +73,7 @@ pub struct ProtocolVersion(String);
 
 impl ProtocolVersion {
     /// Current supported protocol version
-    pub const CURRENT: &'static str = "2024-11-05";
+    pub const CURRENT: &'static str = "2025-06-18";
     
     /// Create a new protocol version with validation
     ///
@@ -521,13 +522,25 @@ pub struct ClientCapabilities {
 }
 
 /// Server capabilities for MCP protocol
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ServerCapabilities {
     pub experimental: Option<serde_json::Value>,
     pub logging: Option<LoggingCapabilities>,
     pub prompts: Option<PromptCapabilities>,
     pub resources: Option<ResourceCapabilities>,
     pub tools: Option<ToolCapabilities>,
+}
+
+impl Default for ServerCapabilities {
+    fn default() -> Self {
+        Self {
+            experimental: Some(json!({})), // Empty object instead of null
+            logging: None,
+            prompts: None,
+            resources: None,
+            tools: None,
+        }
+    }
 }
 
 /// Sampling capabilities

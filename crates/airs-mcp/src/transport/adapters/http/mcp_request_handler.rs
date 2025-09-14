@@ -8,13 +8,13 @@
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 // Layer 3: Internal module imports
 use crate::integration::LoggingHandler;
 use crate::protocol::{
     constants::methods, CallToolRequest, GetPromptRequest, GetPromptResult, InitializeRequest,
-    InitializeResponse, JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig,
+    InitializeResponse, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, LoggingCapabilities, LoggingConfig,
     PromptCapabilities, ReadResourceRequest, ReadResourceResult, ResourceCapabilities,
     ServerCapabilities, ServerInfo, SetLoggingRequest, SubscribeResourceRequest, ToolCapabilities,
     UnsubscribeResourceRequest,
@@ -109,7 +109,7 @@ where
             } else {
                 None
             },
-            experimental: None,
+            experimental: Some(json!({})), // Empty object instead of null
         };
 
         let server_info = ServerInfo {
@@ -467,16 +467,9 @@ where
                 })
                 .await
             {
-                Ok(success) => {
-                    // Return success response with proper JSON-RPC structure
-                    Ok(serde_json::json!({
-                        "success": success,
-                        "message": if success {
-                            "Logging configuration updated"
-                        } else {
-                            "Failed to update logging configuration"
-                        }
-                    }))
+                Ok(_success) => {
+                    // Return empty object for standard MCP protocol compliance
+                    Ok(serde_json::json!({}))
                 }
                 Err(e) => Err(HttpEngineError::Engine {
                     message: format!("Logging handler error: {e}"),
@@ -505,36 +498,102 @@ where
         response_mode: ResponseMode,
         _auth_context: Option<AuthenticationContext>,
     ) -> Result<HttpResponse, HttpEngineError> {
-        // Parse JSON-RPC request
-        let request: JsonRpcRequest =
+        // Parse JSON-RPC message (could be request or notification)
+        let message: JsonRpcMessage =
             serde_json::from_slice(&request_data).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to parse JSON-RPC request: {e}"),
+                message: format!("Failed to parse JSON-RPC message: {e}"),
             })?;
 
-        // Clone the request ID before routing to handlers
-        let request_id = request.id.clone();
+        match message {
+            JsonRpcMessage::Request(request) => {
+                // Handle request and send response
+                let request_id = request.id.clone();
+                let result = self.handle_mcp_method(&session_id, request).await?;
+                
+                // Create JSON-RPC response
+                let response = JsonRpcResponse {
+                    jsonrpc: "2.0".to_string(),
+                    id: Some(request_id),
+                    result: Some(result),
+                    error: None,
+                };
 
+                // Serialize response
+                let response_body = serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
+                    message: format!("Failed to serialize response: {e}"),
+                })?;
+
+                // Return appropriate response format
+                match response_mode {
+                    ResponseMode::Json => Ok(HttpResponse::json(response_body)),
+                    ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
+                    ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
+                }
+            }
+            JsonRpcMessage::Notification(notification) => {
+                // Convert notification to request format for internal processing
+                let request = JsonRpcRequest {
+                    jsonrpc: notification.jsonrpc,
+                    method: notification.method,
+                    params: notification.params,
+                    id: crate::protocol::RequestId::new_string("notification"), // Temporary ID for internal processing
+                };
+                
+                // Handle notification but don't send response
+                self.handle_mcp_method(&session_id, request).await?;
+                
+                // Return empty 204 No Content response for notifications
+                Ok(HttpResponse {
+                    body: vec![],
+                    status: 204,
+                    headers: std::collections::HashMap::new(),
+                    mode: ResponseMode::Json,
+                })
+            }
+            JsonRpcMessage::Response(_) => {
+                // Server shouldn't receive responses, only requests and notifications
+                Err(HttpEngineError::Engine {
+                    message: "Server received unexpected JSON-RPC response".to_string(),
+                })
+            }
+        }
+    }
+}
+
+impl<R, T, P, L> AxumMcpRequestHandler<R, T, P, L>
+where
+    R: ResourceProvider + Send + Sync + 'static,
+    T: ToolProvider + Send + Sync + 'static,
+    P: PromptProvider + Send + Sync + 'static,
+    L: LoggingHandler + Send + Sync + 'static,
+{
+    /// Internal method to handle MCP method routing
+    async fn handle_mcp_method(
+        &self,
+        session_id: &str,
+        request: JsonRpcRequest,
+    ) -> Result<Value, HttpEngineError> {
         // Route to appropriate handler based on method
         let result = match request.method.as_str() {
-            methods::INITIALIZE => self.handle_initialize(&session_id, request).await?,
-            methods::RESOURCES_LIST => self.handle_list_resources(&session_id, request).await?,
+            methods::INITIALIZE => self.handle_initialize(session_id, request).await?,
+            methods::RESOURCES_LIST => self.handle_list_resources(session_id, request).await?,
             methods::RESOURCES_TEMPLATES_LIST => {
-                self.handle_list_resource_templates(&session_id, request)
+                self.handle_list_resource_templates(session_id, request)
                     .await?
             }
-            methods::RESOURCES_READ => self.handle_read_resource(&session_id, request).await?,
+            methods::RESOURCES_READ => self.handle_read_resource(session_id, request).await?,
             methods::RESOURCES_SUBSCRIBE => {
-                self.handle_subscribe_resource(&session_id, request).await?
+                self.handle_subscribe_resource(session_id, request).await?
             }
             methods::RESOURCES_UNSUBSCRIBE => {
-                self.handle_unsubscribe_resource(&session_id, request)
+                self.handle_unsubscribe_resource(session_id, request)
                     .await?
             }
-            methods::TOOLS_LIST => self.handle_list_tools(&session_id, request).await?,
-            methods::TOOLS_CALL => self.handle_call_tool(&session_id, request).await?,
-            methods::PROMPTS_LIST => self.handle_list_prompts(&session_id, request).await?,
-            methods::PROMPTS_GET => self.handle_get_prompt(&session_id, request).await?,
-            methods::LOGGING_SET_LEVEL => self.handle_set_logging(&session_id, request).await?,
+            methods::TOOLS_LIST => self.handle_list_tools(session_id, request).await?,
+            methods::TOOLS_CALL => self.handle_call_tool(session_id, request).await?,
+            methods::PROMPTS_LIST => self.handle_list_prompts(session_id, request).await?,
+            methods::PROMPTS_GET => self.handle_get_prompt(session_id, request).await?,
+            methods::LOGGING_SET_LEVEL => self.handle_set_logging(session_id, request).await?,
             _ => {
                 return Err(HttpEngineError::Engine {
                     message: format!("Unknown method: {}", request.method),
@@ -542,25 +601,7 @@ where
             }
         };
 
-        // Create JSON-RPC response
-        let response = JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id: Some(request_id),
-            result: Some(result),
-            error: None,
-        };
-
-        // Serialize response
-        let response_body = serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
-            message: format!("Failed to serialize response: {e}"),
-        })?;
-
-        // Return appropriate response format
-        match response_mode {
-            ResponseMode::Json => Ok(HttpResponse::json(response_body)),
-            ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
-            ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
-        }
+        Ok(result)
     }
 }
 

@@ -1,7 +1,7 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-13  
-**Total Knowledge Docs**: 30  
+**Last Updated**: 2025-09-14  
+**Total Knowledge Docs**: 31  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
@@ -137,11 +137,17 @@
   - **Related**: TASK014 (OAuth 2.1 implementation), ADR-007 (MCP protocol architecture)
 
 ### Integration
-**Documentation Count**: 3  
+**Documentation Count**: 4  
 **Complexity Level**: Medium  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[MCP Inspector JSON-RPC Protocol Compliance](./integration/mcp_inspector_json_rpc_protocol_compliance.md)** 🎯 NEW CRITICAL
+  - **Focus**: JSON-RPC notification vs request handling, MCP Inspector schema validation, protocol compliance
+  - **Complexity**: High - Critical protocol compliance and external tool integration
+  - **Updated**: 2025-09-14
+  - **Related**: OAuth2 integration, MCP specification compliance, external tool compatibility
+
 - **[Claude Desktop Integration Patterns](./integration/claude-desktop-integration-patterns.md)**
   - **Focus**: Claude Desktop configuration, MCP client patterns, production deployment
   - **Complexity**: Medium - Client integration and deployment patterns

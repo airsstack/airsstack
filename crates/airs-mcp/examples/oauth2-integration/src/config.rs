@@ -11,12 +11,12 @@ use airs_mcp::oauth2::config::{CacheConfig, OAuth2Config, ValidationConfig};
 
 /// Create OAuth2 configuration for the MCP server
 pub fn create_oauth2_config() -> Result<OAuth2Config, Box<dyn std::error::Error>> {
-    let jwks_url = Url::parse("http://localhost:3004/.well-known/jwks.json")?;
+    let jwks_url = Url::parse("http://127.0.0.1:3004/.well-known/jwks.json")?;
 
     Ok(OAuth2Config::builder()
         .jwks_url(jwks_url)
         .audience("mcp-server".to_string())
-        .issuer("https://example.com".to_string())
+        .issuer("http://127.0.0.1:3002".to_string())
         .validation_config(ValidationConfig {
             require_exp: true,
             require_aud: true,
@@ -42,10 +42,10 @@ pub mod constants {
     pub const DEFAULT_AUDIENCE: &str = "mcp-server";
 
     /// Default issuer for test tokens
-    pub const DEFAULT_ISSUER: &str = "https://example.com";
+    pub const DEFAULT_ISSUER: &str = "http://127.0.0.1:3002";
 
     /// Default JWKS URL for testing
-    pub const DEFAULT_JWKS_URL: &str = "http://localhost:3004/.well-known/jwks.json";
+    pub const DEFAULT_JWKS_URL: &str = "http://127.0.0.1:3004/.well-known/jwks.json";
 
     /// Default MCP server address
     pub const DEFAULT_MCP_ADDRESS: &str = "127.0.0.1:3001";

@@ -1308,6 +1308,7 @@ impl<T: Transport> Drop for McpClient<T> {
 mod tests {
     use super::*;
     use crate::transport::adapters::stdio::StdioTransportBuilder;
+    use serde_json::json;
 
     // Mock transport for testing static methods
     struct MockTransport;
@@ -1551,7 +1552,7 @@ mod tests {
                 failure_count: Arc::new(Mutex::new(0)),
                 custom_responses: Arc::new(Mutex::new(HashMap::new())),
                 server_capabilities: ServerCapabilities {
-                    experimental: None,
+                    experimental: Some(json!({})),
                     tools: Some(crate::protocol::ToolCapabilities {
                         list_changed: Some(true),
                     }),
