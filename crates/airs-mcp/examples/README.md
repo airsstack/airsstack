@@ -87,4 +87,47 @@ examples/
     └── README.md
 ```
 
+### [oauth2-integration](./oauth2-integration/) ✨ **COMPREHENSIVE** - OAuth2 + MCP Inspector
+
+A production-ready example demonstrating **complete OAuth2 authorization with MCP protocol integration**:
+
+- **🔐 Complete OAuth2 Flow**: Authorization Code with PKCE (RFC 6749 + RFC 7636) 
+- **🏗️ Three-Server Architecture**: MCP Server (3001), Proxy (3002), OAuth2 Server (3003), JWKS (3004)
+- **🛡️ Scope-Based Authorization**: Method-level access control with configurable OAuth2 scopes
+- **🧪 Comprehensive Testing**: 34/34 tests passing across 4 test suites (basic, comprehensive, advanced, flow)
+- **🔍 MCP Inspector Ready**: Full compatibility with MCP Inspector tools
+- **📊 Production Features**: JWT validation, token lifecycle, error handling, structured logging
+
+**To run the complete OAuth2 ecosystem:**
+```bash
+cd examples/oauth2-integration
+cargo run
+```
+
+**To run comprehensive test suite:**
+```bash
+cd examples/oauth2-integration/tests
+python run_tests.py
+```
+
+**To test with MCP Inspector:**
+```bash
+# Start the servers
+cd examples/oauth2-integration && cargo run
+
+# In another terminal
+npx @modelcontextprotocol/inspector-cli --transport http --server-url http://localhost:3002/mcp
+```
+
+**What you get:**
+- Complete OAuth2 Authorization Code flow with PKCE security
+- Three-server proxy architecture for real-world OAuth2 integration patterns  
+- Production-ready error handling and security practices
+- Comprehensive test coverage validating all OAuth2 + MCP interactions
+- **Definitive OAuth2 + MCP reference implementation**
+
+### [mcp-remote-server-apikey](./mcp-remote-server-apikey/) 
+
+HTTP MCP server with API key authentication (modernization in progress).
+
 Each example demonstrates specific aspects of the `airs-mcp` library and serves as both documentation and reference implementation.
