@@ -13,9 +13,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::broadcast;
 
 // Layer 3: Internal module imports
-use crate::protocol::{
-    JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
-};
+use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, Transport, TransportError};
 
 //
 // Type Aliases for STDIO Transport Convenience
@@ -41,7 +39,7 @@ pub type StdioMessageContext = MessageContext<()>;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, TransportError, TransportBuilder, MessageContext};
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, TransportError, MessageContext};
 /// use airs_mcp::transport::adapters::stdio::{StdioTransport, StdioTransportBuilder};
 /// use async_trait::async_trait;
 /// use std::sync::Arc;
@@ -368,7 +366,7 @@ async fn stdin_reader_loop(
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, TransportBuilder, Transport};
+/// use airs_mcp::protocol::{MessageHandler, JsonRpcMessage, MessageContext, TransportError, Transport};
 /// use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 /// use async_trait::async_trait;
 /// use std::sync::Arc;
@@ -442,15 +440,12 @@ impl std::fmt::Debug for StdioTransportBuilder {
     }
 }
 
-impl TransportBuilder<()> for StdioTransportBuilder {
-    type Transport = StdioTransport;
-    type Error = TransportError;
-
+impl StdioTransportBuilder {
     /// Set the message handler for the transport
     ///
-    /// This is the key method that implements the pre-configured pattern.
+    /// This implements the transport-specific construction pattern.
     /// The handler must be set before building the transport.
-    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<()>>) -> Self {
+    pub fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<()>>) -> Self {
         self.message_handler = Some(handler);
         self
     }
@@ -459,7 +454,7 @@ impl TransportBuilder<()> for StdioTransportBuilder {
     ///
     /// This creates a fully configured transport that is ready to start.
     /// The transport will have its message handler pre-configured.
-    async fn build(self) -> Result<Self::Transport, Self::Error> {
+    pub async fn build(self) -> Result<StdioTransport, TransportError> {
         let handler = self
             .message_handler
             .ok_or_else(|| TransportError::Connection {

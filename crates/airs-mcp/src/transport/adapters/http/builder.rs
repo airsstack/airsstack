@@ -15,9 +15,7 @@ use async_trait::async_trait;
 // Layer 3: Internal module imports
 use super::context::HttpContext;
 use super::engine::{HttpEngine, HttpEngineError};
-use crate::protocol::{
-    JsonRpcMessage, MessageHandler, Transport, TransportBuilder, TransportError,
-};
+use crate::protocol::{JsonRpcMessage, MessageHandler, Transport, TransportError};
 
 /// Convert HttpEngineError to TransportError
 impl From<HttpEngineError> for TransportError {
@@ -91,7 +89,7 @@ pub struct HttpTransport<E: HttpEngine> {
     session_id: Option<String>,
     /// Connection state
     is_connected: bool,
-    /// Message handler for the transport (set via TransportBuilder)
+    /// Message handler for the transport (set via builder pattern)
     message_handler: Option<Arc<dyn MessageHandler<HttpContext>>>,
 }
 
@@ -174,9 +172,9 @@ impl<E: HttpEngine> HttpTransport<E> {
         &mut self.engine
     }
 
-    /// Set the message handler for the transport (internal use for TransportBuilder)
+    /// Set the message handler for the transport (internal use for builders)
     ///
-    /// This method is used internally by the TransportBuilder to set the
+    /// This method is used internally by builders to set the
     /// message handler after transport creation. In future phases, this will
     /// integrate with the MessageHandlerAdapter pattern.
     ///
@@ -301,7 +299,7 @@ impl<E: HttpEngine> Transport for HttpTransport<E> {
 pub struct HttpTransportBuilder<E: HttpEngine> {
     /// HTTP engine instance
     engine: E,
-    /// Message handler for the transport (set via TransportBuilder::with_message_handler)
+    /// Message handler for the transport (set via with_message_handler method)
     message_handler: Option<Arc<dyn MessageHandler<HttpContext>>>,
 }
 
@@ -582,19 +580,10 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
         let engine = builder_fn().await.map_err(Into::into)?;
         Ok(Self::new(engine))
     }
-}
-
-// ================================================================================================
-// TransportBuilder<HttpContext> Implementation (TASK-031 Phase 1)
-// ================================================================================================
-
-impl<E: HttpEngine + 'static> TransportBuilder<HttpContext> for HttpTransportBuilder<E> {
-    type Transport = HttpTransport<E>;
-    type Error = TransportError;
 
     /// Set the message handler for the transport
     ///
-    /// This implements the pre-configured transport pattern where handlers
+    /// This implements the transport-specific construction pattern where handlers
     /// are set before building the transport, following ADR-011 Transport
     /// Configuration Separation principles.
     ///
@@ -605,7 +594,7 @@ impl<E: HttpEngine + 'static> TransportBuilder<HttpContext> for HttpTransportBui
     /// # Returns
     ///
     /// Self for method chaining
-    fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<HttpContext>>) -> Self {
+    pub fn with_message_handler(mut self, handler: Arc<dyn MessageHandler<HttpContext>>) -> Self {
         self.message_handler = Some(handler);
         self
     }
@@ -620,7 +609,7 @@ impl<E: HttpEngine + 'static> TransportBuilder<HttpContext> for HttpTransportBui
     ///
     /// * `Ok(HttpTransport<E>)` - Fully configured transport
     /// * `Err(TransportError)` - Failed to create transport or no handler set
-    async fn build(self) -> Result<Self::Transport, Self::Error> {
+    pub async fn build_with_handler(self) -> Result<HttpTransport<E>, TransportError> {
         // Validate that message handler was set (ADR-011 compliance)
         let handler = self
             .message_handler
@@ -920,7 +909,7 @@ mod tests {
     // TASK-031 Phase 1 Tests: TransportBuilder<HttpContext> Interface
     // ================================================================================================
 
-    use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler, TransportBuilder};
+    use crate::protocol::{JsonRpcMessage, MessageContext, MessageHandler};
     use async_trait::async_trait;
 
     /// Test MessageHandler implementation for testing TransportBuilder
@@ -964,11 +953,10 @@ mod tests {
         let builder = HttpTransportBuilder::<AxumHttpServer>::with_default()
             .expect("Should create builder with default engine");
 
-        // Test the TransportBuilder interface explicitly
-        let transport_result: Result<HttpTransport<AxumHttpServer>, TransportError> =
-            TransportBuilder::<HttpContext>::build(
-                TransportBuilder::<HttpContext>::with_message_handler(builder, handler.clone()),
-            )
+        // Test the direct builder interface (no more TransportBuilder trait)
+        let transport_result: Result<HttpTransport<AxumHttpServer>, TransportError> = builder
+            .with_message_handler(handler.clone())
+            .build_with_handler()
             .await;
 
         assert!(
@@ -991,9 +979,9 @@ mod tests {
         let builder = HttpTransportBuilder::<AxumHttpServer>::with_default()
             .expect("Should create builder with default engine");
 
-        // Try to build using TransportBuilder trait without setting handler
+        // Try to build using direct builder without setting handler (should use build_with_handler)
         let transport_result: Result<HttpTransport<AxumHttpServer>, TransportError> =
-            TransportBuilder::<HttpContext>::build(builder).await;
+            builder.build_with_handler().await;
 
         assert!(
             transport_result.is_err(),
@@ -1009,25 +997,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_transport_builder_generic_usage() {
-        // Test that we can use TransportBuilder in generic contexts
-        async fn create_transport_generic<T, B: TransportBuilder<T>>(
-            builder: B,
-            handler: Arc<dyn MessageHandler<T>>,
-        ) -> Result<B::Transport, B::Error> {
-            builder.with_message_handler(handler).build().await
-        }
-
+    async fn test_transport_builder_direct_usage() {
+        // Test that we can use the direct builder pattern
         let handler = Arc::new(TestHttpMessageHandler {
-            name: "generic-test".to_string(),
+            name: "direct-test".to_string(),
         });
 
         let builder =
             HttpTransportBuilder::<AxumHttpServer>::with_default().expect("Should create builder");
 
-        let transport_result = create_transport_generic(builder, handler).await;
+        let transport_result = builder
+            .with_message_handler(handler)
+            .build_with_handler()
+            .await;
 
-        assert!(transport_result.is_ok(), "Should work in generic context");
+        assert!(
+            transport_result.is_ok(),
+            "Should work with direct builder pattern"
+        );
     }
 
     // ================================================================================================
@@ -1035,30 +1022,27 @@ mod tests {
     // ================================================================================================
 
     #[tokio::test]
-    async fn test_phase2_cross_transport_generic_function() {
-        // Phase 2.1: Verify both STDIO and HTTP work with same generic function
-        use crate::transport::adapters::stdio::StdioTransportBuilder;
+    async fn test_phase2_direct_transport_builders() {
+        // Phase 2.1: Test that HTTP and STDIO builders work with their respective patterns
 
-        async fn create_any_transport<T, B: TransportBuilder<T>>(
-            builder: B,
-            handler: Arc<dyn MessageHandler<T>>,
-        ) -> Result<B::Transport, B::Error> {
-            builder.with_message_handler(handler).build().await
-        }
-
-        // Test HTTP transport in generic context
+        // Test HTTP transport with direct builder pattern
         let http_handler = Arc::new(TestHttpMessageHandler {
-            name: "http-cross-transport".to_string(),
+            name: "http-direct".to_string(),
         });
         let http_builder = HttpTransportBuilder::<AxumHttpServer>::with_default()
             .expect("Should create HTTP builder");
-        let http_result = create_any_transport(http_builder, http_handler).await;
+        let http_result = http_builder
+            .with_message_handler(http_handler)
+            .build_with_handler()
+            .await;
         assert!(
             http_result.is_ok(),
-            "HTTP transport should work in generic function"
+            "HTTP transport should work with direct builder pattern"
         );
 
-        // Test STDIO transport in generic context (using () context)
+        // Test STDIO transport with direct builder pattern
+        use crate::transport::adapters::stdio::StdioTransportBuilder;
+
         #[derive(Debug)]
         struct TestStdioHandler;
 
@@ -1072,10 +1056,13 @@ mod tests {
 
         let stdio_handler = Arc::new(TestStdioHandler);
         let stdio_builder = StdioTransportBuilder::new();
-        let stdio_result = create_any_transport(stdio_builder, stdio_handler).await;
+        let stdio_result = stdio_builder
+            .with_message_handler(stdio_handler)
+            .build()
+            .await;
         assert!(
             stdio_result.is_ok(),
-            "STDIO transport should work in generic function"
+            "STDIO transport should work with direct builder pattern"
         );
     }
 
@@ -1111,9 +1098,9 @@ mod tests {
         let builder =
             HttpTransportBuilder::<AxumHttpServer>::with_default().expect("Should create builder");
 
-        // Test building without handler produces descriptive error (via TransportBuilder trait)
+        // Test building without handler produces descriptive error (direct builder pattern)
         let result: Result<HttpTransport<AxumHttpServer>, TransportError> =
-            TransportBuilder::<HttpContext>::build(builder).await;
+            builder.build_with_handler().await;
         assert!(result.is_err(), "Should fail without handler");
 
         let error = result.unwrap_err();
@@ -1150,12 +1137,11 @@ mod tests {
             name: "validation-test".to_string(),
         });
 
-        let builder =
-            TransportBuilder::<HttpContext>::with_message_handler(builder, handler.clone());
-        let transport: HttpTransport<AxumHttpServer> =
-            TransportBuilder::<HttpContext>::build(builder)
-                .await
-                .expect("Should build with valid handler");
+        let builder = builder.with_message_handler(handler.clone());
+        let transport: HttpTransport<AxumHttpServer> = builder
+            .build_with_handler()
+            .await
+            .expect("Should build with valid handler");
 
         // Verify handler was stored correctly
         assert!(
@@ -1178,11 +1164,11 @@ mod tests {
 
         let builder =
             HttpTransportBuilder::<AxumHttpServer>::with_default().expect("Should create builder");
-        let builder = TransportBuilder::<HttpContext>::with_message_handler(builder, handler);
-        let transport: HttpTransport<AxumHttpServer> =
-            TransportBuilder::<HttpContext>::build(builder)
-                .await
-                .expect("Should build transport");
+        let builder = builder.with_message_handler(handler);
+        let transport: HttpTransport<AxumHttpServer> = builder
+            .build_with_handler()
+            .await
+            .expect("Should build transport");
 
         // Verify Transport trait methods work
         assert_eq!(
@@ -1208,7 +1194,7 @@ mod tests {
             HttpTransportBuilder::<AxumHttpServer>::with_default().expect("Should create builder");
 
         let result: Result<HttpTransport<AxumHttpServer>, TransportError> =
-            TransportBuilder::<HttpContext>::build(empty_builder).await;
+            empty_builder.build_with_handler().await;
         assert!(
             result.is_err(),
             "ADR-011: Pre-configured handlers are mandatory"
@@ -1232,12 +1218,11 @@ mod tests {
         let working_builder =
             HttpTransportBuilder::<AxumHttpServer>::with_default().expect("Should create builder");
 
-        let working_builder =
-            TransportBuilder::<HttpContext>::with_message_handler(working_builder, handler);
-        let transport: HttpTransport<AxumHttpServer> =
-            TransportBuilder::<HttpContext>::build(working_builder)
-                .await
-                .expect("ADR-011: Should build with pre-configured handler");
+        let working_builder = working_builder.with_message_handler(handler);
+        let transport: HttpTransport<AxumHttpServer> = working_builder
+            .build_with_handler()
+            .await
+            .expect("ADR-011: Should build with pre-configured handler");
 
         assert!(
             transport.message_handler().is_some(),

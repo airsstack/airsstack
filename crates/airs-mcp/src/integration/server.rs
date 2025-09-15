@@ -80,8 +80,8 @@ impl<T: Transport + 'static> McpServer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::{JsonRpcMessage, MessageHandler, TransportBuilder};
-    use crate::transport::adapters::stdio::{StdioTransportBuilder, StdioMessageContext};
+    use crate::protocol::{JsonRpcMessage, MessageHandler};
+    use crate::transport::adapters::stdio::{StdioMessageContext, StdioTransportBuilder};
 
     // Simple test message handler for integration tests
     #[derive(Debug)]
@@ -110,7 +110,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-            
+
         let server = McpServer::new(transport);
 
         // Verify it's a simple lifecycle wrapper - server should be created successfully
@@ -125,7 +125,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-            
+
         let server = McpServer::new(transport);
 
         // Test basic lifecycle - start and shutdown

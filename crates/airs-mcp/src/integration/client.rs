@@ -44,9 +44,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::integration::constants::{defaults, methods};
 use crate::integration::{IntegrationError, McpError};
-use crate::protocol::transport::{
-    MessageContext, MessageHandler, Transport, TransportBuilder, TransportError,
-};
+use crate::protocol::transport::{MessageContext, MessageHandler, Transport, TransportError};
 use crate::protocol::RequestId;
 use crate::protocol::{
     CallToolRequest,
@@ -223,11 +221,15 @@ impl McpClientBuilder {
         self
     }
 
-    /// Build the MCP client with the given transport builder (pre-configured pattern)
+    /// Build the MCP client with a pre-configured transport
     ///
-    /// This creates the MCP client but does NOT automatically connect the transport
-    /// or initialize the MCP session. This allows for clean separation of:
-    /// 1. Client creation
+    /// This creates the MCP client with a transport that should already be configured
+    /// with its own message handling mechanism. The transport is expected to come
+    /// pre-configured and ready for use.
+    ///
+    /// This does NOT automatically connect the transport or initialize the MCP session.
+    /// This allows for clean separation of:
+    /// 1. Client creation  
     /// 2. Transport connection via `connect()`
     /// 3. MCP session initialization via `initialize()`
     ///
@@ -236,10 +238,15 @@ impl McpClientBuilder {
     /// # use airs_mcp::integration::{McpClientBuilder, McpResult};
     /// # use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
     /// # async fn example() -> McpResult<()> {
+    /// // Create pre-configured transport with its own message handler
+    /// let transport = StdioTransportBuilder::new()
+    ///     .with_message_handler(custom_handler)
+    ///     .build()
+    ///     .await?;
+    ///
     /// let client = McpClientBuilder::new()
     ///     .client_info("my-client", "1.0.0")
-    ///     .build(StdioTransportBuilder::new())
-    ///     .await?;
+    ///     .build(transport);
     ///
     /// // Phase 1: Connect transport
     /// client.connect().await?;
@@ -252,33 +259,12 @@ impl McpClientBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn build<TB: TransportBuilder + 'static>(
-        self,
-        transport_builder: TB,
-    ) -> McpResult<McpClient<TB::Transport>>
-    where
-        TB::Transport: 'static,
-        TB::Error: 'static,
-    {
-        // Create pending requests map
+    pub fn build<T: Transport + 'static>(self, transport: T) -> McpClient<T> {
+        // Production transports come pre-configured with their own message handlers
+        // The client maintains its own pending requests map for request/response correlation
         let pending_requests = Arc::new(Mutex::new(HashMap::new()));
 
-        // Create client message handler with proper context
-        let handler = Arc::new(ClientMessageHandler {
-            pending_requests: pending_requests.clone(),
-        });
-
-        // Build transport with handler pre-configured (CRITICAL: This fixes the broken pattern!)
-        let transport = transport_builder
-            .with_message_handler(handler)
-            .build()
-            .await
-            .map_err(|e| McpError::custom(format!("Failed to build transport: {e}")))?;
-
-        // NOTE: We do NOT start the transport here - this allows clean separation
-        // between client creation and transport connection. Use connect() method.
-
-        Ok(McpClient {
+        McpClient {
             transport: Arc::new(RwLock::new(transport)),
             config: self.config,
             mcp_session: Arc::new(RwLock::new(McpSessionState::NotInitialized)),
@@ -288,7 +274,7 @@ impl McpClientBuilder {
             prompt_cache: Arc::new(RwLock::new(HashMap::new())),
             pending_requests,
             reconnection_state: Arc::new(RwLock::new(ReconnectionState::default())),
-        })
+        }
     }
 }
 
@@ -1307,7 +1293,7 @@ impl<T: Transport> Drop for McpClient<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::adapters::stdio::StdioTransportBuilder;
+
     use serde_json::json;
 
     // Mock transport for testing static methods
@@ -1374,12 +1360,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_creation() {
-        // Test the new pre-configured transport builder pattern
+        // Test the new pre-configured transport pattern
+        let transport = create_test_transport();
         let client = McpClientBuilder::new()
             .client_info("test", "1.0")
-            .build(StdioTransportBuilder::new())
-            .await
-            .unwrap();
+            .build(transport);
 
         assert_eq!(
             client.session_state().await,
@@ -1392,10 +1377,7 @@ mod tests {
     #[tokio::test]
     async fn test_state_management() {
         // Test with the new pre-configured pattern
-        let client = McpClientBuilder::new()
-            .build(StdioTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // Initial state should be not initialized
         assert_eq!(
@@ -1412,10 +1394,7 @@ mod tests {
     #[tokio::test]
     async fn test_capability_checking() {
         // Test with the new pre-configured pattern
-        let client = McpClientBuilder::new()
-            .build(StdioTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // Should return false when no capabilities are set
         let supports_resources = client
@@ -1427,12 +1406,11 @@ mod tests {
     #[tokio::test]
     async fn test_retry_configuration() {
         // Test retry configuration through builder
+        let transport = create_test_transport();
         let client = McpClientBuilder::new()
             .auto_retry(true, 5)
             .retry_timing(Duration::from_millis(50), Duration::from_secs(10))
-            .build(StdioTransportBuilder::new())
-            .await
-            .unwrap();
+            .build(transport);
 
         assert_eq!(client.config.max_retries, 5);
         assert_eq!(client.config.initial_retry_delay, Duration::from_millis(50));
@@ -1442,12 +1420,11 @@ mod tests {
     #[tokio::test]
     async fn test_reconnection_configuration() {
         // Test reconnection configuration through builder
+        let transport = create_test_transport();
         let client = McpClientBuilder::new()
             .auto_reconnect(true)
             .reconnection_config(10, Duration::from_secs(2), Duration::from_secs(120))
-            .build(StdioTransportBuilder::new())
-            .await
-            .unwrap();
+            .build(transport);
 
         assert!(client.config.auto_reconnect);
         assert_eq!(client.config.max_reconnect_attempts, 10);
@@ -1545,14 +1522,18 @@ mod tests {
 
     impl AdvancedMockTransport {
         fn new() -> Self {
+            // Create a default message handler for testing
+            let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+            let handler = Arc::new(ClientMessageHandler { pending_requests });
+
             Self {
                 connected: true,
-                message_handler: None,
+                message_handler: Some(handler),
                 sent_messages: Arc::new(Mutex::new(Vec::new())),
                 failure_count: Arc::new(Mutex::new(0)),
                 custom_responses: Arc::new(Mutex::new(HashMap::new())),
                 server_capabilities: ServerCapabilities {
-                    experimental: Some(json!({})),
+                    experimental: Some(json!({})), // Empty object per MCP specification
                     tools: Some(crate::protocol::ToolCapabilities {
                         list_changed: Some(true),
                     }),
@@ -1566,6 +1547,16 @@ mod tests {
                     logging: Some(crate::protocol::LoggingCapabilities {}),
                 },
             }
+        }
+
+        // Create a new transport with shared pending requests for testing
+        fn new_with_shared_pending_requests(
+            pending_requests: Arc<Mutex<HashMap<String, oneshot::Sender<JsonRpcResponse>>>>,
+        ) -> Self {
+            let mut transport = Self::new();
+            let handler = Arc::new(ClientMessageHandler { pending_requests });
+            transport.message_handler = Some(handler);
+            transport
         }
 
         fn with_failure() -> Self {
@@ -1898,59 +1889,56 @@ mod tests {
         }
     }
 
-    struct AdvancedMockTransportBuilder {
+    // Test helper functions that properly coordinate message handling
+    fn create_test_client() -> McpClient<AdvancedMockTransport> {
+        create_test_client_with_coordination()
+    }
+
+    fn create_test_client_with_coordination() -> McpClient<AdvancedMockTransport> {
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create mock transport with coordinated message handler
+        let transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
+
+        // Build client using the test-specific build method that accepts shared pending_requests
+        create_test_client_with_shared_pending_requests(transport, pending_requests)
+    }
+
+    // Test-only helper that creates client with shared pending_requests for proper coordination
+    fn create_test_client_with_shared_pending_requests(
         transport: AdvancedMockTransport,
-    }
+        pending_requests: Arc<Mutex<HashMap<String, oneshot::Sender<JsonRpcResponse>>>>,
+    ) -> McpClient<AdvancedMockTransport> {
+        let config = McpClientConfig::default();
 
-    impl AdvancedMockTransportBuilder {
-        fn new() -> Self {
-            Self {
-                transport: AdvancedMockTransport::new(),
-            }
-        }
-
-        fn with_failure() -> Self {
-            Self {
-                transport: AdvancedMockTransport::with_failure(),
-            }
-        }
-
-        // Allow setting custom responses during construction
-        async fn with_custom_response(self, method: &str, response: Value) -> Self {
-            self.transport.set_custom_response(method, response).await;
-            self
-        }
-
-        // Get reference to transport for advanced configuration
-        #[allow(dead_code)]
-        fn transport(&self) -> &AdvancedMockTransport {
-            &self.transport
+        McpClient {
+            transport: Arc::new(RwLock::new(transport)),
+            config,
+            mcp_session: Arc::new(RwLock::new(McpSessionState::NotInitialized)),
+            server_capabilities: Arc::new(RwLock::new(None)),
+            resource_cache: Arc::new(RwLock::new(HashMap::new())),
+            tool_cache: Arc::new(RwLock::new(HashMap::new())),
+            prompt_cache: Arc::new(RwLock::new(HashMap::new())),
+            pending_requests, // Use the shared pending_requests!
+            reconnection_state: Arc::new(RwLock::new(ReconnectionState::default())),
         }
     }
 
-    impl TransportBuilder for AdvancedMockTransportBuilder {
-        type Transport = AdvancedMockTransport;
-        type Error = std::io::Error;
+    fn create_test_transport() -> AdvancedMockTransport {
+        AdvancedMockTransport::new()
+    }
 
-        fn with_message_handler(mut self, handler: Arc<dyn MessageHandler>) -> Self {
-            self.transport.message_handler = Some(handler);
-            self
-        }
-
-        async fn build(self) -> Result<Self::Transport, Self::Error> {
-            Ok(self.transport)
-        }
+    fn create_test_transport_with_failure() -> AdvancedMockTransport {
+        AdvancedMockTransport::with_failure()
     }
 
     // Comprehensive Lifecycle Tests
 
     #[tokio::test]
     async fn test_client_initialization_lifecycle() {
-        let client = McpClientBuilder::new()
-            .client_info("test-client", "1.0.0")
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // Initial state should be not initialized
         assert_eq!(
@@ -1977,10 +1965,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_double_initialization_error() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // First initialization should succeed
         client.initialize().await.unwrap();
@@ -1994,10 +1979,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_operations_before_initialization() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // All operations should fail before initialization
         assert!(client.list_tools().await.is_err());
@@ -2010,10 +1992,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_tools_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // Initialize first
         client.initialize().await.unwrap();
@@ -2038,10 +2017,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_call_tool_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2065,10 +2041,7 @@ mod tests {
     async fn test_tool_operations_without_capability() {
         // This test simulates a server without tool capabilities
         // We'll just verify the error handling for unsupported capabilities
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2086,10 +2059,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_resources_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2107,10 +2077,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_resource_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2129,10 +2096,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_prompts_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2146,10 +2110,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_prompt_functionality() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2177,9 +2138,7 @@ mod tests {
         let client = McpClientBuilder::new()
             .auto_retry(true, 2)
             .retry_timing(Duration::from_millis(1), Duration::from_millis(5))
-            .build(AdvancedMockTransportBuilder::with_failure())
-            .await
-            .unwrap();
+            .build(create_test_transport_with_failure());
 
         // This should fail due to transport failure
         // Use timeout to prevent hanging
@@ -2199,10 +2158,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_comprehensive_capability_checking() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2228,7 +2184,7 @@ mod tests {
                 .await
         );
         assert!(
-            !client
+            client
                 .supports_capability(|caps| caps.experimental.is_some())
                 .await
         );
@@ -2236,10 +2192,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_shutdown_lifecycle() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
         assert!(client.is_ready().await);
@@ -2255,10 +2208,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_graceful_shutdown_with_timeout() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2271,9 +2221,7 @@ mod tests {
     async fn test_reconnection_status_tracking() {
         let client = McpClientBuilder::new()
             .auto_reconnect(true)
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+            .build(create_test_transport());
 
         // Initial reconnection status
         let (attempt_count, is_reconnecting) = client.reconnection_status().await;
@@ -2283,10 +2231,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_session_state_transitions() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         // Initial state
         assert_eq!(
@@ -2308,10 +2253,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_caching_behavior() {
-        let client = McpClientBuilder::new()
-            .build(AdvancedMockTransportBuilder::new())
-            .await
-            .unwrap();
+        let client = create_test_client();
 
         client.initialize().await.unwrap();
 
@@ -2329,7 +2271,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_custom_tool_response() {
-        let builder = AdvancedMockTransportBuilder::new();
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create mock transport with coordinated message handler
+        let mut transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
 
         // Set up a custom tool execution response
         let custom_tool_response = serde_json::json!({
@@ -2342,11 +2289,11 @@ mod tests {
             "isError": false
         });
 
-        let builder = builder
-            .with_custom_response("tools/call", custom_tool_response)
+        transport
+            .set_custom_response("tools/call", custom_tool_response)
             .await;
 
-        let client = McpClientBuilder::new().build(builder).await.unwrap();
+        let client = create_test_client_with_shared_pending_requests(transport, pending_requests);
 
         client.initialize().await.unwrap();
 
@@ -2373,7 +2320,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_custom_resource_content() {
-        let builder = AdvancedMockTransportBuilder::new();
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create mock transport with coordinated message handler
+        let mut transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
 
         // Set up a custom resource read response with different content
         let custom_resource_response = serde_json::json!({
@@ -2385,11 +2337,11 @@ mod tests {
             ]
         });
 
-        let builder = builder
-            .with_custom_response("resources/read", custom_resource_response)
+        transport
+            .set_custom_response("resources/read", custom_resource_response)
             .await;
 
-        let client = McpClientBuilder::new().build(builder).await.unwrap();
+        let client = create_test_client_with_shared_pending_requests(transport, pending_requests);
 
         client.initialize().await.unwrap();
 
@@ -2408,7 +2360,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_response_simulation() {
-        let builder = AdvancedMockTransportBuilder::new();
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create mock transport with coordinated message handler
+        let mut transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
 
         // Simulate a server error response
         let error_response = serde_json::json!({
@@ -2421,11 +2378,11 @@ mod tests {
             "is_error": true
         });
 
-        let builder = builder
-            .with_custom_response("tools/call", error_response)
+        transport
+            .set_custom_response("tools/call", error_response)
             .await;
 
-        let client = McpClientBuilder::new().build(builder).await.unwrap();
+        let client = create_test_client_with_shared_pending_requests(transport, pending_requests);
 
         client.initialize().await.unwrap();
 
@@ -2452,7 +2409,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_dynamic_prompt_response() {
-        let builder = AdvancedMockTransportBuilder::new();
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
+        // Create mock transport with coordinated message handler
+        let mut transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
 
         // Set up a dynamic prompt response that varies based on input
         let custom_prompt_response = serde_json::json!({
@@ -2475,11 +2437,11 @@ mod tests {
             ]
         });
 
-        let builder = builder
-            .with_custom_response("prompts/get", custom_prompt_response)
+        transport
+            .set_custom_response("prompts/get", custom_prompt_response)
             .await;
 
-        let client = McpClientBuilder::new().build(builder).await.unwrap();
+        let client = create_test_client_with_shared_pending_requests(transport, pending_requests);
 
         client.initialize().await.unwrap();
 
@@ -2505,16 +2467,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_message_tracking() {
+        // Create shared pending requests map for coordination
+        let pending_requests = Arc::new(Mutex::new(HashMap::new()));
+
         // Create shared message tracking
         let sent_messages = Arc::new(Mutex::new(Vec::new()));
 
-        // Create transport with custom message tracking
-        let mut transport = AdvancedMockTransport::new();
+        // Create transport with coordinated message handler AND custom message tracking
+        let mut transport =
+            AdvancedMockTransport::new_with_shared_pending_requests(pending_requests.clone());
         transport.sent_messages = sent_messages.clone();
 
-        let builder = AdvancedMockTransportBuilder { transport };
-
-        let client = McpClientBuilder::new().build(builder).await.unwrap();
+        // Build client with proper coordination
+        let client = create_test_client_with_shared_pending_requests(transport, pending_requests);
 
         client.initialize().await.unwrap();
 

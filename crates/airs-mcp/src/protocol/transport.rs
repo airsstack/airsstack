@@ -50,7 +50,6 @@
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;
-use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
@@ -428,47 +427,6 @@ pub trait Transport: Send + Sync {
     ///
     /// Static string identifying the transport type
     fn transport_type(&self) -> &'static str;
-}
-
-/// Builder trait for creating pre-configured transports
-///
-/// This trait provides the pre-configured transport pattern where transports
-/// are created with their message handlers already set, eliminating the
-/// dangerous `set_message_handler()` pattern.
-///
-/// The generic type parameter `T` represents transport-specific context data
-/// that will be passed to the message handler (e.g., HTTP request details).
-///
-/// Reference: ADR-011 Transport Configuration Separation
-pub trait TransportBuilder<T = ()>: Send + Sync {
-    /// The transport type that this builder creates
-    type Transport: Transport + 'static;
-
-    /// Transport-specific error type
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    /// Set the message handler for the transport
-    ///
-    /// This is the key method that implements the pre-configured pattern.
-    /// The handler must be set before building the transport.
-    ///
-    /// # Arguments
-    ///
-    /// * `handler` - Handler for incoming messages and events with transport-specific context
-    fn with_message_handler(self, handler: Arc<dyn MessageHandler<T>>) -> Self;
-
-    /// Build the transport with the configured message handler
-    ///
-    /// This creates a fully configured transport that is ready to start.
-    /// The transport will have its message handler pre-configured.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Self::Transport)` - Fully configured transport
-    /// * `Err(Self::Error)` - Failed to create transport
-    fn build(
-        self,
-    ) -> impl std::future::Future<Output = Result<Self::Transport, Self::Error>> + Send;
 }
 
 /// Transport configuration trait for type-safe transport settings

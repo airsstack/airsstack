@@ -1,14 +1,15 @@
 # Technical Debt Registry - airs-mcp
 
-**Last Updated**: 2025-09-07  
-**Total Debt Items**: 6  
+**Last Updated**: 2025-09-15  
+**Total Debt Items**: 7  
 **High Priority Items**: 4  
+**Critical Priority Items**: 1  
 **In Progress**: 0
 
 ## Summary by Category
 
 ### Architecture Debt
-- **Critical**: 0 items
+- **Critical**: 1 items
 - **High**: 3 items  
 - **Medium**: 0 items
 - **Low**: 0 items
@@ -32,6 +33,11 @@
 - **Low**: 0 items
 
 ## Active Debt (Requires Attention)
+
+### Critical Priority
+| ID | Description | Category | Created | Estimated Effort | Owner | GitHub Issue |
+|----|-------------|----------|---------|------------------|-------|--------------|
+| DEBT-002 | MCP Client Response Delivery Gap | Architecture | 2025-09-15 | 1-2 weeks | Core Team | TBD |
 
 ### High Priority
 | ID | Description | Category | Created | Estimated Effort | Owner | GitHub Issue |
