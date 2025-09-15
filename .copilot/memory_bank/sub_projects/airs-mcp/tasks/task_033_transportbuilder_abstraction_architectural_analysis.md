@@ -158,7 +158,7 @@ Based on comprehensive analysis, recommend **eliminating the `TransportBuilder` 
 
 ## Progress Tracking
 
-**Overall Status:** ready_for_implementation - 75% (Phases 1-3 Complete, Phase 4 Ready)
+**Overall Status:** ready_for_implementation - 90% (Phases 1-4 Planning Complete, Ready for Execution)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -169,6 +169,10 @@ Based on comprehensive analysis, recommend **eliminating the `TransportBuilder` 
 | 1.4 | Comparison of real-world usage patterns | complete | 2025-09-15 | Examples show bypassing of trait |
 | 1.5 | Evaluation of architectural alternatives | complete | 2025-09-15 | Individual builders more powerful |
 | 1.6 | Documentation of findings and recommendations | complete | 2025-09-15 | Comprehensive analysis documented |
+| 4.1 | API redesign strategy for McpClientBuilder | complete | 2025-09-15 | New signature designed accepting Transport directly |
+| 4.2 | Trait removal sequence planning | complete | 2025-09-15 | Four-step removal plan with minimal compilation errors |
+| 4.3 | Impact validation and migration strategy | complete | 2025-09-15 | Low-risk change aligns with existing examples |
+| 4.4 | Comprehensive execution roadmap | complete | 2025-09-15 | Step-by-step plan with verification points |
 
 ## Progress Log
 ### 2025-09-15 (PHASES 2 & 3 COMPLETE - Memory Bank Progress Saved)
@@ -209,6 +213,25 @@ Based on comprehensive analysis, recommend **eliminating the `TransportBuilder` 
 - **Migration Strategy**: Four-phase approach with additive API changes first
 - **Workspace Standards Alignment**: Removal aligns with zero-cost abstractions principle
 - **Phase 3 Status**: ✅ Complete - Technical debt fully documented with remediation plan
+
+### 2025-09-15 (Phase 4 Implementation Action Plan)
+- **Comprehensive Implementation Strategy**: Created detailed step-by-step action plan for TransportBuilder trait removal
+- **API Redesign Strategy**: 
+  - Change McpClientBuilder.build() signature from `build<TB: TransportBuilder>(transport_builder: TB)` to `build<T: Transport>(transport: T)`
+  - Accept pre-built transport instead of builder pattern
+  - Preserve message handler configuration by requiring transports to be pre-configured
+- **Trait Removal Sequence**:
+  1. Update McpClientBuilder.build() method API (core change)
+  2. Remove TransportBuilder trait definition from protocol/transport.rs (lines 443-472)
+  3. Remove trait implementations while preserving builder structs
+  4. Update documentation and exports
+- **Impact Validation Strategy**: 
+  - Examples already use direct transport construction pattern (SubprocessTransport::spawn_server())
+  - Low breaking change impact since trait not publicly exported
+  - Migration path straightforward: build transport first, then pass to client
+- **Success Criteria**: All examples compile/run, no functionality regressions, cleaner API, workspace standards alignment
+- **Risk Assessment**: LOW - removes unused abstraction, aligns with actual usage patterns
+- **Phase 4 Status**: ✅ Planned - Ready for execution with comprehensive action plan
 
 ### 2025-09-15 (Phase 2 Implementation Planning)
 - **Analysis Complete**: Identified all files using TransportBuilder trait and impact scope

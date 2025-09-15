@@ -1,9 +1,9 @@
 # Progress - airs-mcp
 
-## 🎯 TASK-033 PHASES 2 & 3 COMPLETE: IMPLEMENTATION PLANNING & TECHNICAL DEBT DOCUMENTATION 🚀 2025-09-15
+## 🎯 TASK-033 ALL PHASES COMPLETE: EXECUTION READY FOR TRANSPORTBUILDER TRAIT REMOVAL 🚀 2025-09-15
 
-### ✅ CRITICAL ARCHITECTURAL DISCOVERY: TRANSPORTBUILDER TRAIT OVER-ABSTRACTION - READY FOR IMPLEMENTATION
-**Historic Achievement**: User's architectural insight validated through comprehensive analysis. TransportBuilder trait identified as over-abstraction violating workspace standards. Phases 1-3 complete, Phase 4 implementation ready.
+### ✅ IMPLEMENTATION ACTION PLAN COMPLETE: TRANSPORTBUILDER TRAIT OVER-ABSTRACTION - EXECUTION READY
+**Historic Achievement**: User's architectural insight validated through comprehensive analysis. TransportBuilder trait identified as over-abstraction violating workspace standards. ALL Phases 1-4 complete, ready for immediate execution.
 
 #### **🔍 PHASE 1: ARCHITECTURAL ANALYSIS COMPLETE**
 
@@ -41,13 +41,31 @@
 - **✅ Memory Bank Enhanced**: Complete architectural decision tracking
 - **✅ Standards Alignment**: Zero-cost abstractions principle compliance
 
-#### **🚀 PHASE 4: READY FOR IMPLEMENTATION**
+#### **🎯 PHASE 4: IMPLEMENTATION ACTION PLAN COMPLETE**
+
+**API Redesign Strategy**: 
+- **✅ McpClientBuilder.build() Signature**: Change from `build<TB: TransportBuilder>(transport_builder: TB)` to `build<T: Transport>(transport: T)`
+- **✅ Transport Responsibility**: Accept pre-built transport instead of builder pattern
+- **✅ Message Handler Preservation**: Require transports to be pre-configured with handlers
+
+**Trait Removal Sequence**:
+- **✅ Step 1**: Update McpClientBuilder.build() method API (core change)
+- **✅ Step 2**: Remove TransportBuilder trait definition from protocol/transport.rs (lines 443-472)  
+- **✅ Step 3**: Remove trait implementations while preserving builder structs
+- **✅ Step 4**: Update documentation and exports
+
+**Validation Strategy**:
+- **✅ Low-Risk Assessment**: Examples already use direct transport construction pattern
+- **✅ Migration Path**: Build transport first, then pass to client (already demonstrated)
+- **✅ Success Criteria**: All examples compile/run, no functionality regressions, cleaner API
+
+#### **🚀 READY FOR IMMEDIATE EXECUTION**
 
 **Implementation Scope**: Remove TransportBuilder trait, update McpClientBuilder API, preserve transport-specific optimization
-- **Technical Debt Documented**: DEBT-ARCH-005 with complete remediation plan
-- **Migration Strategy Designed**: Four-phase safe removal approach
-- **Individual Builders Validated**: Work better without trait constraint
-- **API Redesign Planned**: McpClientBuilder.build() accepts Transport directly
+- **Risk Assessment**: LOW - removes unused abstraction, aligns with actual usage patterns
+- **Execution Plan**: Detailed step-by-step action plan with verification points
+- **Breaking Changes**: Minimal impact since trait not publicly exported
+- **Workspace Alignment**: Supports zero-cost abstractions principle
 
 **Evidence Documentation**:
 ```rust
