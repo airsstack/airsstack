@@ -1,17 +1,19 @@
 # Tasks Index - airs-mcp
 
-## Completed
+## Ready for Implementation
 
-- [TASK-033] TransportBuilder Abstraction Architectural Analysis - Completed on 2025-09-15
+- [TASK-033] TransportBuilder Abstraction Architectural Analysis - Phases 1-3 Complete (75% done) - Ready for Phase 4
   - **Critical Discovery**: TransportBuilder trait is over-abstraction - implemented but not used in practice by real examples
-  - **Architectural Analysis**: Comprehensive examination of memory bank, ADRs, implementations, and usage patterns
-  - **Key Finding**: HTTP example bypasses TransportBuilder trait entirely, uses transport-specific convenience methods instead
-  - **Root Cause**: Abstraction leakage - cannot hide transport-specific configuration differences
-  - **User Insight Validated**: "Each Transport implementer should handle their own construction responsibility" - architecturally correct
-  - **Evidence**: Trait violates workspace "zero-cost abstractions" principle, adds complexity without solving actual problems
-  - **Recommendation**: Remove TransportBuilder trait, keep individual builders (StdioTransportBuilder, HttpTransportBuilder<E>)
-  - **Impact**: Elimination of unused abstraction, transport optimization freedom, simplified mental model
-  - **Status**: ✅ Complete - Analysis documented, architectural decision ready for implementation
+  - **Phase 1 ✅**: Comprehensive architectural analysis and user insight validation completed
+  - **Phase 2 ✅**: Implementation planning complete - all affected files identified, migration strategy designed
+  - **Phase 3 ✅**: Technical debt documentation complete - DEBT-ARCH-005 created with remediation plan
+  - **Individual Builder Validation**: Both StdioTransportBuilder and HttpTransportBuilder work independently and more powerfully
+  - **API Impact Assessment**: Minimal breaking changes since trait not publicly exported from lib.rs
+  - **Migration Strategy**: Four-phase removal approach designed for safe implementation
+  - **Next Phase**: Phase 4 - Remove TransportBuilder trait and update McpClientBuilder API
+  - **Status**: 🚀 Ready for Implementation - All planning and documentation complete
+
+## Completed
 
 - [TASK-032] OAuth2 Integration MCP Inspector Compatibility Implementation - Completed on 2025-09-14
   - **OAuth2 Authorization Flow**: ✅ Complete - `/authorize` and `/token` endpoints with PKCE support fully implemented

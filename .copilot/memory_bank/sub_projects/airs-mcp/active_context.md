@@ -1,18 +1,37 @@
 # Active Context - AIRS-MCP
 
-## Current Focus: TransportBuilder Architectural Analysis COMPLETE ✅
+## Current Focus: TransportBuilder Architectural Analysis PHASES 2 & 3 COMPLETE ✅ - Ready for Implementation
 
-**Status**: CRITICAL ARCHITECTURAL DISCOVERY - TransportBuilder trait identified as over-abstraction
-**Priority**: FOUNDATIONAL DECISION - Architectural insight validates user's construction responsibility concern
+**Status**: IMPLEMENTATION READY - All planning and documentation complete for TransportBuilder trait removal
+**Priority**: FOUNDATIONAL IMPLEMENTATION - Ready for Phase 4 execution
 
-### 🎯 TRANSPORTBUILDER ABSTRACTION ANALYSIS COMPLETE 🎯 (2025-09-15)
-✅ **USER ARCHITECTURAL INSIGHT VALIDATED**:
+### 🚀 PHASES 2 & 3 COMPLETE - READY FOR PHASE 4 IMPLEMENTATION 🚀 (2025-09-15)
+
+#### ✅ **PHASE 1: USER ARCHITECTURAL INSIGHT VALIDATED**:
 - **Core Issue Identified**: TransportBuilder trait is over-abstraction violating workspace standards
 - **Evidence Documented**: HTTP examples bypass TransportBuilder trait entirely, use transport-specific patterns
 - **Root Cause Found**: Abstraction leakage - cannot hide transport-specific configuration differences
 - **User Recommendation Confirmed**: "Each Transport implementer should handle their own construction responsibility"
 
-### Critical Architectural Discovery (2025-09-15)
+#### ✅ **PHASE 2: IMPLEMENTATION PLANNING COMPLETE**:
+- **File Impact Analysis**: 5 core files identified with specific line numbers for TransportBuilder usage
+- **API Impact Assessment**: Minimal breaking changes since trait not publicly exported from lib.rs
+- **Migration Strategy**: Four-phase removal approach designed for safe implementation
+- **Individual Builder Validation**: Both builders work independently and more powerfully without trait
+
+#### ✅ **PHASE 3: TECHNICAL DEBT DOCUMENTATION COMPLETE**:
+- **DEBT-ARCH-005 Created**: Comprehensive technical debt record with remediation plan
+- **Workspace Integration**: System patterns updated with transport construction best practices
+- **Breaking Changes Assessment**: Minimal impact with clear migration path
+- **Standards Alignment**: Zero-cost abstractions principle compliance documented
+
+### 🎯 PHASE 4: IMPLEMENTATION SCOPE - READY TO EXECUTE
+- **Remove TransportBuilder Trait**: From `/src/protocol/transport.rs` (lines 443-472)
+- **Update McpClientBuilder API**: Accept Transport directly instead of TransportBuilder
+- **Preserve Individual Builders**: Enhance StdioTransportBuilder and HttpTransportBuilder capabilities
+- **Validate Examples**: Ensure transport-specific patterns work without trait constraint
+
+### Critical Implementation Benefits
 ✅ **TransportBuilder Pattern Analysis**:
 - **Implementation vs Usage Gap**: Trait implemented but not used in practice by real examples
 - **Pattern Inconsistency**: STDIO (simple) vs HTTP (complex, bypasses trait) completely different approaches

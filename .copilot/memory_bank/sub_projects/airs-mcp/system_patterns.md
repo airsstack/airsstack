@@ -50,6 +50,34 @@ let transport = HttpTransportBuilder::with_engine(engine)?
 
 **Migration Strategy**: Keep StdioTransportBuilder, HttpTransportBuilder<E> with their transport-specific convenience methods.
 
+**Transport Construction Best Practices (Post-TASK-033)**:
+```rust
+// ✅ STDIO - Simple, consistent pattern
+let transport = StdioTransportBuilder::new()
+    .with_message_handler(handler)
+    .build()
+    .await?;
+
+// ✅ HTTP - Multi-tier convenience methods (Tier 1: Zero-config)
+let transport = HttpTransportBuilder::with_default()?
+    .build()
+    .await?;
+
+// ✅ HTTP - Multi-tier convenience methods (Tier 2: Basic config)
+let transport = HttpTransportBuilder::with_engine(engine)?
+    .build()
+    .await?;
+
+// ✅ HTTP - Multi-tier convenience methods (Tier 3: Advanced config)
+let transport = HttpTransportBuilder::with_configured_engine(|builder| {
+    builder.bind("127.0.0.1:8080").with_auth(auth_config)
+})?
+.build()
+.await?;
+```
+
+**Technical Debt Status**: TransportBuilder trait documented as DEBT-ARCH-005 for removal.
+
 ## Standards Compliance Architecture Pattern
 **STANDARDS FIRST DESIGN**: All implementations must follow documented RFC and protocol specifications for interoperability and security.
 

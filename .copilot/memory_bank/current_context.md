@@ -4,7 +4,7 @@
 **switched_on:** 2025-09-01T22:00:00Z
 **updated_on:** 2025-09-15T15:00:00Z  
 **by:** task_033_transportbuilder_abstraction_architectural_analysis  
-**status:** critical_architecture_discovery_documented
+**status:** phase_2_3_implementation_planning_complete
 
 # 🎯 TASK-033 COMPLETE: TRANSPORTBUILDER ABSTRACTION ARCHITECTURAL ANALYSIS - 2025-09-15T15:00:00Z
 
@@ -36,6 +36,47 @@ let transport = HttpTransportBuilder::with_engine(engine)?
 - **Violates YAGNI**: "You Aren't Gonna Need It" - abstraction doesn't solve current problems
 
 **Recommendation**: Remove TransportBuilder trait entirely while preserving individual builder implementations (StdioTransportBuilder, HttpTransportBuilder<E>) for optimal transport-specific construction patterns.
+
+# 🎯 TASK-033 PHASES 2 & 3 COMPLETE: IMPLEMENTATION PLANNING & TECHNICAL DEBT DOCUMENTATION - 2025-09-15T18:30:00Z
+
+## 🏗️ IMPLEMENTATION PLANNING COMPLETE (PHASE 2)
+
+**Comprehensive Analysis Delivered**:
+- **Files Affected**: Complete identification of all TransportBuilder usage (5 core files + documentation)
+- **API Impact Assessment**: Minimal breaking changes since trait not publicly exported from lib.rs
+- **Migration Strategy**: Four-phase approach with additive API changes first
+- **Individual Builder Validation**: Both StdioTransportBuilder and HttpTransportBuilder work independently
+
+**Key Architectural Discoveries**:
+- **StdioTransportBuilder**: Simple, consistent - works perfectly without trait constraint
+- **HttpTransportBuilder**: Multi-tier convenience methods (Tier 1-3) more powerful than generic trait
+- **McpClientBuilder Impact**: Primary consumer needs API redesign to accept Transport directly
+- **Examples Reality**: Already pass Transport instances, not TransportBuilder - minimal disruption
+
+## 📋 TECHNICAL DEBT DOCUMENTATION COMPLETE (PHASE 3)
+
+**DEBT-ARCH-005 Created**: Comprehensive technical debt record with:
+- **Problem Analysis**: Over-abstraction violating workspace standards
+- **Impact Assessment**: Development velocity, code complexity, performance implications
+- **Remediation Plan**: Detailed 4-phase removal strategy (1-2 days effort)
+- **Code References**: Specific file paths and line numbers for all affected code
+- **Breaking Changes**: Minimal impact analysis with migration strategy
+
+**Workspace Integration**:
+- **System Patterns Updated**: Transport construction best practices documented
+- **Memory Bank Enhanced**: Complete architectural decision tracking
+- **Standards Alignment**: Zero-cost abstractions principle compliance
+
+## 🎯 NEXT PHASE: Phase 4 Implementation
+
+**Ready for Implementation**: All planning and documentation complete
+- Technical debt documented (DEBT-ARCH-005)
+- Migration strategy designed
+- Individual builders validated
+- Breaking changes assessed
+- API redesign planned
+
+**Implementation Scope**: Remove TransportBuilder trait, update McpClientBuilder API, preserve transport-specific optimization capabilities.
 
 # 🚨 TASK-031 CREATED: TRANSPORT BUILDER ARCHITECTURAL CRISIS - 2025-09-13T18:00:00Z
 
