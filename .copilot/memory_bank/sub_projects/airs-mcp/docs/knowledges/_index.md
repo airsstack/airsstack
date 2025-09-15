@@ -1,17 +1,22 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-14  
-**Total Knowledge Docs**: 31  
+**Last Updated**: 2025-09-15  
+**Total Knowledge Docs**: 32  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 18  
+**Documentation Count**: 19  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[Client-Transport Test Coordination](./architecture/client-transport-test-coordination.md)** 🧪 NEW COORDINATION KNOWLEDGE - RESOLVED
+  - **Focus**: Sophisticated test coordination challenge between MCP client and mock transport implementations during Task 033
+  - **Complexity**: High - Test infrastructure coordination requiring shared pending_requests maps for proper message delivery
+  - **Updated**: 2025-09-15
+  - **Related**: Task 033, DEBT-002 resolution, test infrastructure patterns, MessageHandler coordination
 - **[Comprehensive Architectural Analysis](./architecture/comprehensive_architectural_analysis.md)** 🏗️ NEW COMPLETE ANALYSIS - CRITICAL
   - **Focus**: Complete 4-layer architecture analysis revealing critical Transport Builder inconsistency crisis and comprehensive usage patterns
   - **Complexity**: Complete - Detailed analysis of Protocol, Transport, Integration, Providers + Examples showing STDIO working vs HTTP broken
