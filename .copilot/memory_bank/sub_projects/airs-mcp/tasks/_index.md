@@ -2,6 +2,17 @@
 
 ## Completed
 
+- [TASK-033] TransportBuilder Abstraction Architectural Analysis - Completed on 2025-09-15
+  - **Critical Discovery**: TransportBuilder trait is over-abstraction - implemented but not used in practice by real examples
+  - **Architectural Analysis**: Comprehensive examination of memory bank, ADRs, implementations, and usage patterns
+  - **Key Finding**: HTTP example bypasses TransportBuilder trait entirely, uses transport-specific convenience methods instead
+  - **Root Cause**: Abstraction leakage - cannot hide transport-specific configuration differences
+  - **User Insight Validated**: "Each Transport implementer should handle their own construction responsibility" - architecturally correct
+  - **Evidence**: Trait violates workspace "zero-cost abstractions" principle, adds complexity without solving actual problems
+  - **Recommendation**: Remove TransportBuilder trait, keep individual builders (StdioTransportBuilder, HttpTransportBuilder<E>)
+  - **Impact**: Elimination of unused abstraction, transport optimization freedom, simplified mental model
+  - **Status**: ✅ Complete - Analysis documented, architectural decision ready for implementation
+
 - [TASK-032] OAuth2 Integration MCP Inspector Compatibility Implementation - Completed on 2025-09-14
   - **OAuth2 Authorization Flow**: ✅ Complete - `/authorize` and `/token` endpoints with PKCE support fully implemented
   - **Three-Server Proxy Architecture**: ✅ Complete - Smart proxy (3002) + Custom routes (3003) + MCP server (3001) + JWKS (3004) fully operational

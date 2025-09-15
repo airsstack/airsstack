@@ -7,6 +7,48 @@
 - Operational requirements: Structured logging, metrics, error handling, connection recovery, 24/7 stability
 - **Single Responsibility Principle**: Each module focuses on exactly one responsibility (MANDATORY STANDARD)
 - **Standards Compliance**: OAuth 2.1 + MCP protocol conformance patterns (see: `oauth2_rfc_specifications.md`, `mcp_official_specification.md`)
+- **Zero-Cost Abstractions**: Eliminate abstractions that don't provide clear value (MANDATORY STANDARD per workspace §1)
+
+## TransportBuilder Abstraction Analysis (TASK-033 ARCHITECTURAL DISCOVERY)
+
+**CRITICAL FINDING**: TransportBuilder trait identified as over-abstraction violating workspace standards.
+
+### Evidence of Over-Abstraction:
+1. **Not Used in Practice**: Real examples bypass TransportBuilder trait entirely
+2. **Abstraction Leakage**: Cannot hide transport-specific configuration differences 
+3. **Violates Zero-Cost Principle**: Adds complexity without solving actual problems
+4. **Pattern Inconsistency**: STDIO and HTTP use completely different construction patterns
+
+### Current Reality vs. Intended Design:
+
+**Intended Pattern (TransportBuilder trait):**
+```rust
+// ❌ Not actually used in practice
+let transport = builder.with_message_handler(handler).build().await?;
+```
+
+**Actual Usage Patterns:**
+```rust
+// ✅ STDIO - Simple, consistent
+let transport = StdioTransportBuilder::new()
+    .with_message_handler(handler)
+    .build().await?;
+
+// ✅ HTTP - Complex, bypasses trait entirely  
+let transport = HttpTransportBuilder::with_engine(engine)?
+    .bind(addr)?.await?.build().await?;
+```
+
+### Architectural Decision:
+**RECOMMENDATION**: Remove TransportBuilder trait, preserve individual builders.
+
+**Rationale**:
+- Each transport has evolved more sophisticated construction patterns than generic trait allows
+- Transport-specific optimization is more valuable than forced consistency
+- Eliminates unused abstraction per workspace "zero-cost abstractions" principle
+- Allows each transport to optimize for its specific use case and constraints
+
+**Migration Strategy**: Keep StdioTransportBuilder, HttpTransportBuilder<E> with their transport-specific convenience methods.
 
 ## Standards Compliance Architecture Pattern
 **STANDARDS FIRST DESIGN**: All implementations must follow documented RFC and protocol specifications for interoperability and security.

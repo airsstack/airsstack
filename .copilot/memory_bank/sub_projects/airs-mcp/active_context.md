@@ -1,9 +1,40 @@
 # Active Context - AIRS-MCP
 
-## Current Focus: MCP Inspector Protocol Compliance ACHIEVED ✅
+## Current Focus: TransportBuilder Architectural Analysis COMPLETE ✅
+
+**Status**: CRITICAL ARCHITECTURAL DISCOVERY - TransportBuilder trait identified as over-abstraction
+**Priority**: FOUNDATIONAL DECISION - Architectural insight validates user's construction responsibility concern
+
+### 🎯 TRANSPORTBUILDER ABSTRACTION ANALYSIS COMPLETE 🎯 (2025-09-15)
+✅ **USER ARCHITECTURAL INSIGHT VALIDATED**:
+- **Core Issue Identified**: TransportBuilder trait is over-abstraction violating workspace standards
+- **Evidence Documented**: HTTP examples bypass TransportBuilder trait entirely, use transport-specific patterns
+- **Root Cause Found**: Abstraction leakage - cannot hide transport-specific configuration differences
+- **User Recommendation Confirmed**: "Each Transport implementer should handle their own construction responsibility"
+
+### Critical Architectural Discovery (2025-09-15)
+✅ **TransportBuilder Pattern Analysis**:
+- **Implementation vs Usage Gap**: Trait implemented but not used in practice by real examples
+- **Pattern Inconsistency**: STDIO (simple) vs HTTP (complex, bypasses trait) completely different approaches
+- **Workspace Standards Violation**: Violates "zero-cost abstractions" principle (§1)
+- **Over-Engineering Evidence**: Adds complexity without solving actual problems
+
+### Architectural Recommendation ✅
+✅ **Remove TransportBuilder Trait**:
+- **Keep Individual Builders**: StdioTransportBuilder, HttpTransportBuilder<E> with transport-specific optimization
+- **Eliminate Unused Abstraction**: Remove maintenance burden of unused trait implementations
+- **Enable Transport Innovation**: Allow each transport to optimize construction patterns for their use case
+- **Align with Workspace Standards**: Follow "zero-cost abstractions" and YAGNI principles
+
+### Analysis Methodology ✅
+- **Memory Bank Review**: Comprehensive examination of ADR-011, ADR-012, architectural decisions
+- **Implementation Analysis**: Deep dive into STDIO and HTTP transport implementations
+- **Usage Pattern Study**: Comparison of simple-mcp-server vs oauth2-integration examples
+- **Alternative Evaluation**: Assessment of transport-specific construction vs generic abstraction
+
+## Previous Focus: MCP Inspector Protocol Compliance ACHIEVED ✅
 
 **Status**: CRITICAL SUCCESS (Perfect Integration) - Complete MCP Inspector + OAuth2 integration with zero validation errors
-**Priority**: MILESTONE ACHIEVED - Full JSON-RPC 2.0 protocol compliance and external tool compatibility
 
 ### 🎉 MCP INSPECTOR PROTOCOL COMPLIANCE COMPLETE 🎉 (2025-09-14)
 ✅ **PERFECT EXTERNAL TOOL INTEGRATION**:
