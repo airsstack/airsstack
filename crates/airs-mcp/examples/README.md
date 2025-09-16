@@ -1,133 +1,87 @@
 # AIRS-MCP Examples
 
-This directory contains example implementations demonstrating how to use the `airs-mcp` library.
+This directory contains **production-ready example implementations** demonstrating modern usage patterns for the `airs-mcp` library with the **TransportClient architecture**.
 
-## Examples
+## 🏗️ Example Architecture
 
-### [simple-mcp-server](./simple-mcp-server/)
+All examples follow the **modernized integration pattern** with consistent structure and comprehensive testing:
 
-A comprehensive example demonstrating the core features of the MCP (Model Context Protocol) server implementation:
+### **Server Integration Examples** (`*-server-integration`)
+- **Full MCP servers** with standardized tool sets
+- **Production configuration patterns** for development environments  
+- **Comprehensive test suites** with automated validation
+- **Transport-specific implementations** (HTTP, STDIO)
 
-- **Resources**: File system resource provider
-- **Tools**: Calculator and greeting tools  
-- **Prompts**: Code review and concept explanation prompts
-- **Testing Scripts**: Python and shell scripts for manual testing
+### **Client Integration Examples** (`*-client-integration`) - *Coming Soon*
+- **MCP clients** using the new TransportClient interface
+- **Mock server patterns** for simplified integration testing
+- **Transport abstraction demonstrations**
+- **Error handling and retry patterns**
+
+## 📋 Available Examples
+
+### [http-oauth2-server-integration](./http-oauth2-server-integration/) ✅ **Ready**
+
+**Production-ready OAuth2 MCP server** with three-server architecture:
+
+- **🔐 OAuth2 Authorization Flow**: Complete PKCE implementation with `/authorize` and `/token` endpoints
+- **🏗️ Three-Server Architecture**: Smart proxy (3002) + Custom routes (3003) + MCP server (3001) + JWKS (3004)
+- **🎫 Token-Based Authentication**: JWT tokens with scope-based authorization
+- **📊 Comprehensive Testing**: 34/34 tests passing with full OAuth2 flow validation
+- **🔍 MCP Inspector Compatible**: Direct integration with `@modelcontextprotocol/inspector-cli`
+
+**Features:**
+- Complete OAuth2 Authorization Code Flow with PKCE
+- Thread-safe authorization code management with expiration
+- RFC 8414 compliant OAuth2 discovery metadata
+- Four token types with different scopes and expiration times
+- Comprehensive error handling for invalid codes and verifiers
 
 **To run:**
 ```bash
-cd examples/simple-mcp-server
+cd examples/http-oauth2-server-integration
 cargo run
 ```
 
 **To test:**
 ```bash
-cd examples/simple-mcp-server
-./test_simple.sh
+cd examples/http-oauth2-server-integration/tests
+python run_tests.py all
 ```
 
-### [simple-mcp-client](./simple-mcp-client/) ✨ **NEW** - Interactive Protocol Demo
+## 🚀 Coming Soon - Phase 4 Modernization
 
-A comprehensive example demonstrating **real client ↔ server communication** that spawns an MCP server and shows the complete JSON-RPC message exchange:
+### Planned Server Examples
+- **`stdio-server-integration`**: MCP server using STDIO transport
+- **`http-apikey-server-integration`**: HTTP server with API key authentication
 
-- **📡 Real Server Interaction**: Spawns and communicates with actual MCP server processes
-- **📋 Complete Protocol Demo**: Shows every step of MCP initialization, resources, tools, and prompts
-- **📤📥 Message Logging**: See actual JSON-RPC requests and responses being exchanged  
-- **🔄 Process Management**: Proper server spawning, communication, and cleanup
-- **🎯 Educational Value**: Perfect for understanding how MCP works under the hood
+### Planned Client Examples  
+- **`http-oauth2-client-integration`**: OAuth2 client with mock authorization server
+- **`stdio-client-integration`**: STDIO client with simplified mock server
+- **`http-apikey-client-integration`**: HTTP client with API key authentication
 
-**To see real client ↔ server interactions:**
-```bash
-# Build both examples
-cd examples/simple-mcp-server && cargo build
-cd examples/simple-mcp-client && cargo build
+## 🛠️ Development Standards
 
-# Run the interactive demo (automatically spawns server)
-cd examples/simple-mcp-client
-cargo run
-```
+All examples follow the **AIRS workspace standards**:
 
-**Sample output shows real protocol messages:**
-```
-📤 Sending: {"id":"init-1","jsonrpc":"2.0","method":"initialize",...}
-📥 Received: {"jsonrpc":"2.0","result":{"capabilities":{"prompts":...}
-✅ Initialization successful! Server responded with capabilities.
+- **3-Layer Import Organization** (std → third-party → internal)
+- **chrono DateTime<Utc>** for all time operations
+- **Zero Warning Policy** with comprehensive error handling
+- **Standardized Tool Set**: file operations, system info, utilities
+- **Comprehensive Documentation** with setup guides and API references
+- **Automated Testing** with Python-based test suites
 
-📤 Sending: {"id":"call-tool-1","jsonrpc":"2.0","method":"tools/call",...}
-📥 Received: {"jsonrpc":"2.0","result":{"content":[{"text":"{\n  \"result\": 42.0\n}"...}
-🎯 Tool result: { "operation": "addition", "result": 42.0 }
-```
+## 📖 Getting Started
 
-**Use with any MCP server:**
-```bash
-cargo run -- --server-path /path/to/your/mcp-server
-```
+1. **Choose an example** based on your transport and authentication needs
+2. **Read the example's README.md** for specific setup instructions
+3. **Run the automated tests** to verify functionality
+4. **Explore the source code** to understand implementation patterns
+5. **Adapt the patterns** for your specific use case
 
-## Creating New Examples
+## 🔗 Related Documentation
 
-Each example should be a self-contained Rust project with its own `Cargo.toml`:
-
-1. Create a new directory: `mkdir examples/my-example`
-2. Add standalone `Cargo.toml` with `airs-mcp` dependency
-3. Include documentation and testing scripts
-4. Add description to this README
-
-## Structure
-
-```
-examples/
-├── README.md                    # This file
-├── simple-mcp-server/          # Basic MCP server implementation
-│   ├── Cargo.toml
-│   ├── src/main.rs
-│   ├── README.md
-│   └── test_*.{sh,py}          # Testing scripts
-└── future-example/             # Template for new examples
-    ├── Cargo.toml
-    ├── src/main.rs
-    └── README.md
-```
-
-### [oauth2-integration](./oauth2-integration/) ✨ **COMPREHENSIVE** - OAuth2 + MCP Inspector
-
-A production-ready example demonstrating **complete OAuth2 authorization with MCP protocol integration**:
-
-- **🔐 Complete OAuth2 Flow**: Authorization Code with PKCE (RFC 6749 + RFC 7636) 
-- **🏗️ Three-Server Architecture**: MCP Server (3001), Proxy (3002), OAuth2 Server (3003), JWKS (3004)
-- **🛡️ Scope-Based Authorization**: Method-level access control with configurable OAuth2 scopes
-- **🧪 Comprehensive Testing**: 34/34 tests passing across 4 test suites (basic, comprehensive, advanced, flow)
-- **🔍 MCP Inspector Ready**: Full compatibility with MCP Inspector tools
-- **📊 Production Features**: JWT validation, token lifecycle, error handling, structured logging
-
-**To run the complete OAuth2 ecosystem:**
-```bash
-cd examples/oauth2-integration
-cargo run
-```
-
-**To run comprehensive test suite:**
-```bash
-cd examples/oauth2-integration/tests
-python run_tests.py
-```
-
-**To test with MCP Inspector:**
-```bash
-# Start the servers
-cd examples/oauth2-integration && cargo run
-
-# In another terminal
-npx @modelcontextprotocol/inspector-cli --transport http --server-url http://localhost:3002/mcp
-```
-
-**What you get:**
-- Complete OAuth2 Authorization Code flow with PKCE security
-- Three-server proxy architecture for real-world OAuth2 integration patterns  
-- Production-ready error handling and security practices
-- Comprehensive test coverage validating all OAuth2 + MCP interactions
-- **Definitive OAuth2 + MCP reference implementation**
-
-### [mcp-remote-server-apikey](./mcp-remote-server-apikey/) 
-
-HTTP MCP server with API key authentication (modernization in progress).
-
-Each example demonstrates specific aspects of the `airs-mcp` library and serves as both documentation and reference implementation.
+- **[AIRS-MCP Library Documentation](../README.md)**: Core library usage
+- **[Transport Architecture](../src/transport/)**: Understanding transport abstractions  
+- **[Authentication Patterns](../src/authentication/)**: Authentication and authorization
+- **[MCP Protocol Implementation](../src/protocol/)**: JSON-RPC and MCP compliance

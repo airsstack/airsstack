@@ -4,17 +4,19 @@
 **Added:** 2025-09-16  
 **Updated:** 2025-09-16  
 
-## Current Status: Phase 4.1 Complete - OAuth2 Integration Refactoring Done
+## Current Status: Phase 4.2 Complete - Outdated Examples Cleanup Done
 
 ### 🏆 PHASES 1-3 SUCCESSFULLY COMPLETED (60% Complete)
 ### 🎯 PHASE 4.1 SUCCESSFULLY COMPLETED (+5% = 65% Complete)
+### 🧹 PHASE 4.2 SUCCESSFULLY COMPLETED (+5% = 70% Complete)
 
 **PHASE 1 ✅**: TransportClient Foundation  
 **PHASE 2 ✅**: Transport Client Implementations  
 **PHASE 3 ✅**: MCP Client Simplified & Stabilized  
 **PHASE 4.1 ✅**: OAuth2 Integration Refactoring (COMPLETE)
-**PHASE 4.2 🎯**: Next - Cleanup Outdated Examples (READY TO IMPLEMENT)  
-**PHASE 4.3-4.5 ⏳**: STDIO & HTTP API Key Examples (PENDING)
+**PHASE 4.2 ✅**: Cleanup Outdated Examples (COMPLETE)
+**PHASE 4.3 🎯**: Next - STDIO Integration Examples (READY TO IMPLEMENT)  
+**PHASE 4.4-4.5 ⏳**: HTTP API Key Examples (PENDING)
 **PHASE 5 ⏳**: Testing and Validation (PENDING)
 
 ### Recent Achievements
@@ -522,6 +524,25 @@ pub trait TransportClient: Send + Sync {
 - **Documentation Structure**: README.md updated with new naming conventions
 
 **Phase 4.1 Impact**: First step in comprehensive example modernization complete, OAuth2 server integration now follows standard naming patterns and ready for Phase 4.2 client counterpart implementation.
+
+### 2025-09-16 - PHASE 4.2 COMPLETE ✅: Outdated Examples Cleanup Success
+- **Legacy Examples Removed**: Successfully cleaned up all outdated example implementations
+  - `simple-mcp-server/`: Removed entire directory and contents
+  - `tier_examples/`: Removed directory with tier1-4 implementation examples  
+  - `mcp-remote-server-apikey/`: Removed directory and build artifacts
+  - `zero_cost_auth_server.rs`: Removed standalone example file
+  - `oauth2-integration/`: Removed legacy OAuth2 example (functionality preserved in http-oauth2-server-integration)
+- **Examples Directory Streamlined**: Clean structure with only modernized examples
+  - `http-oauth2-server-integration/`: Single OAuth2 server example with modern naming
+  - **Total cleanup**: 5 outdated examples removed, directory structure completely modernized
+- **README.md Modernized**: Complete rewrite reflecting new example architecture
+  - **New structure documented**: Server vs client integration pattern explained
+  - **Standards compliance outlined**: 3-layer imports, zero warnings, comprehensive testing
+  - **Phase 4 roadmap added**: Planned STDIO and HTTP API key examples documented
+  - **Legacy references removed**: Clean documentation with no outdated example references
+  - **Getting started guide**: Clear instructions for choosing and using examples
+
+**Phase 4.2 Impact**: Examples directory now completely clean and modernized. Single OAuth2 example follows new naming standards. Clear foundation established for upcoming STDIO and HTTP API key integration examples.
 
 ### 2025-09-16 - Phase 4 Planning Complete
 - **Comprehensive Phase 4 plan finalized**: Detailed implementation strategy with user requirements
