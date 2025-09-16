@@ -15,6 +15,7 @@ pub mod auth_request;
 pub mod axum; // Re-enabled with direct MessageHandler usage
 pub mod buffer_pool;
 pub mod builder; // NEW: Pre-configured transport builder
+pub mod client; // NEW: HTTP transport client implementation
 pub mod config;
 pub mod connection_manager;
 pub mod context; // NEW: HTTP context for generic MessageHandler pattern
@@ -31,6 +32,7 @@ pub use auth_request::HttpAuthRequest;
 pub use axum::{AxumHttpServer, ServerState}; // Re-enabled with direct MessageHandler usage
 pub use buffer_pool::{BufferPool, BufferPoolStats, BufferStrategy, PooledBuffer};
 pub use builder::{HttpTransport, HttpTransportBuilder}; // NEW: Pre-configured transport pattern
+pub use client::{AuthMethod, HttpTransportClient, HttpTransportClientBuilder}; // NEW: HTTP transport client
 pub use config::HttpTransportConfig;
 pub use connection_manager::{
     ConnectionHealth, ConnectionId, ConnectionInfo, ConnectionStats, ConnectionStatsSnapshot,
