@@ -55,7 +55,7 @@ class BasicOAuth2Test:
         """Clean up processes"""
         self.log("🧹 Cleaning up...")
         try:
-            subprocess.run(['pkill', '-f', 'oauth2-mcp-server'], 
+            subprocess.run(['pkill', '-f', 'http-oauth2-server'], 
                          capture_output=True, check=False)
             time.sleep(1)
         except Exception as e:
@@ -68,7 +68,7 @@ class BasicOAuth2Test:
         # First, build the server
         try:
             build_result = subprocess.run(
-                ['cargo', 'build', '--bin', 'oauth2-mcp-server'],
+                ['cargo', 'build', '--bin', 'http-oauth2-server'],
                 cwd='..',  # Run from parent directory where Cargo.toml is
                 capture_output=True, text=True, check=True
             )
@@ -91,7 +91,7 @@ class BasicOAuth2Test:
             log_file = open('../logs/server.log', 'w')
             
             self.server_process = subprocess.Popen(
-                ['../target/debug/oauth2-mcp-server'],  # Path relative to tests directory
+                ['../target/debug/http-oauth2-server'],  # Path relative to tests directory
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 env=env,

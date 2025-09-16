@@ -1,0 +1,60 @@
+[workspace]
+
+[package]
+name = "http-oauth2-server-integration"
+version = "0.1.0"
+edition = "2021"
+description = "HTTP OAuth2 Server Integration Example - Complete authentication and authorization demonstration"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "http-oauth2-server"
+path = "src/main.rs"
+
+[dependencies]
+# AIRS Foundation Crates (Layer 1)
+airs-mcp = { path = "../../" }
+
+# Core Runtime Dependencies (Layer 2)
+tokio = { version = "1.47", features = ["full"] }
+async-trait = "0.1"
+
+# Web Framework Dependencies (Layer 3)
+axum = { version = "0.7", features = ["json"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Authentication & Security (Layer 4)
+jsonwebtoken = "9.3"
+rsa = "0.9"
+base64 = "0.22"
+sha2 = "0.10"
+urlencoding = "2.1"
+rand = "0.8"
+
+# Data & Serialization (Layer 5)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Time & UUID (Layer 6)
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+# Network & URLs (Layer 7)
+url = "2.5"
+reqwest = { version = "0.11", features = ["json"] }
+clap = { version = "4.0", features = ["derive"] }
+
+# Logging & Tracing (Layer 8)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Temporary Files (Layer 9)
+tempfile = "3.10"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []
+debug-keys = []  # Enable to print key material for debugging (NEVER in production)

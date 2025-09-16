@@ -140,9 +140,9 @@ class OAuth2FlowTester:
         """Clean up any running processes"""
         self.log("🧹 Cleaning up any existing servers...")
         
-        # Kill any existing oauth2-mcp-server processes
+        # Kill any existing http-oauth2-server processes
         try:
-            subprocess.run(['pkill', '-f', 'oauth2-mcp-server'], 
+            subprocess.run(['pkill', '-f', 'http-oauth2-server'], 
                          capture_output=True, check=False)
             time.sleep(1)
         except Exception as e:
@@ -170,7 +170,7 @@ class OAuth2FlowTester:
         # First, build the server
         try:
             build_result = subprocess.run(
-                ['cargo', 'build', '--bin', 'oauth2-mcp-server'],
+                ['cargo', 'build', '--bin', 'http-oauth2-server'],
                 cwd='..',  # Run from parent directory where Cargo.toml is
                 capture_output=True, text=True, check=True
             )
@@ -193,7 +193,7 @@ class OAuth2FlowTester:
             log_file = open('../logs/server_oauth2_flow.log', 'w')
             
             self.server_process = subprocess.Popen(
-                ['../target/debug/oauth2-mcp-server'],  # Path relative to tests directory
+                ['../target/debug/http-oauth2-server'],  # Path relative to tests directory
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 env=env,
