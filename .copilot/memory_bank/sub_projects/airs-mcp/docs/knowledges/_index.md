@@ -1,17 +1,22 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-15  
-**Total Knowledge Docs**: 32  
+**Last Updated**: 2025-09-16  
+**Total Knowledge Docs**: 33  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
 
 ### Architecture
-**Documentation Count**: 19  
+**Documentation Count**: 20  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[KNOWLEDGE-005: Transport Client-Server Architecture Analysis](./architecture/KNOWLEDGE-005-transport-client-server-architecture-analysis.md)** 🚨 NEW CRITICAL ARCHITECTURE ANALYSIS
+  - **Focus**: Fundamental design mismatch analysis - Transport trait is server-oriented but used by clients, creating architectural friction
+  - **Complexity**: Critical - Comprehensive analysis of impedance mismatch between request-response client patterns and event-driven server architecture
+  - **Updated**: 2025-09-16
+  - **Related**: TASK-034, TransportClient trait design, McpClient MessageHandler elimination, clean client-server separation
 - **[Client-Transport Test Coordination](./architecture/client-transport-test-coordination.md)** 🧪 NEW COORDINATION KNOWLEDGE - RESOLVED
   - **Focus**: Sophisticated test coordination challenge between MCP client and mock transport implementations during Task 033
   - **Complexity**: High - Test infrastructure coordination requiring shared pending_requests maps for proper message delivery

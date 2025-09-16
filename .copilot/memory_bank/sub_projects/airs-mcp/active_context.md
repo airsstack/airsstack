@@ -1,6 +1,41 @@
 # Active Context - AIRS-MCP
 
-## Current Focus: Task 033 TransportBuilder Removal - COMPLETED ✅
+## Current Focus: Task 034 Transport Client-Server Architecture Analysis - NEW ⚡
+
+**Status**: ARCHITECTURAL ANALYSIS COMPLETE - Critical design issues identified, solution designed  
+**Date**: 2025-09-16  
+
+### 🚨 CRITICAL ARCHITECTURAL DISCOVERY: Transport Client-Server Design Mismatch
+
+**User's Architectural Insight**: "Current `McpClient` depends directly on `Transport` implementers. The problem is that the transport itself is a trait designed as a *server*, not a *client*, so although current approaches are running, it's more of a hacky solution instead of an elegant one."
+
+#### **Major Design Issues Identified**
+
+1. **Server-Oriented Transport Trait**: Current `Transport` trait uses server concepts (`start()`, `session_id()`, `set_session_context()`)
+2. **Inappropriate MessageHandler Usage**: Client forced to implement server-oriented event-driven MessageHandler
+3. **Impedance Mismatch**: Request-response patterns forced into event-driven architecture with complex correlation
+
+#### **Proposed Solution: TransportClient Trait**
+
+```rust
+// ✅ PROPOSED: Clean client interface  
+#[async_trait] 
+pub trait TransportClient: Send + Sync {
+    async fn call(&mut self, request: JsonRpcRequest) -> Result<JsonRpcResponse, TransportError>;
+}
+```
+
+**Benefits**: Request-response natural flow, no MessageHandler complexity, transport-agnostic implementation
+
+#### **Implementation Strategy**
+- **Incremental approach**: Add TransportClient alongside existing Transport (no breaking changes)
+- **Transport implementations**: StdioTransportClient, HttpTransportClient 
+- **Simplified McpClient**: Remove MessageHandler dependency and correlation logic
+- **Backward compatibility**: Gradual migration path
+
+---
+
+## Previous Focus: Task 033 TransportBuilder Removal - COMPLETED ✅
 
 **Status**: COMPLETED SUCCESSFULLY - Clean architecture implemented with test infrastructure enhanced  
 **Completion Date**: 2025-09-15  

@@ -2,9 +2,46 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-09-01T22:00:00Z
-**updated_on:** 2025-09-15T15:00:00Z  
-**by:** task_033_transportbuilder_abstraction_architectural_analysis  
-**status:** phase_2_3_implementation_planning_complete
+**updated_on:** 2025-09-16T15:30:00Z  
+**by:** task_034_transport_client_server_architecture_refactoring  
+**status:** architectural_analysis_complete
+
+# 🎯 TASK-034 NEW: TRANSPORT CLIENT-SERVER ARCHITECTURE REFACTORING - 2025-09-16T15:30:00Z
+
+## 🚨 CRITICAL ARCHITECTURAL DISCOVERY: TRANSPORT CLIENT-SERVER DESIGN MISMATCH
+
+**User's Architectural Insight Validated**: User identified fundamental design issue where `McpClient` depends on server-oriented `Transport` trait, creating architectural friction and hacky correlation mechanisms.
+
+**Comprehensive Analysis Results**:
+- **Critical Finding**: Transport trait is server-oriented (start/stop, session management) but used by clients
+- **Evidence**: McpClient forced to implement MessageHandler and complex request-response correlation
+- **Root Cause**: Impedance mismatch between request-response client patterns and event-driven server patterns
+- **Architectural Assessment**: Violates clean separation of concerns and natural client mental models
+
+**Key Discovery - Design Mismatch**:
+```rust
+// ❌ Current: Server-oriented trait used by clients
+pub trait Transport {
+    async fn start(&mut self) -> Result<(), Self::Error>;    // Server: "start listening" 
+    fn session_id(&self) -> Option<String>;                 // Server: multi-client sessions
+    fn set_session_context(&mut self, session_id: Option<String>); // Server concept
+}
+
+// ✅ Proposed: Clean client interface
+#[async_trait] 
+pub trait TransportClient: Send + Sync {
+    async fn call(&mut self, request: JsonRpcRequest) -> Result<JsonRpcResponse, TransportError>;
+}
+```
+
+**Solution Architecture**: 
+- Rename current Transport → TransportServer
+- Create new TransportClient trait with simple call() method  
+- Eliminate MessageHandler dependency in McpClient
+- Remove complex request-response correlation mechanisms
+- Maintain backward compatibility with incremental migration
+
+---
 
 # 🎯 TASK-033 COMPLETE: TRANSPORTBUILDER ABSTRACTION ARCHITECTURAL ANALYSIS - 2025-09-15T15:00:00Z
 
