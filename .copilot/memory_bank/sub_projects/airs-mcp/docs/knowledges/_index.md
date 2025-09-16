@@ -177,11 +177,16 @@
   - **Related**: TASK013 (HTTP SSE implementation), ecosystem transition planning
 
 ### Patterns
-**Documentation Count**: 6  
+**Documentation Count**: 7  
 **Complexity Level**: High  
 **Maintenance Priority**: High
 
 #### Active Documents
+- **[MCP Client Retry Logic Implementation](./patterns/mcp-client-retry-logic.md)** 🏗️ NEW PRESERVED IMPLEMENTATION
+  - **Focus**: Complete retry implementation with exponential backoff, error classification, configuration patterns
+  - **Complexity**: High - Comprehensive retry architecture with lifetime management considerations
+  - **Updated**: 2025-09-16
+  - **Related**: Phase 3 MCP Client, dead code cleanup, async closure lifetime issues, future retry implementation
 - **[Async Error Handling](./patterns/async-error-handling.md)**
   - **Focus**: Error propagation patterns, async context management, retry strategies
   - **Complexity**: High - Complex async error handling and correlation patterns
