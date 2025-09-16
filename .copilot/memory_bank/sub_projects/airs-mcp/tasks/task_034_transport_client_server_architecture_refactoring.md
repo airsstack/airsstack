@@ -1,19 +1,20 @@
 # [TASK-034] - Transport Client-Server Architecture Refactoring
 
-**Status:** complete  
+**Status:** in_progress  
 **Added:** 2025-09-16  
 **Updated:** 2025-09-16  
-**Completed:** 2025-09-16
 
-## Completion Summary
+## Current Status: Phase 4 Planning Complete - Ready for Implementation
 
-### 🏆 ALL PHASES SUCCESSFULLY COMPLETED
+### 🏆 PHASES 1-3 SUCCESSFULLY COMPLETED (60% Complete)
 
 **PHASE 1 ✅**: TransportClient Foundation  
 **PHASE 2 ✅**: Transport Client Implementations  
-**PHASE 3 ✅**: MCP Client Simplified & Stabilized
+**PHASE 3 ✅**: MCP Client Simplified & Stabilized  
+**PHASE 4 🎯**: Examples and Documentation (READY TO IMPLEMENT)  
+**PHASE 5 ⏳**: Testing and Validation (PENDING)
 
-### Final Achievements
+### Recent Achievements
 
 #### ✅ **Phase 3: MCP Client Refactoring Complete**
 - **Retry logic completely removed**: Eliminated all unused retry methods and configuration
@@ -31,12 +32,28 @@
 - **Error types enhanced**: Client-specific error variants added
 - **Comprehensive testing**: All functionality verified with 5 passing tests
 
-### 🎯 **Production Ready Result**
-- Clean, simple MCP client implementation
+#### 🎯 **Phase 4: Examples and Documentation - PLANNING COMPLETE**
+**Comprehensive Phase 4 plan finalized with user requirements:**
+
+**Example Strategy Confirmed:**
+1. **OAuth2 Integration Refactoring**: Rename to `http-oauth2-server-integration` + create `http-oauth2-client-integration`
+2. **STDIO Integration Examples**: Create `stdio-server-integration` + `stdio-client-integration`  
+3. **HTTP API Key Examples**: Create `http-apikey-server-integration` + `http-apikey-client-integration`
+4. **Cleanup**: Remove outdated examples (`simple-mcp-server/`, `tier_examples/`, etc.)
+
+**Implementation Requirements:**
+- **Server Examples**: Full running servers with standardized tool set (file ops, system info, utilities)
+- **Client Examples**: Mock servers with simplified responders + MCP clients for integration testing
+- **Authentication**: API key focus for HTTP examples, mock OAuth2 for client examples
+- **Testing**: Python-based automated test suites with comprehensive error scenarios
+- **Documentation**: Complete READMEs, API docs, setup guides for development environment
+
+### 🎯 **Current Architecture Achievement**
+- Clean, simple MCP client implementation using TransportClient interface
 - No complex retry logic or lifetime issues
-- All tests passing consistently
+- All tests passing consistently (4/4 client integration tests)
 - Proper separation of client and server concerns
-- Future-ready architecture for additional features
+- Future-ready architecture for Phase 4 examples
 
 ---
 
@@ -480,31 +497,45 @@ pub trait TransportClient: Send + Sync {
 
 ### 2025-09-16 - PHASE 1 COMPLETE ✅
 - **Phase 1.1 Complete**: TransportClient trait designed and implemented
-  - Added clean request-response interface with call() method
-  - Added type aliases: BoxedTransportClient, TransportClientResult  
-  - Comprehensive documentation with examples
-  - All exports working through protocol module hierarchy
-- **Phase 1.2 Complete**: Error type enhancements implemented
-  - Added client-specific error variants: RequestTimeout, InvalidResponse, NotReady
-  - Added convenience constructors with clear documentation
-  - All error types compile and work correctly
-- **Phase 1.3 Complete**: Standards compliance verified
-  - 3-layer import organization properly implemented (§2.1)
-  - chrono DateTime<Utc> standard maintained (§3.2)
-  - Module architecture patterns followed (§4.3) 
-  - Zero warning policy achieved - fixed dead code warning in existing client.rs
-- **Phase 1.4 Complete**: Mock implementation and tests created
-  - Created MockTransportClient demonstrating clean trait implementation
-  - 5 comprehensive tests all passing: basic call, not ready, timeout, close, error constructors
-  - All tests validate the interface design works correctly
-- **Foundation Established**: Ready for Phase 2 transport implementations
+## Progress Log
 
-### 2025-09-16
-- **Architectural Analysis Completed**: Comprehensive review of current Transport trait and McpClient implementation
-- **Design Issues Identified**: Server-oriented transport trait, inappropriate MessageHandler usage, impedance mismatch
-- **Solution Designed**: TransportClient trait with simple call() method for request-response patterns
-- **Implementation Strategy Planned**: Incremental approach with backward compatibility
-- **Task Created**: Full documentation of analysis results and implementation plan
+### 2025-09-16 - Phase 4 Planning Complete
+- **Comprehensive Phase 4 plan finalized**: Detailed implementation strategy with user requirements
+- **Example naming convention established**: `stdio-server-integration`, `http-apikey-client-integration`, etc.
+- **OAuth2 integration strategy defined**: Rename to `http-oauth2-server-integration` + create client counterpart
+- **Testing framework confirmed**: Python-based automated test suites with comprehensive error scenarios
+- **Documentation requirements clarified**: Complete READMEs, API docs, setup guides for dev environment
+- **Implementation order planned**: OAuth2 rename → cleanup → STDIO → HTTP API key → OAuth2 client
+- **Server/client pattern established**: Servers with full tool sets, clients with mock servers and integration testing
+- **Authentication scope confirmed**: API key focus, mock OAuth2 for clients, no complex production auth
+- **Error scenario coverage planned**: Network failures, auth failures, protocol errors, edge cases
+- **Development environment focus**: JSON/TOML config, localhost only, simple setup requirements
+
+### 2025-09-16 - Phase 3 Complete  
+- **All retry logic removed**: Eliminated unused retry configuration and methods from McpClient
+- **Client tests fixed and passing**: 4/4 integration tests now pass with corrected mock responses
+- **Codebase cleaned**: Zero warnings, removed client_v2.rs, no dead code remaining
+- **Documentation preserved**: Complete retry implementation knowledge saved in memory bank
+- **Architecture simplified**: Clean McpClient<T: TransportClient> with direct call() method
+- **Standards maintained**: All workspace standards compliance verified
+
+### 2025-09-16 - Phase 2 Complete
+- **StdioTransportClient implemented**: Full child process communication with proper lifecycle management
+- **HttpTransportClient implemented**: Complete HTTP JSON-RPC with comprehensive authentication support
+- **Builder patterns added**: Clean configuration APIs for both transport clients
+- **Module integration complete**: Updated exports in stdio/mod.rs and http/mod.rs
+- **Standards compliance verified**: 3-layer imports, zero warnings, proper error handling
+
+### 2025-09-16 - Phase 1 Complete
+- **TransportClient trait designed**: Clean request-response interface without server patterns
+- **Error types enhanced**: Added client-specific variants with clear documentation  
+- **Mock implementation created**: Comprehensive testing with 5 passing tests
+- **Foundation established**: Ready for transport implementations
+
+### 2025-09-16 - Task Initiated
+- **Architectural analysis completed**: Identified server-oriented design issues in current Transport trait
+- **Solution designed**: TransportClient trait for clean client-server separation
+- **Implementation plan created**: 5-phase incremental approach with backward compatibility
 
 ## Standards Compliance Checklist
 
@@ -520,6 +551,114 @@ pub trait TransportClient: Send + Sync {
 **Standards Compliance Evidence:**
 - **Import Organization**: All files follow 3-layer pattern with std → third-party → internal
 - **Time Management**: chrono DateTime<Utc> used for all timestamp operations in MessageContext
+
+## Phase 4 Implementation Plan - DETAILED SPECIFICATIONS
+
+### 4.1 OAuth2 Integration Refactoring
+**Rename & Split**:
+- `oauth2-integration` → `http-oauth2-server-integration`
+- **Create new**: `http-oauth2-client-integration` with mock OAuth2 authorization server
+
+### 4.2 STDIO Integration Examples (New)
+**Create**:
+- `stdio-server-integration`: Full MCP server using STDIO transport
+- `stdio-client-integration`: Client with simplified mock STDIO server
+
+### 4.3 HTTP API Key Integration Examples (New) 
+**Create**:
+- `http-apikey-server-integration`: Full MCP server with API key authentication
+- `http-apikey-client-integration`: Client with simplified mock API key server
+
+### 4.4 Remove Outdated Examples
+**Delete**:
+- `simple-mcp-server/`
+- `tier_examples/`
+- `mcp-remote-server-apikey/`
+- `zero_cost_auth_server.rs`
+
+### Server Examples Structure (`*-server-integration`)
+```
+{example-name}/
+├── Cargo.toml
+├── README.md                    # Comprehensive setup & usage docs
+├── src/
+│   ├── main.rs                 # Server entry point
+│   ├── config.rs               # Development environment config
+│   ├── tools/                  # Same standardized tool set for all
+│   │   ├── mod.rs
+│   │   ├── file_ops.rs         # File operations tools
+│   │   ├── system_info.rs      # System information tools
+│   │   └── utilities.rs        # Utility tools
+│   └── auth/ (if applicable)   # Authentication logic
+├── config/
+│   └── development.json        # Dev environment configuration
+├── tests/
+│   ├── requirements.txt        # Python dependencies
+│   ├── test_integration.py     # Automated integration tests
+│   ├── test_tools.py          # Tool-specific tests
+│   └── test_negative.py       # Negative scenarios & error cases
+└── docs/
+    ├── API.md                  # Tool API documentation
+    └── TESTING.md              # Testing guide
+```
+
+### Client Examples Structure (`*-client-integration`)
+```
+{example-name}/
+├── Cargo.toml
+├── README.md                    # Comprehensive setup & usage docs
+├── src/
+│   ├── main.rs                 # Client demonstration
+│   ├── mock_server.rs          # Simplified mock responder
+│   ├── client.rs               # MCP client using TransportClient
+│   └── config.rs               # Client configuration
+├── tests/
+│   ├── requirements.txt        # Python dependencies
+│   ├── test_client_integration.py  # End-to-end client tests
+│   ├── test_transport.py       # Transport-specific tests
+│   ├── test_auth.py           # Authentication tests (if applicable)
+│   └── test_error_scenarios.py # Comprehensive error testing
+└── docs/
+    ├── MOCK_SERVER.md          # Mock server documentation
+    └── CLIENT_USAGE.md         # Client usage examples
+```
+
+### Standardized Tool Set (All Servers)
+1. **File Operations**: read_file, write_file, list_directory, create_directory
+2. **System Information**: get_system_info, get_environment, get_process_info  
+3. **Utilities**: echo, timestamp, health_check
+
+### Authentication Implementations
+- **STDIO**: No authentication (transport-level focus)
+- **HTTP API Key**: Simple API key in headers (`X-API-Key`)
+- **HTTP OAuth2**: Mock OAuth2 flow with JWT tokens
+
+### Mock Server Strategy (Client Examples)
+- Hardcoded responses for standard tool calls
+- Basic error simulation for negative testing
+- Minimal protocol compliance (JSON-RPC 2.0)
+- No persistent state or complex business logic
+
+### Python Test Framework Categories
+1. **Integration Tests**: Full request/response cycles
+2. **Tool Tests**: Each tool's functionality and edge cases
+3. **Authentication Tests**: Valid/invalid credentials, expired tokens
+4. **Transport Tests**: Connection handling, timeouts, retries
+5. **Error Scenario Tests**: Network failures, malformed requests, server errors
+
+### Documentation Requirements
+- **README.md**: Quick start, prerequisites, configuration, usage examples, testing, troubleshooting
+- **API.md** (servers): Complete tool API reference, request/response examples, error codes
+- **CLIENT_USAGE.md** (clients): Client API examples, mock server config, integration patterns
+
+### Implementation Order
+1. Rename oauth2-integration → `http-oauth2-server-integration`
+2. Remove outdated examples (cleanup)
+3. Create `stdio-server-integration` (simplest transport)
+4. Create `stdio-client-integration` (establishes client pattern)
+5. Create `http-apikey-server-integration` (API key auth pattern)
+6. Create `http-apikey-client-integration` (HTTP client pattern)
+7. Create `http-oauth2-client-integration` (most complex mock)
 - **Module Architecture**: TransportClient trait properly exported through protocol module hierarchy
 - **Error Handling**: Client-specific error variants follow workspace error handling patterns
 - **Testing**: Comprehensive test coverage validates design correctness

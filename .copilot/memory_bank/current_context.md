@@ -2,53 +2,76 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-09-01T22:00:00Z
-**updated_on:** 2025-09-16T18:30:00Z  
-**by:** task_034_transport_client_server_architecture_refactoring  
-**status:** phase_2_complete_ready_for_phase_3
+**updated_on:** 2025-09-16T19:00:00Z  
+**by:** task_034_phase_4_planning_complete  
+**status:** phase_4_ready_for_implementation
 
-# 🎯 TASK-034 PHASE 2 COMPLETE ✅: TRANSPORT CLIENT IMPLEMENTATIONS - 2025-09-16T18:30:00Z
+# 🎯 TASK-034 PHASE 4 PLANNING COMPLETE ✅: EXAMPLES AND DOCUMENTATION - 2025-09-16T19:00:00Z
 
-## 🏆 PHASE 2 TRANSPORT CLIENTS SUCCESSFULLY IMPLEMENTED
+## 🏆 PHASES 1-3 COMPLETE, PHASE 4 READY FOR IMPLEMENTATION
 
-**Phase 2 Status**: ✅ **COMPLETE** - Transport Client Implementations
-**Duration**: 1 development session (as planned)
-**Next Phase**: Phase 3 - McpClient Refactoring
+**Current Status**: Phases 1-3 Complete (60%) → **Phase 4 Planning Complete** → Ready for Implementation
+**Duration**: 3 development sessions (as originally planned)
+**Next Phase**: Phase 4 Implementation - Examples and Documentation
 
-**Phase 2 Achievements**:
-1. **StdioTransportClient Implementation** ✅
-   - Full child process communication with TransportClient trait
-   - Builder pattern with command, args, timeout, environment configuration
-   - Graceful process lifecycle management and cleanup
-   - Comprehensive documentation and usage examples
+## Phase 4 Implementation Plan - FINALIZED WITH USER REQUIREMENTS
 
-2. **HttpTransportClient Implementation** ✅
-   - HTTP JSON-RPC communication with TransportClient trait
-   - Comprehensive authentication: API Key, Bearer, Basic Auth, OAuth2
-   - Builder pattern with endpoint, headers, authentication configuration
-   - Full reqwest integration with proper error handling
+### 📋 **Comprehensive Example Strategy Confirmed**
 
-3. **Standards Compliance** ✅
-   - 3-layer import organization (§2.1) consistently applied
-   - chrono DateTime<Utc> standard (§3.2) maintained
-   - Zero warning policy achieved across all implementations
-   - Proper tracing integration (replaced eprintln! with tracing::warn!)
+**Example Naming Convention**:
+1. `stdio-server-integration` & `stdio-client-integration`
+2. `http-apikey-server-integration` & `http-apikey-client-integration`  
+3. `http-oauth2-server-integration` & `http-oauth2-client-integration` (rename + create)
 
-4. **Module Integration** ✅
-   - Updated stdio/mod.rs and http/mod.rs exports
-   - Clean module hierarchy with proper re-exports
-   - All TransportClient implementations accessible through protocol module
+**Server Examples (`*-server-integration`)**:
+- Full running MCP servers with standardized tool set
+- Same business logic complexity as current oauth2-integration
+- Development environment configuration only
+- Python-based automated test suites with comprehensive error scenarios
 
-**Transport Client Architecture**:
-```rust
-// ✅ COMPLETED: Clean client interface
-#[async_trait]
-pub trait TransportClient: Send + Sync {
-    type Error: std::error::Error + Send + Sync + 'static;
-    async fn call(&mut self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error>;
-    fn is_ready(&self) -> bool;
-    fn transport_type(&self) -> &'static str;
-    async fn close(&mut self) -> Result<(), Self::Error>;
-}
+**Client Examples (`*-client-integration`)**:
+- Mock servers with simplified responders (not full MCP implementations)
+- MCP clients using TransportClient interface to connect to mocks
+- Comprehensive integration testing including negative test cases
+- Error scenario coverage: network, auth, protocol, server errors
+
+### 🔧 **Implementation Requirements Confirmed**
+
+**Authentication Scope**:
+- **STDIO**: No authentication (transport-level focus)
+- **HTTP API Key**: Simple API key in headers (`X-API-Key`) - focus only on API key auth
+- **HTTP OAuth2**: Mock OAuth2 authorization server for client examples
+
+**Tool Standardization**:
+- **File Operations**: read_file, write_file, list_directory, create_directory
+- **System Information**: get_system_info, get_environment, get_process_info
+- **Utilities**: echo, timestamp, health_check
+
+**Testing Framework**:
+- **Primary Language**: Python for all automated test suites
+- **Test Categories**: Integration, tool-specific, authentication, transport, error scenarios
+- **Mock Strategy**: Simplified responders with hardcoded responses and basic error simulation
+
+**Documentation Requirements**:
+- **README.md**: Comprehensive setup & usage (< 5 min to run)
+- **API.md** (servers): Complete tool API reference with examples
+- **CLIENT_USAGE.md** (clients): Client patterns and mock server docs
+- **Development focus**: No production deployment complexity
+
+### 🗂️ **Implementation Order**
+1. **Rename OAuth2**: `oauth2-integration` → `http-oauth2-server-integration`
+2. **Cleanup**: Remove `simple-mcp-server/`, `tier_examples/`, `mcp-remote-server-apikey/`, `zero_cost_auth_server.rs`
+3. **STDIO Examples**: Create server + client (simplest transport)
+4. **HTTP API Key Examples**: Create server + client (API key auth pattern)
+5. **OAuth2 Client**: Create `http-oauth2-client-integration` (most complex mock)
+
+## 🏗️ Previous Phase Achievements
+
+### ✅ **Phase 3: MCP Client Simplified & Stabilized**
+- **Retry logic completely removed**: Clean McpClient<T: TransportClient> implementation
+- **All tests passing**: 4/4 client integration tests with fixed mock responses
+- **Zero warnings achieved**: Clean codebase with no dead code
+- **Architecture simplified**: Direct call() method without complex correlation
 
 // ✅ COMPLETED: Stdio implementation
 pub struct StdioTransportClient { /* process management */ }
