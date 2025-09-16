@@ -50,6 +50,7 @@
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;
+use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
@@ -57,7 +58,7 @@ use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 // Layer 3: Internal module imports
-use super::message::JsonRpcMessage;
+use super::message::{JsonRpcMessage, JsonRpcRequest, JsonRpcResponse};
 use super::types::{ProtocolVersion, ServerCapabilities, ServerConfig, ServerInfo};
 
 /// Transport error types for comprehensive error handling
@@ -91,6 +92,18 @@ pub enum TransportError {
     #[error("Authentication error: {message}")]
     Auth { message: String },
 
+    /// Request-specific timeout errors (client operation)
+    #[error("Request timeout after {duration:?}")]
+    RequestTimeout { duration: Duration },
+
+    /// Response parsing errors (client receiving invalid response)
+    #[error("Invalid response format: {message}")]
+    InvalidResponse { message: String },
+
+    /// Client not ready for requests (not connected, initializing, etc.)
+    #[error("Client not ready: {reason}")]
+    NotReady { reason: String },
+
     /// Generic transport errors
     #[error("Transport error: {message}")]
     Other { message: String },
@@ -105,6 +118,73 @@ impl From<std::io::Error> for TransportError {
 impl From<serde_json::Error> for TransportError {
     fn from(error: serde_json::Error) -> Self {
         TransportError::Serialization { source: error }
+    }
+}
+
+impl TransportError {
+    /// Create a request timeout error with the specified duration
+    ///
+    /// This convenience constructor is useful for client implementations
+    /// when a request times out after waiting for the specified duration.
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration after which the request timed out
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp::protocol::TransportError;
+    /// use std::time::Duration;
+    ///
+    /// let timeout_error = TransportError::request_timeout(Duration::from_secs(30));
+    /// ```
+    pub fn request_timeout(duration: Duration) -> Self {
+        Self::RequestTimeout { duration }
+    }
+
+    /// Create an invalid response error with the specified message
+    ///
+    /// This convenience constructor is useful for client implementations
+    /// when they receive a response that cannot be parsed or is malformed.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - Description of what made the response invalid
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp::protocol::TransportError;
+    ///
+    /// let invalid_response = TransportError::invalid_response("Missing required 'result' field");
+    /// ```
+    pub fn invalid_response(message: impl Into<String>) -> Self {
+        Self::InvalidResponse {
+            message: message.into(),
+        }
+    }
+
+    /// Create a not ready error with the specified reason
+    ///
+    /// This convenience constructor is useful for client implementations
+    /// when they cannot process requests due to not being ready.
+    ///
+    /// # Arguments
+    ///
+    /// * `reason` - Description of why the client is not ready
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp::protocol::TransportError;
+    ///
+    /// let not_ready = TransportError::not_ready("Transport not connected");
+    /// ```
+    pub fn not_ready(reason: impl Into<String>) -> Self {
+        Self::NotReady {
+            reason: reason.into(),
+        }
     }
 }
 
@@ -429,6 +509,137 @@ pub trait Transport: Send + Sync {
     fn transport_type(&self) -> &'static str;
 }
 
+/// Client-oriented transport interface for request-response communication
+///
+/// This trait provides a clean, synchronous interface for client-side MCP communication,
+/// focusing on the natural request-response pattern that clients expect. Unlike the
+/// server-oriented `Transport` trait which uses event-driven `MessageHandler` patterns,
+/// `TransportClient` provides direct request-response semantics.
+///
+/// # Design Philosophy
+///
+/// - **Request-Response Pattern**: Direct mapping to client mental model
+/// - **Synchronous Flow**: No complex correlation mechanisms needed
+/// - **Simple Interface**: Single method for core operation
+/// - **Transport Agnostic**: Each implementation handles its own details
+/// - **Error Clarity**: Clear error types for client scenarios
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::protocol::{TransportClient, JsonRpcRequest, RequestId};
+/// use serde_json::json;
+///
+/// async fn example_usage<T: TransportClient>(mut client: T) -> Result<(), Box<dyn std::error::Error>> {
+///     // Create a request
+///     let request = JsonRpcRequest::new(
+///         "initialize",
+///         Some(json!({"capabilities": {}})),
+///         RequestId::new_string("init-1")
+///     );
+///     
+///     // Send request and receive response directly
+///     let response = client.call(request).await?;
+///     
+///     println!("Received response: {:?}", response);
+///     Ok(())
+/// }
+/// ```
+#[async_trait]
+pub trait TransportClient: Send + Sync {
+    /// Transport-specific error type
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Send a JSON-RPC request and receive the response
+    ///
+    /// This is the core method of the client interface, providing direct
+    /// request-response semantics. The implementation handles all transport-specific
+    /// details including connection management, serialization, and correlation.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The JSON-RPC request to send
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(JsonRpcResponse)` - The response from the server
+    /// * `Err(Self::Error)` - Transport or protocol error
+    ///
+    /// # Error Handling
+    ///
+    /// Implementations should map transport-specific errors to appropriate
+    /// error types, providing clear context for debugging and error handling.
+    async fn call(&mut self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error>;
+
+    /// Check if the transport client is ready to send requests
+    ///
+    /// This method allows callers to verify that the transport is in a state
+    /// where requests can be sent successfully.
+    ///
+    /// # Returns
+    ///
+    /// * `true` - Client is ready to send requests
+    /// * `false` - Client is not ready (not connected, initializing, etc.)
+    fn is_ready(&self) -> bool;
+
+    /// Get the transport type identifier
+    ///
+    /// Returns a string identifying the transport type for logging and debugging.
+    ///
+    /// # Returns
+    ///
+    /// Static string identifying the transport type (e.g., "stdio", "http")
+    fn transport_type(&self) -> &'static str;
+
+    /// Close the client transport and clean up resources
+    ///
+    /// This method gracefully shuts down the client transport and releases
+    /// any resources. It should be idempotent and safe to call multiple times.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Transport closed successfully
+    /// * `Err(Self::Error)` - Error during closure (resources may still be cleaned up)
+    async fn close(&mut self) -> Result<(), Self::Error>;
+}
+
+/// Type alias for boxed transport clients with standardized error handling
+///
+/// This type alias provides a convenient way to work with transport clients
+/// when you need trait objects, using the standard `TransportError` type.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::protocol::{BoxedTransportClient, TransportError};
+///
+/// async fn use_any_client(mut client: BoxedTransportClient) -> Result<(), TransportError> {
+///     // Work with any transport client implementation
+///     // ...
+///     Ok(())
+/// }
+/// ```
+pub type BoxedTransportClient = Box<dyn TransportClient<Error = TransportError>>;
+
+/// Result type for transport client operations
+///
+/// This type alias provides a convenient shorthand for transport client results
+/// using the standard `TransportError` type.
+///
+/// # Examples
+///
+/// ```rust
+/// use airs_mcp::protocol::{TransportClientResult, JsonRpcResponse};
+///
+/// fn process_response(response: TransportClientResult<JsonRpcResponse>) {
+///     match response {
+///         Ok(resp) => println!("Success: {:?}", resp),
+///         Err(err) => eprintln!("Error: {}", err),
+///     }
+/// }
+/// ```
+pub type TransportClientResult<T> = Result<T, TransportError>;
+
 /// Transport configuration trait for type-safe transport settings
 ///
 /// This trait provides a standardized interface for transport-specific configuration
@@ -465,5 +676,173 @@ pub trait TransportConfig: Send + Sync {
     /// Convenience method that extracts protocol version from the server config.
     fn protocol_version(&self) -> Option<&ProtocolVersion> {
         self.server_config().map(|c| &c.protocol_version)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::protocol::message::{JsonRpcRequest, JsonRpcResponse, RequestId};
+    use serde_json::json;
+
+    /// Mock TransportClient implementation for testing
+    ///
+    /// This simple mock demonstrates that the TransportClient trait
+    /// provides a clean, implementable interface for client operations.
+    struct MockTransportClient {
+        ready: bool,
+        should_fail: bool,
+    }
+
+    impl MockTransportClient {
+        fn new() -> Self {
+            Self {
+                ready: true,
+                should_fail: false,
+            }
+        }
+
+        fn with_failure() -> Self {
+            Self {
+                ready: true,
+                should_fail: true,
+            }
+        }
+
+        fn not_ready() -> Self {
+            Self {
+                ready: false,
+                should_fail: false,
+            }
+        }
+    }
+
+    #[async_trait]
+    impl TransportClient for MockTransportClient {
+        type Error = TransportError;
+
+        async fn call(
+            &mut self,
+            request: JsonRpcRequest,
+        ) -> Result<JsonRpcResponse, TransportError> {
+            if !self.ready {
+                return Err(TransportError::not_ready("Mock client not ready"));
+            }
+
+            if self.should_fail {
+                return Err(TransportError::request_timeout(Duration::from_secs(30)));
+            }
+
+            // Mock successful response
+            Ok(JsonRpcResponse {
+                jsonrpc: "2.0".to_string(),
+                id: Some(request.id),
+                result: Some(json!({"status": "success", "method": request.method})),
+                error: None,
+            })
+        }
+
+        fn is_ready(&self) -> bool {
+            self.ready
+        }
+
+        fn transport_type(&self) -> &'static str {
+            "mock"
+        }
+
+        async fn close(&mut self) -> Result<(), TransportError> {
+            self.ready = false;
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_client_basic_call() {
+        let mut client = MockTransportClient::new();
+
+        assert!(client.is_ready());
+        assert_eq!(client.transport_type(), "mock");
+
+        let request = JsonRpcRequest::new(
+            "test_method",
+            Some(json!({"param": "value"})),
+            RequestId::new_string("test-1"),
+        );
+
+        let response = client.call(request.clone()).await.unwrap();
+
+        assert_eq!(response.jsonrpc, "2.0");
+        assert_eq!(response.id, Some(request.id));
+        assert!(response.result.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_transport_client_not_ready() {
+        let mut client = MockTransportClient::not_ready();
+
+        assert!(!client.is_ready());
+
+        let request = JsonRpcRequest::new("test_method", None, RequestId::new_string("test-2"));
+
+        let result = client.call(request).await;
+        assert!(result.is_err());
+
+        if let Err(TransportError::NotReady { reason }) = result {
+            assert_eq!(reason, "Mock client not ready");
+        } else {
+            panic!("Expected NotReady error");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_client_timeout() {
+        let mut client = MockTransportClient::with_failure();
+
+        let request = JsonRpcRequest::new("test_method", None, RequestId::new_string("test-3"));
+
+        let result = client.call(request).await;
+        assert!(result.is_err());
+
+        if let Err(TransportError::RequestTimeout { duration }) = result {
+            assert_eq!(duration, Duration::from_secs(30));
+        } else {
+            panic!("Expected RequestTimeout error");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transport_client_close() {
+        let mut client = MockTransportClient::new();
+
+        assert!(client.is_ready());
+
+        client.close().await.unwrap();
+
+        assert!(!client.is_ready());
+    }
+
+    #[test]
+    fn test_convenience_error_constructors() {
+        let timeout_error = TransportError::request_timeout(Duration::from_secs(10));
+        if let TransportError::RequestTimeout { duration } = timeout_error {
+            assert_eq!(duration, Duration::from_secs(10));
+        } else {
+            panic!("Expected RequestTimeout error");
+        }
+
+        let invalid_response = TransportError::invalid_response("Bad JSON");
+        if let TransportError::InvalidResponse { message } = invalid_response {
+            assert_eq!(message, "Bad JSON");
+        } else {
+            panic!("Expected InvalidResponse error");
+        }
+
+        let not_ready = TransportError::not_ready("Connecting");
+        if let TransportError::NotReady { reason } = not_ready {
+            assert_eq!(reason, "Connecting");
+        } else {
+            panic!("Expected NotReady error");
+        }
     }
 }

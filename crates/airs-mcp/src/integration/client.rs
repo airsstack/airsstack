@@ -286,6 +286,7 @@ impl Default for McpClientBuilder {
 
 /// Message handler for MCP client responses
 #[derive(Clone)]
+#[allow(dead_code)] // TODO(TASK-034): Remove when implementing TransportClient architecture
 struct ClientMessageHandler {
     pending_requests: Arc<Mutex<HashMap<String, oneshot::Sender<JsonRpcResponse>>>>,
 }
