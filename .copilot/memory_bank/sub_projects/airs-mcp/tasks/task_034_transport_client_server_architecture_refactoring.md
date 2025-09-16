@@ -189,19 +189,232 @@ impl TransportClient for HttpTransportClient {
 }
 ```
 
-## Implementation Plan
+## DETAILED DEVELOPMENT PLAN
 
-### Subtasks
+**Complexity**: High - Core Architecture Refactoring  
+**Estimated Duration**: 8-12 development sessions  
+**Priority**: High - Foundation for clean client architecture
+
+### 📋 PHASE 1: Foundation and Interface Design
+
+#### Phase 1.1: TransportClient Trait Design
+**Duration**: 1 session  
+**Files**: `crates/airs-mcp/src/protocol/transport.rs`
+
+**Implementation Steps:**
+
+1. **Add TransportClient trait to transport.rs** (after existing Transport trait)
+```rust
+/// Client-oriented transport interface for request-response communication
+#[async_trait]
+pub trait TransportClient: Send + Sync {
+    type Error: std::error::Error + Send + Sync + 'static;
+    
+    /// Send a JSON-RPC request and receive the response
+    async fn call(&mut self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error>;
+    
+    /// Check if the transport client is ready to send requests
+    fn is_ready(&self) -> bool;
+    
+    /// Get the transport type identifier
+    fn transport_type(&self) -> &'static str;
+    
+    /// Close the client transport and clean up resources
+    async fn close(&mut self) -> Result<(), Self::Error>;
+}
+```
+
+2. **Add convenience type aliases for better ergonomics**
+3. **Export TransportClient in module.rs**
+
+**Success Criteria:**
+- [ ] TransportClient trait compiles without warnings
+- [ ] All exports work correctly
+- [ ] Mock implementation passes basic tests
+- [ ] Documentation builds correctly
+
+#### Phase 1.2: Error Type Enhancement
+**Duration**: 0.5 session  
+**Files**: `crates/airs-mcp/src/protocol/transport.rs`
+
+**Implementation Steps:**
+1. **Enhance TransportError for client scenarios**
+2. **Add convenience constructors**
+
+**Success Criteria:**
+- [ ] New error variants compile correctly
+- [ ] Convenience constructors work as expected
+- [ ] Error messages are clear and actionable
+
+### 📋 PHASE 2: Transport Client Implementations
+
+#### Phase 2.1: StdioTransportClient Implementation
+**Duration**: 2 sessions  
+**Files**: `crates/airs-mcp/src/transport/adapters/stdio/client.rs` (new)
+
+**Implementation Steps:**
+1. **Create stdio/client.rs module**
+2. **Add builder pattern for configuration**
+3. **Update stdio module exports**
+
+**Success Criteria:**
+- [ ] StdioTransportClient compiles without warnings
+- [ ] Basic request-response flow works
+- [ ] Error handling covers all failure scenarios
+- [ ] Builder pattern provides good ergonomics
+
+#### Phase 2.2: HttpTransportClient Implementation  
+**Duration**: 2-3 sessions  
+**Files**: `crates/airs-mcp/src/transport/adapters/http/client.rs` (new)
+
+**Implementation Steps:**
+1. **Create http/client.rs module**
+2. **Add comprehensive builder with authentication support**
+3. **Update http module exports and dependencies**
+
+**Success Criteria:**
+- [ ] HttpTransportClient compiles without warnings
+- [ ] All authentication methods work correctly
+- [ ] Proper HTTP error handling and status code interpretation
+- [ ] Builder pattern provides comprehensive configuration
+- [ ] Timeout and retry logic works as expected
+
+### 📋 PHASE 3: McpClient Refactoring
+
+#### Phase 3.1: New McpClient Architecture
+**Duration**: 2-3 sessions  
+**Files**: `crates/airs-mcp/src/integration/client_v2.rs` (new)
+
+**Implementation Steps:**
+1. **Create new McpClient implementation**
+2. **Add builder pattern for new client**
+
+**Success Criteria:**
+- [ ] New McpClient compiles without warnings
+- [ ] All MCP methods work correctly with TransportClient
+- [ ] Error handling is comprehensive and informative
+- [ ] Retry logic works as expected
+- [ ] Builder pattern provides good ergonomics
+
+#### Phase 3.2: Update Integration Module
+**Duration**: 1 session  
+**Files**: `crates/airs-mcp/src/integration/mod.rs`
+
+**Implementation Steps:**
+1. **Add client_v2 module export**
+2. **Update crate-level exports**
+
+**Success Criteria:**
+- [ ] All modules compile correctly
+- [ ] Exports work as expected
+- [ ] Backward compatibility maintained
+- [ ] New client is the default experience
+
+### 📋 PHASE 4: Examples and Documentation
+
+#### Phase 4.1: Create TransportClient Examples
+**Duration**: 1-2 sessions  
+**Files**: `crates/airs-mcp/examples/transport_client_demo/` (new)
+
+**Implementation Steps:**
+1. **Create comprehensive TransportClient example**
+2. **Create comparison example (old vs new)**
+
+**Success Criteria:**
+- [ ] Examples compile and run correctly
+- [ ] Demonstrate all major features
+- [ ] Show different authentication methods
+- [ ] Illustrate error handling and retry logic
+
+#### Phase 4.2: Migration Guide Documentation
+**Duration**: 1 session  
+**Files**: `crates/airs-mcp/docs/migration/transport_client.md` (new)
+
+**Implementation Steps:**
+1. **Create comprehensive migration guide**
+
+**Success Criteria:**
+- [ ] Migration guide is comprehensive and clear
+- [ ] Examples cover all common use cases
+- [ ] Troubleshooting section addresses likely issues
+
+### 📋 PHASE 5: Testing and Validation
+
+#### Phase 5.1: Comprehensive Test Suite
+**Duration**: 2 sessions  
+**Files**: `crates/airs-mcp/tests/transport_client_integration.rs` (new)
+
+**Implementation Steps:**
+1. **Create integration tests for all transport clients**
+2. **Performance benchmarks comparing old vs new architecture**
+3. **Protocol compliance testing**
+4. **Error handling and edge case testing**
+
+**Success Criteria:**
+- [ ] All integration tests pass
+- [ ] Performance is equal or better than old architecture
+- [ ] Protocol compliance maintained
+- [ ] Error handling is comprehensive
+
+#### Phase 5.2: Backward Compatibility Validation
+**Duration**: 1 session  
+**Files**: Update existing tests
+
+**Implementation Steps:**
+1. **Ensure all existing tests still pass**
+2. **Validate that old examples still work**
+3. **Test both old and new client interfaces**
+
+**Success Criteria:**
+- [ ] Zero breaking changes to existing code
+- [ ] All existing tests pass
+- [ ] Examples continue to work
+- [ ] Migration path is smooth
+
+## Subtasks Summary
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
 | 1.1 | Design TransportClient trait interface | not_started | 2025-09-16 | Simple call(JsonRpcRequest) -> JsonRpcResponse method |
-| 1.2 | Create StdioTransportClient implementation | not_started | 2025-09-16 | Handle stdio-specific communication patterns |
-| 1.3 | Create HttpTransportClient implementation | not_started | 2025-09-16 | HTTP JSON-RPC client with proper error handling |
-| 1.4 | Refactor McpClient to use TransportClient | not_started | 2025-09-16 | Remove MessageHandler dependency and correlation logic |
-| 1.5 | Update McpClientBuilder for TransportClient | not_started | 2025-09-16 | Clean builder pattern without message handler complexity |
-| 1.6 | Create migration guide and examples | not_started | 2025-09-16 | Document transition from current to new architecture |
-| 1.7 | Update integration tests | not_started | 2025-09-16 | Test new client architecture thoroughly |
-| 1.8 | Performance benchmarking | not_started | 2025-09-16 | Compare old vs new client performance |
+| 1.2 | Enhance TransportError for client scenarios | not_started | 2025-09-16 | Add client-specific error variants |
+| 2.1 | Create StdioTransportClient implementation | not_started | 2025-09-16 | Handle stdio-specific communication patterns |
+| 2.2 | Create HttpTransportClient implementation | not_started | 2025-09-16 | HTTP JSON-RPC client with proper error handling |
+| 3.1 | Refactor McpClient to use TransportClient | not_started | 2025-09-16 | Remove MessageHandler dependency and correlation logic |
+| 3.2 | Update McpClientBuilder for TransportClient | not_started | 2025-09-16 | Clean builder pattern without message handler complexity |
+| 4.1 | Create TransportClient examples | not_started | 2025-09-16 | Comprehensive demos and comparisons |
+| 4.2 | Create migration guide and documentation | not_started | 2025-09-16 | Document transition from current to new architecture |
+| 5.1 | Update integration tests | not_started | 2025-09-16 | Test new client architecture thoroughly |
+| 5.2 | Performance benchmarking | not_started | 2025-09-16 | Compare old vs new client performance |
+
+## Success Metrics
+
+### Technical Metrics
+- [ ] **Code Complexity**: Reduced cyclomatic complexity in client code
+- [ ] **Performance**: Equal or better latency and throughput
+- [ ] **Memory Usage**: Reduced memory allocations (no pending_requests map)
+- [ ] **Error Rates**: Same or lower error rates in integration tests
+
+### Developer Experience Metrics  
+- [ ] **API Simplicity**: Fewer required imports and setup steps
+- [ ] **Documentation Quality**: Clear examples and migration guides
+- [ ] **Learning Curve**: Easier for new developers to understand
+- [ ] **Debugging**: Simpler stack traces and error messages
+
+### Architecture Metrics
+- [ ] **Separation of Concerns**: Clean client-server interface separation
+- [ ] **Testability**: Easier mocking and unit testing
+- [ ] **Maintainability**: Reduced coupling between components
+- [ ] **Extensibility**: Easier to add new transport types
+
+## Timeline Summary
+
+| Phase | Duration | Dependencies |
+|-------|----------|-------------|
+| **Phase 1**: Foundation | 1.5 sessions | None |
+| **Phase 2**: Transport Implementations | 4-5 sessions | Phase 1 |
+| **Phase 3**: McpClient Refactoring | 3-4 sessions | Phase 2 |
+| **Phase 4**: Examples & Documentation | 2-3 sessions | Phase 3 |
+| **Phase 5**: Testing & Validation | 3 sessions | Phase 4 |
+| **Total** | **8-12 sessions** | Sequential |
 
 ## Progress Log
 
