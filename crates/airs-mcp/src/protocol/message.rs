@@ -238,7 +238,11 @@ impl JsonRpcMessage {
     }
 
     /// Create a new response message
-    pub fn from_response(result: Option<Value>, error: Option<Value>, id: Option<RequestId>) -> Self {
+    pub fn from_response(
+        result: Option<Value>,
+        error: Option<Value>,
+        id: Option<RequestId>,
+    ) -> Self {
         JsonRpcMessage::Response(JsonRpcResponse {
             jsonrpc: "2.0".to_string(),
             result,
@@ -248,10 +252,10 @@ impl JsonRpcMessage {
     }
 }
 
-/// Request ID supporting both string and numeric formats per JSON-RPC 2.0 specification
+/// Request ID supporting string, numeric, and null formats per JSON-RPC 2.0 specification
 ///
 /// The JSON-RPC 2.0 specification allows request IDs to be strings, numbers, or null.
-/// This enum supports string and numeric variants. Null IDs are represented by Option<RequestId>.
+/// This enum supports all three variants for complete JSON-RPC 2.0 compliance.
 ///
 /// # Examples
 ///
@@ -260,18 +264,87 @@ impl JsonRpcMessage {
 ///
 /// let string_id = RequestId::String("req-123".to_string());
 /// let numeric_id = RequestId::Number(42);
+/// let null_id = RequestId::Null;
 ///
 /// // Serialization preserves the original format
 /// assert_eq!(serde_json::to_string(&string_id).unwrap(), r#""req-123""#);
 /// assert_eq!(serde_json::to_string(&numeric_id).unwrap(), "42");
+/// assert_eq!(serde_json::to_string(&null_id).unwrap(), "null");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RequestId {
     /// String-based request identifier
     String(String),
     /// Numeric request identifier
     Number(i64),
+    /// Null request identifier
+    Null,
+}
+
+impl Serialize for RequestId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            RequestId::String(s) => serializer.serialize_str(s),
+            RequestId::Number(n) => serializer.serialize_i64(*n),
+            RequestId::Null => serializer.serialize_unit(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for RequestId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+
+        struct RequestIdVisitor;
+
+        impl<'de> Visitor<'de> for RequestIdVisitor {
+            type Value = RequestId;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string, number, or null")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(RequestId::String(value.to_string()))
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(RequestId::Number(value))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                if value <= i64::MAX as u64 {
+                    Ok(RequestId::Number(value as i64))
+                } else {
+                    Err(E::custom("number too large for i64"))
+                }
+            }
+
+            fn visit_unit<E>(self) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(RequestId::Null)
+            }
+        }
+
+        deserializer.deserialize_any(RequestIdVisitor)
+    }
 }
 
 impl RequestId {
@@ -300,6 +373,19 @@ impl RequestId {
     pub fn new_number(id: i64) -> Self {
         RequestId::Number(id)
     }
+
+    /// Create a new null request ID
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airs_mcp::protocol::RequestId;
+    ///
+    /// let id = RequestId::new_null();
+    /// ```
+    pub fn new_null() -> Self {
+        RequestId::Null
+    }
 }
 
 impl fmt::Display for RequestId {
@@ -307,6 +393,7 @@ impl fmt::Display for RequestId {
         match self {
             RequestId::String(s) => write!(f, "{s}"),
             RequestId::Number(n) => write!(f, "{n}"),
+            RequestId::Null => write!(f, "null"),
         }
     }
 }

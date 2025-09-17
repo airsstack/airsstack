@@ -2,11 +2,68 @@
 
 **active_sub_project:** airs-mcp  
 **switched_on:** 2025-09-01T22:00:00Z
-**updated_on:** 2025-09-16T20:00:00Z  
-**by:** task_034_phase_4.1_oauth2_refactoring_complete  
-**status:** phase_4.1_complete_continuing_to_4.2
+**updated_on:** 2025-09-17T05:00:00Z  
+**by:** task_034_phase_4.3_module_architecture_standard_documented  
+**status:** phase_4.3.1_architecture_planning_complete
 
-# 🎯 TASK-034 PHASE 4.1 COMPLETE ✅: OAuth2 Integration Refactoring Success - 2025-09-16T20:00:00Z
+# 🎯 TASK-034 PHASE 4.3.1 ARCHITECTURE STANDARD DOCUMENTED ✅ - 2025-09-17T05:00:00Z
+
+## 📋 NEW TECHNICAL STANDARD: Example Module Architecture
+
+**Achievement**: Documented comprehensive module architecture standard for all MCP integration examples
+**Location**: `workspace/example_module_architecture_standard.md`
+**Reference**: Added to `workspace/shared_patterns.md` as **§4.3 Module Architecture**
+
+### 🏗️ **Standardized Module Structure**
+
+**Pattern Established**:
+```
+src/
+├── lib.rs                     # Central module integration and re-exports
+├── main.rs                    # Entry point (simplified, imports via lib.rs)
+├── handlers/
+│   ├── mod.rs                 # Handler module exports
+│   └── mcp_handler.rs         # MCP message handler + MessageHandler trait impl
+├── providers/
+│   ├── mod.rs                 # Provider module exports  
+│   └── setup.rs               # Provider creation and test environment setup
+├── transport/
+│   ├── mod.rs                 # Transport module exports
+│   └── [transport_type].rs    # Transport-specific integration (stdio.rs, http.rs)
+└── utilities.rs               # Utility functions (logging, configuration, helpers)
+```
+
+### 🔗 **Transport Integration Requirements**
+
+**MessageHandler Implementation**: All MCP handlers MUST implement `MessageHandler<()>` trait
+**Builder Pattern**: Transport creation via proper builder patterns with handler injection
+**Separation of Concerns**: Handler logic independent of transport implementation
+
+### ✅ **Benefits Achieved**
+
+1. **Consistency**: Standardized structure across all examples
+2. **Maintainability**: Clear separation of concerns and modular design  
+3. **Transport Agnostic**: Handler logic independent of transport implementation
+4. **Testability**: Isolated modules enable focused testing
+5. **Reusability**: Modules can be used independently across examples
+
+### 📚 **Documentation Coverage**
+
+- **Complete Specification**: 200+ lines of detailed architectural guidance
+- **Implementation Templates**: Code templates for all module types
+- **Workspace Compliance**: Integration with existing workspace standards (§2.1, §4.3, §5.1)
+- **Testing Requirements**: Comprehensive test structure requirements
+- **Benefits Analysis**: Clear rationale for architectural decisions
+
+### 🎯 **Next Phase Ready**
+
+**Phase 4.3.1**: Architecture standard documented → **Ready for implementation**
+- All modules planned with clear responsibilities
+- Transport integration patterns defined
+- Testing infrastructure requirements specified
+- Workspace standards compliance verified
+
+## 🏆 PHASES 1-3 COMPLETE, PHASE 4.1 COMPLETE (65%) → PHASE 4.3.1 PLANNING COMPLETE
 
 ## 🏆 PHASES 1-3 COMPLETE, PHASE 4.1 COMPLETE (65%) → PHASE 4.2 READY
 

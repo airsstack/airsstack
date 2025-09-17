@@ -1,0 +1,13 @@
+# STDIO MCP Integration Test Dependencies
+# 
+# These are minimal dependencies since STDIO tests use subprocess communication
+# rather than HTTP requests like the OAuth2 integration tests.
+
+# Note: STDIO tests only need core Python libraries (json, subprocess, sys, os)
+# which are part of the standard library. No external dependencies required.
+
+# Optional: For enhanced test output formatting
+colorama==0.4.6
+
+# Optional: For test timing and performance analysis  
+psutil==5.9.6

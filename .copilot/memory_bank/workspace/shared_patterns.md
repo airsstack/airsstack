@@ -155,6 +155,67 @@ impl Validator for JwtValidator {
 }
 ```
 
+### §4.3. Module Architecture - MCP Integration Examples
+
+**Principle**: All MCP integration examples MUST follow the standardized module architecture for consistency, maintainability, and proper transport layer integration.
+
+**Reference**: See `workspace/example_module_architecture_standard.md` for complete specification.
+
+#### Standard Module Structure (Mandatory)
+```
+src/
+├── lib.rs                     # Central module integration and re-exports
+├── main.rs                    # Entry point (simplified, imports via lib.rs)
+├── handlers/
+│   ├── mod.rs                 # Handler module exports
+│   └── mcp_handler.rs         # MCP message handler + MessageHandler trait impl
+├── providers/
+│   ├── mod.rs                 # Provider module exports  
+│   └── setup.rs               # Provider creation and test environment setup
+├── transport/
+│   ├── mod.rs                 # Transport module exports
+│   └── [transport_type].rs    # Transport-specific integration (stdio.rs, http.rs)
+└── utilities.rs               # Utility functions (logging, configuration, helpers)
+```
+
+#### Key Requirements
+- **`lib.rs`**: Central integration point with module declarations and re-exports
+- **`main.rs`**: Simplified entry point importing through `lib.rs` only
+- **`handlers/`**: MCP protocol logic with `MessageHandler<()>` trait implementation
+- **`providers/`**: Provider setup and test environment management
+- **`transport/`**: Transport-specific integration using builder patterns
+- **`utilities.rs`**: Shared utility functions moved from `main.rs`
+
+#### Transport Integration Pattern
+```rust
+// All MCP handlers MUST implement MessageHandler for transport integration
+#[async_trait]
+impl MessageHandler<()> for McpHandler {
+    async fn handle_message(&self, message: JsonRpcMessage, context: MessageContext<()>) {
+        // Route to MCP protocol handlers
+    }
+    async fn handle_error(&self, error: TransportError) { /* ... */ }
+    async fn handle_close(&self) { /* ... */ }
+}
+
+// Transport creation via builder pattern
+pub async fn create_transport(handler: Arc<McpHandler>) -> Result<Transport, TransportError> {
+    TransportBuilder::new()
+        .with_message_handler(handler)
+        .build()
+        .await
+}
+```
+
+#### Benefits
+- **Consistency**: Standardized structure across all examples
+- **Maintainability**: Clear separation of concerns and modular design
+- **Transport Agnostic**: Handler logic independent of transport implementation
+- **Testability**: Isolated modules enable focused testing
+- **Reusability**: Modules can be used independently across examples
+
+**Enforcement**: All new MCP integration examples MUST follow this architecture. Existing examples will be migrated to this standard during Phase 4 refactoring.
+
 ### §5. Advanced Builder Pattern - Progressive Type Refinement
 
 **Principle**: Use progressive type refinement in builder patterns for maximum type safety with ergonomic APIs.

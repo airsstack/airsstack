@@ -1,0 +1,7 @@
+# Sample YAML file
+name: stdio-test
+version: 1.0
+tools:
+  - math
+  - system
+  - text
