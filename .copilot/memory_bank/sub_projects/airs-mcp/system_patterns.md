@@ -247,6 +247,90 @@ Transport receives data → Parses to JsonRpcMessage → Creates context → Cal
 
 **Reference**: ADR-012 - Generic MessageHandler Architecture for Transport Layer
 
+## Example Projects Architecture Standard (Bin-only, Local Modules) ✅ NEW (2025-09-19)
+
+### Standard
+- Examples MUST be structured as bin-only crates with local modules declared in `main.rs`.
+- DO NOT create a `lib.rs` for example crates unless there's a proven, shared-library need.
+- Import internal example code via local modules (e.g., `mod handlers; mod providers; mod transport; mod utilities;`).
+- Keep `mod.rs` files as API coordinators only (per workspace §4.3), with no implementation code.
+
+### Rationale
+- Eliminates editor-only unresolved-import noise in VS Code Rust Analyzer when mixing `lib` and `bin` targets in examples.
+- Reduces ambiguity for RA path resolution (`crate::` vs package name imports) and removes red squiggles without impacting CLI builds.
+- Reinforces Single Responsibility and clean module boundaries in examples, mirroring production patterns without cross-crate coupling.
+
+### Workspace Standards Applied
+- §2.1 Import Organization: Maintain 3-layer import structure (std → third-party → internal).
+- §3.2 Time Standard: Use `chrono::DateTime<Utc>` for any time operations in examples.
+- §4.3 Module Architecture: `mod.rs` only for declarations/re-exports; implementation lives in dedicated modules.
+- Zero Warning Policy: Example crates MUST compile and lint with zero warnings.
+
+### Template
+`Cargo.toml` (bin-only):
+```toml
+[package]
+name = "example-name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "example-bin"
+path = "src/main.rs"
+
+[dependencies]
+airs-mcp = { path = "../../" }
+tokio = { version = "1.47", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+async-trait = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+```
+
+`src/main.rs` (local modules + imports):
+```rust
+// Local modules (internal to the example)
+mod handlers;
+mod providers;
+mod transport;
+mod utilities;
+
+// Layer 3: Internal imports from local modules
+use providers::create_test_environment;
+use transport::create_stdio_transport;
+use utilities::init_logging;
+
+// Layer 2: Third-party
+use tracing::info;
+
+// Layer 1: Std
+use std::sync::Arc;
+
+use airs_mcp::protocol::Transport;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    init_logging();
+    let (handler, _tmp) = create_test_environment().await?;
+    let handler = Arc::new(handler);
+    let mut transport = create_stdio_transport(handler).await?;
+    transport.start().await?;
+    transport.wait_for_completion().await?;
+    transport.close().await?;
+    Ok(())
+}
+```
+
+### Evidence (Applied in `stdio-server-integration` example)
+- Removed `src/lib.rs` and `[lib]` target from `Cargo.toml`.
+- Declared local modules in `main.rs` and imported via module paths.
+- Added `async-trait` and aligned `tracing-subscriber` features with actual usage.
+- Achieved zero warnings; `cargo check`, `cargo clippy` clean.
+
+### Notes
+- If an example must share code across multiple bins or external crates, promote shared code into the library crate (`airs-mcp`) rather than using an example `lib.rs`.
+
 ## Authentication System Architecture ✅ COMPLETE (2025-09-02)
 
 ### Zero-Cost Authentication Abstraction Pattern

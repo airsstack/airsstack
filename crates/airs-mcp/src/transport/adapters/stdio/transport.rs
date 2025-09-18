@@ -88,6 +88,9 @@ pub struct StdioTransport {
     /// Shutdown signal broadcaster
     shutdown_tx: Option<broadcast::Sender<()>>,
 
+    /// Background task handle for proper shutdown synchronization
+    task_handle: Option<tokio::task::JoinHandle<()>>,
+
     /// Session context (STDIO is single-session)
     session_id: String,
 
@@ -106,6 +109,7 @@ impl StdioTransport {
         Self {
             message_handler: None,
             shutdown_tx: None,
+            task_handle: None,
             session_id: "stdio-session".to_string(),
             is_running: false,
         }
@@ -124,6 +128,7 @@ impl StdioTransport {
         Self {
             message_handler: None,
             shutdown_tx: None,
+            task_handle: None,
             session_id,
             is_running: false,
         }
@@ -153,6 +158,28 @@ impl Debug for StdioTransport {
             .field("session_id", &self.session_id)
             .field("is_running", &self.is_running)
             .finish()
+    }
+}
+
+impl StdioTransport {
+    /// Wait for the background stdin reader task to complete
+    ///
+    /// This method allows waiting for the transport to finish processing
+    /// without polling. When stdin reaches EOF, the background task will
+    /// complete and this method will return.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Background task completed successfully
+    /// * `Err(TransportError)` - Task completed with an error
+    pub async fn wait_for_completion(&mut self) -> Result<(), TransportError> {
+        if let Some(task_handle) = self.task_handle.take() {
+            task_handle.await.map_err(|e| TransportError::Connection {
+                message: format!("Background task failed: {}", e),
+            })?;
+            self.is_running = false;
+        }
+        Ok(())
     }
 }
 
@@ -194,10 +221,11 @@ impl Transport for StdioTransport {
         let session_id = self.session_id.clone();
 
         // Spawn stdin reader task
-        tokio::spawn(async move {
+        let task_handle = tokio::spawn(async move {
             stdin_reader_loop(handler, session_id, shutdown_rx).await;
         });
 
+        self.task_handle = Some(task_handle);
         self.is_running = true;
         Ok(())
     }
@@ -215,6 +243,11 @@ impl Transport for StdioTransport {
         // Signal shutdown
         if let Some(shutdown_tx) = &self.shutdown_tx {
             let _ = shutdown_tx.send(());
+        }
+
+        // Wait for background task to complete
+        if let Some(task_handle) = self.task_handle.take() {
+            let _ = task_handle.await;
         }
 
         self.is_running = false;
@@ -464,6 +497,7 @@ impl StdioTransportBuilder {
         Ok(StdioTransport {
             message_handler: Some(handler),
             shutdown_tx: None,
+            task_handle: None,
             session_id: "stdio-session".to_string(),
             is_running: false,
         })
