@@ -195,9 +195,72 @@ Options:
 
 ## Testing
 
+This example includes comprehensive test suites to validate all functionality:
+
+### Quick Testing
+
+Run all tests with the provided script:
+
+```bash
+./tests/run_tests.sh
+```
+
+This will:
+- Set up a Python virtual environment
+- Install testing dependencies  
+- Run comprehensive integration tests
+- Run stress tests and edge case validation
+
 ### Manual Testing
 
-Use the curl commands shown above to manually test the server functionality.
+Use the curl commands shown above to manually test the server functionality:
+
+```bash
+# Start the server
+cargo run --bin http-apikey-server
+
+# Test X-API-Key header authentication
+curl -H "X-API-Key: dev-key-123" \
+     -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+     http://127.0.0.1:3000/mcp
+
+# Test Authorization Bearer authentication  
+curl -H "Authorization: Bearer test-key-456" \
+     -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+     http://127.0.0.1:3000/mcp
+
+# Test query parameter authentication
+curl -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+     "http://127.0.0.1:3000/mcp?api_key=demo-key-789"
+```
+
+### Test Coverage
+
+The test suites provide comprehensive coverage:
+
+**Integration Tests** (`tests/test_http_apikey_integration.py`):
+- ✅ All three API key authentication methods
+- ✅ Complete MCP protocol operations (tools/list, tools/call, resources/list, resources/read)  
+- ✅ Authentication failure scenarios
+- ✅ Error handling and invalid requests
+- ✅ Concurrent request handling
+- ✅ End-to-end workflow testing
+
+**Stress Tests** (`tests/test_stress_validation.py`):
+- ✅ Malformed JSON payload handling
+- ✅ Missing required fields validation
+- ✅ Large payload processing
+- ✅ Concurrent mixed operations
+- ✅ Rapid authentication method switching
+- ✅ Invalid content type handling
+- ✅ Unicode character support
+- ✅ Response time consistency
+- ✅ Sustained load testing
+
+All tests automatically manage server lifecycle and provide detailed logging for debugging.
 
 ### Authentication Testing
 
