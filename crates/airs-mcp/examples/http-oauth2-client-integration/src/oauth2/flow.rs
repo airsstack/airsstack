@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 // Third-party crate imports
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use reqwest::Client;
 use serde_json::Value;
 use url::Url;
@@ -150,7 +150,7 @@ impl OAuth2Flow {
                 message: "Invalid authorization URL".to_string(),
             })?;
 
-        let query_params: HashMap<String, String> = url.query_pairs()
+        let _query_params: HashMap<String, String> = url.query_pairs()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
 
@@ -197,7 +197,7 @@ impl OAuth2Flow {
     }
 
     /// Get current token store
-    pub fn get_token_store(&self) -> Option<&TokenStore> {
+    pub fn get_token_store(&self) -> Option<TokenStore> {
         self.token_manager.get_current_tokens()
     }
 

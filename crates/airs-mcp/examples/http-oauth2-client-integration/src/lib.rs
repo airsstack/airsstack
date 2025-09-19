@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 // Third-party crate imports
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -61,12 +62,12 @@ pub struct OAuth2Error {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String,
-    pub aud: String,
+    pub aud: Vec<String>,  // Changed to Vec<String> to match usage
     pub iss: String,
-    pub exp: i64,
-    pub iat: i64,
-    pub scope: String,
-    pub client_id: String,
+    pub exp: usize,        // Changed to usize to match jsonwebtoken
+    pub iat: usize,        // Changed to usize to match jsonwebtoken
+    pub scope: Option<String>,  // Made optional to match usage
+    pub client_id: Option<String>,  // Made optional to match usage
 }
 
 /// PKCE code challenge and verifier
@@ -87,6 +88,7 @@ pub struct AuthorizationCode {
     pub code_challenge_method: Option<String>,
     pub scope: String,
     pub expires_at: DateTime<Utc>,
+    pub state: Option<String>,  // Added state field
 }
 
 /// Stored OAuth2 tokens
@@ -106,6 +108,12 @@ pub enum OAuth2IntegrationError {
 
     #[error("Token validation error: {message}")]
     TokenValidation { message: String },
+
+    #[error("Network error: {message}")]
+    NetworkError { message: String },
+
+    #[error("Authorization failed: {message}")]
+    AuthorizationFailed { message: String },
 
     #[error("HTTP client error: {0}")]
     HttpClient(#[from] reqwest::Error),
@@ -149,7 +157,7 @@ pub fn generate_random_string(length: usize) -> String {
 pub fn create_code_challenge(code_verifier: &str) -> String {
     use sha2::{Digest, Sha256};
     let digest = Sha256::digest(code_verifier.as_bytes());
-    base64::encode_config(digest, base64::URL_SAFE_NO_PAD)
+    URL_SAFE_NO_PAD.encode(digest)
 }
 
 /// Helper function to validate JWT token format
@@ -167,7 +175,7 @@ pub fn extract_jwt_claims_unverified(token: &str) -> Result<HashMap<String, serd
     }
 
     let payload = parts[1];
-    let decoded = base64::decode_config(payload, base64::URL_SAFE_NO_PAD)
+    let decoded = URL_SAFE_NO_PAD.decode(payload)
         .map_err(|_| OAuth2IntegrationError::TokenValidation {
             message: "Invalid base64 encoding in JWT payload".to_string(),
         })?;
