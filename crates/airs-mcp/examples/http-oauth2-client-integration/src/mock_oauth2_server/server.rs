@@ -44,9 +44,11 @@ impl OAuth2ServerState {
     /// Create new OAuth2 server state
     pub async fn new(config: OAuth2ServerConfig) -> Result<Self, OAuth2IntegrationError> {
         // Load and parse the private key
-        let encoding_key = EncodingKey::from_rsa_pem(config.private_key_pem.as_bytes())
-            .map_err(|e| OAuth2IntegrationError::Configuration {
-                message: format!("Failed to parse RSA private key: {}", e),
+        let encoding_key =
+            EncodingKey::from_rsa_pem(config.private_key_pem.as_bytes()).map_err(|e| {
+                OAuth2IntegrationError::Configuration {
+                    message: format!("Failed to parse RSA private key: {}", e),
+                }
             })?;
 
         // Generate JWKS response
@@ -54,7 +56,7 @@ impl OAuth2ServerState {
 
         // Set up default registered clients
         let mut registered_clients = HashMap::new();
-        
+
         // Default test client
         registered_clients.insert(
             "test-client".to_string(),
@@ -63,6 +65,8 @@ impl OAuth2ServerState {
                 redirect_uris: vec![
                     "http://localhost:8080/callback".to_string(),
                     "http://127.0.0.1:8080/callback".to_string(),
+                    "http://localhost:8082/callback".to_string(),
+                    "http://127.0.0.1:8082/callback".to_string(),
                 ],
                 allowed_scopes: vec![
                     "mcp:read".to_string(),
@@ -88,7 +92,7 @@ impl OAuth2ServerState {
         // For demo purposes, return a mock JWKS response
         // In production, you would parse the RSA key and extract public key components
         let _key_info = private_key_pem; // Acknowledge the parameter
-        
+
         let jwks_response = serde_json::json!({
             "keys": [
                 {
@@ -131,11 +135,16 @@ impl OAuth2ServerState {
     }
 
     /// Validate client and redirect URI
-    pub fn validate_client(&self, client_id: &str, redirect_uri: Option<&str>) -> Result<&RegisteredClient, OAuth2IntegrationError> {
-        let client = self.registered_clients.get(client_id)
-            .ok_or_else(|| OAuth2IntegrationError::OAuth2Flow {
+    pub fn validate_client(
+        &self,
+        client_id: &str,
+        redirect_uri: Option<&str>,
+    ) -> Result<&RegisteredClient, OAuth2IntegrationError> {
+        let client = self.registered_clients.get(client_id).ok_or_else(|| {
+            OAuth2IntegrationError::OAuth2Flow {
                 message: format!("Invalid client_id: {}", client_id),
-            })?;
+            }
+        })?;
 
         // Verify the client_id matches (defensive programming)
         if client.client_id != client_id {
@@ -156,11 +165,16 @@ impl OAuth2ServerState {
     }
 
     /// Validate scopes for a client
-    pub fn validate_scopes(&self, client_id: &str, requested_scopes: &str) -> Result<Vec<String>, OAuth2IntegrationError> {
-        let client = self.registered_clients.get(client_id)
-            .ok_or_else(|| OAuth2IntegrationError::OAuth2Flow {
+    pub fn validate_scopes(
+        &self,
+        client_id: &str,
+        requested_scopes: &str,
+    ) -> Result<Vec<String>, OAuth2IntegrationError> {
+        let client = self.registered_clients.get(client_id).ok_or_else(|| {
+            OAuth2IntegrationError::OAuth2Flow {
                 message: "Invalid client_id".to_string(),
-            })?;
+            }
+        })?;
 
         let requested: Vec<String> = requested_scopes
             .split_whitespace()
@@ -191,7 +205,7 @@ impl OAuth2ServerState {
     #[allow(dead_code)]
     pub async fn cleanup_expired_tokens(&self) {
         let mut tokens = self.active_tokens.write().await;
-        let now = Utc::now().timestamp() as usize;  // Convert to usize to match exp field
+        let now = Utc::now().timestamp() as usize; // Convert to usize to match exp field
         tokens.retain(|_, claims| claims.exp > now);
     }
 

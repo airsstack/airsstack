@@ -15,6 +15,7 @@ use tracing_subscriber;
 
 // Internal module imports
 use http_oauth2_client_integration::{OAuth2ServerConfig, OAuth2IntegrationError};
+use http_oauth2_client_integration::oauth2::types::AuthorizationCode;
 
 mod server;
 mod endpoints;
@@ -70,6 +71,34 @@ async fn main() -> Result<(), OAuth2IntegrationError> {
     // Initialize server state
     let state = Arc::new(OAuth2ServerState::new(config).await?);
 
+    // Pre-store demo authorization codes for testing
+    let demo_auth_data = AuthorizationCode {
+        code: "demo_auth_code_automatic".to_string(),
+        client_id: "test-client".to_string(),
+        redirect_uri: "http://localhost:8082/callback".to_string(),
+        code_challenge: None,
+        code_challenge_method: None,
+        scope: "mcp:read mcp:write".to_string(),
+        state: None,
+        expires_at: chrono::Utc::now() + chrono::Duration::hours(24), // Long expiration for demo
+    };
+    state.store_authorization_code("demo_auth_code_automatic".to_string(), demo_auth_data).await;
+
+    // Also store interactive demo code
+    let demo_auth_data_interactive = AuthorizationCode {
+        code: "demo_auth_code_interactive".to_string(),
+        client_id: "test-client".to_string(),
+        redirect_uri: "http://localhost:8082/callback".to_string(),
+        code_challenge: None,
+        code_challenge_method: None,
+        scope: "mcp:read mcp:write".to_string(),
+        state: None,
+        expires_at: chrono::Utc::now() + chrono::Duration::hours(24), // Long expiration for demo
+    };
+    state.store_authorization_code("demo_auth_code_interactive".to_string(), demo_auth_data_interactive).await;
+
+    info!("🧪 Demo authorization codes pre-stored for testing");
+
     // Create the application router
     let app = create_app_router(state);
 
@@ -115,8 +144,8 @@ fn create_app_router(state: Arc<OAuth2ServerState>) -> Router {
 
 /// Load the private key for JWT signing
 fn load_private_key() -> Result<String, OAuth2IntegrationError> {
-    // Try to load from test_keys directory
-    let key_path = "test_keys/private_key.pem";
+    // Try to load from test_data directory (relative to crates/airs-mcp/)
+    let key_path = "../../test_data/test_rsa_key.pem";
     
     if std::path::Path::new(key_path).exists() {
         std::fs::read_to_string(key_path)
@@ -126,7 +155,7 @@ fn load_private_key() -> Result<String, OAuth2IntegrationError> {
     } else {
         Err(OAuth2IntegrationError::Configuration {
             message: format!(
-                "Private key not found at {}. Please run './scripts/setup_keys.sh' or './scripts/setup_keys.py' first.",
+                "Private key not found at {}. Please ensure the test RSA key is available.",
                 key_path
             ),
         })

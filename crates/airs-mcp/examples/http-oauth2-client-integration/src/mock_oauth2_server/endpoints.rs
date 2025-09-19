@@ -185,27 +185,22 @@ async fn authorization_endpoint(
 /// OAuth2 token request parameters
 #[derive(Debug, Deserialize)]
 pub struct TokenRequest {
-    grant_type: String,
-    #[serde(flatten)]
-    grant_data: TokenGrantData,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "grant_type")]
-#[serde(rename_all = "snake_case")]
-pub enum TokenGrantData {
-    AuthorizationCode {
-        code: String,
-        redirect_uri: String,
-        client_id: String,
-        code_verifier: Option<String>,
-    },
+    /// Grant type - must be "authorization_code" for this implementation
+    pub grant_type: String,
+    /// Authorization code from /authorize endpoint
+    pub code: String,
+    /// Redirection URI (must match the one from /authorize)
+    pub redirect_uri: String,
+    /// Client identifier (must match the one from /authorize)
+    pub client_id: String,
+    /// PKCE code verifier (RFC 7636)
+    pub code_verifier: Option<String>,
+    /// For refresh token grant (not implemented in this demo)
     #[allow(dead_code)]
-    RefreshToken {
-        refresh_token: String,
-        client_id: String,
-        scope: Option<String>,
-    },
+    pub refresh_token: Option<String>,
+    /// Scope for refresh token grant (not implemented in this demo)
+    #[allow(dead_code)]
+    pub scope: Option<String>,
 }
 
 /// OAuth2 token endpoint
@@ -217,8 +212,8 @@ async fn token_endpoint(
     debug!("📋 Token request: {:?}", request);
 
     match request.grant_type.as_str() {
-        "authorization_code" => handle_authorization_code_grant(state, request.grant_data).await,
-        "refresh_token" => handle_refresh_token_grant(state, request.grant_data).await,
+        "authorization_code" => handle_authorization_code_grant(state, request).await,
+        "refresh_token" => handle_refresh_token_grant(state, request).await,
         _ => {
             warn!("❌ Unsupported grant_type: {}", request.grant_type);
             Err((
@@ -236,23 +231,12 @@ async fn token_endpoint(
 /// Handle authorization code grant
 async fn handle_authorization_code_grant(
     state: Arc<OAuth2ServerState>,
-    grant_data: TokenGrantData,
+    request: TokenRequest,
 ) -> Result<Json<TokenResponse>, (StatusCode, Json<OAuth2Error>)> {
-    let (code, redirect_uri, client_id, code_verifier) = match grant_data {
-        TokenGrantData::AuthorizationCode { code, redirect_uri, client_id, code_verifier } => {
-            (code, redirect_uri, client_id, code_verifier)
-        }
-        _ => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(OAuth2Error {
-                    error: "invalid_request".to_string(),
-                    error_description: Some("Invalid grant data for authorization_code".to_string()),
-                    error_uri: None,
-                }),
-            ));
-        }
-    };
+    let code = request.code;
+    let redirect_uri = request.redirect_uri;
+    let client_id = request.client_id;
+    let code_verifier = request.code_verifier;
 
     // Get and consume authorization code
     let auth_data = match state.consume_authorization_code(&code).await {
@@ -349,7 +333,7 @@ async fn handle_authorization_code_grant(
 /// Handle refresh token grant
 async fn handle_refresh_token_grant(
     _state: Arc<OAuth2ServerState>,
-    _grant_data: TokenGrantData,
+    _request: TokenRequest,
 ) -> Result<Json<TokenResponse>, (StatusCode, Json<OAuth2Error>)> {
     // For simplicity, refresh token flow is not fully implemented in this mock server
     // In a real implementation, you would validate the refresh token and issue new tokens

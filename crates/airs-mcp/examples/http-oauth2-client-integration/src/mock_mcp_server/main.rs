@@ -12,7 +12,7 @@ use axum::{
     Router,
 };
 use clap::{Arg, Command};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde_json::{json, Value};
 use tokio::signal;
 use tower::ServiceBuilder;
@@ -20,9 +20,7 @@ use tower_http::cors::CorsLayer;
 use tracing::{error, info, warn};
 
 // Internal module imports
-use http_oauth2_client_integration::{
-    OAuth2IntegrationError, TokenClaims,
-};
+use http_oauth2_client_integration::{OAuth2IntegrationError, TokenClaims};
 
 /// OAuth2-Protected MCP Mock Server State
 #[derive(Clone)]
@@ -38,11 +36,11 @@ struct McpServerState {
 impl McpServerState {
     fn new(jwks_url: String) -> Self {
         let mut scope_requirements = HashMap::new();
+        scope_requirements.insert("initialize".to_string(), vec!["mcp:read".to_string()]);
         scope_requirements.insert("tools/list".to_string(), vec!["mcp:read".to_string()]);
         scope_requirements.insert("resources/list".to_string(), vec!["mcp:read".to_string()]);
         scope_requirements.insert("tools/call".to_string(), vec!["mcp:write".to_string()]);
         scope_requirements.insert("resources/read".to_string(), vec!["mcp:read".to_string()]);
-        scope_requirements.insert("test/protected".to_string(), vec!["mcp:read".to_string()]);
 
         Self {
             jwks_url,
@@ -72,19 +70,26 @@ impl McpServerState {
         } else {
             // In a real implementation, you would fetch from self.jwks_url
             // For demo purposes, use the hardcoded key
-            println!("Warning: Using demo public key. In production, would fetch from JWKS URL: {}", self.jwks_url);
-            DecodingKey::from_rsa_pem(DEMO_PUBLIC_KEY.as_bytes())
-                .map_err(|e| OAuth2IntegrationError::TokenValidation {
+            println!(
+                "Warning: Using demo public key. In production, would fetch from JWKS URL: {}",
+                self.jwks_url
+            );
+            DecodingKey::from_rsa_pem(DEMO_PUBLIC_KEY.as_bytes()).map_err(|e| {
+                OAuth2IntegrationError::TokenValidation {
                     message: format!("Failed to create decoding key: {}", e),
-                })?
+                }
+            })?
         };
 
-        // Basic validation without signature verification for demo
-        let validation = Validation::new(Algorithm::RS256);
-        let token_data = decode::<TokenClaims>(token, &decoding_key, &validation)
-            .map_err(|e| OAuth2IntegrationError::TokenValidation {
+        // Configure validation with proper audience
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_audience(&["mcp-server"]); // Accept "mcp-server" as valid audience
+
+        let token_data = decode::<TokenClaims>(token, &decoding_key, &validation).map_err(|e| {
+            OAuth2IntegrationError::TokenValidation {
                 message: format!("Token validation failed: {}", e),
-            })?;
+            }
+        })?;
 
         Ok(token_data.claims)
     }
@@ -94,7 +99,9 @@ impl McpServerState {
         if let Some(required_scopes) = self.scope_requirements.get(operation) {
             if let Some(token_scope) = &claims.scope {
                 let token_scopes: Vec<&str> = token_scope.split_whitespace().collect();
-                return required_scopes.iter().any(|req| token_scopes.contains(&req.as_str()));
+                return required_scopes
+                    .iter()
+                    .any(|req| token_scopes.contains(&req.as_str()));
             }
             false
         } else {
@@ -105,17 +112,54 @@ impl McpServerState {
 
 /// Extract and validate Bearer token from Authorization header
 async fn extract_token(headers: &HeaderMap) -> Result<String, StatusCode> {
+    // Debug: Print all headers received
+    println!("🔍 DEBUG: All headers received:");
+    for (name, value) in headers.iter() {
+        if let Ok(value_str) = value.to_str() {
+            if name.as_str().to_lowercase() == "authorization" {
+                if value_str.starts_with("Bearer ") {
+                    println!(
+                        "  {}: Bearer [TOKEN_PRESENT:{}...]",
+                        name,
+                        &value_str[7..std::cmp::min(value_str.len(), 20)]
+                    );
+                } else {
+                    println!("  {}: {}", name, value_str);
+                }
+            } else {
+                println!("  {}: {}", name, value_str);
+            }
+        } else {
+            println!("  {}: [non-UTF8 value]", name);
+        }
+    }
+
     let auth_header = headers
         .get("authorization")
-        .ok_or(StatusCode::UNAUTHORIZED)?
+        .ok_or_else(|| {
+            println!("❌ ERROR: No Authorization header found!");
+            StatusCode::UNAUTHORIZED
+        })?
         .to_str()
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+        .map_err(|e| {
+            println!("❌ ERROR: Invalid Authorization header format: {}", e);
+            StatusCode::BAD_REQUEST
+        })?;
 
     if !auth_header.starts_with("Bearer ") {
+        println!(
+            "❌ ERROR: Authorization header does not start with 'Bearer ': {}",
+            auth_header
+        );
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    Ok(auth_header[7..].to_string())
+    let token = auth_header[7..].to_string();
+    println!(
+        "✅ Successfully extracted Bearer token (length: {})",
+        token.len()
+    );
+    Ok(token)
 }
 
 /// Middleware for OAuth2 token validation
@@ -124,21 +168,28 @@ async fn oauth2_middleware(
     headers: HeaderMap,
     operation: &str,
 ) -> Result<TokenClaims, StatusCode> {
-    let token = extract_token(&headers).await?;
-    
-    let claims = state
-        .validate_token(&token)
-        .await
-        .map_err(|e| {
-            warn!("Token validation failed: {}", e);
-            StatusCode::UNAUTHORIZED
-        })?;
+    info!("🔐 Validating OAuth2 token for operation: {}", operation);
+
+    let token = extract_token(&headers).await.map_err(|e| {
+        warn!("Failed to extract Bearer token: status {:?}", e);
+        e
+    })?;
+
+    info!("🎫 Token extracted, validating...");
+    let claims = state.validate_token(&token).await.map_err(|e| {
+        warn!("Token validation failed: {}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     if !state.check_scope(&claims, operation) {
         warn!("Insufficient scope for operation: {}", operation);
         return Err(StatusCode::FORBIDDEN);
     }
 
+    info!(
+        "✅ OAuth2 validation successful for operation: {}",
+        operation
+    );
     Ok(claims)
 }
 
@@ -152,16 +203,108 @@ async fn health() -> Json<Value> {
     }))
 }
 
-/// MCP Tools List endpoint
-async fn tools_list(
+/// MCP JSON-RPC handler - single endpoint for all MCP operations
+async fn mcp_jsonrpc_handler(
     State(state): State<Arc<McpServerState>>,
     headers: HeaderMap,
+    Json(request): Json<Value>,
+) -> Result<Json<Value>, StatusCode> {
+    // Debug: Log all incoming headers
+    info!("📥 Incoming MCP request headers:");
+    for (name, value) in headers.iter() {
+        if let Ok(value_str) = value.to_str() {
+            // Mask the token value for security
+            if name.as_str().to_lowercase() == "authorization" {
+                if value_str.starts_with("Bearer ") {
+                    info!(
+                        "  {}: Bearer [TOKEN_PRESENT:{}...]",
+                        name,
+                        &value_str[7..std::cmp::min(value_str.len(), 15)]
+                    );
+                } else {
+                    info!("  {}: {}", name, value_str);
+                }
+            } else {
+                info!("  {}: {}", name, value_str);
+            }
+        } else {
+            info!("  {}: [non-UTF8 value]", name);
+        }
+    }
+
+    // Extract JSON-RPC fields
+    let method = request
+        .get("method")
+        .and_then(|m| m.as_str())
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    info!("🔧 Processing JSON-RPC method: {}", method);
+
+    let id = request.get("id").cloned().unwrap_or(json!(null));
+    let _params = request.get("params").cloned().unwrap_or(json!({}));
+
+    // Route based on MCP method
+    match method {
+        "initialize" => handle_initialize(state, headers, id).await,
+        "tools/list" => handle_tools_list(state, headers, id).await,
+        "resources/list" => handle_resources_list(state, headers, id).await,
+        "tools/call" => handle_tool_call(state, headers, id, _params).await,
+        _ => Ok(Json(json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": {
+                "code": -32601,
+                "message": "Method not found",
+                "data": format!("Unknown method: {}", method)
+            }
+        }))),
+    }
+}
+
+/// Handle MCP initialize method
+async fn handle_initialize(
+    state: Arc<McpServerState>,
+    headers: HeaderMap,
+    id: Value,
+) -> Result<Json<Value>, StatusCode> {
+    // Check if client is sending proper OAuth2 authentication for initialize
+    info!("🤝 Processing MCP initialize request - checking authentication...");
+    let _claims = oauth2_middleware(State(state), headers, "initialize").await?;
+
+    info!("✅ Initialize request authenticated successfully");
+    Ok(Json(json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "result": {
+            "protocolVersion": "1.0.0",
+            "capabilities": {
+                "tools": {
+                    "listChanged": false
+                },
+                "resources": {
+                    "subscribe": false,
+                    "listChanged": false
+                }
+            },
+            "serverInfo": {
+                "name": "oauth2-mcp-mock-server",
+                "version": "1.0.0"
+            }
+        }
+    })))
+}
+
+/// Handle tools/list method
+async fn handle_tools_list(
+    state: Arc<McpServerState>,
+    headers: HeaderMap,
+    id: Value,
 ) -> Result<Json<Value>, StatusCode> {
     let _claims = oauth2_middleware(State(state), headers, "tools/list").await?;
 
     Ok(Json(json!({
         "jsonrpc": "2.0",
-        "id": 1,
+        "id": id,
         "result": {
             "tools": [
                 {
@@ -197,16 +340,17 @@ async fn tools_list(
     })))
 }
 
-/// MCP Resources List endpoint
-async fn resources_list(
-    State(state): State<Arc<McpServerState>>,
+/// Handle resources/list method
+async fn handle_resources_list(
+    state: Arc<McpServerState>,
     headers: HeaderMap,
+    id: Value,
 ) -> Result<Json<Value>, StatusCode> {
     let _claims = oauth2_middleware(State(state), headers, "resources/list").await?;
 
     Ok(Json(json!({
         "jsonrpc": "2.0",
-        "id": 2,
+        "id": id,
         "result": {
             "resources": [
                 {
@@ -226,53 +370,58 @@ async fn resources_list(
     })))
 }
 
-/// Protected test endpoint
-async fn test_protected(
-    State(state): State<Arc<McpServerState>>,
+/// Handle tools/call method
+async fn handle_tool_call(
+    state: Arc<McpServerState>,
     headers: HeaderMap,
-    Json(payload): Json<Value>,
+    id: Value,
+    params: Value,
 ) -> Result<Json<Value>, StatusCode> {
-    let claims = oauth2_middleware(State(state), headers, "test/protected").await?;
+    let claims = oauth2_middleware(State(state), headers, "tools/call").await?;
+
+    // Extract tool name and arguments
+    let tool_name = params
+        .get("name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("unknown");
+
+    let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
 
     Ok(Json(json!({
-        "message": "Access granted to protected resource",
-        "user": claims.sub,
-        "client_id": claims.client_id,
-        "scope": claims.scope,
-        "request_payload": payload,
-        "timestamp": chrono::Utc::now().to_rfc3339()
-    })))
-}
-
-/// OAuth2 token info endpoint (for debugging)
-async fn token_info(
-    State(state): State<Arc<McpServerState>>,
-    headers: HeaderMap,
-) -> Result<Json<Value>, StatusCode> {
-    let claims = oauth2_middleware(State(state), headers, "token/info").await?;
-
-    Ok(Json(json!({
-        "sub": claims.sub,
-        "iss": claims.iss,
-        "aud": claims.aud,
-        "exp": claims.exp,
-        "iat": claims.iat,
-        "scope": claims.scope,
-        "client_id": claims.client_id
+        "jsonrpc": "2.0",
+        "id": id,
+        "result": {
+            "content": [
+                {
+                    "type": "text",
+                    "text": format!("Tool '{}' executed successfully with arguments: {}", tool_name, arguments)
+                }
+            ],
+            "isError": false,
+            "metadata": {
+                "user": claims.sub,
+                "client_id": claims.client_id,
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }
+        }
     })))
 }
 
 /// Demo public key for JWT validation (in production, fetch from JWKS)
 const DEMO_PUBLIC_KEY: &str = r#"-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1234567890abcdef...
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzopdB15OiMljO725B14D
+t3mnk3txrTrvg4wvjqjwy2MxxyTfRHoZDDtra8STUv9JDLfMXoY8yqMkusmHMCQX
+vjzKXOsYLm5iV7w2aXpqG1b9La8bmlNBMhxjFWjWxFA8UcSgIjiQW1g2zmHn1u6i
+bLF8qE7Zb+j22P+Lq6VKQQXsnfSbfJHQN23LIBGu3z/pKy+JMVQJgicJgkc/A3Bz
+7r6Vaipwy99ytq22ajApgFxE63PEn/tB1LR+6Fe0lEvmb+bxypgS9HUppedhhJAh
+zLd/ZzdPIUpdNTcLQvU8VQlFTe1DxT+tAb9Am7bM4/+z0ZkH1PU4bOrf8fARPyth
+vwIDAQAB
 -----END PUBLIC KEY-----"#;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     info!("🛡️  Starting OAuth2-Protected MCP Mock Server");
 
@@ -315,33 +464,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize server state
     let state = Arc::new(McpServerState::new(jwks_url.clone()));
 
-    // Build the router
+    // Build the router - MCP uses a single JSON-RPC endpoint
     let app = Router::new()
+        .route("/", post(mcp_jsonrpc_handler))
         .route("/health", get(health))
-        .route("/tools/list", post(tools_list))
-        .route("/resources/list", post(resources_list))
-        .route("/test/protected", post(test_protected))
-        .route("/token/info", get(token_info))
-        .layer(
-            ServiceBuilder::new()
-                .layer(CorsLayer::permissive())
-        )
+        .layer(ServiceBuilder::new().layer(CorsLayer::permissive()))
         .with_state(state);
 
     // Parse the socket address
     let addr: SocketAddr = format!("{}:{}", host, port).parse()?;
-    
+
     info!("🚀 Starting OAuth2-protected MCP server on {}", addr);
     info!("📋 Available endpoints:");
-    info!("  GET  /health - Health check");
-    info!("  POST /tools/list - List available tools (requires mcp:read scope)");
-    info!("  POST /resources/list - List available resources (requires mcp:read scope)");
-    info!("  POST /test/protected - Test protected operation (requires mcp:read scope)");
-    info!("  GET  /token/info - Token information (for debugging)");
+    info!("  POST / - MCP JSON-RPC endpoint (requires OAuth2 authentication)");
+    info!("  GET  /health - Health check (no authentication required)");
+    info!("📋 Supported MCP methods:");
+    info!("  initialize - Initialize MCP session");
+    info!("  tools/list - List available tools (requires mcp:read scope)");
+    info!("  resources/list - List available resources (requires mcp:read scope)");
+    info!("  tools/call - Execute tools (requires mcp:write scope)");
 
     // Start the server
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    
+
     // Graceful shutdown handler
     tokio::select! {
         result = axum::serve(listener, app) => {

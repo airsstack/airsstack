@@ -1,7 +1,7 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-16  
-**Total Knowledge Docs**: 33  
+**Last Updated**: 2025-09-19  
+**Total Knowledge Docs**: 34  
 **Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
 
 ## Knowledge Categories
@@ -236,7 +236,7 @@
   - **Related**: ADR-006 (Benchmarking environment), performance validation
 
 ### Security
-**Documentation Count**: 3  
+**Documentation Count**: 4  
 **Complexity Level**: Critical  
 **Maintenance Priority**: Critical
 
@@ -259,6 +259,12 @@
   - **Updated**: 2025-09-01
   - **Related**: HTTP engine abstraction, AuthContext integration, security best practices
 
+- **[KNOWLEDGE-016: HTTP Client Security Analysis](./KNOWLEDGE-016-http-client-security-analysis.md)** 🔒 NEW SECURITY
+  - **Focus**: Security-conscious HTTP client improvements, error disclosure mitigation, OAuth2 security validation
+  - **Complexity**: High - Balancing observability with security, correlation-based debugging patterns
+  - **Updated**: 2025-09-19
+  - **Related**: OAuth2 integration testing, secure error handling, attack vector mitigation
+
 ## Documentation by Complexity
 
 ### Critical Complexity (5 documents)
@@ -267,6 +273,13 @@
 - MCP Specification Event-Driven Patterns
 - HTTP Engine Abstraction Architecture
 - OAuth2 Integration Strategy
+
+### High Complexity (9 documents)
+- Transport Client-Server Architecture Analysis 
+- Client-Transport Test Coordination
+- Comprehensive Architectural Analysis
+- User Behavior Logging Strategy
+- HTTP Client Security Analysis
 
 ### High Complexity (14 documents)
 - Transport Layer Design
