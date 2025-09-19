@@ -1,0 +1,56 @@
+# Cryptographic Keys - Never commit private keys!
+# These should be generated using setup scripts
+test_keys/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Python Virtual Environment
+venv/
+.venv/
+env/
+.env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Pytest Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Rust Build Artifacts (local to this example)
+target/
+Cargo.lock
+
+# Temporary Files
+*.tmp
+*.temp
+*.log
+
+# OAuth2 Test Data (if any)
+test_data/
+oauth2_sessions/
+token_cache/

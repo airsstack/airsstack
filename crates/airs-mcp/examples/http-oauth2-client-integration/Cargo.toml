@@ -1,0 +1,71 @@
+[package]
+name = "http-oauth2-client-integration"
+version = "0.1.0"
+edition = "2021"
+description = "HTTP MCP client integration example with OAuth2 authentication demonstrating complete authorization code flow"
+
+# Exclude from workspace to allow independent dependency management
+[workspace]
+
+[[bin]]
+name = "http-oauth2-client"
+path = "src/main.rs"
+
+[[bin]]
+name = "http-oauth2-mock-server"
+path = "src/mock_oauth2_server/main.rs"
+
+[[bin]]
+name = "http-mcp-mock-server"
+path = "src/mock_mcp_server/main.rs"
+
+[dependencies]
+# AIRS Foundation Crates (Priority §5.1)
+airs-mcp = { path = "../../" }
+
+# Core Runtime Dependencies
+tokio = { version = "1.47", features = ["full"] }
+futures = { version = "0.3" }
+async-trait = "0.1"
+
+# HTTP and Serialization
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Server Framework (for mock servers)
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# OAuth2 and JWT Dependencies
+jsonwebtoken = "9.3"
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.8"
+url = "2.5"
+urlencoding = "2.1"
+
+# Configuration and CLI
+clap = { version = "4.0", features = ["derive"] }
+config = "0.14"
+toml = "0.8"
+
+# Logging and Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time Management (Workspace Standard §3.2)
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID for token generation
+uuid = { version = "1.0", features = ["v4"] }
+
+# Error Handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Development Dependencies
+[dev-dependencies]
+tempfile = "3.0"
+wiremock = "0.6"
