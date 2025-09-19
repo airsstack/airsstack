@@ -334,6 +334,17 @@ impl McpError {
     }
 }
 
+// Allow direct conversion from TransportError to McpError so that `?` works
+// in examples and integration code that return McpResult<_>.
+impl From<TransportError> for McpError {
+    fn from(err: TransportError) -> Self {
+        // First convert into IntegrationError via its #[from] impl,
+        // then wrap as McpError::Integration via its #[from] impl.
+        let integration: IntegrationError = err.into();
+        McpError::from(integration)
+    }
+}
+
 // Helper trait to add MCP-specific context to integration errors
 pub trait McpErrorExt {
     /// Convert to MCP error with additional context
@@ -343,6 +354,17 @@ pub trait McpErrorExt {
 impl McpErrorExt for IntegrationError {
     fn mcp_context(self, context: &str) -> McpError {
         McpError::custom(format!("{context}: {self}"))
+    }
+}
+
+// Support `?` conversions from the protocol-layer TransportError used by
+// transport adapters (alias: ProtocolTransportError at crate root).
+impl From<crate::protocol::transport::TransportError> for McpError {
+    fn from(err: crate::protocol::transport::TransportError) -> Self {
+        // Convert protocol transport error into ProtocolError first (has From impl),
+        // then leverage McpError's From<ProtocolError> implementation.
+        let perr: ProtocolError = err.into();
+        McpError::from(perr)
     }
 }
 
