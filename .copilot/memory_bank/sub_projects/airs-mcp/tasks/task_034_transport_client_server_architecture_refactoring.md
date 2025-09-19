@@ -21,7 +21,7 @@
 **PHASE 4.3 ✅**: STDIO Client Integration Example (COMPLETE)  
 **PHASE 4.4 ✅**: HTTP API Key Examples (SKIPPED - OAuth2 Priority)
 **PHASE 4.5 ✅**: HTTP OAuth2 Client Integration Example (COMPLETE)
-**PHASE 5 ⏳**: Testing and Validation (PENDING)
+**PHASE 5 ⏳**: Testing and Validation - REVISED SCOPE (Edge Cases + Documentation)
 
 ### Recent Achievements
 
@@ -434,38 +434,54 @@ pub trait TransportClient: Send + Sync {
 - [ ] Examples cover all common use cases
 - [ ] Troubleshooting section addresses likely issues
 
-### 📋 PHASE 5: Testing and Validation
+### 📋 PHASE 5: Testing and Validation (Revised Scope)
 
-#### Phase 5.1: Comprehensive Test Suite
-**Duration**: 2 sessions  
-**Files**: `crates/airs-mcp/tests/transport_client_integration.rs` (new)
-
-**Implementation Steps:**
-1. **Create integration tests for all transport clients**
-2. **Performance benchmarks comparing old vs new architecture**
-3. **Protocol compliance testing**
-4. **Error handling and edge case testing**
-
-**Success Criteria:**
-- [ ] All integration tests pass
-- [ ] Performance is equal or better than old architecture
-- [ ] Protocol compliance maintained
-- [ ] Error handling is comprehensive
-
-#### Phase 5.2: Backward Compatibility Validation
+#### Phase 5.1: OAuth2 Edge Case Testing
 **Duration**: 1 session  
-**Files**: Update existing tests
+**Files**: `tests/test_oauth2_edge_cases.py` (new)
 
 **Implementation Steps:**
-1. **Ensure all existing tests still pass**
-2. **Validate that old examples still work**
-3. **Test both old and new client interfaces**
+1. **OAuth2 edge cases and error scenarios**
+   - Invalid client IDs, malformed redirect URIs
+   - Expired authorization codes, invalid PKCE challenges
+   - Malformed JWT tokens, incorrect audience claims
+   - Token endpoint error scenarios
 
 **Success Criteria:**
-- [ ] Zero breaking changes to existing code
-- [ ] All existing tests pass
-- [ ] Examples continue to work
-- [ ] Migration path is smooth
+- [ ] All OAuth2 edge cases properly handled
+- [ ] Error responses follow security best practices
+- [ ] Invalid scenarios return appropriate error codes
+
+#### Phase 5.2: MCP JSON-RPC Error Handling Validation
+**Duration**: 1 session  
+**Files**: `tests/test_mcp_error_handling.py` (new)
+
+**Implementation Steps:**
+1. **MCP JSON-RPC error handling**
+   - Invalid JSON-RPC requests (malformed JSON, missing fields)
+   - Unsupported methods, invalid parameters
+   - Authentication failures, insufficient scopes
+   - Network timeout and connection error scenarios
+
+**Success Criteria:**
+- [ ] All JSON-RPC error scenarios handled correctly
+- [ ] Proper error response format maintained
+- [ ] Authentication edge cases covered
+
+#### Phase 5.3: Documentation Review
+**Duration**: 1 session  
+**Files**: Update README files
+
+**Implementation Steps:**
+1. **Complete documentation review**
+   - Update main README with complete usage instructions
+   - Ensure debugging tools are properly documented
+   - Verify all examples have clear setup instructions
+
+**Success Criteria:**
+- [ ] All READMEs are complete and accurate
+- [ ] Debugging tools properly documented
+- [ ] Usage examples are clear and working
 
 ## Subtasks Summary
 | ID | Description | Status | Updated | Notes |
@@ -481,8 +497,9 @@ pub trait TransportClient: Send + Sync {
 | 4.3 | STDIO Integration Examples (server/client) | complete | 2025-09-19 | ✅ Complete stdio-client-integration with 16 passing tests |
 | 4.4 | HTTP API Key Integration Examples (server/client) | complete | 2025-09-19 | ✅ Skipped in favor of OAuth2 priority - business decision |
 | 4.5 | HTTP OAuth2 Client Integration Example | complete | 2025-09-19 | ✅ Complete 3-binary OAuth2+MCP integration, 32 tests passing, security analysis documented |
-| 5.1 | Update integration tests | not_started | 2025-09-16 | Test new client architecture thoroughly |
-| 5.2 | Performance benchmarking | not_started | 2025-09-16 | Compare old vs new client performance |
+| 5.1 | OAuth2 edge case testing | not_started | 2025-09-19 | Test invalid client IDs, malformed tokens, PKCE challenges |
+| 5.2 | MCP JSON-RPC error handling validation | not_started | 2025-09-19 | Test malformed JSON-RPC, auth failures, network errors |
+| 5.3 | Documentation review and completion | not_started | 2025-09-19 | Update READMEs, document debugging tools, verify examples |
 
 ## Success Metrics
 
@@ -512,10 +529,20 @@ pub trait TransportClient: Send + Sync {
 | **Phase 2**: Transport Implementations | 4-5 sessions | Phase 1 |
 | **Phase 3**: McpClient Refactoring | 3-4 sessions | Phase 2 |
 | **Phase 4**: Examples & Documentation | 2-3 sessions | Phase 3 |
-| **Phase 5**: Testing & Validation | 3 sessions | Phase 4 |
+| **Phase 5**: Testing & Validation (Revised) | 3 sessions | Phase 4 |
 | **Total** | **8-12 sessions** | Sequential |
 
 ## Progress Log
+
+### 2025-09-19 - PHASE 5 SCOPE REVISED 📋: Focused on Edge Cases and Documentation
+- **Removed Performance Testing**: Not needed for current scope
+- **Removed Security Audit**: Security analysis already completed in KNOWLEDGE-016
+- **Focused Phase 5 Scope**: 
+  - OAuth2 edge case testing (invalid tokens, malformed requests, PKCE challenges)
+  - MCP JSON-RPC error handling validation (malformed JSON, auth failures, network errors)
+  - Documentation review and completion (READMEs, debugging tools, examples)
+- **Integration Verification Already Complete**: Recognized that existing test suite already provides comprehensive integration validation
+- **Realistic Timeline**: Phase 5 now 3 sessions focused on edge cases rather than broad performance/security audits
 
 ### 2025-09-19 - PHASE 4.5 COMPLETE ✅: HTTP OAuth2 Client Integration Example
 - **Complete OAuth2 + MCP Integration**: Finished comprehensive `http-oauth2-client-integration` example
