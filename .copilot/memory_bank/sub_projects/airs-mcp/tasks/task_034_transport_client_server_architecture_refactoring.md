@@ -2,20 +2,21 @@
 
 **Status:** in_progress  
 **Added:** 2025-09-16  
-**Updated:** 2025-09-16  
+**Updated:** 2025-09-19  
 
-## Current Status: Phase 4.2 Complete - Outdated Examples Cleanup Done
+## Current Status: Phase 4.3 In Progress — STDIO Integration Examples
 
 ### 🏆 PHASES 1-3 SUCCESSFULLY COMPLETED (60% Complete)
 ### 🎯 PHASE 4.1 SUCCESSFULLY COMPLETED (+5% = 65% Complete)
 ### 🧹 PHASE 4.2 SUCCESSFULLY COMPLETED (+5% = 70% Complete)
+### 🚧 PHASE 4.3 STARTED (STDIO Server/Client Examples) — In Progress
 
 **PHASE 1 ✅**: TransportClient Foundation  
 **PHASE 2 ✅**: Transport Client Implementations  
 **PHASE 3 ✅**: MCP Client Simplified & Stabilized  
 **PHASE 4.1 ✅**: OAuth2 Integration Refactoring (COMPLETE)
 **PHASE 4.2 ✅**: Cleanup Outdated Examples (COMPLETE)
-**PHASE 4.3 🎯**: Next - STDIO Integration Examples (READY TO IMPLEMENT)  
+**PHASE 4.3 🚧**: STDIO Integration Examples (IN PROGRESS)  
 **PHASE 4.4-4.5 ⏳**: HTTP API Key Examples (PENDING)
 **PHASE 5 ⏳**: Testing and Validation (PENDING)
 
@@ -440,6 +441,9 @@ pub trait TransportClient: Send + Sync {
 | 3.2 | Update McpClientBuilder for TransportClient | complete | 2025-09-16 | ✅ Simplified builder pattern without message handler complexity |
 | 4.1 | OAuth2 Integration Refactoring | complete | 2025-09-16 | ✅ Renamed to http-oauth2-server-integration, 34/34 tests passing |
 | 4.2 | Create migration guide and documentation | not_started | 2025-09-16 | Document transition from current to new architecture |
+| 4.3 | STDIO Integration Examples (server/client) | in_progress | 2025-09-19 | Starting stdio-server-integration and stdio-client-integration scaffolds |
+| 4.4 | HTTP API Key Integration Examples (server/client) | not_started | 2025-09-19 | Pending after 4.3 |
+| 4.5 | HTTP OAuth2 Client Integration Example | not_started | 2025-09-19 | Pending after 4.4 |
 | 5.1 | Update integration tests | not_started | 2025-09-16 | Test new client architecture thoroughly |
 | 5.2 | Performance benchmarking | not_started | 2025-09-16 | Compare old vs new client performance |
 
@@ -475,6 +479,12 @@ pub trait TransportClient: Send + Sync {
 | **Total** | **8-12 sessions** | Sequential |
 
 ## Progress Log
+
+### 2025-09-19 - PHASE 4.3 STARTED 🚧
+- Began Phase 4.3: STDIO examples workstream
+- Action: Marked task as in progress for 4.3 in memory bank
+- Plan: Scaffold two examples — stdio-server-integration (server with standardized tools) and stdio-client-integration (client + mock server)
+- Next: Create example directories with minimal Cargo.toml, src skeletons, placeholder docs/tests
 
 ### 2025-09-16 - PHASE 2 COMPLETE ✅
 - **Phase 2.1 Complete**: StdioTransportClient implementation
