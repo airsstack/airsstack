@@ -1,0 +1,67 @@
+{
+  "server": {
+    "name": "http-apikey-mcp-server",
+    "version": "1.0.0",
+    "transport": "http",
+    "authentication": "api-key"
+  },
+  "configuration": {
+    "port": 3000,
+    "host": "0.0.0.0",
+    "dev_mode": true,
+    "cors_enabled": true,
+    "max_connections": 100,
+    "timeout_seconds": 30
+  },
+  "authentication": {
+    "api_keys": {
+      "dev-key-123": {
+        "user_id": "dev-user",
+        "permissions": ["read", "write"],
+        "description": "Development API key",
+        "environment": "development"
+      },
+      "test-key-456": {
+        "user_id": "test-user", 
+        "permissions": ["read"],
+        "description": "Testing API key (read-only)",
+        "environment": "testing"
+      },
+      "demo-key-789": {
+        "user_id": "demo-user",
+        "permissions": ["read", "write", "admin"],
+        "description": "Demo API key (full access)",
+        "environment": "demo"
+      }
+    },
+    "supported_methods": [
+      "X-API-Key header",
+      "Authorization Bearer",
+      "Query parameter"
+    ]
+  },
+  "tools": {
+    "math_operations": {
+      "enabled": true,
+      "description": "Mathematical operations and calculations"
+    },
+    "file_resources": {
+      "enabled": true,
+      "description": "File system resource access",
+      "base_path": "test_resources"
+    },
+    "code_review": {
+      "enabled": true,
+      "description": "Code review prompts and templates"
+    },
+    "structured_logging": {
+      "enabled": true,
+      "description": "Structured logging and audit trails"
+    }
+  },
+  "endpoints": {
+    "mcp": "/mcp",
+    "health": "/health",
+    "auth_health": "/auth/health"
+  }
+}
