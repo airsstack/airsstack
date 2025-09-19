@@ -1,0 +1,30 @@
+[package]
+name = "stdio-client-integration"
+version = "0.1.0"
+edition = "2021"
+description = "MCP client integration example using STDIO transport with TransportClient"
+
+# Exclude this example from the main workspace
+[workspace]
+
+[[bin]]
+name = "stdio-mcp-client"
+path = "src/main.rs"
+
+[[bin]]
+name = "stdio-mock-server"
+path = "src/mock_server.rs"
+
+[dependencies]
+# Layer 1: Standard library imports (none required)
+
+# Layer 2: Third-party crate imports
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.47", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Layer 3: Internal module imports
+airs-mcp = { path = "../../" }
