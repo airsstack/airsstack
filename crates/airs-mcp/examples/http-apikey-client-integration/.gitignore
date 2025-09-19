@@ -1,0 +1,38 @@
+# Build artifacts
+/target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python test environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Configuration files with secrets
+config/production.toml
+config/staging.toml
+.env
+.env.local
+
+# Logs
+*.log
+server.log
+
+# Mock server state
+mock_server_state.json
+
+# Temporary test files
+test_output/
+temp_*
