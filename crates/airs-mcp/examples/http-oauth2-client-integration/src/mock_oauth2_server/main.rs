@@ -14,13 +14,13 @@ use tracing::info;
 use tracing_subscriber;
 
 // Internal module imports
-use http_oauth2_client_integration::{OAuth2ServerConfig, OAuth2IntegrationError};
 use http_oauth2_client_integration::oauth2::types::AuthorizationCode;
+use http_oauth2_client_integration::{OAuth2IntegrationError, OAuth2ServerConfig};
 
-mod server;
 mod endpoints;
-mod tokens;
 mod jwks;
+mod server;
+mod tokens;
 
 use server::OAuth2ServerState;
 
@@ -82,7 +82,9 @@ async fn main() -> Result<(), OAuth2IntegrationError> {
         state: None,
         expires_at: chrono::Utc::now() + chrono::Duration::hours(24), // Long expiration for demo
     };
-    state.store_authorization_code("demo_auth_code_automatic".to_string(), demo_auth_data).await;
+    state
+        .store_authorization_code("demo_auth_code_automatic".to_string(), demo_auth_data)
+        .await;
 
     // Also store interactive demo code
     let demo_auth_data_interactive = AuthorizationCode {
@@ -95,7 +97,12 @@ async fn main() -> Result<(), OAuth2IntegrationError> {
         state: None,
         expires_at: chrono::Utc::now() + chrono::Duration::hours(24), // Long expiration for demo
     };
-    state.store_authorization_code("demo_auth_code_interactive".to_string(), demo_auth_data_interactive).await;
+    state
+        .store_authorization_code(
+            "demo_auth_code_interactive".to_string(),
+            demo_auth_data_interactive,
+        )
+        .await;
 
     info!("🧪 Demo authorization codes pre-stored for testing");
 
@@ -109,10 +116,12 @@ async fn main() -> Result<(), OAuth2IntegrationError> {
             message: "Invalid host/port combination".to_string(),
         })?;
 
-    let listener = TcpListener::bind(&addr).await
-        .map_err(|e| OAuth2IntegrationError::Configuration {
-            message: format!("Failed to bind to {}: {}", addr, e),
-        })?;
+    let listener =
+        TcpListener::bind(&addr)
+            .await
+            .map_err(|e| OAuth2IntegrationError::Configuration {
+                message: format!("Failed to bind to {}: {}", addr, e),
+            })?;
 
     info!("✅ OAuth2 Authorization Server listening on {}", addr);
     info!("🔑 Available endpoints:");
@@ -144,14 +153,13 @@ fn create_app_router(state: Arc<OAuth2ServerState>) -> Router {
 
 /// Load the private key for JWT signing
 fn load_private_key() -> Result<String, OAuth2IntegrationError> {
-    // Try to load from test_data directory (relative to crates/airs-mcp/)
-    let key_path = "../../test_data/test_rsa_key.pem";
-    
+    // Use the local test keys included with this example
+    let key_path = "test_keys/private_key.pem";
+
     if std::path::Path::new(key_path).exists() {
-        std::fs::read_to_string(key_path)
-            .map_err(|e| OAuth2IntegrationError::Configuration {
-                message: format!("Failed to read private key from {}: {}", key_path, e),
-            })
+        std::fs::read_to_string(key_path).map_err(|e| OAuth2IntegrationError::Configuration {
+            message: format!("Failed to read private key from {}: {}", key_path, e),
+        })
     } else {
         Err(OAuth2IntegrationError::Configuration {
             message: format!(
