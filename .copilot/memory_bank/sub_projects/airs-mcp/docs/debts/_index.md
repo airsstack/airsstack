@@ -1,17 +1,28 @@
 # Technical Debt Registry - airs-mcp
 
-**Last Updated**: 2025-09-15  
-**Total Debt Items**: 6  
+**Last Updated**: 2025-09-20  
+**Total Debt Items**: 7  
 **High Priority Items**: 3  
+**Medium Priority Items**: 1  
 **Critical Priority Items**: 0  
 **In Progress**: 0
+
+## Recent Addition 🆕
+
+### Configuration and Testing Infrastructure
+- **[DEBT-005: JSON-RPC Protocol Testing and Configuration Enhancements](./DEBT-005-jsonrpc-protocol-testing-configuration-enhancements.md)** 🧪 NEW ENHANCEMENT DEBT
+  - **Priority**: Medium  
+  - **Impact**: Developer Experience, Testing Infrastructure  
+  - **Effort**: M (Medium - 2-3 weeks)
+  - **Created**: 2025-09-20
+  - **Focus**: OAuth2 testing integration, configurable request limits, parameter validation consistency
 
 ## Summary by Category
 
 ### Architecture Debt
 - **Critical**: 0 items
 - **High**: 3 items  
-- **Medium**: 0 items
+- **Medium**: 1 items (NEW: DEBT-005)
 - **Low**: 0 items
 
 ### Performance Debt

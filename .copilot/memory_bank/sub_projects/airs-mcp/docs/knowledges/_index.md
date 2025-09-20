@@ -1,8 +1,17 @@
 # Knowledge Documentation Index - airs-mcp
 
-**Last Updated**: 2025-09-19  
-**Total Knowledge Docs**: 34  
-**Categories**: 6 (Architecture, Domain, Integration, Patterns, Performance, Security)
+**Last Updated**: 2025-09-20  
+**Total Knowledge Docs**: 35  
+**Categories**: 7 (Architecture, Domain, Integration, Patterns, Performance, Security, Testing)
+
+## Recent Addition 🆕
+
+### Testing & Protocol Validation
+- **[KNOWLEDGE-018: JSON-RPC Edge Case Testing Findings](./KNOWLEDGE-018-jsonrpc-edge-case-testing-findings.md)** 🧪 NEW TESTING ANALYSIS
+  - **Focus**: Comprehensive JSON-RPC edge case testing results, production readiness assessment, and improvement recommendations
+  - **Complexity**: High - Complete protocol validation analysis with 60% → 100% success rate achievement
+  - **Updated**: 2025-09-20
+  - **Related**: OAuth2 integration, protocol compliance, security analysis, production readiness
 
 ## Knowledge Categories
 

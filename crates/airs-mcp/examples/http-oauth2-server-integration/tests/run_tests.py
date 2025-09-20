@@ -12,6 +12,8 @@ Test Types:
     comprehensive Run comprehensive integration test
     advanced     Run advanced integration test with all features
     flow         Run OAuth2 authorization flow test with PKCE validation
+    edge         Run OAuth2 edge case and security tests
+    jsonrpc      Run JSON-RPC protocol edge case tests
     all          Run all test suites in sequence
     
 Options:
@@ -72,7 +74,9 @@ Examples:
     python3 run_tests.py basic --debug      # Run basic test with debug output
     python3 run_tests.py comprehensive      # Run comprehensive test
     python3 run_tests.py flow               # Run OAuth2 authorization flow test
-    python3 run_tests.py all               # Run all tests
+    python3 run_tests.py edge               # Run OAuth2 edge case and security tests
+    python3 run_tests.py jsonrpc            # Run JSON-RPC protocol edge case tests
+    python3 run_tests.py all                # Run all tests
     python3 run_tests.py basic --no-cleanup # Keep server running after test
         """
     )
@@ -81,7 +85,7 @@ Examples:
         "test_type", 
         nargs="?", 
         default="basic",
-        choices=["basic", "comprehensive", "advanced", "flow", "all"],
+        choices=["basic", "comprehensive", "advanced", "flow", "edge", "jsonrpc", "all"],
         help="Type of test to run (default: basic)"
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
@@ -97,7 +101,9 @@ Examples:
         "basic": "test_oauth2_basic.py",
         "comprehensive": "test_oauth2_comprehensive.py", 
         "advanced": "test_oauth2_integration.py",
-        "flow": "test_oauth2_authorization_flow.py"
+        "flow": "test_oauth2_authorization_flow.py",
+        "edge": "test_oauth2_edge_cases.py",
+        "jsonrpc": "test_jsonrpc_edge_cases.py"
     }
     
     success_count = 0
@@ -105,7 +111,7 @@ Examples:
     
     if args.test_type == "all":
         # Run all tests in sequence
-        for test_name in ["basic", "comprehensive", "advanced", "flow"]:
+        for test_name in ["basic", "comprehensive", "advanced", "flow", "edge", "jsonrpc"]:
             total_tests += 1
             if run_test(test_scripts[test_name], args.debug, args.no_cleanup):
                 success_count += 1

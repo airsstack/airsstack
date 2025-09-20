@@ -18,11 +18,11 @@ use tracing::debug;
 use crate::oauth2::{
     config::OAuth2Config,
     error::{OAuth2Error, OAuth2Result},
-    types::{JwtClaims, JwksResponse, Jwk},
+    types::{Jwk, JwksResponse, JwtClaims},
 };
 
 /// JWT validation trait following workspace standards
-/// 
+///
 /// Uses associated types for flexible error handling while maintaining
 /// zero-cost abstractions through generic monomorphization.
 #[async_trait]
@@ -32,17 +32,17 @@ pub trait JwtValidator {
     type Error: Into<OAuth2Error> + Send + Sync + 'static;
 
     /// Validate a JWT token and extract claims
-    /// 
+    ///
     /// # Arguments
     /// * `token` - The JWT token string to validate
-    /// 
+    ///
     /// # Returns
     /// * `Ok(JwtClaims)` - Successfully validated token with extracted claims
     /// * `Err(Self::Error)` - Validation failed with validator-specific error
     async fn validate(&self, token: &str) -> Result<JwtClaims, Self::Error>;
 
     /// Extract OAuth scopes from validated JWT claims
-    /// 
+    ///
     /// Default implementation handles standard "scope" claim as space-separated string
     /// and "scopes" claim as array. Override for custom scope extraction logic.
     fn extract_scopes(&self, claims: &JwtClaims) -> Vec<String> {
@@ -65,7 +65,7 @@ pub trait JwtValidator {
 }
 
 /// Concrete JWT validator implementation
-/// 
+///
 /// Self-contained JWT validator with JWKS client support and caching
 /// following workspace standards for zero-cost abstractions.
 pub struct Jwt {
@@ -99,10 +99,10 @@ impl std::fmt::Debug for CachedKey {
 
 impl Jwt {
     /// Create new JWT validator from OAuth2 configuration
-    /// 
+    ///
     /// # Arguments
     /// * `config` - OAuth2 configuration containing JWKS endpoint and validation rules
-    /// 
+    ///
     /// # Returns
     /// * `Ok(Jwt)` - Successfully created validator
     /// * `Err(OAuth2Error)` - Configuration or initialization error
@@ -245,9 +245,8 @@ impl Jwt {
                 })?;
 
                 // Decode base64url encoded values
-                DecodingKey::from_rsa_components(n, e).map_err(|e| {
-                    OAuth2Error::JwksError(format!("Failed to create RSA key: {e}"))
-                })
+                DecodingKey::from_rsa_components(n, e)
+                    .map_err(|e| OAuth2Error::JwksError(format!("Failed to create RSA key: {e}")))
             }
             _ => Err(OAuth2Error::JwksError(format!(
                 "Unsupported key type: {}",
@@ -276,6 +275,65 @@ impl Jwt {
             debug!("Removed expired JWKS key: {}", kid);
         }
     }
+
+    /// Validate a JWT token with detailed error analysis
+    ///
+    /// This method provides comprehensive error analysis for debugging and
+    /// security purposes, returning structured error information.
+    ///
+    /// # Arguments
+    /// * `token` - The JWT token string to validate
+    ///
+    /// # Returns
+    /// * `Ok(JwtClaims)` - Successfully validated token with extracted claims
+    /// * `Err(OAuth2Error)` - Detailed validation error with specific failure reason
+    pub async fn validate_with_detailed_errors(
+        &self,
+        token: &str,
+    ) -> Result<JwtClaims, OAuth2Error> {
+        // Enhanced validation with specific error categorization
+        if token.trim().is_empty() {
+            return Err(OAuth2Error::TokenValidation(
+                "Empty or whitespace-only token provided".to_string(),
+            ));
+        }
+
+        // Check for common token format issues
+        if !token.contains('.') {
+            return Err(OAuth2Error::TokenValidation(
+                "Invalid JWT format: token must contain '.' separators".to_string(),
+            ));
+        }
+
+        // Validate JWT structure before attempting to decode
+        let token_parts: Vec<&str> = token.split('.').collect();
+        if token_parts.len() != 3 {
+            return Err(OAuth2Error::TokenValidation(format!(
+                "Invalid JWT structure: expected 3 parts (header.payload.signature), got {} parts",
+                token_parts.len()
+            )));
+        }
+
+        // Validate each part has content
+        if token_parts[0].is_empty() {
+            return Err(OAuth2Error::TokenValidation(
+                "Invalid JWT: header part is empty".to_string(),
+            ));
+        }
+        if token_parts[1].is_empty() {
+            return Err(OAuth2Error::TokenValidation(
+                "Invalid JWT: payload part is empty".to_string(),
+            ));
+        }
+        if token_parts[2].is_empty() {
+            return Err(OAuth2Error::TokenValidation(
+                "Invalid JWT: signature part is empty".to_string(),
+            ));
+        }
+
+        // Use the standard validation method with enhanced error context
+        self.validate(token).await
+    }
 }
 
 #[async_trait]
@@ -283,6 +341,38 @@ impl JwtValidator for Jwt {
     type Error = OAuth2Error;
 
     async fn validate(&self, token: &str) -> Result<JwtClaims, Self::Error> {
+        // Basic token format validation
+        if token.trim().is_empty() {
+            return Err(OAuth2Error::TokenValidation(
+                "Empty or whitespace-only token provided".to_string(),
+            ));
+        }
+
+        // Check basic JWT structure (header.payload.signature)
+        let token_parts: Vec<&str> = token.split('.').collect();
+        if token_parts.len() != 3 {
+            return Err(OAuth2Error::TokenValidation(format!(
+                "Invalid JWT structure: expected 3 parts separated by '.', got {} parts",
+                token_parts.len()
+            )));
+        }
+
+        // Validate each part is non-empty
+        for (i, part) in token_parts.iter().enumerate() {
+            if part.is_empty() {
+                let part_name = match i {
+                    0 => "header",
+                    1 => "payload",
+                    2 => "signature",
+                    _ => "unknown",
+                };
+                return Err(OAuth2Error::TokenValidation(format!(
+                    "Invalid JWT structure: {} part is empty",
+                    part_name
+                )));
+            }
+        }
+
         // Decode the token header to get the key ID
         let header = jsonwebtoken::decode_header(token)
             .map_err(|e| OAuth2Error::TokenValidation(format!("Invalid token header: {e}")))?;
@@ -312,6 +402,12 @@ impl JwtValidator for Jwt {
                     }
                     jsonwebtoken::errors::ErrorKind::InvalidSignature => {
                         OAuth2Error::TokenValidation("Invalid token signature".to_string())
+                    }
+                    jsonwebtoken::errors::ErrorKind::Base64(_) => {
+                        OAuth2Error::TokenValidation("Invalid base64 encoding in token".to_string())
+                    }
+                    jsonwebtoken::errors::ErrorKind::Json(_) => {
+                        OAuth2Error::TokenValidation("Invalid JSON structure in token".to_string())
                     }
                     _ => OAuth2Error::TokenValidation(format!("Token validation failed: {e}")),
                 }
@@ -358,24 +454,24 @@ impl Clone for Jwt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_jwt_trait_implementation() {
         // Test that our trait implementation works correctly
         // This test validates the abstraction without requiring real JWT infrastructure
-        
+
         let config = OAuth2Config::default();
         let jwt_validator = Jwt::new(config);
-        
+
         // Should handle configuration errors gracefully
         assert!(jwt_validator.is_ok() || jwt_validator.is_err());
     }
-    
+
     #[test]
     fn test_scope_extraction() {
         let config = OAuth2Config::default();
         let jwt = Jwt::new(config).unwrap();
-        
+
         // Test space-separated scopes
         let claims_with_scope = JwtClaims {
             sub: "test".to_string(),
@@ -388,10 +484,10 @@ mod tests {
             iat: None,
             jti: None,
         };
-        
+
         let scopes = jwt.extract_scopes(&claims_with_scope);
         assert_eq!(scopes, vec!["read", "write", "admin"]);
-        
+
         // Test scopes array
         let claims_with_scopes = JwtClaims {
             sub: "test".to_string(),
@@ -404,10 +500,10 @@ mod tests {
             iat: None,
             jti: None,
         };
-        
+
         let scopes = jwt.extract_scopes(&claims_with_scopes);
         assert_eq!(scopes, vec!["read", "write"]);
-        
+
         // Test no scopes
         let claims_no_scopes = JwtClaims {
             sub: "test".to_string(),
@@ -420,7 +516,7 @@ mod tests {
             iat: None,
             jti: None,
         };
-        
+
         let scopes = jwt.extract_scopes(&claims_no_scopes);
         assert!(scopes.is_empty());
     }

@@ -498,37 +498,97 @@ where
         response_mode: ResponseMode,
         _auth_context: Option<AuthenticationContext>,
     ) -> Result<HttpResponse, HttpEngineError> {
-        // Parse JSON-RPC message (could be request or notification)
-        let message: JsonRpcMessage =
-            serde_json::from_slice(&request_data).map_err(|e| HttpEngineError::Engine {
-                message: format!("Failed to parse JSON-RPC message: {e}"),
-            })?;
+        // Use parse_and_validate_from_slice for optimal performance
+        // This avoids double UTF-8 validation and intermediate string allocation
+        let message = match JsonRpcMessage::parse_and_validate_from_slice(&request_data) {
+            Ok(message) => message,
+            Err(error_response) => {
+                // Return the standardized JSON-RPC error response
+                let response_body =
+                    serde_json::to_vec(&error_response).map_err(|e| HttpEngineError::Engine {
+                        message: format!("Failed to serialize error response: {e}"),
+                    })?;
+
+                return match response_mode {
+                    ResponseMode::Json => Ok(HttpResponse::json(response_body)),
+                    ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
+                    ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
+                };
+            }
+        };
 
         match message {
             JsonRpcMessage::Request(request) => {
                 // Handle request and send response
                 let request_id = request.id.clone();
-                let result = self.handle_mcp_method(&session_id, request).await?;
 
-                // Create JSON-RPC response
-                let response = JsonRpcResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id: Some(request_id),
-                    result: Some(result),
-                    error: None,
-                };
+                match self.handle_mcp_method(&session_id, request).await {
+                    Ok(result) => {
+                        // Create successful JSON-RPC response
+                        let response = JsonRpcResponse {
+                            jsonrpc: "2.0".to_string(),
+                            id: Some(request_id),
+                            result: Some(result),
+                            error: None,
+                        };
 
-                // Serialize response
-                let response_body =
-                    serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
-                        message: format!("Failed to serialize response: {e}"),
-                    })?;
+                        // Serialize response
+                        let response_body =
+                            serde_json::to_vec(&response).map_err(|e| HttpEngineError::Engine {
+                                message: format!("Failed to serialize response: {e}"),
+                            })?;
 
-                // Return appropriate response format
-                match response_mode {
-                    ResponseMode::Json => Ok(HttpResponse::json(response_body)),
-                    ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
-                    ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
+                        // Return appropriate response format
+                        match response_mode {
+                            ResponseMode::Json => Ok(HttpResponse::json(response_body)),
+                            ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
+                            ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
+                        }
+                    }
+                    Err(method_error) => {
+                        // Create JSON-RPC error response based on the error type
+                        let error_response = match method_error {
+                            HttpEngineError::Engine { message } => {
+                                if message.contains("Method not found")
+                                    || message.contains("Unknown method")
+                                {
+                                    JsonRpcResponse::method_not_found(&message, Some(request_id))
+                                } else if message.contains("Invalid params")
+                                    || message.contains("parameter")
+                                {
+                                    JsonRpcResponse::invalid_params(
+                                        &message,
+                                        None,
+                                        Some(request_id),
+                                    )
+                                } else {
+                                    JsonRpcResponse::internal_error(
+                                        &message,
+                                        None,
+                                        Some(request_id),
+                                    )
+                                }
+                            }
+                            _ => JsonRpcResponse::internal_error(
+                                "Internal server error",
+                                None,
+                                Some(request_id),
+                            ),
+                        };
+
+                        let response_body = serde_json::to_vec(&error_response).map_err(|e| {
+                            HttpEngineError::Engine {
+                                message: format!("Failed to serialize error response: {e}"),
+                            }
+                        })?;
+
+                        // Return error response
+                        match response_mode {
+                            ResponseMode::Json => Ok(HttpResponse::json(response_body)),
+                            ResponseMode::ServerSentEvents => Ok(HttpResponse::sse(response_body)),
+                            ResponseMode::Streaming => Ok(HttpResponse::streaming(response_body)),
+                        }
+                    }
                 }
             }
             JsonRpcMessage::Notification(notification) => {
@@ -597,7 +657,7 @@ where
             methods::LOGGING_SET_LEVEL => self.handle_set_logging(session_id, request).await?,
             _ => {
                 return Err(HttpEngineError::Engine {
-                    message: format!("Unknown method: {}", request.method),
+                    message: format!("Method not found: {}", request.method),
                 });
             }
         };
