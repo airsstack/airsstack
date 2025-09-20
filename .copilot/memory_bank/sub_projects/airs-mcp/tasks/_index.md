@@ -67,26 +67,6 @@
 
 ## Pending
 
-- [TASK-013] Generic MessageHandler Foundation Implementation - HIGH Priority - Added on 2025-09-10
-  - **Core Foundation**: Implement generic MessageHandler<T> and MessageContext<T> traits
-  - **STDIO Adaptation**: Update existing STDIO transport to use generic pattern as validation
-  - **Pattern Validation**: Verify generic architecture works with proven STDIO implementation
-  - **Type Safety**: Establish compile-time validation of transport-specific context data
-  - **Dependencies**: None (foundation work), enables TASK-014
-  - **References**: ADR-012 (Generic MessageHandler Architecture), architectural discovery session
-  - **Impact**: Foundation for unified transport architecture across all transport types
-
-- [TASK-014] HTTP Transport Generic Handler Implementation - HIGH Priority - Added on 2025-09-10  
-  - **HTTP Context**: Define HttpContext structure with request details and convenience methods
-  - **HTTP Transport**: Implement Transport trait with MessageHandler<HttpContext> pattern
-  - **Handler Examples**: McpHttpHandler, EchoHttpHandler, StaticFileHandler implementations
-  - **Framework Agnostic**: HTTP server abstraction for engineer choice of frameworks
-  - **Dependencies**: TASK-013 (Generic MessageHandler Foundation) must be complete
-  - **References**: ADR-012, transport-handler-architecture.md knowledge doc
-  - **Impact**: Complete HTTP transport implementation using unified generic architecture
-
-# Tasks Index - airs-mcp
-
 ## Completed
 
 - [TASK-028] Module Consolidation Refactoring - HIGH Priority - Added on 2025-09-07 - 100% Complete ✅ COMPLETE
@@ -344,6 +324,8 @@
 
 ## Abandoned
 - [SECURITY_AUDIT] Security Audit Framework Components - Scope refined: audit logging, compliance checking deferred to future enhancements
+- [TASK-013] Generic MessageHandler Foundation - Abandoned on 2025-12-26: Architectural approach simplified; TransportClient pattern proved more effective than MessageHandler abstraction
+- [TASK-014] HTTP Transport Generic Handler Implementation - Abandoned on 2025-12-26: No longer needed after architectural simplification toward direct TransportClient integration
 
 ## Summary
 

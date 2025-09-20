@@ -1,50 +1,114 @@
-# AIRS MCP: Technical Project Overview
+# AIRS MCP: Model Context Protocol Implementation
 
-## Project Definition
+## Project Description
 
-`AIRS MCP` is a **production-ready** Rust implementation of the Model Context Protocol (MCP) that provides both server and client libraries for integrating AI applications with external systems. The project delivers type-safe, high-performance MCP implementations with comprehensive protocol compliance and security features.
+AIRS MCP is a Rust implementation of the Model Context Protocol (MCP) that provides both server and client libraries for integrating AI applications with external systems. The implementation includes type-safe APIs, multiple transport options, and comprehensive protocol compliance.
 
-> **Status: Production Ready** ✅  
-> Complete implementation with 345+ passing tests, full Claude Desktop integration, **OAuth2 + MCP Inspector validation**, and 8.5+ GiB/s performance benchmarks.
+## Current Status
 
-## Technical Problem Statement
+The implementation is complete and operational with:
 
-### Core Challenge: Protocol Implementation Complexity
+- **Protocol Compliance**: Full JSON-RPC 2.0 foundation with MCP extensions
+- **Transport Support**: STDIO and HTTP transport implementations
+- **Authentication**: OAuth2 integration with PKCE support  
+- **Testing**: Comprehensive test suite with integration examples
+- **Documentation**: Complete API documentation and usage guides
 
-MCP presents several non-trivial implementation challenges:
+## Core Features
 
-- Bidirectional JSON-RPC 2.0: Unlike typical request-response APIs, MCP requires servers to initiate requests to clients
-- Stateful Protocol Lifecycle: Three-phase connection management (initialization → operation → shutdown) with strict message filtering
-- Capability Negotiation: Dynamic feature availability based on runtime capability exchange
-- Security Requirements: OAuth 2.1 + PKCE for HTTP, human-in-the-loop approval workflows, comprehensive audit logging
-- Real-time Features: Resource subscriptions, progress tracking, cancellation support
+### Protocol Implementation
 
-## Implementation Requirements
+- JSON-RPC 2.0 message types with MCP extensions
+- Bidirectional communication support (client ↔ server requests)
+- Three-phase connection lifecycle management
+- Capability negotiation between clients and servers
+- Transport abstraction layer
+
+### Server Features
+
+- **Resources**: URI-based resource access with subscription support
+- **Tools**: Function calling with JSON Schema validation
+- **Prompts**: Template-based prompt management
+- **Logging**: Comprehensive logging and audit capabilities
+
+### Client Features  
+
+- **Connection Management**: Automatic server connection handling
+- **Request Handling**: Type-safe API for all MCP operations
+- **Session State**: Proper lifecycle and capability tracking
+- **Error Handling**: Comprehensive error types and recovery
+
+### Transport Layer
+
+- **STDIO Transport**: Process-based communication for local servers
+- **HTTP Transport**: RESTful communication with authentication support
+- **Custom Transports**: Extensible transport interface
+
+### Authentication & Security
+
+- OAuth2 authentication with PKCE support
+- Bearer token authentication for HTTP transport
+- Request validation and error handling
+- Audit logging capabilities
+
+## Architecture Overview
+
+The implementation is organized in layers:
 
 ```
-Protocol Compliance:
-├── JSON-RPC 2.0 foundation with MCP extensions
-├── Bidirectional communication (client ↔ server requests)
-├── Three-phase lifecycle management
-├── Capability-based feature negotiation
-└── Transport abstraction (STDIO + HTTP)
+Integration Layer (High-level APIs)
+    ↓
+Protocol Layer (MCP message types and validation)
+    ↓  
+Transport Layer (Communication abstractions)
+    ↓
+JSON-RPC 2.0 Foundation
+```
 
-Server Features:
-├── Resources (URI templates, subscriptions, pagination)
-├── Tools (JSON Schema validation, safety controls, approval workflows)
-├── Prompts (templates, completion, multi-modal support)
-└── Real-time updates (subscriptions, notifications)
+### Key Components
 
-Client Features:
-├── Server connection management
-├── Sampling (server-initiated AI requests with double approval)
-├── Root directory access capability
-└── Multi-server coordination
+- **McpClient**: High-level client API for connecting to MCP servers
+- **McpServer**: Server implementation with provider interfaces
+- **TransportClient**: Clean request-response interface for communication
+- **Message Types**: Complete MCP protocol message definitions
+- **Provider Traits**: Extensible interfaces for server capabilities
 
-Security & Quality:
-├── OAuth 2.1 + PKCE authentication (✅ MCP Inspector validated)
-├── Enterprise three-server architecture with smart proxy routing
-├── Human-in-the-loop approval workflows
-├── Comprehensive audit logging and monitoring
-└── Production-grade error handling and recovery
+## Getting Started
+
+Basic client usage:
+
+```rust
+use airs_mcp::integration::McpClientBuilder;
+use airs_mcp::transport::adapters::stdio::StdioTransportClientBuilder;
+
+// Create transport
+let transport = StdioTransportClientBuilder::new()
+    .command("your-mcp-server")
+    .build()
+    .await?;
+
+// Create client
+let mut client = McpClientBuilder::new().build(transport);
+
+// Initialize connection
+let capabilities = client.initialize().await?;
+
+// Use MCP operations
+let tools = client.list_tools().await?;
+```
+
+Basic server setup:
+
+```rust
+use airs_mcp::integration::server::McpServer;
+use airs_mcp::transport::adapters::stdio::StdioTransport;
+
+// Create server with providers
+let server = McpServer::new()
+    .with_resource_provider(resource_provider)
+    .with_tool_provider(tool_provider);
+
+// Start with transport
+let transport = StdioTransportClientBuilder::new();
+server.serve(transport).await?;
 ```

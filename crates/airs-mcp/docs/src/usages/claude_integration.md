@@ -1,53 +1,127 @@
 # Claude Desktop Integration
 
-*Production-ready integration guide for AIRS MCP servers with Claude Desktop*
+This guide covers integration of AIRS MCP servers with Claude Desktop.
 
 ## Overview
 
-AIRS MCP provides **battle-tested Claude Desktop integration** with comprehensive automation, enterprise-grade safety measures, and zero-configuration deployment tooling. This integration has been **extensively tested and verified** with Claude Desktop's sophisticated UI across multiple production deployments.
+AIRS MCP provides Claude Desktop integration through MCP protocol compliance. The integration supports both STDIO and HTTP transport methods for connecting to Claude Desktop applications.
 
-> **Production Status**: ✅ Fully tested with 345+ passing tests and comprehensive Claude Desktop validation
+## Integration Methods
 
-## Quick Integration (Recommended)
+### STDIO Integration
 
-### Complete Automated Setup
+The most common integration method uses STDIO transport for local server communication:
 
-The fastest way to integrate with Claude Desktop using our proven automation:
+1. **Build your MCP server**
+2. **Configure Claude Desktop**
+3. **Test the connection**
 
-```bash
-# Navigate to the production-ready example server
-cd airs/crates/airs-mcp/examples/simple-mcp-server
+### Configuration Setup
 
-# Complete automated integration (single command)
-./scripts/integrate.sh
+Claude Desktop requires configuration in its settings file. The typical location varies by platform:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+### Example Configuration
+
+```json
+{
+  "mcpServers": {
+    "airs-mcp-server": {
+      "command": "/path/to/your/mcp-server",
+      "args": [],
+      "env": {}
+    }
+  }
+}
 ```
 
-This automated approach provides:
-- ✅ **Complete Automation**: End-to-end integration with comprehensive safety measures
-- ✅ **Battle-Tested**: Proven in production environments with 345+ test validation
-- ✅ **Safety First**: Automatic configuration backups with timestamp recovery  
-- ✅ **Schema Compliance**: 100% MCP 2024-11-05 specification compliance validated
-- ✅ **Multi-Modal Testing**: MCP Inspector browser testing + Claude Desktop verification
-- ✅ **Real-time Debugging**: Comprehensive monitoring and troubleshooting dashboard
+## Server Implementation
 
-> **Detailed Script Documentation**: See [Automation Scripts](./automation_scripts.md) for comprehensive script documentation and troubleshooting guides.
+Basic MCP server for Claude Desktop:
 
-### Manual Step-by-Step Integration
+```rust
+use airs_mcp::integration::server::McpServer;
+use airs_mcp::transport::adapters::stdio::StdioTransport;
 
-If you prefer granular control over the integration process:
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let server = McpServer::new()
+        .with_resource_provider(your_resource_provider)
+        .with_tool_provider(your_tool_provider);
+    
+    let transport = StdioTransportClientBuilder::new();
+    server.serve(transport).await?;
+    
+    Ok(())
+}
+```
+
+## Testing Integration
+
+### Basic Connection Test
+
+1. Start your MCP server manually to verify it works
+2. Check Claude Desktop logs for connection status
+3. Verify MCP operations work as expected
+
+### Debugging Connection Issues
+
+Common issues and solutions:
+
+- **Server not starting**: Check binary path and permissions
+- **Connection timeout**: Verify server responds to initialization
+- **Protocol errors**: Ensure MCP compliance and proper message handling
+
+## Example Integration
+
+A complete working example is available in the examples directory:
 
 ```bash
-# 1. Build production-ready binary
-./scripts/build.sh
+# Navigate to example
+cd crates/airs-mcp/examples/simple-mcp-server
 
-# 2. Comprehensive testing with MCP Inspector
-./scripts/test_inspector.sh
+# Build the server
+cargo build --release
 
-# 3. Configure Claude Desktop (with automatic backups)
-./scripts/configure_claude.sh
+# Configure path in Claude Desktop
+# Point to: target/release/simple-mcp-server
+```
 
-# 4. Launch real-time debugging dashboard
-./scripts/debug_integration.sh
+## HTTP Integration
+
+For remote server integration, use HTTP transport:
+
+```json
+{
+  "mcpServers": {
+    "remote-server": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-http-client", "http://your-server:3000/mcp"]
+    }
+  }
+}
+```
+
+## Verification
+
+After configuration:
+
+1. Restart Claude Desktop
+2. Check for your server in available tools
+3. Test basic operations like listing resources or tools
+4. Verify tool calls work correctly
+
+## Troubleshooting
+
+### Common Issues
+
+- **Server not visible**: Check configuration file syntax and paths
+- **Permission errors**: Ensure executable permissions on server binary
+- **Protocol errors**: Verify server implements required MCP methods
+- **Timeout issues**: Check server startup time and responsiveness
 ```
 
 **Each script includes:**
@@ -108,7 +182,7 @@ Tools appear in Claude Desktop's **MCP Tools interface** and can be executed in 
 
 ```rust
 use airs_mcp::integration::mcp::{ToolProvider, McpError};
-use airs_mcp::shared::protocol::Tool;
+use airs_mcp::protocol::protocol::Tool;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
@@ -159,7 +233,7 @@ Resources are accessible through Claude Desktop's **attachment menu**:
 
 ```rust
 use airs_mcp::integration::mcp::{ResourceProvider, McpError};
-use airs_mcp::shared::protocol::{Resource, Content, Uri, MimeType};
+use airs_mcp::protocol::protocol::{Resource, Content, Uri, MimeType};
 use async_trait::async_trait;
 
 #[derive(Debug)]
@@ -218,7 +292,7 @@ Prompts appear in Claude Desktop's **prompt template interface**:
 
 ```rust
 use airs_mcp::integration::mcp::{PromptProvider, McpError};
-use airs_mcp::shared::protocol::{Prompt, PromptArgument, PromptMessage};
+use airs_mcp::protocol::protocol::{Prompt, PromptArgument, PromptMessage};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -281,7 +355,7 @@ impl PromptProvider for CodeReviewPrompts {
 
 ```rust
 use airs_mcp::integration::mcp::McpServerBuilder;
-use airs_mcp::shared::protocol::ServerCapabilities;
+use airs_mcp::protocol::protocol::ServerCapabilities;
 use tracing::info;
 
 #[tokio::main]
@@ -289,7 +363,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (file-based to avoid STDIO contamination)
     init_logging()?;
     
-    info!("🚀 Starting AIRS MCP Server for Claude Desktop");
+    info!("Starting AIRS MCP Server for Claude Desktop");
 
     // Create server capabilities
     let capabilities = ServerCapabilities::default()
@@ -308,7 +382,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .prompt_provider(Box::new(CodeReviewPrompts))
         .build()?;
 
-    info!("✅ Server built successfully, starting JSON-RPC communication");
+    info!("Server built successfully, starting JSON-RPC communication");
 
     // Run server (connects to Claude Desktop via STDIO)
     server.run().await?;
@@ -396,7 +470,7 @@ impl FileSystemProvider {
 ### Performance Optimization
 
 ```rust
-use airs_mcp::base::jsonrpc::concurrent::ConcurrentJsonRpcConfig;
+use airs_mcp::protocol::jsonrpc::concurrent::ConcurrentJsonRpcConfig;
 use std::time::Duration;
 
 let config = ConcurrentJsonRpcConfig::builder()

@@ -87,7 +87,7 @@ STDIO transport uses newline-delimited JSON for message framing:
 use airs_mcp::transport::{Transport, StdioTransport};
 
 async fn stdio_example() -> Result<(), Box<dyn std::error::Error>> {
-    let mut transport = StdioTransport::new().await?;
+    let mut transport = StdioTransportClientBuilder::new().await?;
     
     // Send JSON-RPC message (automatically adds newline)
     let request = br#"{"jsonrpc":"2.0","method":"ping","id":"1"}"#;
@@ -102,15 +102,15 @@ async fn stdio_example() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Advanced Buffer Management
+### Buffer Management
 
-STDIO transport supports high-performance buffer pooling:
+STDIO transport supports buffer pooling:
 
 ```rust
 use airs_mcp::transport::{StdioTransport, BufferConfig};
 
 async fn high_performance_stdio() -> Result<(), Box<dyn std::error::Error>> {
-    // Configure advanced buffer management
+    // Configure buffer management
     let buffer_config = BufferConfig {
         read_buffer_capacity: 64 * 1024,     // 64KB read buffers
         write_buffer_capacity: 64 * 1024,    // 64KB write buffers
@@ -132,7 +132,7 @@ async fn high_performance_stdio() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Zero-Copy Optimizations
+### Buffer Management
 
 Implement `ZeroCopyTransport` for maximum performance:
 
@@ -152,7 +152,7 @@ async fn zero_copy_example<T: ZeroCopyTransport>(
     // Process message in-place
     process_message_inplace(&mut buffer[..bytes_received]);
     
-    // Send using zero-copy
+    // Send using efficient buffer operations
     transport.send_bytes(&buffer[..bytes_received]).await?;
     
     // Buffer automatically returned to pool when dropped
@@ -160,7 +160,7 @@ async fn zero_copy_example<T: ZeroCopyTransport>(
 }
 
 fn process_message_inplace(buffer: &mut [u8]) {
-    // Process message without allocation
+    // Process message efficiently in-place
     // e.g., modify headers, add routing info, etc.
 }
 ```
@@ -615,18 +615,18 @@ impl<T> SecureTransport<T> {
 
 ### Buffer Management Integration
 
-Integrate with AIRS MCP's advanced buffer management:
+Integrate with AIRS MCP's buffer management:
 
 ```rust
 use airs_mcp::transport::buffer::{BufferManager, BufferConfig};
 use std::sync::Arc;
 
-pub struct OptimizedTransport<T> {
+pub struct BufferedTransport<T> {
     inner: T,
     buffer_manager: Arc<BufferManager>,
 }
 
-impl<T: Transport> OptimizedTransport<T> {
+impl<T: Transport> BufferedTransport<T> {
     pub fn new(inner: T, buffer_config: BufferConfig) -> Self {
         Self {
             inner,
@@ -635,7 +635,7 @@ impl<T: Transport> OptimizedTransport<T> {
     }
 }
 
-impl<T: Transport> Transport for OptimizedTransport<T> {
+impl<T: Transport> Transport for BufferedTransport<T> {
     type Error = TransportError;
 
     async fn send(&mut self, message: &[u8]) -> Result<(), Self::Error> {
@@ -673,7 +673,7 @@ Leverage streaming capabilities for large messages:
 
 ```rust
 use airs_mcp::transport::streaming::{StreamingTransport, StreamingStats};
-use airs_mcp::base::jsonrpc::streaming::StreamingConfig;
+use airs_mcp::protocol::jsonrpc::streaming::StreamingConfig;
 
 async fn create_streaming_transport<T>(
     base_transport: T,
@@ -788,7 +788,7 @@ Test transport integration with the MCP protocol:
 
 ```rust
 use airs_mcp::integration::server::JsonRpcServer;
-use airs_mcp::base::jsonrpc::message::*;
+use airs_mcp::protocol::jsonrpc::message::*;
 
 #[tokio::test]
 async fn test_custom_transport_integration() {
@@ -844,7 +844,7 @@ pub enum TransportType {
 pub struct StdioConfig {
     pub max_message_size: usize,
     pub buffer_pool_size: Option<usize>,
-    pub enable_advanced_buffers: bool,
+    pub enable_buffers: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -864,7 +864,7 @@ pub async fn create_transport_from_config(
             let stdio_config = config.stdio.as_ref()
                 .ok_or_else(|| TransportError::format("Missing STDIO config".to_string()))?;
                 
-            if stdio_config.enable_advanced_buffers {
+            if stdio_config.enable_buffers {
                 let buffer_config = BufferConfig {
                     pool_size: stdio_config.buffer_pool_size.unwrap_or(10),
                     max_message_size: stdio_config.max_message_size,
@@ -991,10 +991,6 @@ impl<T: Transport> Transport for MonitoredTransport<T> {
 
 With custom transport implementation complete, you're ready to:
 
-1. **[Troubleshooting →](troubleshooting.md)** - Debug transport issues and performance problems
-2. **[Migration Guide →](migration_guide.md)** - Upgrade existing transports to new versions
-3. **[Advanced Patterns →](advanced_patterns.md)** - Explore enterprise-grade patterns and optimizations
+1. **[Patterns →](advanced_patterns.md)** - Explore patterns and techniques
 
----
-
-*Transport flexibility is one of AIRS MCP's key strengths. Whether you need simple STDIO communication or complex multi-protocol routing, the transport abstraction layer provides the foundation for any deployment scenario.*
+Transport flexibility is one of AIRS MCP's key strengths. Whether you need simple STDIO communication or complex multi-protocol routing, the transport abstraction layer provides the foundation for any deployment scenario.

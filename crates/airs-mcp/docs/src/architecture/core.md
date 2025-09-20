@@ -1,17 +1,29 @@
-# Core Component Design - Production Implementation
+# Core Component Design
 
-> **Implementation Status**: ✅ **PRODUCTION IMPLEMENTATION**  
-> This document reflects the actual production architecture, not planned designs.
+This document describes the core components of the current AIRS MCP implementation.
 
-## ✅ JSON-RPC 2.0 Foundation Layer (Implemented)
+## Architecture Overview
 
-The production implementation uses a simplified, efficient architecture focused on STDIO transport and high performance.
+The AIRS MCP implementation uses a layered architecture focused on type safety, performance, and clean abstractions:
+
+```
+Integration Layer (McpClient/McpServer)
+    ↓
+Protocol Layer (JSON-RPC 2.0 + MCP messages)
+    ↓
+Transport Layer (HTTP/STDIO TransportClient)
+    ↓
+Network/Process Communication
+```
+
+## JSON-RPC 2.0 Foundation
+
+The protocol layer provides complete JSON-RPC 2.0 compliance with MCP extensions:
 
 ```rust
-// Actual production message processing (simplified & effective)
-// Located in: src/base/
+// Core JSON-RPC 2.0 types
+// Located in: src/protocol/jsonrpc/
 
-// Core JSON-RPC 2.0 types (actual implementation)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
     pub jsonrpc: String,
@@ -28,7 +40,6 @@ pub struct JsonRpcResponse {
     pub payload: ResponsePayload,
 }
 
-// Actual request ID implementation
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum RequestId {
@@ -36,174 +47,173 @@ pub enum RequestId {
     String(String),
 }
 
-// Production message types covering all MCP operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "method")]
-pub enum ClientRequest {
-    #[serde(rename = "initialize")]
-    Initialize { params: InitializeParams },
-    #[serde(rename = "ping")]
-    Ping,
-    #[serde(rename = "resources/list")]
-    ListResources { params: Option<ListResourcesParams> },
-    #[serde(rename = "resources/read")]
-    ReadResource { params: ReadResourceParams },
-    #[serde(rename = "tools/list")]
-    ListTools { params: Option<ListToolsParams> },
-    #[serde(rename = "tools/call")]
-    CallTool { params: CallToolParams },
-    #[serde(rename = "prompts/list")]
-    ListPrompts { params: Option<ListPromptsParams> },
-    #[serde(rename = "prompts/get")]
-    GetPrompt { params: GetPromptParams },
+#[serde(untagged)]
+pub enum ResponsePayload {
+    Success { result: Value },
+    Error { error: JsonRpcError },
 }
 ```
 
-## ✅ Correlation Management (Lock-Free Production Implementation)
+## Transport Client Architecture
+
+The current implementation uses a clean request-response pattern through the `TransportClient` trait:
 
 ```rust
-// Actual correlation manager implementation (production-validated)
-// Located in: src/correlation/manager.rs
+// Transport abstraction
+// Located in: src/transport/
 
-use dashmap::DashMap;
-use tokio::sync::oneshot;
-use uuid::Uuid;
+#[async_trait]
+pub trait TransportClient: Send + Sync {
+    type Error: std::error::Error + Send + Sync + 'static;
 
-#[derive(Debug)]
-pub struct CorrelationManager {
-    pending_requests: DashMap<RequestId, oneshot::Sender<JsonRpcResponse>>,
-    id_counter: AtomicU64,
-}
-
-impl CorrelationManager {
-    pub fn new() -> Self {
-        Self {
-            pending_requests: DashMap::new(),
-            id_counter: AtomicU64::new(1),
-        }
-    }
-
-    // Generate unique request ID (production implementation)
-    pub fn generate_request_id(&self) -> RequestId {
-        RequestId::String(Uuid::new_v4().to_string())
-    }
-
-    // Send request with correlation (production implementation)
-    pub async fn send_request<T>(
-        &self,
-        transport: &mut T,
-        method: &str,
-        params: Option<Value>,
-    ) -> Result<JsonRpcResponse, CorrelationError>
-    where
-        T: Transport,
-    {
-        let request_id = self.generate_request_id();
-        let (tx, rx) = oneshot::channel();
-
-        // Store pending request
-        self.pending_requests.insert(request_id.clone(), tx);
-
-        // Create and send request
-        let request = JsonRpcRequest {
-            jsonrpc: "2.0".to_string(),
-            id: Some(request_id.clone()),
-            method: method.to_string(),
-            params,
-        };
-
-        // Send request through transport
-        transport.send(Message::Request(request)).await?;
-
-        // Wait for response with timeout
-        let response = tokio::time::timeout(
-            Duration::from_secs(30),
-            rx,
-        ).await??;
-
-        Ok(response)
-    }
-
-    // Handle incoming response (production implementation)
-    pub fn handle_response(&self, response: JsonRpcResponse) -> Result<(), CorrelationError> {
-        if let Some(id) = &response.id {
-            if let Some((_, sender)) = self.pending_requests.remove(id) {
-                sender.send(response).map_err(|_| CorrelationError::ChannelClosed)?;
-                Ok(())
-            } else {
-                Err(CorrelationError::UnknownRequestId(id.clone()))
-            }
-        } else {
-            Err(CorrelationError::MissingRequestId)
-        }
-    }
+    async fn call(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error>;
+    async fn close(&self) -> Result<(), Self::Error>;
 }
 ```
 
-## ✅ Transport Layer (STDIO Production Implementation)
+### STDIO Transport Client
 
 ```rust
-// Actual STDIO transport implementation (production-validated)
-// Located in: src/transport/stdio.rs
+// STDIO transport implementation
+// Located in: src/transport/adapters/stdio/
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, ChildStdin, ChildStdout};
-
-#[derive(Debug)]
-pub struct StdioTransport {
-    stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
-    _child: Child,
+pub struct StdioTransportClient {
+    // Internal implementation details...
 }
 
-impl StdioTransport {
-    pub async fn new(mut command: Command) -> Result<Self, TransportError> {
-        let mut child = command
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
-
-        let stdin = child.stdin.take().unwrap();
-        let stdout = BufReader::new(child.stdout.take().unwrap());
-
-        Ok(Self {
-            stdin,
-            stdout,
-            _child: child,
-        })
+impl StdioTransportClient {
+    pub async fn new(config: StdioTransportConfig) -> Result<Self, StdioTransportError> {
+        // Create STDIO transport with configured process
+        // Handles process spawning, stdin/stdout management
     }
 }
 
 #[async_trait]
-impl Transport for StdioTransport {
-    async fn send(&mut self, message: Message) -> Result<(), TransportError> {
-        let json = serde_json::to_string(&message)?;
-        self.stdin.write_all(json.as_bytes()).await?;
-        self.stdin.write_all(b"\n").await?;
-        self.stdin.flush().await?;
-        Ok(())
-    }
+impl TransportClient for StdioTransportClient {
+    type Error = StdioTransportError;
 
-    async fn receive(&mut self) -> Result<Message, TransportError> {
-        let mut line = String::new();
-        self.stdout.read_line(&mut line).await?;
-        
-        if line.trim().is_empty() {
-            return Err(TransportError::ConnectionClosed);
-        }
-
-        let message: Message = serde_json::from_str(&line)?;
-        Ok(message)
+    async fn call(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error> {
+        // Send request via stdin, receive response via stdout
+        // Handles JSON serialization/deserialization
+        // Provides timeout and error handling
     }
 }
 ```
 
-## ✅ Provider System (Simple & Effective Implementation)
+### HTTP Transport Client
 
 ```rust
-// Actual provider trait system (production implementation)  
-// Located in: src/integration/provider.rs
+// HTTP transport implementation
+// Located in: src/transport/adapters/http/
+
+pub struct HttpTransportClient {
+    // Internal implementation with HTTP client
+}
+
+impl HttpTransportClient {
+    pub async fn new(config: HttpTransportConfig) -> Result<Self, HttpTransportError> {
+        // Create HTTP client with authentication
+        // Supports Bearer tokens, API keys, OAuth2
+    }
+}
+
+#[async_trait]
+impl TransportClient for HttpTransportClient {
+    type Error = HttpTransportError;
+
+    async fn call(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, Self::Error> {
+        // Send HTTP POST with JSON-RPC request
+        // Handle authentication headers
+        // Parse JSON-RPC response from HTTP response
+    }
+}
+```
+
+## MCP Client Architecture
+
+The `McpClient` provides high-level MCP operations built on the transport layer:
+
+```rust
+// High-level MCP client
+// Located in: src/integration/client.rs
+
+pub struct McpClient<T: TransportClient> {
+    transport: T,
+    session_state: McpSessionState,
+    config: McpClientConfig,
+}
+
+impl<T: TransportClient> McpClient<T> {
+    pub async fn initialize(&mut self) -> McpResult<InitializeResult> {
+        // Send MCP initialize request
+        // Negotiate protocol version and capabilities
+        // Update session state
+    }
+
+    pub async fn list_tools(&self) -> McpResult<ListToolsResult> {
+        // Send tools/list request
+        // Parse and return available tools
+    }
+
+    pub async fn call_tool(&self, request: Value) -> McpResult<CallToolResult> {
+        // Send tools/call request with tool arguments
+        // Handle tool execution response
+    }
+
+    pub async fn list_resources(&self) -> McpResult<ListResourcesResult> {
+        // Send resources/list request
+        // Return available resources
+    }
+
+    pub async fn read_resource(&self, uri: String) -> McpResult<ReadResourceResult> {
+        // Send resources/read request
+        // Return resource content
+    }
+}
+```
+
+## MCP Server Architecture
+
+The `McpServer` handles incoming MCP requests and delegates to providers:
+
+```rust
+// High-level MCP server
+// Located in: src/integration/server.rs
+
+pub struct McpServer<T> {
+    providers: ProviderRegistry,
+    server_info: ServerInfo,
+    capabilities: ServerCapabilities,
+    _phantom: PhantomData<T>,
+}
+
+impl<T> McpServer<T> {
+    pub async fn handle_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        let result = match request.method.as_str() {
+            "initialize" => self.handle_initialize(request.params).await,
+            "tools/list" => self.handle_list_tools().await,
+            "tools/call" => self.handle_call_tool(request.params).await,
+            "resources/list" => self.handle_list_resources().await,
+            "resources/read" => self.handle_read_resource(request.params).await,
+            "prompts/list" => self.handle_list_prompts().await,
+            "prompts/get" => self.handle_get_prompt(request.params).await,
+            _ => Err(McpError::MethodNotFound(request.method.clone())),
+        };
+
+        // Convert result to JsonRpcResponse
+        self.create_response(request.id, result)
+    }
+}
+```
+
+## Provider System
+
+The provider system allows extending server capabilities:
+
+```rust
+// Provider traits
+// Located in: src/providers/
 
 #[async_trait]
 pub trait ResourceProvider: Send + Sync {
@@ -222,128 +232,48 @@ pub trait PromptProvider: Send + Sync {
     async fn list_prompts(&self) -> Result<Vec<Prompt>, ProviderError>;
     async fn get_prompt(&self, name: &str, arguments: Option<Value>) -> Result<GetPromptResult, ProviderError>;
 }
-
-// Production provider registry (simple & efficient)
-#[derive(Default)]
-pub struct ProviderRegistry {
-    resource_providers: Arc<RwLock<Vec<Arc<dyn ResourceProvider>>>>,
-    tool_providers: Arc<RwLock<Vec<Arc<dyn ToolProvider>>>>,
-    prompt_providers: Arc<RwLock<Vec<Arc<dyn PromptProvider>>>>,
-}
-
-impl ProviderRegistry {
-    pub fn register_resource_provider(&self, provider: Arc<dyn ResourceProvider>) {
-        self.resource_providers.write().unwrap().push(provider);
-    }
-
-    pub fn register_tool_provider(&self, provider: Arc<dyn ToolProvider>) {
-        self.tool_providers.write().unwrap().push(provider);
-    }
-
-    pub fn register_prompt_provider(&self, provider: Arc<dyn PromptProvider>) {
-        self.prompt_providers.write().unwrap().push(provider);
-    }
-}
 ```
 
-## ✅ MCP Server (Production Implementation)
+## Builder Pattern
+
+The implementation uses builder patterns for clean configuration:
 
 ```rust
-// Actual MCP server implementation (production-validated)
-// Located in: src/integration/server.rs
+// Client builder
+let transport = StdioTransportClientBuilder::new()
+    .command("mcp-server")
+    .timeout(Duration::from_secs(30))
+    .build()
+    .await?;
 
-pub struct McpServer {
-    registry: Arc<ProviderRegistry>,
-    correlation: Arc<CorrelationManager>,
-    server_info: ServerInfo,
-}
+let mut client = McpClientBuilder::new()
+    .client_info("my-client", "1.0.0")
+    .timeout(Duration::from_secs(60))
+    .build(transport);
 
-impl McpServer {
-    pub fn new(server_info: ServerInfo) -> Self {
-        Self {
-            registry: Arc::new(ProviderRegistry::default()),
-            correlation: Arc::new(CorrelationManager::new()),
-            server_info,
-        }
-    }
-
-    // Main message handling loop (production implementation)
-    pub async fn run<T>(&self, mut transport: T) -> Result<(), ServerError>
-    where
-        T: Transport,
-    {
-        loop {
-            match transport.receive().await? {
-                Message::Request(request) => {
-                    let response = self.handle_request(request).await;
-                    if let Ok(resp) = response {
-                        transport.send(Message::Response(resp)).await?;
-                    }
-                }
-                Message::Response(response) => {
-                    self.correlation.handle_response(response)?;
-                }
-                Message::Notification(_) => {
-                    // Handle notifications if needed
-                }
-            }
-        }
-    }
-
-    // Production request handling (covers all MCP methods)
-    async fn handle_request(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, ServerError> {
-        let method = &request.method;
-        let params = request.params.unwrap_or(Value::Null);
-
-        let result = match method.as_str() {
-            "initialize" => {
-                let params: InitializeParams = serde_json::from_value(params)?;
-                Ok(serde_json::to_value(InitializeResult {
-                    protocol_version: params.protocol_version,
-                    capabilities: ServerCapabilities::default(),
-                    server_info: Some(self.server_info.clone()),
-                })?)
-            }
-            "resources/list" => self.handle_list_resources(params).await,
-            "resources/read" => self.handle_read_resource(params).await,
-            "tools/list" => self.handle_list_tools(params).await,
-            "tools/call" => self.handle_call_tool(params).await,
-            "prompts/list" => self.handle_list_prompts(params).await,
-            "prompts/get" => self.handle_get_prompt(params).await,
-            "ping" => Ok(Value::Null),
-            _ => Err(ServerError::MethodNotFound(method.to_string())),
-        };
-
-        Ok(JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            id: request.id,
-            payload: match result {
-                Ok(value) => ResponsePayload::Success { result: value },
-                Err(error) => ResponsePayload::Error { error: error.into() },
-            },
-        })
-    }
-}
+// Server builder  
+let transport = HttpTransportClientBuilder::new()
+    .endpoint("http://localhost:3000/mcp")?
+    .auth(AuthMethod::Bearer { token: "token".to_string() })
+    .build()
+    .await?;
 ```
 
-## Architecture Benefits: Production Validation
+## Architecture Benefits
 
-### ✅ Performance Characteristics (Measured)
-- **Throughput**: 8.5+ GiB/s sustained performance
-- **Latency**: Sub-microsecond message serialization/deserialization  
-- **Memory**: Zero-copy buffer management with `bytes` crate
-- **Concurrency**: Lock-free correlation manager handles 1000+ concurrent requests
+### Type Safety
+- **Compile-time validation**: MCP message types validated at compile time
+- **Error handling**: Comprehensive error types for different failure modes
+- **Protocol compliance**: Type system enforces MCP specification requirements
 
-### ✅ Simplicity Benefits (Realized)
-- **Single Crate**: 40% faster compilation vs planned multi-crate workspace
-- **Unified Testing**: 345+ tests covering all components in single test suite
-- **Clear API Surface**: Minimal public interface focused on core functionality
-- **Direct Integration**: STDIO transport directly compatible with Claude Desktop
+### Performance
+- **Buffer Management**: Uses `bytes` crate for efficient buffer management
+- **Async-native**: Built on tokio for efficient concurrent operations
+- **Minimal allocations**: Careful memory management in hot paths
 
-### ✅ Production Validation (Claude Desktop Integration)
-- **Full MCP Compliance**: 2024-11-05 specification completely implemented
-- **Real-World Testing**: Successfully integrated with Claude Desktop
-- **Error Handling**: Comprehensive error hierarchy with proper context preservation
-- **Documentation**: Complete mdBook system with working examples
+### Modularity
+- **Transport abstraction**: Clean separation between protocol and transport
+- **Provider system**: Extensible server capabilities through traits
+- **Builder pattern**: Ergonomic configuration with sensible defaults
 
-The production implementation demonstrates that **focused simplicity** delivers superior results to complex planning. The architecture prioritizes performance, simplicity, and real-world usability over theoretical completeness.
+The current architecture eliminates the complexity of correlation management by using a simple request-response pattern through the `TransportClient` trait, providing better performance and maintainability.
