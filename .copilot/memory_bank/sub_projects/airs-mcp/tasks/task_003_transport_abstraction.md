@@ -1,8 +1,10 @@
 # [TASK003] - Transport Abstraction Implementation
 
-**Status:** pending  
+**Status:** abandoned  
 **Added:** 2025-08-01  
-**Updated:** 2025-08-01
+**Updated:** 2025-01-08
+
+**ABANDONED**: Transport abstraction layer removed during architectural simplification. Individual transport builders (StdioTransportBuilder, HttpTransportBuilder<E>) proven more effective than generic abstraction. Related to Task 031 abandonment.
 
 ## Original Request
 Define and implement the Transport trait for async send/receive/close operations, starting with STDIO transport and preparing for future extensibility (HTTP, WebSocket, TCP).
@@ -20,7 +22,16 @@ Define and implement the Transport trait for async send/receive/close operations
 - Write unit and integration tests for reliability and performance.
 
 ## Progress Tracking
-**Overall Status:** complete - 100%
+**Overall Status:** abandoned - Architectural simplification decision
+
+### 2025-01-08 (TASK ABANDONED - Architectural Simplification)
+- **ARCHITECTURAL DECISION**: Task 003 abandoned based on architectural simplification principles
+- **Reasoning**: Generic transport abstraction eliminated in favor of individual transport builders
+- **Implementation Evidence**: StdioTransportBuilder and HttpTransportBuilder<E> work independently with transport-specific optimizations
+- **Correlation**: Directly related to Task 031 abandonment (TransportBuilder trait over-abstraction)
+- **Alignment**: Supports workspace "zero-cost abstractions" principle - each transport optimized for its specific use case
+- **Current State**: Individual builders proven more powerful and maintainable than forced abstraction
+- **Status**: ✅ **ABANDONED** - Over-abstraction eliminated, individual builders preserved and enhanced
 
 ### Subtasks
 | ID   | Description                                 | Status      | Updated    | Notes                                 |

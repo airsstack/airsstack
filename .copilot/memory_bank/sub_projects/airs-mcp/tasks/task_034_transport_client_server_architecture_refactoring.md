@@ -21,7 +21,7 @@
 **PHASE 4.3 ✅**: STDIO Client Integration Example (COMPLETE)  
 **PHASE 4.4 ✅**: HTTP API Key Examples (SKIPPED - OAuth2 Priority)
 **PHASE 4.5 ✅**: HTTP OAuth2 Client Integration Example (COMPLETE)
-**PHASE 5 ⏳**: Testing and Validation - REVISED SCOPE (Edge Cases + Documentation)
+**PHASE 5 ⏳**: Testing and Validation - REVISED SCOPE (Edge Cases + Documentation) - **LINKED WITH TASK 010**
 
 ### Recent Achievements
 
@@ -434,7 +434,14 @@ pub trait TransportClient: Send + Sync {
 - [ ] Examples cover all common use cases
 - [ ] Troubleshooting section addresses likely issues
 
-### 📋 PHASE 5: Testing and Validation (Revised Scope)
+### 📋 PHASE 5: Testing and Validation (Revised Scope) - **LINKED WITH TASK 010**
+
+**🔗 TASK INTEGRATION**: Phase 5.3 (Documentation Review) is directly linked with Task 010 (MDBook Documentation Overhaul). Both tasks address documentation gaps and ensure production-ready representation of the mature codebase.
+
+**Coordination Strategy**:
+- **Phase 5.3**: Focuses on example-specific documentation (READMEs, setup guides, debugging tools)
+- **Task 010**: Focuses on overall project documentation (mdBook, API docs, architecture overview)
+- **Completion Approach**: Complete both tasks together to ensure comprehensive documentation coverage
 
 #### Phase 5.1: OAuth2 Edge Case Testing
 **Duration**: 1 session  

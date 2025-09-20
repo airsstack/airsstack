@@ -1,9 +1,9 @@
 # [TASK-031] - Transport Builder Architectural Consistency
 
-**Status:** in_progress  
-**Priority:** CRITICAL  
+**Status:** abandoned  
+**Priority:** CRITICAL → N/A (ARCHITECTURAL DECISION)  
 **Added:** 2025-09-13  
-**Updated:** 2025-09-13
+**Updated:** 2025-01-08
 
 ## Original Request
 Critical architectural mismatch discovered: STDIO and HTTP transports follow completely different builder patterns, violating the core design principle that transport abstractions should be protocol-agnostic. This breaks ADR-011 Transport Configuration Separation and creates dangerous post-construction handler patterns.
@@ -182,7 +182,7 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 80% (Phase 1 + Phase 2 + Phase 3 Complete)
+**Overall Status:** abandoned - Architectural decision to eliminate TransportBuilder trait over-abstraction (Phase 1 + Phase 2 + Phase 3 Complete)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -286,6 +286,29 @@ impl<R, T, P, L> McpRequestHandler for AxumMcpRequestHandler<R, T, P, L> {
 - **Integration Pattern**: Demonstrates complete OAuth2 server lifecycle with proper scope enforcement
 - **Files Modified**: `crates/airs-mcp/examples/mcp-inspector-oauth2-server.rs`
 - **Example Status**: **Premier OAuth2 MCP server demonstration** with complete authentication + authorization integration
+
+### 2025-01-08 (Status Verification and Reality Check)
+- **Status Update**: After thorough verification, Task 031 is NOT complete
+- **Discovery**: No `TransportBuilder` trait exists in actual codebase (only in memory bank docs)
+- **Reality**: Both HTTP and STDIO builders use custom patterns, no architectural consistency
+- **Current State**: HttpTransportBuilder has `with_message_handler()` but doesn't implement common trait
+- **Assessment**: This task needs significant work to implement the unified builder interface
+- **Updated Status**: Reduced completion from 80% to 40% based on actual implementation state
+- **Next Steps**: Need to implement actual `TransportBuilder` trait and make both builders implement it
+
+### 2025-01-08 (TASK ABANDONED - Architectural Decision)
+- **ARCHITECTURAL DECISION**: Task 031 abandoned based on documented analysis from Task 032/033
+- **Critical Discovery**: TransportBuilder trait identified as over-abstraction violating workspace standards
+- **Evidence**: Real examples bypass TransportBuilder trait entirely (OAuth2 integration bypasses it completely)
+- **Problem**: Trait forces lowest-common-denominator patterns instead of allowing transport-specific optimization
+- **Solution**: Preserve individual builders (StdioTransportBuilder, HttpTransportBuilder<E>) with transport-specific methods
+- **References**: 
+  - `DEBT-ARCH-005-transportbuilder-over-abstraction.md` - Comprehensive analysis
+  - `system_patterns.md` § TransportBuilder Abstraction Analysis - Architectural findings
+  - Task 032 abandonment notes - "TransportBuilder trait is over-abstraction"
+- **Workspace Standards Compliance**: Eliminates abstraction that violates "zero-cost abstractions" principle
+- **Migration Outcome**: Each transport maintains optimized builder pattern suited to its specific needs
+- **Status**: ✅ **ABANDONED** - Problem solved by removing unnecessary abstraction rather than implementing it
 **DEBT-ARCH-001**: Transport Builder Pattern Inconsistency
 - **Location**: `/src/transport/adapters/http/builder.rs`
 - **Issue**: HttpTransportBuilder doesn't implement TransportBuilder<HttpContext>

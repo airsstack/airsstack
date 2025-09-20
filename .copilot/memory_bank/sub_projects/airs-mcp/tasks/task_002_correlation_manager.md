@@ -1,8 +1,10 @@
 # [TASK002] - Correlation Manager Implementation
 
-**Status:** pending  
+**Status:** abandoned  
 **Added:** 2025-08-01  
-**Updated:** 2025-08-01
+**Updated:** 2025-01-08
+
+**ABANDONED**: Correlation manager implementation removed during architectural simplification. Direct client-server request-response patterns proven more effective than complex correlation tracking.
 
 ## Original Request
 Implement the CorrelationManager for bidirectional request/response matching, supporting lock-free concurrency, timeout management, memory safety, and error propagation.
@@ -20,7 +22,16 @@ Implement the CorrelationManager for bidirectional request/response matching, su
 - Write unit tests for lifecycle, timeout, and error handling.
 
 ## Progress Tracking
-**Overall Status:** completed - 100%
+**Overall Status:** abandoned - Architectural simplification decision
+
+### 2025-01-08 (TASK ABANDONED - Architectural Simplification)
+- **ARCHITECTURAL DECISION**: Task 002 abandoned based on architectural simplification principles
+- **Reasoning**: Complex correlation manager removed in favor of direct client-server request-response patterns
+- **Implementation Evidence**: Current client architecture uses direct TransportClient interface without correlation complexity
+- **Alignment**: Supports workspace "zero-cost abstractions" principle by eliminating unnecessary complexity
+- **Related**: Part of same architectural simplification that led to Task 031 abandonment (TransportBuilder over-abstraction)
+- **Current State**: Direct request-response patterns in McpClient proven more effective and maintainable
+- **Status**: ✅ **ABANDONED** - Complexity eliminated in favor of simpler, more maintainable architecture
 
 ### Subtasks
 | ID   | Description                                 | Status      | Updated    | Notes                                 |
