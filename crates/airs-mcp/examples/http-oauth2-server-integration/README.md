@@ -266,6 +266,55 @@ curl -H 'Authorization: Bearer <token>' \
 - **Access**: Read-only access to listings
 - **Duration**: 15 minutes
 
+## Edge Case Testing Strategy
+
+### Server-Side OAuth2 Edge Case Testing (Primary Focus)
+
+This example is the **primary testing ground for server-side OAuth2 edge cases** because it uses the actual AIRS MCP `HttpTransport` with real OAuth2 middleware validation.
+
+#### **Why This Example for Server-Side Testing?**
+- ✅ **Real Production Code**: Tests actual AIRS MCP OAuth2 middleware
+- ✅ **Security Critical**: Server-side validation is the primary security boundary
+- ✅ **Middleware Testing**: Validates how OAuth2 middleware handles malformed requests
+- ✅ **Error Response Validation**: Tests proper HTTP status codes and error formats
+
+#### **Edge Case Coverage Areas**
+
+**1. JWT Token Validation Edge Cases**
+- Malformed JWT structure (missing parts, invalid encoding)
+- Expired token handling and error responses
+- Invalid signature verification (tampered tokens)
+- Incorrect audience claims and issuer validation
+- Token without required scopes for specific operations
+
+**2. Authorization Middleware Edge Cases**
+- Missing Authorization header handling
+- Malformed Bearer token format
+- Invalid token encoding (non-base64, corrupted)
+- Authorization header injection attempts
+- Scope validation with edge case permissions
+
+**3. HTTP Request Edge Cases**
+- Oversized Authorization headers
+- Malformed JSON-RPC payloads with valid tokens
+- Concurrent request handling with invalid tokens
+- Network timeout scenarios during token validation
+- JWKS endpoint failure simulation
+
+**4. Security Attack Scenarios**
+- Token replay attacks (expired tokens)
+- Authorization bypass attempts
+- Scope privilege escalation attempts
+- JWT bombing (oversized tokens)
+- Invalid token format fuzzing
+
+#### **Test Implementation Location**
+- **Primary**: `tests/test_oauth2_edge_cases.py` (to be implemented)
+- **Integration**: Extends existing `test_oauth2_authorization_flow.py`
+- **Coverage**: ~25-30 additional edge case tests focusing on server middleware
+
+For **client-side OAuth2 edge cases** (flow interruption, network failures, client resilience), see the `http-oauth2-client-integration` example which focuses on end-to-end flow robustness.
+
 ## Scope-Based Authorization
 
 The server enforces method-level authorization based on JWT scopes:

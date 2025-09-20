@@ -38,7 +38,58 @@ pip install requests PyJWT cryptography
 
 ## Test Scripts
 
-### 🚀 Quick Start
+### � Edge Case Testing Strategy (Phase 5.1 - Task 034)
+
+This test suite implements **server-side OAuth2 edge case testing** as part of the strategic split approach for comprehensive OAuth2 validation across AIRS MCP examples.
+
+#### **Testing Architecture Split**
+
+**🎯 This Example (http-oauth2-server-integration)**: **Server-Side Edge Cases**
+- **Focus**: OAuth2 middleware validation, security edge cases, JWT validation
+- **Target**: Real AIRS MCP `HttpTransport` with OAuth2 middleware
+- **Priority**: Primary (80% of edge case testing effort)
+- **Implementation**: `test_oauth2_edge_cases.py` (to be implemented in Phase 5.1)
+
+**🎯 Complementary Example (http-oauth2-client-integration)**: **Client-Side Edge Cases**  
+- **Focus**: Client resilience, flow interruption, network failure handling
+- **Target**: OAuth2 client integration and end-to-end flow robustness
+- **Priority**: Secondary (20% of edge case testing effort)
+
+#### **Edge Case Categories for This Example**
+
+**1. JWT Token Validation Edge Cases** (~8-10 tests)
+- Malformed JWT structure and encoding errors
+- Signature verification failures (tampered tokens)
+- Expired token handling and proper error responses
+- Invalid audience/issuer claims validation
+- Missing or malformed scope claims
+
+**2. Authorization Middleware Edge Cases** (~8-10 tests)
+- Missing/malformed Authorization headers
+- Bearer token format violations
+- Authorization header injection attempts
+- Scope privilege escalation attempts
+- Concurrent invalid token handling
+
+**3. Security Attack Scenarios** (~5-7 tests)
+- JWT bombing (oversized tokens)
+- Token replay attacks with expired tokens
+- Authorization bypass attempts
+- Invalid token format fuzzing
+- JWKS endpoint failure simulation
+
+**4. HTTP Protocol Edge Cases** (~3-5 tests)
+- Oversized HTTP headers
+- Malformed JSON-RPC with valid tokens
+- Network timeout during token validation
+- Server error response format validation
+
+#### **Implementation Status**
+- ✅ **Current Tests**: Basic functionality, comprehensive integration
+- 🚧 **Phase 5.1**: Server-side edge case testing (planned ~25-30 tests)
+- 📋 **Integration**: Extends existing `test_oauth2_authorization_flow.py`
+
+### �🚀 Quick Start
 ```bash
 # Run the recommended basic test
 python3 run_tests.py basic

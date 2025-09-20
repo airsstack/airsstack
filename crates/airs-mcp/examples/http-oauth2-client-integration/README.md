@@ -211,6 +211,56 @@ pip install -r requirements.txt
 pytest tests/ -v
 ```
 
+## Edge Case Testing Strategy
+
+### Client-Side OAuth2 Edge Case Testing (Secondary Focus)
+
+This example provides **client-side edge case testing** to complement the server-side testing in `http-oauth2-server-integration`. The focus here is on **client resilience and end-to-end flow robustness**.
+
+#### **Why This Example for Client-Side Testing?**
+- ✅ **Complete OAuth2 Flow**: Tests full authorization code flow with PKCE
+- ✅ **Mock Server Control**: Can simulate various server error conditions  
+- ✅ **Client Resilience**: Tests how AIRS MCP client handles OAuth2 server problems
+- ✅ **Integration Testing**: Validates end-to-end client behavior under stress
+- ✅ **Flow Interruption**: Tests authorization flow edge cases and recovery
+
+#### **Edge Case Coverage Areas**
+
+**1. Authorization Flow Edge Cases**
+- Network failures during authorization request
+- Authorization flow interruption (browser closed, timeout)
+- Malformed authorization server responses
+- Authorization server downtime scenarios
+- Invalid redirect URI handling by client
+
+**2. Token Management Edge Cases**
+- Token refresh failures and fallback behavior
+- Expired token detection and automatic refresh
+- Corrupted token storage and recovery
+- Token revocation scenarios
+- Multiple concurrent token refresh attempts
+
+**3. MCP Integration Resilience**
+- MCP operations with expired tokens (automatic refresh)
+- Network timeouts during token-protected MCP calls
+- MCP server authentication failures
+- Graceful degradation when OAuth2 is unavailable
+- Error propagation from OAuth2 to MCP layer
+
+**4. Client Configuration Edge Cases**
+- Invalid OAuth2 server configuration
+- Missing client credentials handling
+- Malformed JWKS endpoint responses
+- SSL/TLS certificate validation failures
+- OAuth2 server endpoint discovery failures
+
+#### **Test Implementation Location**
+- **Primary**: `tests/test_oauth2_edge_cases.py` (to be implemented)  
+- **Integration**: Extends existing `test_oauth2_flow.py` and `test_oauth2_integration.py`
+- **Coverage**: ~15-20 client-focused edge case tests
+
+For **server-side OAuth2 edge cases** (middleware validation, security attacks, JWT validation), see the `http-oauth2-server-integration` example which tests actual AIRS MCP OAuth2 middleware.
+
 ## Key Learning Points
 
 1. **OAuth2 Complexity**: OAuth2 requires multiple components working together
