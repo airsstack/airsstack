@@ -7,14 +7,20 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process;
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
-use airs_mcp::StdioTransport;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use tracing::{error, info};
 
 // Layer 3: Internal module imports
+// Layer 3a: AIRS foundation crates (prioritized)
+use airs_mcp::integration::McpServer;
+use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+
+// Layer 3b: Local crate modules
+use airs_mcp_fs::mcp::FilesystemMessageHandler;
 use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};
 
 #[derive(Parser)]
@@ -77,9 +83,7 @@ async fn main() -> Result<()> {
         {
             Ok(file) => file,
             Err(e) => {
-                eprintln!(
-                    "Warning: Failed to open log file {log_file}: {e}, logging disabled"
-                );
+                eprintln!("Warning: Failed to open log file {log_file}: {e}, logging disabled");
                 // If we can't create log file, disable logging completely for MCP mode
                 tracing_subscriber::fmt()
                     .with_env_filter("off")
@@ -193,15 +197,14 @@ async fn run_server() -> Result<()> {
     };
 
     // Create STDIO transport for Claude Desktop integration
-    let _transport = StdioTransport::new();
-    info!("✅ STDIO transport initialized for Claude Desktop");
+    info!("🔌 Creating STDIO transport with MessageHandler integration");
 
     // Initialize filesystem MCP server
-    let _filesystem_server = match DefaultFilesystemMcpServer::with_default_handlers(settings).await
+    let filesystem_server = match DefaultFilesystemMcpServer::with_default_handlers(settings).await
     {
         Ok(server) => {
             info!("✅ Filesystem MCP server initialized with security manager");
-            server
+            Arc::new(server)
         }
         Err(e) => {
             error!("❌ Failed to initialize filesystem server: {}", e);
@@ -209,10 +212,46 @@ async fn run_server() -> Result<()> {
         }
     };
 
-    // TODO(Phase 2): Implement MessageHandler integration
-    // The new airs-mcp architecture requires implementing MessageHandler trait
-    // instead of using McpServerBuilder. This will be implemented in Phase 2.
-    error!("❌ Phase 2 implementation required: MessageHandler integration not yet implemented");
-    error!("💡 The compilation works but server integration needs Phase 2 implementation");
-    process::exit(1);
+    // Create MessageHandler wrapper for the server
+    let message_handler = Arc::new(FilesystemMessageHandler::new(filesystem_server));
+    info!("✅ MessageHandler wrapper created");
+
+    // Create and configure STDIO transport with handler
+    let transport = match StdioTransportBuilder::new()
+        .with_message_handler(message_handler)
+        .build()
+        .await
+    {
+        Ok(transport) => {
+            info!("✅ STDIO transport created with MessageHandler integration");
+            transport
+        }
+        Err(e) => {
+            error!("❌ Failed to create STDIO transport: {}", e);
+            process::exit(1);
+        }
+    };
+
+    // Wrap transport in high-level McpServer for lifecycle management
+    let server = McpServer::new(transport);
+    info!("✅ MCP server wrapper created");
+
+    info!("🚀 Starting AIRS MCP-FS server");
+    info!("📋 Available capabilities:");
+    info!("   • Tools: read_file, write_file, list_directory");
+    info!("   • Security: Path validation, approval workflows, audit logging");
+    info!("   • Transport: STDIO integration for Claude Desktop");
+    info!("");
+    info!("💡 Usage:");
+    info!("   Connect via Claude Desktop MCP client configuration");
+    info!("   Send JSON-RPC requests to stdin, receive responses on stdout");
+
+    // Start the server - this will run indefinitely until interrupted
+    if let Err(e) = server.start().await {
+        error!("❌ Failed to start MCP server: {}", e);
+        process::exit(1);
+    }
+
+    info!("✅ AIRS MCP-FS server shutdown complete");
+    Ok(())
 }

@@ -10,9 +10,11 @@
 
 // Layer 3: Internal module declarations
 pub mod handlers;
+pub mod message_handler;
 pub mod server;
 pub mod types;
 
 // Public API re-exports
+pub use message_handler::FilesystemMessageHandler;
 pub use server::{DefaultFilesystemMcpServer, FilesystemMcpServer};
 pub use types::OperationType;
