@@ -20,7 +20,9 @@ async fn test_phase2_message_handler_integration() {
         .expect("Failed to create filesystem server");
 
     // Test that we can create a MessageHandler wrapper
-    let message_handler = std::sync::Arc::new(FilesystemMessageHandler::new(std::sync::Arc::new(filesystem_server)));
+    let message_handler = std::sync::Arc::new(FilesystemMessageHandler::new(std::sync::Arc::new(
+        filesystem_server,
+    )));
 
     // Test that we can build the transport with MessageHandler
     let transport = StdioTransportBuilder::new()
