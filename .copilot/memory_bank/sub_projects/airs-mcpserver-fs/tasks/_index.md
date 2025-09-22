@@ -7,6 +7,9 @@
 ## In Progress
 - [task_001] architectural_migration - **PHASE 4 READY** on 2025-09-22 - **Backward Compatibility Implementation (Phase 4/5)** 🎯
 
+## Pending
+- [task_002] cli_improvements - **PLANNED** for 2025-09-23 - Add setup command, CLI parameters, rename commands, internal cleanup 🛠️
+
 ## Completed Phases
 - **Phase 1** ✅ **COMPLETE** - Project Structure Creation (2025-09-22)
 - **Phase 2** ✅ **COMPLETE** - Code Adaptation and Validation (2025-09-22)
