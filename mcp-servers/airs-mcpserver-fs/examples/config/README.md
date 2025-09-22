@@ -1,14 +1,20 @@
 # airs-mcpserver-fs Configuration Examples
 
-This directory contains example configurations for different deployment environments.
+This directory contains example configurations for different deployment environments and use cases.
 
 ## Configuration Files
 
+### Environment-Specific Configurations
 - `config.toml` - Base configuration (shared across all environments)
 - `development.toml` - Development environment overrides
 - `staging.toml` - Staging environment configuration  
 - `production.toml` - Production environment configuration
 - `local.toml` - Local developer overrides (development only)
+
+### Use Case-Specific Configurations
+- `claude-desktop.toml` - Optimized for Claude Desktop integration
+- `secure.toml` - High-security configuration for sensitive environments
+- `educational.toml` - Permissive configuration for learning and tutorials
 
 ## Environment Selection
 

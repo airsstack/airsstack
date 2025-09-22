@@ -31,6 +31,14 @@ operations = ["read", "write", "delete"]
 risk_level = "low"
 description = "Development and test files - full access allowed"
 
+[security.policies.journals]
+patterns = [
+    "/Users/*/Documents/kaaljournal/**/*.md",
+]
+operations = ["read", "write"]
+risk_level = "low"
+description = "Journal files - full access allowed"
+
 [security.policies.git_files]
 patterns = [
     "**/.gitignore",

@@ -1,0 +1,119 @@
+# AIRS MCP-FS Configuration for Educational Environments
+# This configuration is designed for coding education, tutorials, and learning
+# Provides safe access to common educational programming directories
+
+[server]
+name = "airs-mcp-fs"
+version = "0.1.0"
+
+[binary]
+# Reasonable file size for educational content
+max_file_size = 25165824  # 25MB limit
+# Binary processing disabled for security
+binary_processing_disabled = true
+
+[security.filesystem]
+# Educational-focused allowed paths
+allowed_paths = [
+    # Common educational directories
+    "~/coding/**/*",
+    "~/programming/**/*",
+    "~/tutorials/**/*",
+    "~/exercises/**/*",
+    "~/homework/**/*",
+    "~/projects/school/**/*",
+    "~/projects/learning/**/*",
+    
+    # Desktop for quick access to assignments
+    "~/Desktop/**/*.{md,txt,py,js,java,cpp,rs}",
+    
+    # Documents for notes and assignments
+    "~/Documents/school/**/*",
+    "~/Documents/programming/**/*",
+]
+
+# Educational safety denied paths
+denied_paths = [
+    "**/.git/**",           # Git internals
+    "**/.env*",             # Environment files
+    "~/.*/**",              # Hidden directories
+    "**/node_modules/**",   # Large dependency folders
+    "**/target/**",         # Build artifacts
+    "**/__pycache__/**",    # Python cache
+    "/system/**",           # System files
+    "/usr/**",              # System binaries
+    "/opt/**",              # System software
+]
+
+[security.operations]
+# Permissive for learning but safe
+read_allowed = true
+create_dir_allowed = true
+# Allow writes for educational exercises
+write_requires_policy = false
+# Require confirmation for deletes to prevent accidental loss
+delete_requires_explicit_allow = true
+
+# Educational-focused security policies
+[security.policies.student_code]
+patterns = [
+    "**/*.{py,java,cpp,c,h}",
+    "**/*.{js,ts,html,css}",
+    "**/*.{rs,go,rb,php}",
+    "**/*.{kt,scala,swift}",
+]
+operations = ["read", "write", "delete"]
+risk_level = "low"
+description = "Student programming files - full access for learning"
+
+[security.policies.educational_docs]
+patterns = [
+    "**/*.{md,txt,rst}",
+    "**/README*",
+    "**/NOTES*",
+    "**/assignment*",
+    "**/homework*",
+    "**/*.{org,tex}",
+]
+operations = ["read", "write", "delete"]
+risk_level = "low"
+description = "Educational documentation and notes - full access"
+
+[security.policies.config_and_data]
+patterns = [
+    "**/*.{json,yaml,yml,toml,xml}",
+    "**/*.{csv,txt,dat}",
+    "**/package.json",
+    "**/requirements.txt",
+    "**/Cargo.toml",
+]
+operations = ["read", "write"]
+risk_level = "low"
+description = "Configuration and data files for educational projects"
+
+[security.policies.build_and_test]
+patterns = [
+    "**/test/**",
+    "**/tests/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/Makefile",
+    "**/*.sh",
+    "**/*.bat",
+]
+operations = ["read", "write", "delete"]
+risk_level = "low"
+description = "Build and test files - full access for learning compilation and testing"
+
+[security.policies.temp_and_artifacts]
+patterns = [
+    "**/*.{tmp,bak,log}",
+    "**/target/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/__pycache__/**",
+    "**/node_modules/**",
+]
+operations = ["read", "delete"]
+risk_level = "low"
+description = "Temporary files and build artifacts - safe to clean"

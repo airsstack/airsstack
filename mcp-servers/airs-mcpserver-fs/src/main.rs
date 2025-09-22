@@ -16,7 +16,7 @@ use tracing::{error, info};
 
 // Layer 3: Internal module imports
 // Layer 3a: AIRS foundation crates (prioritized)
-use airs_mcp::integration::McpServer;
+use airs_mcp::protocol::Transport;
 use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 
 // Layer 3b: Local crate modules
@@ -171,8 +171,8 @@ async fn generate_config(output_dir: PathBuf, env: &str, force: bool) -> Result<
         config_file.display()
     );
     info!("   2. Update allowed_paths for your specific use case");
-    info!("   3. Run: cargo run --bin airs-mcpserver-fs serve");
-    info!("   4. See CONFIG_GUIDE.md for detailed setup instructions");
+    info!("   3. Run: ./target/debug/airs-mcpserver-fs serve");
+    info!("   4. See CONFIGURATION.md for detailed setup instructions");
 
     Ok(())
 }
@@ -191,7 +191,7 @@ async fn run_server() -> Result<()> {
         }
         Err(e) => {
             error!("❌ Failed to load configuration: {}", e);
-            error!("💡 Try running: airs-mcp-fs generate-config");
+            error!("💡 Try running: airs-mcpserver-fs generate-config");
             process::exit(1);
         }
     };
@@ -217,7 +217,7 @@ async fn run_server() -> Result<()> {
     info!("✅ MessageHandler wrapper created");
 
     // Create and configure STDIO transport with handler
-    let transport = match StdioTransportBuilder::new()
+    let mut transport = match StdioTransportBuilder::new()
         .with_message_handler(message_handler)
         .build()
         .await
@@ -232,10 +232,6 @@ async fn run_server() -> Result<()> {
         }
     };
 
-    // Wrap transport in high-level McpServer for lifecycle management
-    let server = McpServer::new(transport);
-    info!("✅ MCP server wrapper created");
-
     info!("🚀 Starting AIRS MCP-FS server");
     info!("📋 Available capabilities:");
     info!("   • Tools: read_file, write_file, list_directory");
@@ -246,9 +242,19 @@ async fn run_server() -> Result<()> {
     info!("   Connect via Claude Desktop MCP client configuration");
     info!("   Send JSON-RPC requests to stdin, receive responses on stdout");
 
-    // Start the server - this will run indefinitely until interrupted
-    if let Err(e) = server.start().await {
-        error!("❌ Failed to start MCP server: {}", e);
+    // Start the transport - this begins reading from stdin in background
+    if let Err(e) = transport.start().await {
+        error!("❌ Failed to start STDIO transport: {}", e);
+        process::exit(1);
+    }
+
+    info!("✅ STDIO transport started, ready for MCP communication");
+    info!("� Server is now listening on stdin for JSON-RPC messages");
+
+    // Wait for transport completion (blocks until stdin EOF or error)
+    // This is the key fix - wait for the background stdin reader to complete
+    if let Err(e) = transport.wait_for_completion().await {
+        error!("❌ Transport error during operation: {}", e);
         process::exit(1);
     }
 

@@ -23,6 +23,18 @@ This index tracks technical knowledge documentation for the AIRS MCP Server - Fi
 - STDIO transport configuration
 - Tool registration and lifecycle management
 
+### MCP Server Connection Troubleshooting (Production-Ready)
+**File:** `mcp_server_connection_troubleshooting.md`  
+**Status:** Complete - Critical debugging solutions  
+**Knowledge Level:** Expert  
+
+Core troubleshooting knowledge for MCP protocol integration:
+- Server lifecycle management (transport.wait_for_completion)
+- Capability schema validation (manual JSON construction)
+- Protocol message handling (requests vs notifications)
+- Client integration patterns (Claude Desktop, MCP Inspector)
+- Best practices for capability advertising consistency
+
 ### Performance Optimization (Validated)
 *Performance patterns proven in legacy implementation*
 - Sub-100ms response time strategies

@@ -1,0 +1,85 @@
+# AIRS MCP-FS Configuration for Restricted/Secure Environments
+# This configuration provides minimal, security-focused access for sensitive environments
+# Suitable for production systems or when working with sensitive codebases
+
+[server]
+name = "airs-mcp-fs"
+version = "0.1.0"
+
+[binary]
+# Smaller file size limit for security
+max_file_size = 10485760  # 10MB limit
+# Binary processing disabled for security
+binary_processing_disabled = true
+
+[security.filesystem]
+# Very restrictive allowed paths - only specific project directories
+allowed_paths = [
+    # Only allow access to specific documentation and safe source files
+    "~/projects/safe-project/**/*.{md,txt,rst}",
+    "~/projects/safe-project/**/*.{js,ts,py,rs}",
+    "~/documents/work/**/*.{md,txt,rst}",
+]
+
+# Comprehensive denied paths for maximum security
+denied_paths = [
+    "**/.git/**",           # Git internals
+    "**/.env*",             # Environment files
+    "~/.*/**",              # All hidden directories
+    "**/.*/**",             # Any hidden files/directories
+    "**/id_rsa*",           # SSH keys
+    "**/credentials*",       # Credential files
+    "**/secrets*",          # Secret files
+    "**/password*",         # Password files
+    "/etc/**",              # System configuration
+    "/var/**",              # System directories
+    "/usr/**",              # System binaries
+    "/opt/**",              # Optional software
+    "/tmp/**",              # Temporary files
+    "**/target/**",         # Build artifacts
+    "**/node_modules/**",   # Dependencies
+    "**/__pycache__/**",    # Python cache
+    "**/vendor/**",         # Vendor dependencies
+    "**/*.{exe,dll,so,dylib}", # Binary files
+    "**/*.{zip,tar,gz,rar}", # Archives
+]
+
+[security.operations]
+# Read operations allowed but heavily monitored
+read_allowed = true
+# No directory creation without explicit policy
+create_dir_allowed = false
+# All writes require explicit policy match
+write_requires_policy = true
+# All deletes require explicit permission
+delete_requires_explicit_allow = true
+
+# Highly restrictive security policies
+[security.policies.documentation_only]
+patterns = [
+    "**/*.{md,txt,rst}",
+    "**/README*",
+    "**/CHANGELOG*",
+]
+operations = ["read", "write"]
+risk_level = "low"
+description = "Documentation files only - very limited write access"
+
+[security.policies.safe_source_read_only]
+patterns = [
+    "**/*.{js,ts,py,rs}",
+    "**/*.{html,css}",
+]
+operations = ["read"]  # Read-only access to source code
+risk_level = "medium"
+description = "Source code files - read-only access for review"
+
+[security.policies.config_read_only]
+patterns = [
+    "**/*.{json,yaml,yml,toml}",
+    "**/package.json",
+    "**/Cargo.toml",
+]
+operations = ["read"]  # No write access to config files
+risk_level = "high"
+description = "Configuration files - read-only access to prevent accidental changes"

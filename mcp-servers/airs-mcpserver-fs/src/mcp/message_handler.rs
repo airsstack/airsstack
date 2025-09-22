@@ -15,9 +15,9 @@ use tracing::{error, info};
 // Layer 3: Internal module imports
 // Layer 3a: AIRS foundation crates (prioritized)
 use airs_mcp::protocol::{
-    constants::methods as mcp_methods, InitializeResponse, JsonRpcMessage, JsonRpcRequest,
-    JsonRpcResponse, LoggingCapabilities, MessageContext, MessageHandler, ProtocolVersion,
-    ServerCapabilities, ServerInfo, ToolCapabilities, TransportError,
+    constants::methods as mcp_methods, InitializeResponse, JsonRpcMessage, JsonRpcNotification,
+    JsonRpcRequest, JsonRpcResponse, MessageContext, MessageHandler, ProtocolVersion, ServerInfo,
+    TransportError,
 };
 use airs_mcp::providers::ToolProvider;
 
@@ -49,6 +49,21 @@ where
         Self { server }
     }
 
+    /// Process MCP JSON-RPC notifications
+    async fn process_mcp_notification(&self, notification: &JsonRpcNotification) {
+        info!("Processing MCP notification: {}", notification.method);
+
+        match notification.method.as_str() {
+            // Protocol initialization complete
+            mcp_methods::INITIALIZED => self.handle_initialized_notification(notification).await,
+
+            // Unknown notifications
+            _ => {
+                info!("Unknown notification method: {}", notification.method);
+            }
+        }
+    }
+
     /// Process MCP JSON-RPC requests using existing ToolProvider logic
     async fn process_mcp_request(&self, request: &JsonRpcRequest) -> JsonRpcResponse {
         info!("Processing MCP request: {}", request.method);
@@ -56,7 +71,6 @@ where
         match request.method.as_str() {
             // Protocol initialization
             mcp_methods::INITIALIZE => self.handle_initialize(request).await,
-            mcp_methods::INITIALIZED => self.handle_initialized(request).await,
 
             // Tool management methods (delegated to existing ToolProvider)
             mcp_methods::TOOLS_LIST => self.handle_tools_list(request).await,
@@ -77,19 +91,21 @@ where
     async fn handle_initialize(&self, request: &JsonRpcRequest) -> JsonRpcResponse {
         info!("Handling initialize request");
 
-        let capabilities = ServerCapabilities {
-            experimental: Some(json!({})),
-            logging: Some(LoggingCapabilities {}),
-            resources: None, // airs-mcp-fs is focused on tools, not resources
-            tools: Some(ToolCapabilities {
-                list_changed: Some(false),
-            }),
-            prompts: None, // airs-mcp-fs doesn't provide prompts
-        };
+        // Manually construct capabilities JSON - only tools and experimental
+        let capabilities_json = json!({
+            "experimental": {},
+            "tools": {
+                "list_changed": false
+            }
+            // Only filesystem tools - no resources, prompts, or logging
+        });
+
+        // Use the current supported protocol version instead of hardcoded old version
+        let protocol_version = ProtocolVersion::current();
 
         let response = InitializeResponse {
-            protocol_version: ProtocolVersion::new("2024-11-05").expect("Valid protocol version"),
-            capabilities: serde_json::to_value(capabilities).unwrap_or(json!({})),
+            protocol_version,
+            capabilities: capabilities_json,
             server_info: ServerInfo {
                 name: "airs-mcp-fs".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
@@ -104,17 +120,11 @@ where
         }
     }
 
-    /// Handle initialized notification
-    async fn handle_initialized(&self, request: &JsonRpcRequest) -> JsonRpcResponse {
-        info!("Client initialization completed");
-
-        // Initialized is a notification, so we don't send a response
-        JsonRpcResponse {
-            jsonrpc: "2.0".to_string(),
-            result: None,
-            error: None,
-            id: Some(request.id.clone()),
-        }
+    /// Handle initialized notification (completes the MCP handshake)
+    async fn handle_initialized_notification(&self, _notification: &JsonRpcNotification) {
+        info!("MCP initialization handshake completed successfully");
+        info!("Server is now ready to handle tool calls");
+        // No response needed for notifications
     }
 
     /// Handle tools/list request - delegates to existing ToolProvider
@@ -237,6 +247,8 @@ where
                         r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Serialization error"},"id":null}"#.to_string()
                     });
 
+                info!("Sending JSON response: {}", response_json);
+
                 // Write to stdout
                 if let Err(e) = stdout().write_all(response_json.as_bytes()).await {
                     error!("Failed to write response to stdout: {}", e);
@@ -247,10 +259,20 @@ where
                 if let Err(e) = stdout().flush().await {
                     error!("Failed to flush stdout: {}", e);
                 }
+                
+                info!("Response sent successfully");
+                
+                // Ensure we don't immediately close the connection after sending response
+                // The transport should stay alive for subsequent messages (like 'initialized' notification)
+                tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
             }
-            JsonRpcMessage::Response(_) | JsonRpcMessage::Notification(_) => {
-                // STDIO servers typically only handle requests
-                info!("Received non-request message, ignoring");
+            JsonRpcMessage::Notification(notification) => {
+                info!("Processing MCP notification: {}", notification.method);
+                self.process_mcp_notification(&notification).await;
+            }
+            JsonRpcMessage::Response(_) => {
+                // STDIO servers typically don't receive responses from clients
+                info!("Received response message, ignoring");
             }
         }
     }

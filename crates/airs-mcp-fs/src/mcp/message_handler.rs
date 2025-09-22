@@ -87,8 +87,11 @@ where
             prompts: None, // airs-mcp-fs doesn't provide prompts
         };
 
+        // Use the current supported protocol version instead of hardcoded old version
+        let protocol_version = ProtocolVersion::current();
+
         let response = InitializeResponse {
-            protocol_version: ProtocolVersion::new("2024-11-05").expect("Valid protocol version"),
+            protocol_version,
             capabilities: serde_json::to_value(capabilities).unwrap_or(json!({})),
             server_info: ServerInfo {
                 name: "airs-mcp-fs".to_string(),

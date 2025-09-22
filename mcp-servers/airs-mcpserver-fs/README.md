@@ -75,6 +75,22 @@ Add to your Claude Desktop MCP configuration:
 
 Restart Claude Desktop to load the new MCP server configuration.
 
+## Example Configurations
+
+We provide comprehensive configuration examples for different use cases:
+
+- **[Configuration Examples](./examples/config/)** - Environment-specific and use-case configurations
+  - `claude-desktop.toml` - Optimized for Claude Desktop integration
+  - `secure.toml` - High-security for sensitive environments  
+  - `educational.toml` - Permissive for learning and tutorials
+  - `development.toml`, `production.toml`, `staging.toml` - Environment-specific settings
+
+- **[Claude Desktop Integration](./examples/claude-desktop/)** - Complete setup examples
+  - `claude_desktop_config.json` - Ready-to-use MCP configuration
+  - `docker-compose.yml` - Container deployment example
+  - `systemd.service` - Linux service configuration
+  - Comprehensive setup and troubleshooting guide
+
 ### Test Your Setup
 
 Once Claude Desktop restarts, try these commands:
