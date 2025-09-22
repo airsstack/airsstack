@@ -33,7 +33,7 @@ description = "Development and test files - full access allowed"
 
 [security.policies.journals]
 patterns = [
-    "/Users/*/Documents/kaaljournal/**/*.md",
+    "/Users/*/Documents/**/*.md",
 ]
 operations = ["read", "write"]
 risk_level = "low"
