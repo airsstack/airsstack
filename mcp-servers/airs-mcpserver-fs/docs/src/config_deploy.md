@@ -80,7 +80,7 @@ impl FsConfig {
 ### **Development Deployment**
 ```bash
 # Install from source for development
-git clone https://github.com/rstlix0x0/airs.git
+git clone https://github.com/airsstack/airsstack.git
 cd airs
 cargo build --release --bin airs-mcpserver-fs
 

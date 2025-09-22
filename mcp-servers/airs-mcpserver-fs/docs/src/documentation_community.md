@@ -71,7 +71,7 @@
 ## Development Environment
 ```bash
 # Clone and setup
-git clone https://github.com/rstlix0x0/airs.git
+git clone https://github.com/airsstack/airsstack.git
 cd airs/mcp-servers/airs-mcpserver-fs
 
 # Install dependencies

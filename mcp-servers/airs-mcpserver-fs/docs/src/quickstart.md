@@ -13,8 +13,8 @@ Get up and running with AIRS MCP Server - Filesystem in under 5 minutes.
 ### Option 1: From Source (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/rstlix0x0/airs.git
-cd airs
+git clone https://github.com/airsstack/airsstack.git
+cd airsstack
 
 # Build the binary
 cargo build --release --bin airs-mcpserver-fs

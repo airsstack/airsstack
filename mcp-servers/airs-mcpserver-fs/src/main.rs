@@ -171,7 +171,7 @@ async fn generate_config(output_dir: PathBuf, env: &str, force: bool) -> Result<
         config_file.display()
     );
     info!("   2. Update allowed_paths for your specific use case");
-    info!("   3. Run: cargo run --bin airs-mcp-fs serve");
+    info!("   3. Run: cargo run --bin airs-mcpserver-fs serve");
     info!("   4. See CONFIG_GUIDE.md for detailed setup instructions");
 
     Ok(())
