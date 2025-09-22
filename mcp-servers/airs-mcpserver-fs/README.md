@@ -1,10 +1,10 @@
-# airs-mcp-fs
+# airs-mcpserver-fs
 
 A security-first filesystem bridge that enables Claude Desktop and other MCP-compatible AI tools to intelligently read, write, and manage files in local development environments.
 
 ## Overview
 
-`airs-mcp-fs` transforms AI assistance from passive consultation to active collaboration by providing secure, standardized filesystem operations through the Model Context Protocol (MCP). AI agents can now both understand your project context and create tangible artifacts directly in your local environment.
+`airs-mcpserver-fs` transforms AI assistance from passive consultation to active collaboration by providing secure, standardized filesystem operations through the Model Context Protocol (MCP). AI agents can now both understand your project context and create tangible artifacts directly in your local environment.
 
 ## Key Features
 
@@ -28,12 +28,12 @@ A security-first filesystem bridge that enables Claude Desktop and other MCP-com
 ```bash
 git clone https://github.com/rstlix0x0/airs.git
 cd airs
-cargo build --release --bin airs-mcp-fs
+cargo build --release --bin airs-mcpserver-fs
 ```
 
 #### Using Cargo
 ```bash
-cargo install --path crates/airs-mcp-fs
+cargo install --path crates/airs-mcpserver-fs
 ```
 
 ### Basic Setup
@@ -41,9 +41,9 @@ cargo install --path crates/airs-mcp-fs
 **Step 1: Generate Configuration**
 ```bash
 # Generate development configuration
-airs-mcp-fs generate-config
+airs-mcpserver-fs generate-config
 
-# This creates ~/.config/airs-mcp-fs/development.toml
+# This creates ~/.config/airs-mcpserver-fs/development.toml
 ```
 
 **Step 2: Configure Claude Desktop**
@@ -57,19 +57,19 @@ Add to your Claude Desktop MCP configuration:
 ```json
 {
   "mcpServers": {
-    "airs-mcp-fs": {
-      "command": "/path/to/airs-mcp-fs",
+    "airs-mcpserver-fs": {
+      "command": "/path/to/airs-mcpserver-fs",
       "env": {
-        "AIRS_MCP_FS_ENV": "development",
-        "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourusername/.config/airs-mcp-fs",
-        "AIRS_MCP_FS_LOG_DIR": "/Users/yourusername/.local/share/airs-mcp-fs/logs"
+        "AIRS_MCPSERVER_FS_ENV": "development",
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/yourusername/.config/airs-mcpserver-fs",
+        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/yourusername/.local/share/airs-mcpserver-fs/logs"
       }
     }
   }
 }
 ```
 
-**Important**: Replace `/path/to/airs-mcp-fs` with the actual path to your binary and `yourusername` with your actual username.
+**Important**: Replace `/path/to/airs-mcpserver-fs` with the actual path to your binary and `yourusername` with your actual username.
 
 **Step 3: Restart Claude Desktop**
 
@@ -117,7 +117,7 @@ AIRS MCP-FS uses a sophisticated multi-layered configuration system that automat
 For development work, your configuration should include your project directories:
 
 ```toml
-# ~/.config/airs-mcp-fs/development.toml
+# ~/.config/airs-mcpserver-fs/development.toml
 [security.filesystem]
 allowed_paths = [
     "~/projects/**/*",           # All your projects
@@ -147,9 +147,9 @@ description = "Personal journal and document files"
 
 AIRS MCP-FS automatically detects your environment and loads appropriate configurations:
 
-- **Development**: `~/.config/airs-mcp-fs/development.toml` - Permissive settings for productivity
-- **Staging**: `~/.config/airs-mcp-fs/staging.toml` - Production-like settings for testing  
-- **Production**: `~/.config/airs-mcp-fs/production.toml` - Secure settings for deployment
+- **Development**: `~/.config/airs-mcpserver-fs/development.toml` - Permissive settings for productivity
+- **Staging**: `~/.config/airs-mcpserver-fs/staging.toml` - Production-like settings for testing  
+- **Production**: `~/.config/airs-mcpserver-fs/production.toml` - Secure settings for deployment
 
 ### Configuration Documentation
 
@@ -267,7 +267,7 @@ Extend functionality with custom text file processors:
 - **Cause**: No environment-specific configuration file exists
 - **Solution**: Generate configuration for your environment:
   ```bash
-  airs-mcp-fs generate-config --env development
+  airs-mcpserver-fs generate-config --env development
   ```
 
 #### "Invalid server response" in Claude Desktop
@@ -278,11 +278,11 @@ For comprehensive troubleshooting guidance, see **[Configuration Troubleshooting
 
 ### Debug Mode
 ```bash
-RUST_LOG=debug airs-mcp-fs --config ./debug-config.toml
+RUST_LOG=debug airs-mcpserver-fs --config ./debug-config.toml
 ```
 
 ### Log Analysis
-- Check `~/.local/share/airs-mcp-fs/logs/` for detailed operation logs
+- Check `~/.local/share/airs-mcpserver-fs/logs/` for detailed operation logs
 - Review audit trail for security-related events
 - Monitor performance metrics for optimization opportunities
 
@@ -292,7 +292,7 @@ RUST_LOG=debug airs-mcp-fs --config ./debug-config.toml
 ```bash
 # Clone the repository
 git clone https://github.com/rstlix0x0/airs.git
-cd airs/crates/airs-mcp-fs
+cd airs/crates/airs-mcpserver-fs
 
 # Install dependencies
 cargo build
@@ -373,7 +373,7 @@ For comprehensive guides and advanced configuration:
 cargo install mdbook
 
 # Build and serve documentation
-cd crates/airs-mcp-fs/docs
+cd crates/airs-mcpserver-fs/docs
 mdbook serve
 
 # Open http://localhost:3000 in your browser

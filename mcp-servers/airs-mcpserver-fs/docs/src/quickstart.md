@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get up and running with AIRS MCP-FS in under 5 minutes.
+Get up and running with AIRS MCP Server - Filesystem in under 5 minutes.
 
 ## Prerequisites
 
@@ -17,14 +17,14 @@ git clone https://github.com/rstlix0x0/airs.git
 cd airs
 
 # Build the binary
-cargo build --release --bin airs-mcp-fs
+cargo build --release --bin airs-mcpserver-fs
 
-# The binary will be at: target/release/airs-mcp-fs
+# The binary will be at: target/release/airs-mcpserver-fs
 ```
 
 ### Option 2: Using Cargo
 ```bash
-cargo install --path crates/airs-mcp-fs
+cargo install --path mcp-servers/airs-mcpserver-fs
 ```
 
 ## Basic Setup
@@ -32,9 +32,9 @@ cargo install --path crates/airs-mcp-fs
 ### Step 1: Generate Configuration
 ```bash
 # Generate development configuration
-airs-mcp-fs generate-config
+airs-mcpserver-fs generate-config
 
-# This creates ~/.config/airs-mcp-fs/development.toml
+# This creates ~/.config/airs-mcpserver-fs/development.toml
 ```
 
 ### Step 2: Configure Claude Desktop
@@ -44,19 +44,19 @@ Add to your Claude Desktop MCP configuration (`~/Library/Application Support/Cla
 ```json
 {
   "mcpServers": {
-    "airs-mcp-fs": {
-      "command": "/path/to/airs-mcp-fs",
+    "airs-mcpserver-fs": {
+      "command": "/path/to/airs-mcpserver-fs",
       "env": {
-        "AIRS_MCP_FS_ENV": "development",
-        "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourusername/.config/airs-mcp-fs",
-        "AIRS_MCP_FS_LOG_DIR": "/Users/yourusername/.local/share/airs-mcp-fs/logs"
+        "AIRS_MCPSERVER_FS_ENV": "development",
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/yourusername/.config/airs-mcpserver-fs",
+        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/yourusername/.local/share/airs-mcpserver-fs/logs"
       }
     }
   }
 }
 ```
 
-**Important**: Replace `/path/to/airs-mcp-fs` with the actual path to your binary and `yourusername` with your actual username.
+**Important**: Replace `/path/to/airs-mcpserver-fs` with the actual path to your binary and `yourusername` with your actual username.
 
 ### Step 3: Restart Claude Desktop
 
@@ -89,7 +89,7 @@ Claude: *uses write_file tool* → creates the file with approval prompt
 
 ### "Invalid server response"
 - **Cause**: Environment variables not set correctly
-- **Solution**: Verify AIRS_MCP_FS_ENV and config directory paths
+- **Solution**: Verify AIRS_MCPSERVER_FS_ENV and config directory paths
 
 ## Next Steps
 
@@ -103,7 +103,7 @@ Claude: *uses write_file tool* → creates the file with approval prompt
 For development work, your configuration should include your project directories:
 
 ```toml
-# ~/.config/airs-mcp-fs/development.toml
+# ~/.config/airs-mcpserver-fs/development.toml
 [security.filesystem]
 allowed_paths = [
     "~/projects/**/*",           # All your projects

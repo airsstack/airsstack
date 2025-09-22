@@ -72,7 +72,7 @@
 ```bash
 # Clone and setup
 git clone https://github.com/rstlix0x0/airs.git
-cd airs/crates/airs-mcp-fs
+cd airs/mcp-servers/airs-mcpserver-fs
 
 # Install dependencies
 cargo build

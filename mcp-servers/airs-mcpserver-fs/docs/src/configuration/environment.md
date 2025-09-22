@@ -95,9 +95,9 @@ AIRS MCP-FS uses multiple strategies to detect the current environment:
 
 Checked in priority order:
 
-1. **`AIRS_MCP_FS_ENV`** - Primary environment variable
+1. **`AIRS_MCPSERVER_FS_ENV`** - Primary environment variable
    ```bash
-   export AIRS_MCP_FS_ENV=development
+   export AIRS_MCPSERVER_FS_ENV=development
    ```
 
 2. **`NODE_ENV`** - Node.js ecosystem compatibility
@@ -137,18 +137,18 @@ AIRS MCP-FS searches for configuration files in order:
 
 1. **Environment Variable Path**
    ```bash
-   export AIRS_MCP_FS_CONFIG_DIR=~/.config/airs-mcp-fs
-   # Looks for: ~/.config/airs-mcp-fs/development.toml
+   export AIRS_MCPSERVER_FS_CONFIG_DIR=~/.config/airs-mcpserver-fs
+   # Looks for: ~/.config/airs-mcpserver-fs/development.toml
    ```
 
 2. **User Configuration Directory**
    ```
-   ~/.config/airs-mcp-fs/development.toml
+   ~/.config/airs-mcpserver-fs/development.toml
    ```
 
 3. **System Configuration Directory**
    ```
-   /etc/airs-mcp-fs/development.toml
+   /etc/airs-mcpserver-fs/development.toml
    ```
 
 4. **Built-in Defaults**
@@ -173,33 +173,33 @@ All configuration values can be overridden using environment variables:
 
 ```bash
 # Core environment setup
-export AIRS_MCP_FS_ENV=development
-export AIRS_MCP_FS_CONFIG_DIR=~/.config/airs-mcp-fs
-export AIRS_MCP_FS_LOG_DIR=~/.local/share/airs-mcp-fs/logs
+export AIRS_MCPSERVER_FS_ENV=development
+export AIRS_MCPSERVER_FS_CONFIG_DIR=~/.config/airs-mcpserver-fs
+export AIRS_MCPSERVER_FS_LOG_DIR=~/.local/share/airs-mcpserver-fs/logs
 
 # Security overrides
-export AIRS_MCP_FS_SECURITY_OPERATIONS_READ_ALLOWED=true
-export AIRS_MCP_FS_SECURITY_OPERATIONS_WRITE_REQUIRES_POLICY=false
+export AIRS_MCPSERVER_FS_SECURITY_OPERATIONS_READ_ALLOWED=true
+export AIRS_MCPSERVER_FS_SECURITY_OPERATIONS_WRITE_REQUIRES_POLICY=false
 
 # File access overrides
-export AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="~/projects/**/*,~/docs/**/*"
+export AIRS_MCPSERVER_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="~/projects/**/*,~/docs/**/*"
 
 # Binary processing overrides
-export AIRS_MCP_FS_BINARY_MAX_FILE_SIZE=52428800  # 50MB
-export AIRS_MCP_FS_BINARY_ENABLE_IMAGE_PROCESSING=true
+export AIRS_MCPSERVER_FS_BINARY_MAX_FILE_SIZE=52428800  # 50MB
+export AIRS_MCPSERVER_FS_BINARY_ENABLE_IMAGE_PROCESSING=true
 ```
 
 ### Variable Naming Convention
 
 Environment variables follow this pattern:
 ```
-AIRS_MCP_FS_{SECTION}_{SUBSECTION}_{SETTING}
+AIRS_MCPSERVER_FS_{SECTION}_{SUBSECTION}_{SETTING}
 ```
 
 Examples:
-- `security.filesystem.allowed_paths` → `AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS`
-- `binary.max_file_size` → `AIRS_MCP_FS_BINARY_MAX_FILE_SIZE`
-- `server.name` → `AIRS_MCP_FS_SERVER_NAME`
+- `security.filesystem.allowed_paths` → `AIRS_MCPSERVER_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS`
+- `binary.max_file_size` → `AIRS_MCPSERVER_FS_BINARY_MAX_FILE_SIZE`
+- `server.name` → `AIRS_MCPSERVER_FS_SERVER_NAME`
 
 ## Environment-Specific Examples
 
@@ -207,15 +207,15 @@ Examples:
 
 ```bash
 # ~/.bashrc or ~/.zshrc
-export AIRS_MCP_FS_ENV=development
-export AIRS_MCP_FS_CONFIG_DIR=~/.config/airs-mcp-fs
-export AIRS_MCP_FS_LOG_DIR=~/.local/share/airs-mcp-fs/logs
+export AIRS_MCPSERVER_FS_ENV=development
+export AIRS_MCPSERVER_FS_CONFIG_DIR=~/.config/airs-mcpserver-fs
+export AIRS_MCPSERVER_FS_LOG_DIR=~/.local/share/airs-mcpserver-fs/logs
 
 # Allow broader access for development
-export AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="~/projects/**/*,~/Documents/**/*,~/Desktop/**/*,./**/*"
+export AIRS_MCPSERVER_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="~/projects/**/*,~/Documents/**/*,~/Desktop/**/*,./**/*"
 ```
 
-Configuration file (`~/.config/airs-mcp-fs/development.toml`):
+Configuration file (`~/.config/airs-mcpserver-fs/development.toml`):
 ```toml
 [security.filesystem]
 allowed_paths = [
@@ -242,19 +242,19 @@ description = "Development source files"
 ```yaml
 # .github/workflows/test.yml
 env:
-  AIRS_MCP_FS_ENV: test
-  AIRS_MCP_FS_SECURITY_OPERATIONS_WRITE_REQUIRES_POLICY: false
-  AIRS_MCP_FS_SECURITY_OPERATIONS_DELETE_REQUIRES_EXPLICIT_ALLOW: false
+  AIRS_MCPSERVER_FS_ENV: test
+  AIRS_MCPSERVER_FS_SECURITY_OPERATIONS_WRITE_REQUIRES_POLICY: false
+  AIRS_MCPSERVER_FS_SECURITY_OPERATIONS_DELETE_REQUIRES_EXPLICIT_ALLOW: false
 ```
 
 ### Docker Production Setup
 
 ```dockerfile
 # Dockerfile
-ENV AIRS_MCP_FS_ENV=production
-ENV AIRS_MCP_FS_CONFIG_DIR=/app/config
-ENV AIRS_MCP_FS_LOG_DIR=/app/logs
-ENV AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="/app/data/**/*"
+ENV AIRS_MCPSERVER_FS_ENV=production
+ENV AIRS_MCPSERVER_FS_CONFIG_DIR=/app/config
+ENV AIRS_MCPSERVER_FS_LOG_DIR=/app/logs
+ENV AIRS_MCPSERVER_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS="/app/data/**/*"
 ```
 
 Production configuration (`/app/config/production.toml`):
@@ -290,7 +290,7 @@ AIRS MCP-FS validates environment configuration at startup:
 
 ```
 📋 Configuration loaded from development environment
-   Configuration files: ["/Users/username/.config/airs-mcp-fs/development.toml"]
+   Configuration files: ["/Users/username/.config/airs-mcpserver-fs/development.toml"]
    Environment variables: 3 overrides
    
 ✅ Environment validation passed
@@ -326,25 +326,25 @@ When promoting to production:
 1. **Wrong Environment Detected**
    ```bash
    # Check environment detection
-   echo $AIRS_MCP_FS_ENV
+   echo $AIRS_MCPSERVER_FS_ENV
    
    # Set explicitly
-   export AIRS_MCP_FS_ENV=development
+   export AIRS_MCPSERVER_FS_ENV=development
    ```
 
 2. **Configuration File Not Found**
    ```bash
    # Check file existence
-   ls -la ~/.config/airs-mcp-fs/
+   ls -la ~/.config/airs-mcpserver-fs/
    
    # Generate missing configuration
-   airs-mcp-fs generate-config --env development
+   airs-mcpserver-fs generate-config --env development
    ```
 
 3. **Permission Denied in Environment**
    ```bash
    # Check allowed paths in configuration
-   cat ~/.config/airs-mcp-fs/development.toml | grep allowed_paths
+   cat ~/.config/airs-mcpserver-fs/development.toml | grep allowed_paths
    
    # Add required paths to configuration
    ```
@@ -355,8 +355,8 @@ Enable debug logging to troubleshoot environment issues:
 
 ```bash
 export RUST_LOG=debug
-export AIRS_MCP_FS_ENV=development
-airs-mcp-fs
+export AIRS_MCPSERVER_FS_ENV=development
+airs-mcpserver-fs
 ```
 
 This will show detailed information about:

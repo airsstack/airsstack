@@ -2,4 +2,4 @@
 authors = ["rstlix0x0"]
 language = "en"
 src = "src"
-title = "AIRS MCP FS"
+title = "AIRS MCP Server - Filesystem"

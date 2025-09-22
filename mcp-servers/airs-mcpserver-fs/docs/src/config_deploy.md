@@ -4,24 +4,24 @@
 
 ### **Hierarchical Configuration System**
 ```toml
-# Global configuration: ~/.config/airs-mcp-fs/config.toml
+# Global configuration: ~/.config/airs-mcpserver-fs/config.toml
 [server]
-name = "airs-mcp-fs"
+name = "airs-mcpserver-fs"
 version = "1.0.0"
 transport = "stdio"
 
 [performance]
 max_concurrent_operations = 10
 cache_size_mb = 50
-temp_directory = "/tmp/airs-mcp-fs"
+temp_directory = "/tmp/airs-mcpserver-fs"
 
 [logging]
 level = "info"
-file = "~/.config/airs-mcp-fs/logs/airs-mcp-fs.log"
+file = "~/.config/airs-mcpserver-fs/logs/airs-mcpserver-fs.log"
 max_size_mb = 100
 max_files = 10
 
-# Project-specific configuration: ./.airs-mcp-fs.toml
+# Project-specific configuration: ./.airs-mcpserver-fs.toml
 [project]
 name = "my-awesome-project"
 root_path = "./"
@@ -62,7 +62,7 @@ impl FsConfig {
     fn load_global_config() -> Result<Self, ConfigError> {
         let config_path = dirs::config_dir()
             .ok_or(ConfigError::NoConfigDir)?
-            .join("airs-mcp-fs")
+            .join("airs-mcpserver-fs")
             .join("config.toml");
             
         if config_path.exists() {
@@ -82,15 +82,15 @@ impl FsConfig {
 # Install from source for development
 git clone https://github.com/rstlix0x0/airs.git
 cd airs
-cargo build --release --bin airs-mcp-fs
+cargo build --release --bin airs-mcpserver-fs
 
 # Configure for Claude Desktop
 # Add to Claude Desktop MCP configuration:
 {
   "mcpServers": {
-    "airs-mcp-fs": {
-      "command": "path/to/airs-mcp-fs",
-      "args": ["--config", "./.airs-mcp-fs.toml"]
+    "airs-mcpserver-fs": {
+      "command": "path/to/airs-mcpserver-fs",
+      "args": ["--config", "./.airs-mcpserver-fs.toml"]
     }
   }
 }

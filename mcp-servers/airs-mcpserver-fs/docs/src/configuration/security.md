@@ -471,7 +471,7 @@ Enable security debugging for detailed analysis:
 
 ```bash
 export RUST_LOG=debug
-export AIRS_MCP_FS_ENV=development
+export AIRS_MCPSERVER_FS_ENV=development
 airs-mcp-fs
 ```
 

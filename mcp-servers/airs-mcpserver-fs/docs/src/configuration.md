@@ -22,9 +22,9 @@ Environment Detection → Base Configuration → Policy Application → Environm
 
 AIRS MCP-FS searches for configuration files in the following order:
 
-1. **Environment Variable**: `AIRS_MCP_FS_CONFIG_DIR`
-2. **User Config Directory**: `~/.config/airs-mcp-fs/`
-3. **System Config Directory**: `/etc/airs-mcp-fs/`
+1. **Environment Variable**: `AIRS_MCPSERVER_FS_CONFIG_DIR`
+2. **User Config Directory**: `~/.config/airs-mcpserver-fs/`
+3. **System Config Directory**: `/etc/airs-mcpserver-fs/`
 4. **Built-in Defaults**: Secure production defaults
 
 ### Environment-Specific Files
@@ -62,21 +62,21 @@ max_file_size = 104857600  # 100MB for text files
 
 # Server configuration
 [server]
-name = "airs-mcp-fs"
+name = "airs-mcpserver-fs"
 version = "1.0.0"
 ```
 
 ## Environment Variable Overrides
 
-All configuration values can be overridden using environment variables with the `AIRS_MCP_FS_` prefix:
+All configuration values can be overridden using environment variables with the `AIRS_MCPSERVER_FS_` prefix:
 
 | Environment Variable | Configuration Path | Example |
 |---------------------|-------------------|---------|
-| `AIRS_MCP_FS_ENV` | Environment type | `development` |
-| `AIRS_MCP_FS_CONFIG_DIR` | Config directory | `~/.config/airs-mcp-fs` |
-| `AIRS_MCP_FS_LOG_DIR` | Log directory | `~/.local/share/airs-mcp-fs/logs` |
-| `AIRS_MCP_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS` | Filesystem allowed paths | `~/projects/**/*,~/docs/**/*` |
-| `AIRS_MCP_FS_SECURITY_MAX_FILE_SIZE` | Max file size | `52428800` (50MB) |
+| `AIRS_MCPSERVER_FS_ENV` | Environment type | `development` |
+| `AIRS_MCPSERVER_FS_CONFIG_DIR` | Config directory | `~/.config/airs-mcpserver-fs` |
+| `AIRS_MCPSERVER_FS_LOG_DIR` | Log directory | `~/.local/share/airs-mcpserver-fs/logs` |
+| `AIRS_MCPSERVER_FS_SECURITY_FILESYSTEM_ALLOWED_PATHS` | Filesystem allowed paths | `~/projects/**/*,~/docs/**/*` |
+| `AIRS_MCPSERVER_FS_SECURITY_MAX_FILE_SIZE` | Max file size | `52428800` (50MB) |
 
 ## Security Modes
 
@@ -130,7 +130,7 @@ risk_level = "low"
 
 ### Development Workstation
 ```toml
-# ~/.config/airs-mcp-fs/development.toml
+# ~/.config/airs-mcpserver-fs/development.toml
 [security.filesystem]
 allowed_paths = [
     "~/projects/**/*",

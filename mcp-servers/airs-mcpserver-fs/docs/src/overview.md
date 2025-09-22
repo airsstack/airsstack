@@ -1,8 +1,8 @@
-# AIRS MCP-FS: Intelligent Filesystem Bridge for AI-Assisted Development
+# AIRS MCP Server - Filesystem: Intelligent Filesystem Bridge for AI-Assisted Development
 
 ## Overview 
 
-**AIRS MCP-FS** is a security-first filesystem bridge that enables Claude Desktop and other MCP-compatible AI tools to intelligently read, write, and manage files in local development environments. The tool transforms AI assistance from passive consultation to active collaboration, where AI agents can both understand project context and create tangible artifacts.
+**AIRS MCP Server - Filesystem** is a security-first filesystem bridge that enables Claude Desktop and other MCP-compatible AI tools to intelligently read, write, and manage files in local development environments. The tool transforms AI assistance from passive consultation to active collaboration, where AI agents can both understand project context and create tangible artifacts.
 
 **Core Value Proposition**: Bridge the gap between cloud-based AI intelligence and local development workflows through standardized, secure filesystem operations.
 
