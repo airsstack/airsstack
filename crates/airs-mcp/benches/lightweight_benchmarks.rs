@@ -8,7 +8,9 @@ use serde_json::json;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
-use airs_mcp::protocol::message::{JsonRpcRequest, JsonRpcResponse, JsonRpcNotification, RequestId};
+use airs_mcp::protocol::message::{
+    JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, RequestId,
+};
 
 // Lightweight JSON-RPC serialization benchmarks
 fn bench_jsonrpc_serialization(c: &mut Criterion) {
@@ -16,7 +18,7 @@ fn bench_jsonrpc_serialization(c: &mut Criterion) {
     group.warm_up_time(Duration::from_millis(100)); // Minimal warm-up
     group.measurement_time(Duration::from_millis(500)); // Short measurement
     group.sample_size(50); // Small sample size for resource constraints
-    
+
     // Simple request serialization
     let simple_request = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
@@ -24,20 +26,21 @@ fn bench_jsonrpc_serialization(c: &mut Criterion) {
         method: "ping".to_string(),
         params: Some(json!({})),
     };
-    
+
     group.bench_function("simple_request_serialize", |b| {
         b.iter(|| {
             let _json = serde_json::to_string(black_box(&simple_request)).unwrap();
         })
     });
-    
+
     let simple_request_json = serde_json::to_string(&simple_request).unwrap();
     group.bench_function("simple_request_deserialize", |b| {
         b.iter(|| {
-            let _request: JsonRpcRequest = serde_json::from_str(black_box(&simple_request_json)).unwrap();
+            let _request: JsonRpcRequest =
+                serde_json::from_str(black_box(&simple_request_json)).unwrap();
         })
     });
-    
+
     // Simple response serialization
     let simple_response = JsonRpcResponse {
         jsonrpc: "2.0".to_string(),
@@ -45,26 +48,26 @@ fn bench_jsonrpc_serialization(c: &mut Criterion) {
         result: Some(json!({"status": "ok"})),
         error: None,
     };
-    
+
     group.bench_function("simple_response_serialize", |b| {
         b.iter(|| {
             let _json = serde_json::to_string(black_box(&simple_response)).unwrap();
         })
     });
-    
+
     // Notification serialization (lightweight)
     let notification = JsonRpcNotification {
         jsonrpc: "2.0".to_string(),
         method: "notification".to_string(),
         params: Some(json!({"message": "test"})),
     };
-    
+
     group.bench_function("notification_serialize", |b| {
         b.iter(|| {
             let _json = serde_json::to_string(black_box(&notification)).unwrap();
         })
     });
-    
+
     group.finish();
 }
 
@@ -74,7 +77,7 @@ fn bench_message_creation(c: &mut Criterion) {
     group.warm_up_time(Duration::from_millis(100));
     group.measurement_time(Duration::from_millis(500));
     group.sample_size(50);
-    
+
     group.bench_function("request_creation", |b| {
         b.iter(|| {
             let _request = JsonRpcRequest {
@@ -85,7 +88,7 @@ fn bench_message_creation(c: &mut Criterion) {
             };
         })
     });
-    
+
     group.bench_function("response_creation", |b| {
         b.iter(|| {
             let _response = JsonRpcResponse {
@@ -96,7 +99,7 @@ fn bench_message_creation(c: &mut Criterion) {
             };
         })
     });
-    
+
     group.finish();
 }
 
@@ -106,14 +109,14 @@ fn bench_payload_sizes(c: &mut Criterion) {
     group.warm_up_time(Duration::from_millis(100));
     group.measurement_time(Duration::from_millis(300)); // Even shorter for larger payloads
     group.sample_size(25); // Smaller sample for resource conservation
-    
+
     // Test different payload sizes (but keep them reasonable for limited resources)
     let sizes = vec![
         ("small", json!({"message": "hello"})),
         ("medium", json!({"data": "x".repeat(100)})), // 100 chars
         ("large", json!({"content": "x".repeat(1000)})), // 1KB
     ];
-    
+
     for (size_name, payload) in sizes {
         let request = JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -121,7 +124,7 @@ fn bench_payload_sizes(c: &mut Criterion) {
             method: "test".to_string(),
             params: Some(payload),
         };
-        
+
         group.bench_with_input(
             BenchmarkId::new("serialize", size_name),
             &request,
@@ -132,7 +135,7 @@ fn bench_payload_sizes(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
@@ -142,7 +145,7 @@ fn bench_async_operations(c: &mut Criterion) {
     group.warm_up_time(Duration::from_millis(100));
     group.measurement_time(Duration::from_millis(300));
     group.sample_size(25);
-    
+
     group.bench_function("simple_async_task", |b| {
         let rt = Runtime::new().unwrap();
         b.iter(|| {
@@ -153,7 +156,7 @@ fn bench_async_operations(c: &mut Criterion) {
             })
         })
     });
-    
+
     group.finish();
 }
 
