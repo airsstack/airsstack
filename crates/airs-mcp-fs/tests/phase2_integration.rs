@@ -2,38 +2,39 @@
 
 #![allow(clippy::expect_used)]
 
-use airs_mcp::integration::mcp::{McpServerBuilder, ToolProvider};
-use airs_mcp::transport::StdioTransport;
+// Layer 3a: AIRS foundation crates (prioritized)
+use airs_mcp::integration::McpServer;
+use airs_mcp::providers::ToolProvider;
+use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
+
+// Layer 3b: Local crate modules
+use airs_mcp_fs::mcp::FilesystemMessageHandler;
 use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};
 
 #[tokio::test]
-async fn test_phase2_mcp_server_builder_integration() {
+async fn test_phase2_message_handler_integration() {
     // Test that we can create a FilesystemMcpServer
     let settings = Settings::default();
     let filesystem_server = DefaultFilesystemMcpServer::with_default_handlers(settings)
         .await
         .expect("Failed to create filesystem server");
 
-    // Test that we can create an STDIO transport
-    let transport = StdioTransport::new()
+    // Test that we can create a MessageHandler wrapper
+    let message_handler = std::sync::Arc::new(FilesystemMessageHandler::new(std::sync::Arc::new(filesystem_server)));
+
+    // Test that we can build the transport with MessageHandler
+    let transport = StdioTransportBuilder::new()
+        .with_message_handler(message_handler)
+        .build()
         .await
-        .expect("Failed to create STDIO transport");
+        .expect("Failed to build STDIO transport");
 
-    // Test that we can build the complete MCP server
-    let mcp_server = McpServerBuilder::new()
-        .server_info("test-airs-mcp-fs", "0.1.0")
-        .with_tool_provider(filesystem_server)
-        .build(transport)
-        .await
-        .expect("Failed to build MCP server");
+    // Test that we can create the complete MCP server
+    let _mcp_server = McpServer::new(transport);
 
-    // Verify the server is not initialized yet (normal state)
-    assert!(!mcp_server.is_initialized().await);
-
-    // Test that server.run() would be callable (don't actually run it as it would block)
-    // This confirms our integration is complete
-    println!("✅ Phase 2 STDIO transport integration test passed!");
-    println!("🎯 MCP server with FilesystemMcpServer tool provider created successfully");
+    // Test passed - we can create the complete server with new architecture
+    println!("✅ Phase 2 MessageHandler integration test passed!");
+    println!("🎯 MCP server with FilesystemMessageHandler created successfully");
 }
 
 #[tokio::test]
