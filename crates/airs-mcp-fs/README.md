@@ -1,5 +1,21 @@
 # airs-mcp-fs
 
+> **⚠️ MIGRATION NOTICE - PROJECT RELOCATED**
+> 
+> **This project has moved to `mcp-servers/airs-mcpserver-fs`**
+> 
+> - **New Location**: [`mcp-servers/airs-mcpserver-fs`](../../mcp-servers/airs-mcpserver-fs/)
+> - **New Binary Name**: `airs-mcpserver-fs`
+> - **Migration Guide**: [Complete Migration Instructions](../../mcp-servers/airs-mcpserver-fs/MIGRATION.md)
+> - **Timeline**: Legacy support until **December 31, 2025**
+> 
+> **📋 Quick Migration Steps:**
+> 1. Update Claude Desktop config: `airs-mcp-fs` → `airs-mcpserver-fs`
+> 2. Update environment variables: `AIRS_MCP_FS_*` → `AIRS_MCPSERVER_FS_*`
+> 3. Rebuild with: `cargo build --package airs-mcpserver-fs`
+> 
+> **Need Help?** See [Migration FAQ](../../mcp-servers/airs-mcpserver-fs/MIGRATION.md#faq) or [Troubleshooting Guide](../../mcp-servers/airs-mcpserver-fs/MIGRATION.md#troubleshooting)
+
 A security-first filesystem bridge that enables Claude Desktop and other MCP-compatible AI tools to intelligently read, write, and manage files in local development environments.
 
 ## Overview

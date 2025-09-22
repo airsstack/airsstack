@@ -188,6 +188,127 @@ Both versions:
 - ✅ Maintain the same performance characteristics
 - ✅ Support the same security features
 
+## Troubleshooting
+
+### Side-by-Side Configuration Comparison
+
+**Legacy Configuration (airs-mcp-fs):**
+```json
+{
+  "mcpServers": {
+    "airs-mcp-fs": {
+      "command": "/path/to/airs/target/release/airs-mcp-fs",
+      "args": ["serve"],
+      "env": {
+        "AIRS_MCP_FS_ENV": "development",
+        "AIRS_MCP_FS_CONFIG_DIR": "/Users/username/.config/airs-mcp-fs",
+        "AIRS_MCP_FS_ROOT_DIR": "/Users/username/projects",
+        "AIRS_MCP_FS_ALLOWED_PATHS": "/Users/username/projects,/Users/username/docs"
+      }
+    }
+  }
+}
+```
+
+**New Configuration (airs-mcpserver-fs):**
+```json
+{
+  "mcpServers": {
+    "airs-mcpserver-fs": {
+      "command": "/path/to/airs/target/release/airs-mcpserver-fs",
+      "args": ["serve"],
+      "env": {
+        "AIRS_MCPSERVER_FS_ENV": "development",
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/username/.config/airs-mcpserver-fs",
+        "AIRS_MCPSERVER_FS_ROOT_DIR": "/Users/username/projects",
+        "AIRS_MCPSERVER_FS_ALLOWED_PATHS": "/Users/username/projects,/Users/username/docs"
+      }
+    }
+  }
+}
+```
+
+### Common Migration Issues
+
+#### Issue: "Binary not found" error
+**Symptoms:** Claude Desktop shows connection error or "command not found"
+**Solution:**
+1. Verify binary exists: `ls -la target/release/airs-mcpserver-fs`
+2. Check permissions: `chmod +x target/release/airs-mcpserver-fs`
+3. Use absolute path in Claude config: `/full/path/to/airs/target/release/airs-mcpserver-fs`
+
+#### Issue: Environment variables not recognized
+**Symptoms:** Server starts but can't access expected directories
+**Solution:**
+1. Double-check variable name conversion: `AIRS_MCP_FS_*` → `AIRS_MCPSERVER_FS_*`
+2. Verify environment variable values with: `echo $AIRS_MCPSERVER_FS_ROOT_DIR`
+3. Test with minimal config (no env vars) first
+
+#### Issue: Claude Desktop can't connect to server
+**Symptoms:** "Failed to connect to MCP server" in Claude Desktop
+**Solution:**
+1. Test server manually: `./target/release/airs-mcpserver-fs --help`
+2. Check Claude Desktop logs: `~/Library/Logs/Claude/`
+3. Try temporary config with minimal settings
+4. Verify JSON syntax in claude_desktop_config.json
+
+#### Issue: Configuration directory not found
+**Symptoms:** Server complains about missing config files
+**Solution:**
+1. Create new config directory: `mkdir -p ~/.config/airs-mcpserver-fs`
+2. Copy existing config: `cp -r ~/.config/airs-mcp-fs/* ~/.config/airs-mcpserver-fs/`
+3. Or keep existing path: Use `AIRS_MCPSERVER_FS_CONFIG_DIR=~/.config/airs-mcp-fs`
+
+### Validation Commands
+
+**Test new binary:**
+```bash
+# Build and verify
+cargo build --release --package airs-mcpserver-fs
+./target/release/airs-mcpserver-fs --help
+
+# Test startup (should show deprecation warning for comparison)
+echo 'exit' | ./target/release/airs-mcp-fs serve
+echo 'exit' | ./target/release/airs-mcpserver-fs serve
+```
+
+**Verify environment:**
+```bash
+# Check all new environment variables
+env | grep AIRS_MCPSERVER_FS_
+
+# Compare with legacy (should be empty after migration)
+env | grep AIRS_MCP_FS_
+```
+
+### Debugging Steps
+
+1. **Isolate the Issue:**
+   - Does legacy version still work? `./target/release/airs-mcp-fs --help`
+   - Does new binary build? `cargo build --release --package airs-mcpserver-fs`
+   - Can you run new binary? `./target/release/airs-mcpserver-fs --help`
+
+2. **Test Configuration:**
+   - Validate JSON syntax: Use online JSON validator or `python -m json.tool claude_desktop_config.json`
+   - Check file permissions: `ls -la ~/Library/Application\ Support/Claude/claude_desktop_config.json`
+
+3. **Progressive Testing:**
+   - Start with minimal config (just command path)
+   - Add environment variables one by one
+   - Test each change with Claude Desktop restart
+
+### Performance Validation
+
+**Expected identical performance:**
+```bash
+# Time comparison (should be nearly identical)
+time ./target/release/airs-mcp-fs --help
+time ./target/release/airs-mcpserver-fs --help
+
+# Memory usage (using Activity Monitor or htop)
+# Response times should remain sub-100ms
+```
+
 ## FAQ
 
 ### Q: Will my existing configuration work?
@@ -203,7 +324,18 @@ Both versions:
 **A:** Yes, during the transition period you can have both configured in Claude Desktop with different names (e.g., "airs-mcp-fs-legacy" and "airs-mcpserver-fs").
 
 ### Q: When will the legacy version be deprecated?
-**A:** The legacy version will be maintained for at least 6 months to ensure smooth transition. Deprecation timeline will be announced with advance notice.
+**A:** The legacy version will be maintained until **December 31, 2025** to ensure smooth transition. Here's the timeline:
+
+**Migration Timeline:**
+- **Phase 1 (September 2025)**: New architecture available, both versions supported
+- **Phase 2 (October-November 2025)**: Migration notices active, documentation updated
+- **Phase 3 (December 2025)**: Final month for migration, increased deprecation warnings
+- **Phase 4 (January 1, 2026)**: Legacy version removed from workspace
+
+**Deprecation Notices:**
+- Legacy binary shows migration notice on startup
+- Legacy README prominently displays migration information
+- Documentation consistently points to new version
 
 ## Support
 

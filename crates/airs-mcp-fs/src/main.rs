@@ -56,6 +56,13 @@ enum Commands {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // ⚠️ DEPRECATION WARNING - Display migration notice
+    eprintln!("\n⚠️  DEPRECATION NOTICE: airs-mcp-fs has moved!");
+    eprintln!("   New location: mcp-servers/airs-mcpserver-fs");
+    eprintln!("   New binary: airs-mcpserver-fs");
+    eprintln!("   Migration guide: https://github.com/airsstack/airsstack/blob/main/mcp-servers/airs-mcpserver-fs/MIGRATION.md");
+    eprintln!("   Legacy support ends: December 31, 2025\n");
+
     // Determine if we're running as MCP server (serve command or no command)
     let is_mcp_server = matches!(
         cli.command.as_ref().unwrap_or(&Commands::Serve),
