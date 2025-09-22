@@ -3,6 +3,7 @@ members = [
     "crates/airs-mcp", 
     "crates/airs-mcp-fs", 
     "crates/airs-memspec",
+    "mcp-servers/airs-mcpserver-fs",
 ]
 resolver = "2"
 
@@ -31,6 +32,7 @@ rust-version = "1.88"
 # Layer 1: AIRS Foundation Crates (MUST be at top)
 airs-mcp = { path = "crates/airs-mcp" }
 airs-mcp-fs = { path = "crates/airs-mcp-fs" }
+airs-mcpserver-fs = { path = "mcp-servers/airs-mcpserver-fs" }
 airs-memspec = { path = "crates/airs-memspec" }
 
 # Layer 2: Core Runtime Dependencies
