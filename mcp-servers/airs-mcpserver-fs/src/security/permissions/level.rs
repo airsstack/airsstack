@@ -29,8 +29,8 @@ use crate::mcp::types::OperationType;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp_fs::security::permissions::PermissionLevel;
-/// use airs_mcp_fs::mcp::types::OperationType;
+/// use airs_mcpserver_fs::security::permissions::PermissionLevel;
+/// use airs_mcpserver_fs::mcp::types::OperationType;
 ///
 /// // Check what operations are allowed
 /// assert!(PermissionLevel::ReadOnly.allows_operation(&OperationType::Read));
@@ -111,8 +111,8 @@ impl PermissionLevel {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::PermissionLevel;
-    /// # use airs_mcp_fs::mcp::types::OperationType;
+    /// # use airs_mcpserver_fs::security::permissions::PermissionLevel;
+    /// # use airs_mcpserver_fs::mcp::types::OperationType;
     /// assert!(PermissionLevel::ReadWrite.allows_operation(&OperationType::Write));
     /// assert!(!PermissionLevel::ReadOnly.allows_operation(&OperationType::Delete));
     /// ```
@@ -145,7 +145,7 @@ impl PermissionLevel {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::PermissionLevel;
+    /// # use airs_mcpserver_fs::security::permissions::PermissionLevel;
     /// assert_eq!(PermissionLevel::None.priority(), 0);
     /// assert_eq!(PermissionLevel::Full.priority(), 4);
     /// assert!(PermissionLevel::ReadWrite.priority() > PermissionLevel::ReadOnly.priority());

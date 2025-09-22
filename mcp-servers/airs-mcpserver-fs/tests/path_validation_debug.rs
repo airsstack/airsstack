@@ -3,7 +3,7 @@
 //! These tests verify that the dual-layer security system works correctly
 //! for real-world scenarios like journal file access using dynamic paths.
 
-use airs_mcp_fs::{
+use airs_mcpserver_fs::{
     config::{
         settings::{RiskLevel, SecurityPolicy},
         FilesystemConfig, OperationConfig, SecurityConfig,

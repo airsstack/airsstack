@@ -15,7 +15,7 @@ use std::time::Instant;
 use serde_json::{json, Value};
 
 // Layer 3: Internal module imports
-use airs_mcp_fs::filesystem::validation::PathValidator;
+use airs_mcpserver_fs::filesystem::validation::PathValidator;
 
 /// Comprehensive input validation security test framework
 pub struct InputValidationSecurityTester {

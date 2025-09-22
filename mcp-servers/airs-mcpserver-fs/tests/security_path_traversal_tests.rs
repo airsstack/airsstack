@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 // Layer 3: Internal module imports
-use airs_mcp_fs::filesystem::validation::PathValidator;
+use airs_mcpserver_fs::filesystem::validation::PathValidator;
 
 /// Comprehensive path traversal attack vectors for security testing
 #[derive(Debug, Clone)]

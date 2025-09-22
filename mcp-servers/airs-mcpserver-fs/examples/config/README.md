@@ -1,4 +1,4 @@
-# AIRS MCP-FS Configuration Examples
+# airs-mcpserver-fs Configuration Examples
 
 This directory contains example configurations for different deployment environments.
 

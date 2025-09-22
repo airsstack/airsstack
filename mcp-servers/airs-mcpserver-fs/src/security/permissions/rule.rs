@@ -34,7 +34,7 @@ use crate::mcp::types::OperationType;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+/// use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
 /// use std::path::PathBuf;
 ///
 /// // Create a rule for Rust source files
@@ -128,7 +128,7 @@ impl PathPermissionRule {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+    /// # use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
     /// // Read-write access to documentation
     /// let docs_rule = PathPermissionRule::new(
     ///     "docs/**/*.md".to_string(),
@@ -244,8 +244,8 @@ impl PathPermissionRule {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
-    /// # use airs_mcp_fs::mcp::types::OperationType;
+    /// # use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+    /// # use airs_mcpserver_fs::mcp::types::OperationType;
     /// # use std::collections::HashSet;
     /// let rule = PathPermissionRule::new(
     ///     "**/*.txt".to_string(),
@@ -286,7 +286,7 @@ impl PathPermissionRule {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+    /// # use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
     /// # use std::path::PathBuf;
     /// let mut rule = PathPermissionRule::new(
     ///     "temp/**".to_string(),
@@ -313,7 +313,7 @@ impl PathPermissionRule {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+    /// # use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
     /// # use std::path::PathBuf;
     /// let mut rule = PathPermissionRule::new(
     ///     "src/**".to_string(),
@@ -354,7 +354,7 @@ impl PathPermissionRule {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PathPermissionRule, PermissionLevel};
+    /// # use airs_mcpserver_fs::security::permissions::{PathPermissionRule, PermissionLevel};
     /// let rule = PathPermissionRule::new(
     ///     "src/**/*.rs".to_string(),
     ///     PermissionLevel::ReadOnly,

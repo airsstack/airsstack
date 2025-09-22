@@ -22,8 +22,8 @@ use crate::config::settings::RiskLevel;
 /// # Examples
 ///
 /// ```rust
-/// use airs_mcp_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
-/// use airs_mcp_fs::config::settings::RiskLevel;
+/// use airs_mcpserver_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
+/// use airs_mcpserver_fs::config::settings::RiskLevel;
 /// use chrono::Utc;
 ///
 /// let evaluation = PermissionEvaluation {
@@ -106,8 +106,8 @@ impl PermissionEvaluation {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
-    /// # use airs_mcp_fs::config::settings::RiskLevel;
+    /// # use airs_mcpserver_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
+    /// # use airs_mcpserver_fs::config::settings::RiskLevel;
     /// let evaluation = PermissionEvaluation::new(
     ///     true,
     ///     PermissionLevel::ReadOnly,
@@ -153,8 +153,8 @@ impl PermissionEvaluation {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::PermissionEvaluation;
-    /// # use airs_mcp_fs::config::settings::RiskLevel;
+    /// # use airs_mcpserver_fs::security::permissions::PermissionEvaluation;
+    /// # use airs_mcpserver_fs::config::settings::RiskLevel;
     /// let evaluation = PermissionEvaluation::denied(
     ///     "Path matches security exclusion pattern".to_string(),
     ///     RiskLevel::High,
@@ -186,8 +186,8 @@ impl PermissionEvaluation {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
-    /// # use airs_mcp_fs::config::settings::RiskLevel;
+    /// # use airs_mcpserver_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
+    /// # use airs_mcpserver_fs::config::settings::RiskLevel;
     /// let evaluation = PermissionEvaluation::allowed(
     ///     PermissionLevel::ReadWrite,
     ///     vec!["dev_workspace".to_string()],
@@ -223,9 +223,9 @@ impl PermissionEvaluation {
     /// # Examples
     ///
     /// ```rust
-    /// # use airs_mcp_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
-    /// # use airs_mcp_fs::config::settings::RiskLevel;
-    /// # use airs_mcp_fs::mcp::types::OperationType;
+    /// # use airs_mcpserver_fs::security::permissions::{PermissionEvaluation, PermissionLevel};
+    /// # use airs_mcpserver_fs::config::settings::RiskLevel;
+    /// # use airs_mcpserver_fs::mcp::types::OperationType;
     /// let evaluation = PermissionEvaluation::allowed(
     ///     PermissionLevel::ReadOnly,
     ///     vec![],

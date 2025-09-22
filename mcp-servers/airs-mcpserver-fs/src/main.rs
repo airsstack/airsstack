@@ -20,8 +20,8 @@ use airs_mcp::integration::McpServer;
 use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 
 // Layer 3b: Local crate modules
-use airs_mcp_fs::mcp::FilesystemMessageHandler;
-use airs_mcp_fs::{DefaultFilesystemMcpServer, Settings};
+use airs_mcpserver_fs::mcp::FilesystemMessageHandler;
+use airs_mcpserver_fs::{DefaultFilesystemMcpServer, Settings};
 
 #[derive(Parser)]
 #[command(name = "airs-mcp-fs")]
@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
     // Initialize structured logging with environment filter support
     if is_mcp_server {
         // For MCP server: log to files to keep STDIO clean
-        let log_dir = std::env::var("AIRS_MCP_FS_LOG_DIR").unwrap_or_else(|_| {
+        let log_dir = std::env::var("AIRS_MCPSERVER_FS_LOG_DIR").unwrap_or_else(|_| {
             let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
             format!("{home}/.local/share/airs-mcp-fs/logs")
         });
@@ -101,7 +101,7 @@ async fn main() -> Result<()> {
         tracing_subscriber::fmt()
             .with_env_filter(
                 tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| "airs_mcp_fs=info".into()),
+                    .unwrap_or_else(|_| "airs_mcpserver_fs=info".into()),
             )
             .with_ansi(false)
             .with_writer(file_appender)
@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
         tracing_subscriber::fmt()
             .with_env_filter(
                 tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| "airs_mcp_fs=info".into()),
+                    .unwrap_or_else(|_| "airs_mcpserver_fs=info".into()),
             )
             .init();
     }

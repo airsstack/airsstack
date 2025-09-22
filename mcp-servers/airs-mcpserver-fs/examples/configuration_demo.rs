@@ -8,7 +8,7 @@
 
 #![allow(clippy::uninlined_format_args)]
 
-use airs_mcp_fs::config::{ConfigEnvironment, ConfigurationLoader, Settings};
+use airs_mcpserver_fs::config::{ConfigEnvironment, ConfigurationLoader, Settings};
 use std::env;
 
 fn main() -> anyhow::Result<()> {

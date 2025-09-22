@@ -11,7 +11,7 @@
 // (None needed)
 
 // Layer 3: Internal module imports
-use airs_mcp_fs::config::{ConfigurationValidator, Settings};
+use airs_mcpserver_fs::config::{ConfigurationValidator, Settings};
 
 #[test]
 fn test_configuration_validation_integration() {
