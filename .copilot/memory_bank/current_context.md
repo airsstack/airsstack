@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs-mcp  
+**active_sub_project:** airs-mcp-fs  
 **switched_on:** 2025-09-22T00:00:00Z
 **updated_on:** 2025-09-22T00:00:00Z  
 **by:** context_switch_request  
-**status:** context_switched_to_airs_mcp
+**status:** context_switched_to_airs_mcp_fs
 
 # 🎯 TASK-034 COMPLETE ✅ - Transport Client-Server Architecture Refactoring - 2025-09-20T16:00:00Z
 
