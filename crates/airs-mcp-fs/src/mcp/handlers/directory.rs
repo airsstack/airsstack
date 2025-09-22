@@ -14,8 +14,8 @@ use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
 // Layer 3a: AIRS foundation crates (prioritized)
-use airs_mcp::integration::mcp::{McpError, McpResult};
-use airs_mcp::shared::protocol::Content;
+use airs_mcp::integration::{McpError, McpResult};
+use airs_mcp::protocol::types::Content;
 
 // Layer 3b: Local crate modules
 use crate::filesystem::FileOperation;

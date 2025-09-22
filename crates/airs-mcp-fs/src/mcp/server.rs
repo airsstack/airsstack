@@ -15,9 +15,9 @@ use tracing::{info, instrument};
 
 // Layer 3: Internal module imports
 // Layer 3a: AIRS foundation crates (prioritized)
-use airs_mcp::integration::mcp::{McpError, McpResult};
-use airs_mcp::shared::protocol::{Content, Tool};
-use airs_mcp::shared::provider::ToolProvider;
+use airs_mcp::integration::{McpError, McpResult};
+use airs_mcp::protocol::types::{Content, Tool};
+use airs_mcp::providers::ToolProvider;
 
 // Layer 3b: Local crate modules
 use crate::config::Settings;
@@ -110,11 +110,13 @@ where
         info!("Listing available filesystem tools");
 
         let tools = vec![
-            Tool::new(
-                "read_file",
-                Some("Read File"),
-                Some("Read file contents with security validation and encoding detection"),
-                serde_json::json!({
+            Tool {
+                name: "read_file".to_string(),
+                description: Some(
+                    "Read file contents with security validation and encoding detection"
+                        .to_string(),
+                ),
+                input_schema: serde_json::json!({
                     "type": "object",
                     "properties": {
                         "path": {
@@ -124,12 +126,14 @@ where
                     },
                     "required": ["path"]
                 }),
-            ),
-            Tool::new(
-                "write_file",
-                Some("Write File"),
-                Some("Write file contents with human approval workflow and security validation"),
-                serde_json::json!({
+            },
+            Tool {
+                name: "write_file".to_string(),
+                description: Some(
+                    "Write file contents with human approval workflow and security validation"
+                        .to_string(),
+                ),
+                input_schema: serde_json::json!({
                     "type": "object",
                     "properties": {
                         "path": {
@@ -143,12 +147,13 @@ where
                     },
                     "required": ["path", "content"]
                 }),
-            ),
-            Tool::new(
-                "list_directory",
-                Some("List Directory"),
-                Some("List directory contents with metadata and security validation"),
-                serde_json::json!({
+            },
+            Tool {
+                name: "list_directory".to_string(),
+                description: Some(
+                    "List directory contents with metadata and security validation".to_string(),
+                ),
+                input_schema: serde_json::json!({
                     "type": "object",
                     "properties": {
                         "path": {
@@ -158,7 +163,7 @@ where
                     },
                     "required": ["path"]
                 }),
-            ),
+            },
         ];
 
         info!(

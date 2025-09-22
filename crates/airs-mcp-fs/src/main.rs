@@ -9,8 +9,7 @@ use std::path::PathBuf;
 use std::process;
 
 // Layer 2: Third-party crate imports
-use airs_mcp::integration::mcp::McpServerBuilder;
-use airs_mcp::transport::StdioTransport;
+use airs_mcp::StdioTransport;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use tracing::{error, info};
@@ -194,19 +193,11 @@ async fn run_server() -> Result<()> {
     };
 
     // Create STDIO transport for Claude Desktop integration
-    let transport = match StdioTransport::new().await {
-        Ok(transport) => {
-            info!("✅ STDIO transport initialized for Claude Desktop");
-            transport
-        }
-        Err(e) => {
-            error!("❌ Failed to create STDIO transport: {}", e);
-            process::exit(1);
-        }
-    };
+    let _transport = StdioTransport::new();
+    info!("✅ STDIO transport initialized for Claude Desktop");
 
     // Initialize filesystem MCP server
-    let filesystem_server = match DefaultFilesystemMcpServer::with_default_handlers(settings).await
+    let _filesystem_server = match DefaultFilesystemMcpServer::with_default_handlers(settings).await
     {
         Ok(server) => {
             info!("✅ Filesystem MCP server initialized with security manager");
@@ -218,32 +209,10 @@ async fn run_server() -> Result<()> {
         }
     };
 
-    // Build complete MCP server with STDIO transport and filesystem tools
-    let mcp_server = match McpServerBuilder::new()
-        .server_info("airs-mcp-fs", env!("CARGO_PKG_VERSION"))
-        .with_tool_provider(filesystem_server)
-        .build(transport)
-        .await
-    {
-        Ok(server) => {
-            info!("✅ Complete MCP server built successfully");
-            info!("📋 Available tools: read_file, write_file, list_directory");
-            info!("🔗 Ready for Claude Desktop connections via STDIO");
-            server
-        }
-        Err(e) => {
-            error!("❌ Failed to build MCP server: {}", e);
-            process::exit(1);
-        }
-    };
-
-    // Start the server event loop
-    info!("🎯 Starting MCP server event loop...");
-    if let Err(e) = mcp_server.run().await {
-        error!("💥 MCP server runtime error: {}", e);
-        process::exit(1);
-    }
-
-    info!("🛑 AIRS MCP-FS server shutdown completed");
-    Ok(())
+    // TODO(Phase 2): Implement MessageHandler integration
+    // The new airs-mcp architecture requires implementing MessageHandler trait
+    // instead of using McpServerBuilder. This will be implemented in Phase 2.
+    error!("❌ Phase 2 implementation required: MessageHandler integration not yet implemented");
+    error!("💡 The compilation works but server integration needs Phase 2 implementation");
+    process::exit(1);
 }
