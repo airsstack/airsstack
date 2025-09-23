@@ -367,8 +367,7 @@ impl JwtValidator for Jwt {
                     _ => "unknown",
                 };
                 return Err(OAuth2Error::TokenValidation(format!(
-                    "Invalid JWT structure: {} part is empty",
-                    part_name
+                    "Invalid JWT structure: {part_name} part is empty"
                 )));
             }
         }

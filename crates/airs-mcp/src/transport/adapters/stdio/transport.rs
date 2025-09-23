@@ -175,7 +175,7 @@ impl StdioTransport {
     pub async fn wait_for_completion(&mut self) -> Result<(), TransportError> {
         if let Some(task_handle) = self.task_handle.take() {
             task_handle.await.map_err(|e| TransportError::Connection {
-                message: format!("Background task failed: {}", e),
+                message: format!("Background task failed: {e}"),
             })?;
             self.is_running = false;
         }

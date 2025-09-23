@@ -308,7 +308,7 @@ impl<T: TransportClient + 'static> McpClient<T> {
         let request = InitializeRequest {
             protocol_version: self.config.protocol_version.clone(),
             capabilities: serde_json::to_value(&self.config.capabilities)
-                .map_err(|e| McpError::custom(format!("Serialization error: {}", e)))?,
+                .map_err(|e| McpError::custom(format!("Serialization error: {e}")))?,
             client_info: self.config.client_info.clone(),
         };
 
@@ -317,7 +317,7 @@ impl<T: TransportClient + 'static> McpClient<T> {
             method: methods::INITIALIZE.to_string(),
             params: Some(
                 serde_json::to_value(&request)
-                    .map_err(|e| McpError::custom(format!("Serialization error: {}", e)))?,
+                    .map_err(|e| McpError::custom(format!("Serialization error: {e}")))?,
             ),
             id: RequestId::new_number(1),
         };
@@ -327,13 +327,13 @@ impl<T: TransportClient + 'static> McpClient<T> {
             .transport
             .call(json_request)
             .await
-            .map_err(|e| McpError::custom(format!("Transport error: {}", e)))?;
+            .map_err(|e| McpError::custom(format!("Transport error: {e}")))?;
 
         debug!("Received initialize response");
 
         // Check for JSON-RPC error
         if let Some(error) = response.error {
-            return Err(McpError::custom(format!("JSON-RPC error: {:?}", error)));
+            return Err(McpError::custom(format!("JSON-RPC error: {error:?}")));
         }
 
         // Parse the response
@@ -511,7 +511,7 @@ impl<T: TransportClient + 'static> McpClient<T> {
                 call_response
                     .content
                     .first()
-                    .map(|c| format!("{:?}", c))
+                    .map(|c| format!("{c:?}"))
                     .unwrap_or_else(|| "Unknown error".to_string())
             ))));
         }
@@ -632,7 +632,7 @@ impl<T: TransportClient + 'static> McpClient<T> {
         self.transport
             .close()
             .await
-            .map_err(|e| McpError::custom(format!("Transport close error: {}", e)))?;
+            .map_err(|e| McpError::custom(format!("Transport close error: {e}")))?;
 
         // Reset client state
         self.session_state = McpSessionState::NotInitialized;
@@ -651,7 +651,7 @@ impl<T: TransportClient + 'static> McpClient<T> {
         debug!(method = method, "Calling MCP method");
 
         let params_value = serde_json::to_value(params)
-            .map_err(|e| McpError::custom(format!("Serialization error: {}", e)))?;
+            .map_err(|e| McpError::custom(format!("Serialization error: {e}")))?;
 
         let request = JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -664,10 +664,10 @@ impl<T: TransportClient + 'static> McpClient<T> {
             .transport
             .call(request)
             .await
-            .map_err(|e| McpError::custom(format!("Transport error: {}", e)))?;
+            .map_err(|e| McpError::custom(format!("Transport error: {e}")))?;
 
         if let Some(error) = response.error {
-            return Err(McpError::custom(format!("JSON-RPC error: {:?}", error)));
+            return Err(McpError::custom(format!("JSON-RPC error: {error:?}")));
         }
 
         debug!(method = method, "MCP method call completed successfully");

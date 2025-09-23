@@ -833,7 +833,7 @@ mod tests {
 
         // Verify the builder can be used for its intended purpose
         // (In real usage, this would be passed to transport construction)
-        assert!(true, "Builder should maintain consistent state");
+        // Note: Builder maintains consistent state as verified by successful field access
     }
 
     #[tokio::test]
@@ -1109,8 +1109,7 @@ mod tests {
         // Verify error message is descriptive and follows ADR-011
         assert!(
             error_message.contains("Message handler must be set"),
-            "Error should indicate handler requirement clearly. Got: {}",
-            error_message
+            "Error should indicate handler requirement clearly. Got: {error_message}"
         );
 
         // Verify error type is appropriate (Protocol error for configuration issues)
@@ -1118,10 +1117,7 @@ mod tests {
             TransportError::Protocol { .. } => {
                 // Expected: Protocol error for missing handler configuration
             }
-            _ => panic!(
-                "Should be a Protocol error for configuration issue, got: {:?}",
-                error
-            ),
+            _ => panic!("Should be a Protocol error for configuration issue, got: {error:?}"),
         }
     }
 

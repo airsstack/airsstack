@@ -773,8 +773,7 @@ impl JsonRpcRequest {
         // Method names beginning with "rpc." are reserved for rpc-internal methods
         if method_str.starts_with("rpc.") {
             return Err(JsonRpcError::invalid_request(format!(
-                "Method name '{}' is reserved for JSON-RPC internal methods",
-                method_str
+                "Method name '{method_str}' is reserved for JSON-RPC internal methods"
             )));
         }
 
@@ -959,7 +958,7 @@ impl JsonRpcResponse {
     pub fn method_not_found(method: &str, id: Option<RequestId>) -> Self {
         Self::error_standard(
             METHOD_NOT_FOUND,
-            &format!("Method '{}' not found", method),
+            &format!("Method '{method}' not found"),
             Some(serde_json::json!({"method": method})),
             id,
         )
@@ -1094,8 +1093,7 @@ impl JsonRpcNotification {
         // Method names beginning with "rpc." are reserved for rpc-internal methods
         if method_str.starts_with("rpc.") {
             return Err(JsonRpcError::invalid_request(format!(
-                "Method name '{}' is reserved for JSON-RPC internal methods",
-                method_str
+                "Method name '{method_str}' is reserved for JSON-RPC internal methods"
             )));
         }
 

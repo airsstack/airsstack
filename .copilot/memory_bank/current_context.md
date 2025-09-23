@@ -1,10 +1,10 @@
 # Current Context
 
-**active_sub_project:** airs-mcpserver-fs  
-**switched_on:** 2025-09-22T00:00:00Z
-**updated_on:** 2025-09-23T00:00:00Z  
-**by:** architectural_migration_complete  
-**status:** migration_complete_ready_for_cli_refactoring
+**active_sub_project:** airs-mcp  
+**switched_on:** 2025-09-23T04:25:00Z
+**updated_on:** 2025-09-23T04:25:00Z  
+**by:** user_context_switch_request  
+**status:** ready_for_development
 
 ## 🎉 Architectural Migration Complete
 
