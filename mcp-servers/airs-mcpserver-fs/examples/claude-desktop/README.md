@@ -25,7 +25,7 @@ This directory contains example configurations and setup instructions for integr
        "airs-mcp-fs": {
          "command": "/path/to/airs-mcpserver-fs",
          "env": {
-           "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourname/.config/airs-mcp-fs"
+           "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/yourname/.config/airs-mcpserver-fs"
          }
        }
      }
@@ -39,7 +39,7 @@ This directory contains example configurations and setup instructions for integr
        "airs-mcp-fs": {
          "command": "/path/to/airs-mcpserver-fs",
          "env": {
-           "AIRS_MCP_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS": "~/Projects/**/*,~/Documents/**/*.md"
+           "AIRS_MCPSERVER_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS": "~/Projects/**/*,~/Documents/**/*.md"
          }
        }
      }
@@ -59,7 +59,7 @@ The TOML approach provides:
 
 Set the config directory with:
 ```bash
-export AIRS_MCP_FS_CONFIG_DIR="/path/to/your/config/directory"
+export AIRS_MCPSERVER_FS_CONFIG_DIR="/path/to/your/config/directory"
 ```
 
 ### Environment Variables (Legacy)
@@ -71,8 +71,8 @@ Environment variables are still supported for:
 
 Variable format uses double underscores for nesting:
 ```bash
-AIRS_MCP_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS="~/Projects/**/*"
-AIRS_MCP_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="false"
+AIRS_MCPSERVER_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS="~/Projects/**/*"
+AIRS_MCPSERVER_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="false"
 ```
 
 ## Security Considerations
@@ -85,7 +85,7 @@ AIRS_MCP_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="false"
 ## Troubleshooting
 
 ### Configuration Not Loading
-- Check that `AIRS_MCP_FS_CONFIG_DIR` points to the correct directory
+- Check that `AIRS_MCPSERVER_FS_CONFIG_DIR` points to the correct directory
 - Verify the TOML file syntax with `cargo run --bin airs-mcpserver-fs -- generate-config --env development`
 - Check the server logs for configuration errors
 

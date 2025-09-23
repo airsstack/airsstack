@@ -14,7 +14,29 @@ AIRS MCP-FS uses a sophisticated 5-layer configuration system that prioritizes s
 
 ## Quick Start
 
-### 1. Choose Your Configuration
+### 1. Automatic Setup (Recommended)
+
+Use the new setup command to automatically create the directory structure:
+
+```bash
+# Automatic setup with default directories
+airs-mcpserver-fs setup
+
+# Setup with custom directories
+airs-mcpserver-fs setup --config-dir ~/.config/airs-mcpserver-fs --logs-dir ~/.local/share/airs-mcpserver-fs/logs
+
+# Generate configuration for specific environment
+airs-mcpserver-fs config --env production --output ~/.config/airs-mcpserver-fs
+```
+
+The setup command will:
+- Create `~/.airs-mcpserver-fs/config` and `~/.airs-mcpserver-fs/logs` directories
+- Generate a sample `development.toml` configuration
+- Provide next steps for customization
+
+### 2. Manual Configuration (Alternative)
+
+### 2a. Choose Your Configuration
 
 Start with one of our pre-built configurations from [`examples/config/`](./examples/config/):
 
@@ -23,7 +45,7 @@ Start with one of our pre-built configurations from [`examples/config/`](./examp
 - **`educational.toml`** - Permissive for learning and tutorials  
 - **`development.toml`** - Balanced for daily development work
 
-### 2. Set Up Configuration Directory
+### 2b. Set Up Configuration Directory
 
 ```bash
 # Create configuration directory
@@ -201,8 +223,8 @@ risk_level = "medium"
        "airs-mcp-fs": {
          "command": "/path/to/airs-mcpserver-fs",
          "env": {
-           "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourname/.config/airs-mcp-fs",
-           "AIRS_MCP_FS_ENV": "development"
+           "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/yourname/.config/airs-mcpserver-fs",
+           "AIRS_MCPSERVER_FS_ENV": "development"
          }
        }
      }
@@ -225,7 +247,7 @@ For different projects with different security requirements:
     "airs-mcp-fs-project": {
       "command": "/path/to/airs-mcpserver-fs",
       "env": {
-        "AIRS_MCP_FS_CONFIG_DIR": "/Users/yourname/projects/sensitive-project/.mcp-config"
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/yourname/projects/sensitive-project/.mcp-config"
       }
     }
   }
@@ -240,14 +262,14 @@ While TOML is recommended, environment variables can override any setting:
 
 ```bash
 # Override config directory
-export AIRS_MCP_FS_CONFIG_DIR="/custom/config/path"
+export AIRS_MCPSERVER_FS_CONFIG_DIR="/custom/config/path"
 
 # Override environment
-export AIRS_MCP_FS_ENV="staging"
+export AIRS_MCPSERVER_FS_ENV="staging"
 
 # Override nested settings (use double underscore)
-export AIRS_MCP_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS="~/safe/**/*"
-export AIRS_MCP_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="true"
+export AIRS_MCPSERVER_FS__SECURITY__FILESYSTEM__ALLOWED_PATHS="~/safe/**/*"
+export AIRS_MCPSERVER_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="true"
 ```
 
 ### Configuration Validation

@@ -35,7 +35,8 @@ pub enum ConfigEnvironment {
 impl ConfigEnvironment {
     /// Detect environment from environment variables
     pub fn detect() -> Self {
-        match env::var("AIRS_MCP_FS_ENV")
+        match env::var("AIRS_MCPSERVER_FS_ENV")
+            .or_else(|_| env::var("AIRS_MCP_FS_ENV")) // Backward compatibility
             .or_else(|_| env::var("NODE_ENV"))
             .or_else(|_| env::var("ENVIRONMENT"))
             .as_deref()
@@ -113,7 +114,7 @@ impl ConfigurationLoader {
         Self {
             environment,
             config_dir,
-            env_prefix: "AIRS_MCP_FS".to_string(),
+            env_prefix: "AIRS_MCPSERVER_FS".to_string(),
         }
     }
 
@@ -244,7 +245,10 @@ impl ConfigurationLoader {
     /// Get default configuration directory
     fn default_config_dir() -> PathBuf {
         // Try environment variable first
-        if let Ok(config_dir) = env::var("AIRS_MCP_FS_CONFIG_DIR") {
+        if let Ok(config_dir) =
+            env::var("AIRS_MCPSERVER_FS_CONFIG_DIR").or_else(|_| env::var("AIRS_MCP_FS_CONFIG_DIR"))
+        // Backward compatibility
+        {
             return PathBuf::from(config_dir);
         }
 
