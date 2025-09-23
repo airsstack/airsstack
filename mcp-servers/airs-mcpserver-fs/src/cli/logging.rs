@@ -11,7 +11,7 @@ use anyhow::Result;
 use tracing_subscriber;
 
 // Layer 3: Internal module imports
-// (None needed for logging configuration)
+use super::args::{Cli, Commands};
 
 /// Logging output mode configuration
 pub enum LoggingMode {
@@ -48,7 +48,9 @@ pub fn initialize_logging(mode: LoggingMode) -> Result<()> {
             {
                 Ok(file) => file,
                 Err(e) => {
-                    eprintln!("Warning: Failed to open log file {log_file}: {e}, disabling logging");
+                    eprintln!(
+                        "Warning: Failed to open log file {log_file}: {e}, disabling logging"
+                    );
                     // If we can't create log file, disable logging completely for MCP mode
                     tracing_subscriber::fmt()
                         .with_env_filter("off")
@@ -66,8 +68,45 @@ pub fn initialize_logging(mode: LoggingMode) -> Result<()> {
                 .with_ansi(false)
                 .with_writer(file_appender)
                 .init();
-            
+
             Ok(())
         }
+    }
+}
+
+/// Determine appropriate logging mode based on the CLI command
+pub fn determine_logging_mode(cli: &Cli) -> LoggingMode {
+    // For serve command (or default), use file logging to keep STDIO clean
+    let is_serve_command = matches!(
+        cli.command.as_ref().unwrap_or(&Commands::Serve {
+            config_dir: None,
+            logs_dir: None
+        }),
+        Commands::Serve { .. }
+    );
+
+    if is_serve_command {
+        // Extract logs directory for server command
+        let logs_dir_override = if let Some(Commands::Serve { logs_dir, .. }) = &cli.command {
+            logs_dir.clone()
+        } else {
+            None
+        };
+
+        let log_dir = if let Some(custom_logs_dir) = logs_dir_override {
+            custom_logs_dir.to_string_lossy().to_string()
+        } else {
+            std::env::var("AIRS_MCPSERVER_FS_LOG_DIR")
+                .or_else(|_| std::env::var("AIRS_MCP_FS_LOG_DIR")) // Backward compatibility
+                .unwrap_or_else(|_| {
+                    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+                    format!("{home}/.airs-mcpserver-fs/logs")
+                })
+        };
+
+        LoggingMode::File { log_dir }
+    } else {
+        // For CLI commands: use console logging
+        LoggingMode::Console
     }
 }

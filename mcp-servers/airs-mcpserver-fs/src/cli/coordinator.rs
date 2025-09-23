@@ -12,7 +12,7 @@ use anyhow::Result;
 // Layer 3: Internal module imports
 use super::args::{Cli, Commands};
 use super::handlers;
-use super::logging::{initialize_logging, LoggingMode};
+use super::logging::{determine_logging_mode, initialize_logging};
 
 /// Main CLI entry point that coordinates all CLI operations
 pub async fn run() -> Result<()> {
@@ -40,42 +40,5 @@ pub async fn run() -> Result<()> {
             config_dir,
             logs_dir,
         } => handlers::serve::handle_serve(config_dir, logs_dir).await,
-    }
-}
-
-/// Determine appropriate logging mode based on the CLI command
-fn determine_logging_mode(cli: &Cli) -> LoggingMode {
-    // For serve command (or default), use file logging to keep STDIO clean
-    let is_serve_command = matches!(
-        cli.command.as_ref().unwrap_or(&Commands::Serve {
-            config_dir: None,
-            logs_dir: None
-        }),
-        Commands::Serve { .. }
-    );
-
-    if is_serve_command {
-        // Extract logs directory for server command
-        let logs_dir_override = if let Some(Commands::Serve { logs_dir, .. }) = &cli.command {
-            logs_dir.clone()
-        } else {
-            None
-        };
-
-        let log_dir = if let Some(custom_logs_dir) = logs_dir_override {
-            custom_logs_dir.to_string_lossy().to_string()
-        } else {
-            std::env::var("AIRS_MCPSERVER_FS_LOG_DIR")
-                .or_else(|_| std::env::var("AIRS_MCP_FS_LOG_DIR")) // Backward compatibility
-                .unwrap_or_else(|_| {
-                    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-                    format!("{home}/.airs-mcpserver-fs/logs")
-                })
-        };
-
-        LoggingMode::File { log_dir }
-    } else {
-        // For CLI commands: use console logging
-        LoggingMode::Console
     }
 }
