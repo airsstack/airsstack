@@ -1,11 +1,11 @@
 {
   "mcpServers": {
     "airs-mcp-fs": {
-      "command": "/Users/hiraq/Projects/airsstack/airsstack/target/debug/airs-mcpserver-fs",
+      "command": "/Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs",
       "env": {
-        "AIRS_MCP_FS_CONFIG_DIR": "/Users/hiraq/Projects/airsstack/airsstack/mcp-servers/airs-mcpserver-fs/examples/config",
-        "AIRS_MCP_FS_ENV": "development",
-        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/hiraq/.local/share/airs-mcp-fs/logs"
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/config",
+        "AIRS_MCPSERVER_FS_ENV": "local",
+        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/logs"
       }
     }
   }

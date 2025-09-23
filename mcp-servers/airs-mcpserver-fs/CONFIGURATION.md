@@ -356,6 +356,41 @@ description = "Configuration changes require careful review"
 
 ### Claude Desktop Integration Issues
 
+#### "spawn airs-mcpserver-fs ENOENT" Error
+
+This common error occurs when Claude Desktop cannot find the executable:
+
+**Symptoms**: Connection errors in Claude Desktop logs:
+```
+Error: spawn airs-mcpserver-fs ENOENT
+Server transport closed unexpectedly
+Server disconnected
+```
+
+**Solution**: Use the full path to the installed binary:
+```json
+{
+  "mcpServers": {
+    "airs-mcp-fs": {
+      "command": "/Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs",
+      "env": {
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/config",
+        "AIRS_MCPSERVER_FS_ENV": "local",
+        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/logs"
+      }
+    }
+  }
+}
+```
+
+**To find your binary path**:
+```bash
+which airs-mcpserver-fs
+# Typically: /Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs
+```
+
+#### Other Integration Issues
+
 1. **Verify binary path** in Claude Desktop config
 2. **Check environment variables** are set correctly
 3. **Review server logs** for startup errors

@@ -84,20 +84,87 @@ AIRS_MCPSERVER_FS__SECURITY__OPERATIONS__WRITE_REQUIRES_POLICY="false"
 
 ## Troubleshooting
 
-### Configuration Not Loading
+### Common Issues
+
+#### 1. "spawn airs-mcpserver-fs ENOENT" Error
+
+**Symptoms**: Claude Desktop shows connection errors like:
+```
+Error: spawn airs-mcpserver-fs ENOENT
+Server disconnected. For troubleshooting guidance, please visit our debugging documentation
+```
+
+**Cause**: Claude Desktop cannot find the `airs-mcpserver-fs` executable because:
+- The binary is not in Claude Desktop's PATH environment
+- Using relative command name instead of full path
+
+**Solution**: Use the full path to the installed binary in your Claude Desktop configuration:
+
+```json
+{
+  "mcpServers": {
+    "airs-mcp-fs": {
+      "command": "/Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs",
+      "env": {
+        "AIRS_MCPSERVER_FS_CONFIG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/config",
+        "AIRS_MCPSERVER_FS_ENV": "local",
+        "AIRS_MCPSERVER_FS_LOG_DIR": "/Users/YOUR_USERNAME/.airs-mcpserver-fs/logs"
+      }
+    }
+  }
+}
+```
+
+**To find your binary location**:
+```bash
+which airs-mcpserver-fs
+# Usually: /Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs
+```
+
+#### 2. Configuration Not Loading
 - Check that `AIRS_MCPSERVER_FS_CONFIG_DIR` points to the correct directory
 - Verify the TOML file syntax with `cargo run --bin airs-mcpserver-fs -- generate-config --env development`
 - Check the server logs for configuration errors
 
-### Path Access Denied
+#### 3. Path Access Denied
 - Verify the path patterns in your `allowed_paths` configuration
 - Check that `denied_paths` isn't blocking your intended access
 - Review the security policies for your file types
 
-### Claude Desktop Connection Issues
+#### 4. Claude Desktop Connection Issues
 - Ensure the binary path in `claude_desktop_config.json` is correct
 - Check that the server starts successfully: `./airs-mcpserver-fs --help`
 - Review Claude Desktop's logs for connection errors
+
+### Environment Variable Names
+
+The server supports both current and legacy environment variable names for backward compatibility:
+
+**Current (recommended)**:
+- `AIRS_MCPSERVER_FS_CONFIG_DIR` - Configuration directory
+- `AIRS_MCPSERVER_FS_ENV` - Environment name (local, development, production)
+- `AIRS_MCPSERVER_FS_LOG_DIR` - Logs directory
+
+**Legacy (still supported)**:
+- `AIRS_MCP_FS_CONFIG_DIR` - Configuration directory  
+- `AIRS_MCP_FS_ENV` - Environment name
+- `AIRS_MCP_FS_LOG_DIR` - Logs directory
+
+### Debugging Steps
+
+1. **Test the binary directly**:
+   ```bash
+   /Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs --help
+   ```
+
+2. **Check configuration loading**:
+   ```bash
+   AIRS_MCPSERVER_FS_CONFIG_DIR="/path/to/config" /Users/YOUR_USERNAME/.cargo/bin/airs-mcpserver-fs config --validate
+   ```
+
+3. **Review Claude Desktop logs**: Check Claude Desktop's console output for detailed error messages
+
+4. **Test with minimal configuration**: Start with a very permissive configuration to isolate connection vs. permission issues
 
 ## Example Files
 
