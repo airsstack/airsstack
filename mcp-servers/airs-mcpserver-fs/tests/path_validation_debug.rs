@@ -118,9 +118,7 @@ fn test_globset_pattern_matching() {
 
                     for path in test_paths {
                         let matches = globset.is_match(&path);
-                        println!(
-                            "🔍 Pattern '{documents_pattern}' matches '{path}': {matches}"
-                        );
+                        println!("🔍 Pattern '{documents_pattern}' matches '{path}': {matches}");
 
                         // All these should match our pattern
                         assert!(matches, "Pattern should match path: {path}");
@@ -277,9 +275,7 @@ fn test_permission_system_integration() {
         match validator.validate_path(path) {
             Ok(_) => println!("  ✅ PathValidator: {scenario} validation passed"),
             Err(e) => {
-                println!(
-                    "  ❌ PathValidator: {scenario} validation failed: {e:?}"
-                );
+                println!("  ❌ PathValidator: {scenario} validation failed: {e:?}");
                 // Don't panic here, let's see what SecurityManager does
             }
         }
