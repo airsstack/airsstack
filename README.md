@@ -4,79 +4,79 @@
 
 Build AI applications with composable building blocks that give you more control over your data and workflows.
 
-🎯 **What can you build?**
-• Personal AI assistants  
-• MCP Tools & Extensions  
-• Autonomous Agent Services  
-• Custom Workflow Automations  
-• **AI-Filesystem Collaboration** (via airs-mcp-fs)
+**Key Use Cases:**
+- Personal AI assistants  
+- MCP Tools & Extensions  
+- Autonomous Agent Services  
+- Custom Workflow Automations  
+- AI-Filesystem Collaboration (via airs-mcpserver-fs)
 
 ## Production Status
 
-**✅ Claude Desktop Integration Verified**  
-**✅ Complete MCP Server/Client Implementation**  
-**✅ Production-Ready ApiKey MCP Server**  
-**✅ Production Filesystem MCP Server (airs-mcp-fs)**  
-**✅ 100% Schema Compliance (MCP 2024-11-05)**  
-**✅ Comprehensive Documentation Ecosystem**
+**Claude Desktop Integration Verified**  
+**Complete MCP Server/Client Implementation**  
+**Production-Ready ApiKey MCP Server**  
+**Production Filesystem MCP Server (airs-mcpserver-fs)**  
+**100% Schema Compliance (MCP 2024-11-05)**  
+**Comprehensive Documentation Ecosystem**
 
-### **Working Components**
+### Working Components
 - **MCP Server Framework**: Successfully integrated with Claude Desktop - resources, tools, and prompts working in production
 - **ApiKey MCP Server**: Production-ready authentication server with MCP Inspector compatibility
-- **Filesystem Bridge (airs-mcp-fs)**: Security-first filesystem operations for AI collaboration
+- **Filesystem Bridge (airs-mcpserver-fs)**: Security-first filesystem operations for AI collaboration
 - **MCP Client**: Rust API with automatic subprocess management and protocol interactions  
 - **Type Safety**: Full Rust type safety throughout MCP protocol implementation
 - **Examples**: Working client/server examples with comprehensive documentation
 
-📖 **[Complete Documentation Available](docs/src/)** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
+**Complete Documentation Available** - Comprehensive guides for development workflow, memory bank management, AI-Rust integration patterns, project overviews, and resource guides.
 
 [**See MCP Server Example →**](crates/airs-mcp/examples/simple-mcp-server/)  
 [**See ApiKey MCP Server (Production) →**](crates/airs-mcp/examples/mcp-remote-server-apikey/)  
-[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)**  
-[**See Filesystem MCP Server (Production) →**](crates/airs-mcp-fs/)**  
-[**📆 Read Complete Documentation →**](docs/src/)
+[**See MCP Client Example →**](crates/airs-mcp/examples/simple-mcp-client/)  
+[**See Filesystem MCP Server (Production) →**](mcp-servers/airs-mcpserver-fs/)  
+[**Read Complete Documentation →**](docs/src/)
 
-## 🎯 Our Vision
+## Vision
 
 "Empower everyone to build their own AI-powered applications and agents"
 
 We provide the essential open-source components that enable individuals, teams, and organizations to create sophisticated AI systems tailored to their specific needs - from simple productivity tools to complex autonomous agents.
 
-## 🧭 Core Philosophy
+## Core Philosophy
 
-• 🤝 **Human-AI Collaboration**: Human-driven architecture with AI-accelerated implementation  
-• 🏠 **AI Sovereignty**: More ownership and control of your AI infrastructure  
-• 🔓 **Open Source First**: Apache/MIT licensing ensuring freedom and flexibility  
-• 🛡️ **Privacy by Design**: Keep more of your data under your control  
-• 🔧 **Composable Components**: Building blocks, not black boxes  
-• ⚡ **Performance Focused**: Rust-first with support for multiple technology stacks
+- **Human-AI Collaboration**: Human-driven architecture with AI-accelerated implementation  
+- **AI Sovereignty**: More ownership and control of your AI infrastructure  
+- **Open Source First**: Apache/MIT licensing ensuring freedom and flexibility  
+- **Privacy by Design**: Keep more of your data under your control  
+- **Composable Components**: Building blocks, not black boxes  
+- **Performance Focused**: Rust-first with support for multiple technology stacks
 
-## 🔄 Meta-Philosophy: AI Tools Built by AI
+## Meta-Philosophy: AI Tools Built by AI
 
 We practice what we preach - our AI infrastructure components are themselves built using AI-assisted methodologies. This creates a powerful recursive approach:
 
-**🧠 Human-AI Collaboration**
-• Strategic architecture designed by humans  
-• Implementation accelerated by AI  
-• Continuous validation through both perspectives  
+**Human-AI Collaboration**
+- Strategic architecture designed by humans  
+- Implementation accelerated by AI  
+- Continuous validation through both perspectives  
 
-**🔁 Self-Improving Process**
-• AI tools become better by being built with AI assistance  
-• Real-world experience informs better AI development tools  
-• Methodology becomes part of what we offer the community  
+**Self-Improving Process**
+- AI tools become better by being built with AI assistance  
+- Real-world experience informs better AI development tools  
+- Methodology becomes part of what we offer the community  
 
-**✨ Authentic Understanding**  
+**Authentic Understanding**  
 We deeply understand AI development challenges because we use AI to build AI tools. Our components solve real problems we've encountered in our own AI-assisted development.
 
-## 💡 Why AirsStack?
+## Why AirsStack?
 
-🔒 **More Control**  
+**More Control**  
 Building personal AI infrastructure is challenging, but AirsStack makes it more accessible. Reduce dependence on external AI services and gain more control over your data and workflows.
 
-🛠️ **Developer-First**  
+**Developer-First**  
 Composable components, not black boxes. Use what you need, extend what you want, control what matters to you.
 
-⚡ **Performance & Safety**  
+**Performance & Safety**  
 Built with performance and safety in mind, with Rust as our primary language while supporting integration with other technology stacks.
 
 ## Technology Stack
@@ -103,8 +103,9 @@ airsstack/
 ├── Cargo.toml              # Workspace configuration
 ├── crates/                 # Composable building blocks
 │   ├── airs-mcp/          # Model Context Protocol implementation
-│   ├── airs-mcp-fs/       # Filesystem MCP tools  
 │   └── airs-memspec/      # Memory bank specification and tooling
+├── mcp-servers/           # MCP server implementations
+│   └── airs-mcpserver-fs/ # Filesystem MCP server
 ├── .copilot/              # AI-assisted development configuration
 │   ├── chatmodes/         # Custom AI interaction modes
 │   ├── instructions/      # Development methodologies and standards
@@ -118,28 +119,28 @@ airsstack/
 └── target/                # Build artifacts
 ```
 
-## 🛠️ Featured Components
+## Featured Components
 
-**🔧 Core Libraries** - Essential AI building blocks  
-**🤖 Agent Framework** - Build autonomous AI agents  
-**📊 Data Pipelines** - Privacy-first data processing  
-**🖥️ Model Runtime** - Local AI model execution  
-**🔗 Integrations** - Connect with your favorite tools  
-**📁 Filesystem Bridge** - **✅ PRODUCTION** Secure AI-filesystem collaboration
+**Core Libraries** - Essential AI building blocks  
+**Agent Framework** - Build autonomous AI agents  
+**Data Pipelines** - Privacy-first data processing  
+**Model Runtime** - Local AI model execution  
+**Integrations** - Connect with your favorite tools  
+**Filesystem Bridge** - **PRODUCTION** Secure AI-filesystem collaboration
 
 ## Key Features
 
 ### Current Implementation
-- **✅ Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
-- **✅ Production ApiKey MCP Server**: **NEW!** Fully working authentication server with MCP Inspector compatibility
-- **✅ Production Filesystem Server (airs-mcp-fs)**: Security-first filesystem bridge with Claude Desktop integration
-- **✅ Working Examples**: Real-world server/client examples with documented usage patterns
-- **✅ Advanced Transport Layer**: Custom transport support with SubprocessTransport example
-- **✅ Type-Safe APIs**: High-level Rust APIs for MCP protocol interactions
-- **✅ Enterprise Security**: 97.5/100 security audit score with comprehensive vulnerability testing
-- **✅ Memory Bank System**: Structured AI-assisted development workflow management
-- **✅ Cargo Workspace Structure**: Organized multi-crate development environment
-- **✅ AI-Assisted Development**: Copilot-optimized workflow and prompts
+- **Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
+- **Production ApiKey MCP Server**: Fully working authentication server with MCP Inspector compatibility
+- **Production Filesystem Server (airs-mcpserver-fs)**: Security-first filesystem bridge with Claude Desktop integration
+- **Working Examples**: Real-world server/client examples with documented usage patterns
+- **Advanced Transport Layer**: Custom transport support with SubprocessTransport example
+- **Type-Safe APIs**: High-level Rust APIs for MCP protocol interactions
+- **Enterprise Security**: 97.5/100 security audit score with comprehensive vulnerability testing
+- **Memory Bank System**: Structured AI-assisted development workflow management
+- **Cargo Workspace Structure**: Organized multi-crate development environment
+- **AI-Assisted Development**: Copilot-optimized workflow and prompts
 
 ### Design Principles
 - **Human Architecture, AI Implementation**: Strategic decisions made by humans, code accelerated with AI assistance
@@ -174,18 +175,18 @@ AirsStack embodies our philosophy of AI tools built by AI. We leverage a sophist
 
 For more details, see `.copilot/memory_bank/` and the documentation in `docs/`.
 
-## 📖 Documentation Ecosystem
+## Documentation Ecosystem
 
 AIRS provides comprehensive documentation covering philosophy, technical implementation, and practical usage:
 
-### 📚 **Complete Documentation**
+### Complete Documentation
 - **[Philosophy & Principles](docs/src/philosophy_principles.md)**: Core design philosophy and AI-human collaboration principles
 - **[Technical Knowledge](docs/src/technical/)**: In-depth guides on development workflow, memory bank architecture, and AI-Rust integration
 - **[Project Overviews](docs/src/projects/)**: Detailed coverage of AIRS-MCP and AIRS-MemSpec implementations
 - **[Getting Started](docs/src/resources/getting_started.md)**: Comprehensive onboarding with multiple user paths
 - **[Contributing Guide](https://airsstack.github.io/contributing)**: Complete framework for community participation
 
-### 🚀 **Quick Access**
+### Quick Access
 ```bash
 # Read documentation directly in markdown
 open docs/src/
@@ -195,7 +196,7 @@ cd docs && mdbook serve --open
 # Access at: http://localhost:3000
 ```
 
-### 📋 **Documentation Features**
+### Documentation Features
 - **Multiple User Paths**: Tailored guidance for AI-enhanced teams, Rust+AI projects, and documentation teams
 - **Real-World Examples**: Authentic examples from actual AirsStack development
 - **Professional Quality**: Comprehensive documentation with validation
@@ -210,7 +211,7 @@ cd docs && mdbook serve --open
 - **Cargo**: Included with Rust installation
 - **Git**: For version control and development workflow
 
-**📖 For detailed setup instructions, see our [Getting Started Guide](https://airsstack.github.io/getting-started)**
+**For detailed setup instructions, see our [Getting Started Guide](https://airsstack.github.io/getting-started)**
 
 ### Installation
 
@@ -249,7 +250,7 @@ cargo test --workspace
 
 ### Quick Start Examples
 
-**Try the production ApiKey MCP server (NEW!):**
+**Try the production ApiKey MCP server:**
 ```bash
 cd crates/airs-mcp/examples/mcp-remote-server-apikey
 cargo build --release
@@ -275,11 +276,11 @@ cargo build --release
 
 **Try the filesystem MCP server (Production):**
 ```bash
-cd crates/airs-mcp-fs
+cd mcp-servers/airs-mcpserver-fs
 cargo build --release
 
 # Generate configuration
-./target/release/airs-mcp-fs generate-config
+./target/release/airs-mcpserver-fs generate-config
 
 # Add to Claude Desktop - provides secure file operations
 # See docs/ for complete setup guide
@@ -291,7 +292,7 @@ cd crates/airs-mcp/examples/simple-mcp-client
 cargo run  # Automatically spawns server and demonstrates all MCP operations
 ```
 
-**📖 For comprehensive examples and detailed usage, see our [Complete Documentation](https://airsstack.github.io/)**
+**For comprehensive examples and detailed usage, see our [Complete Documentation](https://airsstack.github.io/)**
 
 ## Project Structure
 
@@ -301,17 +302,18 @@ cargo run  # Automatically spawns server and demonstrates all MCP operations
 airsstack/
 ├── Cargo.toml                    # Root workspace configuration
 ├── crates/                       # Composable building blocks
-│   ├── airs-mcp/                # MCP implementation crate (✅ Production Ready)
+│   ├── airs-mcp/                # MCP implementation crate (Production Ready)
 │   │   ├── examples/            # Working examples
 │   │   │   ├── simple-mcp-server/     # Claude Desktop integration verified
-│   │   │   ├── mcp-remote-server-apikey/ # Production ApiKey server (✅ NEW!)
+│   │   │   ├── mcp-remote-server-apikey/ # Production ApiKey server
 │   │   │   └── simple-mcp-client/     # AirsStack library usage demonstration
 │   │   └── Cargo.toml           # Crate-specific configuration
-│   ├── airs-mcp-fs/             # Filesystem MCP server (✅ Production Ready)
-│   │   ├── examples/            # Configuration examples
-│   │   ├── docs/                # Comprehensive documentation
-│   │   └── src/                 # Security-first filesystem bridge
 │   └── airs-memspec/            # Memory bank specification and tooling
+├── mcp-servers/                 # MCP server implementations
+│   └── airs-mcpserver-fs/       # Filesystem MCP server (Production Ready)
+│       ├── examples/            # Configuration examples
+│       ├── docs/                # Comprehensive documentation
+│       └── src/                 # Security-first filesystem bridge
 ├── .copilot/                    # AI-assisted development configuration
 │   ├── chatmodes/               # Custom interaction modes
 │   ├── instructions.md          # Development practices
@@ -329,20 +331,20 @@ airsstack/
 
 ### Current Workspace Members
 
-- **`airs-mcp`**: **✅ Production-Ready** Model Context Protocol implementation
+- **`airs-mcp`**: **Production-Ready** Model Context Protocol implementation
   - Complete MCP server/client functionality
   - **Claude Desktop integration verified** with working examples
-  - **NEW: Production ApiKey Server** - Fully working with MCP Inspector compatibility
+  - **Production ApiKey Server** - Fully working with MCP Inspector compatibility
   - High-level type-safe APIs for both server and client
   - Advanced transport layer with custom transport support
   - [Server Example](crates/airs-mcp/examples/simple-mcp-server/) | [ApiKey Server](crates/airs-mcp/examples/mcp-remote-server-apikey/) | [Client Example](crates/airs-mcp/examples/simple-mcp-client/)
 
-- **`airs-mcp-fs`**: **✅ Production-Ready** Filesystem bridge for AI collaboration
+- **`airs-mcpserver-fs`**: **Production-Ready** Filesystem bridge for AI collaboration
   - **Complete filesystem MCP server** with Claude Desktop integration
   - **Security audit** (97.5/100 audit score)
   - Advanced binary processing (images, PDFs, archives)
   - Human-in-the-loop approval workflows and audit logging
-  - [Filesystem Server](crates/airs-mcp-fs/) | [Documentation](crates/airs-mcp-fs/docs/)
+  - [Filesystem Server](mcp-servers/airs-mcpserver-fs/) | [Documentation](mcp-servers/airs-mcpserver-fs/docs/)
 
 - **`airs-memspec`**: Memory bank specification and tooling
   - Structured memory bank management for AI-assisted development
@@ -353,17 +355,17 @@ airsstack/
 ## Key Features
 
 ### Current Implementation
-- **✅ Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
-- **✅ Working Examples**: Real-world server/client examples with documented usage patterns
-- **✅ Advanced Transport Layer**: Custom transport support with SubprocessTransport example
-- **✅ Type-Safe APIs**: High-level Rust APIs for MCP protocol interactions
-- **✅ Memory Bank System**: Structured AI-assisted development workflow management
-- **✅ Cargo Workspace Structure**: Organized multi-crate development environment
-- **✅ AI-Assisted Development**: Copilot-optimized workflow and prompts
+- **Production MCP Implementation**: Complete server/client with Claude Desktop integration verified
+- **Working Examples**: Real-world server/client examples with documented usage patterns
+- **Advanced Transport Layer**: Custom transport support with SubprocessTransport example
+- **Type-Safe APIs**: High-level Rust APIs for MCP protocol interactions
+- **Memory Bank System**: Structured AI-assisted development workflow management
+- **Cargo Workspace Structure**: Organized multi-crate development environment
+- **AI-Assisted Development**: Copilot-optimized workflow and prompts
 
 ### Demonstrated Capabilities
 - **MCP Server Framework**: Successfully integrated with Claude Desktop (resources, tools, prompts)
-- **Filesystem Bridge (airs-mcp-fs)**: **✅ PRODUCTION-READY** - Secure AI-filesystem collaboration with enterprise security
+- **Filesystem Bridge (airs-mcpserver-fs)**: **PRODUCTION-READY** - Secure AI-filesystem collaboration with enterprise security
 - **MCP Client**: High-level API with automatic subprocess management and real protocol interactions
 - **Production Patterns**: Error handling, state management, concurrent processing
 - **Security Excellence**: Path traversal protection, human-in-the-loop workflows, comprehensive audit logging
@@ -451,31 +453,31 @@ cargo test
 - Use property-based testing where appropriate
 - Benchmark performance-critical code
 
-## 🤝 Join the AirsStack Community
+## Join the AirsStack Community
 
-🚀 **Get Started**
+**Get Started**
 
-• [Main Repository](https://github.com/airsstack/airsstack) - Start building with AirsStack  
-• [Documentation](https://airsstack.github.io/) - Guides, tutorials, and API docs  
-• [Community Discussions](https://github.com/orgs/airsstack/discussions) - Support and ideas  
+- [Main Repository](https://github.com/airsstack/airsstack) - Start building with AirsStack  
+- [Documentation](https://airsstack.github.io/) - Guides, tutorials, and API docs  
+- [Community Discussions](https://github.com/orgs/airsstack/discussions) - Support and ideas  
 
-🎯 **Quick Links**
+**Quick Links**
 
-• 📖 [Getting Started Guide](https://airsstack.github.io/getting-started)  
-• 💡 [Example Projects](https://github.com/airsstack/airsstack/tree/main/examples)  
-• 🐛 [Report Issues](https://github.com/airsstack/airsstack/issues)  
-• 💬 [Join Discussions](https://github.com/orgs/airsstack/discussions)
+- [Getting Started Guide](https://airsstack.github.io/getting-started)  
+- [Example Projects](https://github.com/airsstack/airsstack/tree/main/examples)  
+- [Report Issues](https://github.com/airsstack/airsstack/issues)  
+- [Join Discussions](https://github.com/orgs/airsstack/discussions)
 
 ## Contributing
 
 AirsStack is a community-driven project that welcomes contributions from developers, AI enthusiasts, and anyone interested in building better AI infrastructure.
 
 ### How to Contribute
-1. **🐛 Issues**: Report bugs or suggest features via [GitHub Issues](https://github.com/airsstack/airsstack/issues)
-2. **💬 Discussions**: Join conversations about architecture and design in [GitHub Discussions](https://github.com/orgs/airsstack/discussions)  
-3. **🔧 Code**: Fork the repository and submit pull requests with improvements
-4. **📖 Documentation**: Help improve guides, examples, and API documentation
-5. **🤝 Community**: Share your AirsStack projects and help others get started
+1. **Issues**: Report bugs or suggest features via [GitHub Issues](https://github.com/airsstack/airsstack/issues)
+2. **Discussions**: Join conversations about architecture and design in [GitHub Discussions](https://github.com/orgs/airsstack/discussions)  
+3. **Code**: Fork the repository and submit pull requests with improvements
+4. **Documentation**: Help improve guides, examples, and API documentation
+5. **Community**: Share your AirsStack projects and help others get started
 
 ### Contribution Guidelines
 - Follow the established coding standards and workspace conventions
@@ -485,10 +487,10 @@ AirsStack is a community-driven project that welcomes contributions from develop
 - Prioritize privacy, sovereignty, and composability in all contributions
 
 ### Community Standards
-- **🔓 Open Source Promise**: Apache 2.0 & MIT licensed - forever free and open
-- **🛡️ Privacy First**: No telemetry, local processing, transparent data handling
-- **🤝 Inclusive Environment**: Welcoming to all skill levels and backgrounds
-- **🔧 Quality Focus**: Comprehensive testing, documentation, and code review
+- **Open Source Promise**: Apache 2.0 & MIT licensed - forever free and open
+- **Privacy First**: No telemetry, local processing, transparent data handling
+- **Inclusive Environment**: Welcoming to all skill levels and backgrounds
+- **Quality Focus**: Comprehensive testing, documentation, and code review
 
 ## License
 
@@ -504,22 +506,22 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ## Support and Resources
 
-- **📖 Documentation**: [Complete documentation site](https://airsstack.github.io/) and rustdoc via `cargo doc --open`
-- **🐛 Issues**: [GitHub Issues](https://github.com/airsstack/airsstack/issues) for bug reports and feature requests  
-- **💬 Discussions**: [GitHub Discussions](https://github.com/orgs/airsstack/discussions) for questions and community support
-- **🤖 AI Development**: Custom Copilot configurations and AI-assisted workflows in `.copilot/`
-- **🔧 Examples**: Working examples and integration guides in `crates/*/examples/`
+- **Documentation**: [Complete documentation site](https://airsstack.github.io/) and rustdoc via `cargo doc --open`
+- **Issues**: [GitHub Issues](https://github.com/airsstack/airsstack/issues) for bug reports and feature requests  
+- **Discussions**: [GitHub Discussions](https://github.com/orgs/airsstack/discussions) for questions and community support
+- **AI Development**: Custom Copilot configurations and AI-assisted workflows in `.copilot/`
+- **Examples**: Working examples and integration guides in `crates/*/examples/`
 
 ---
 
-## 📄 Open Source Promise
+## Open Source Promise
 
-**✅ Forever Free** - Apache 2.0 & MIT licensed  
-**✅ No Vendor Lock-In** - Your code, your control  
-**✅ Privacy First** - No telemetry, local processing  
-**✅ Community Driven** - Transparent governance  
+**Forever Free** - Apache 2.0 & MIT licensed  
+**No Vendor Lock-In** - Your code, your control  
+**Privacy First** - No telemetry, local processing  
+**Community Driven** - Transparent governance  
 
-🤖 **Built for Humans** • 🔒 **Privacy-First** • 🦀 **Rust-Powered** • 🔓 **Forever Open**
+**Built for Humans** • **Privacy-First** • **Rust-Powered** • **Forever Open**
 
 **Your AI. Your Data. Your Control.**
 
@@ -527,4 +529,4 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ---
 
-*Built with 🦀 Rust and enhanced by AI-assisted development*
+*Built with Rust and enhanced by AI-assisted development*
