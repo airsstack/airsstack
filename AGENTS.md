@@ -6,7 +6,6 @@
 
 **Core Components:**
 - `airs-mcp`: Production-ready JSON-RPC MCP client with correlation management
-- `airs-mcp-fs`: Security-first filesystem operations for AI collaboration  
 - `airs-memspec`: Workspace memory and context management system
 - `airs-mcpserver-fs`: MCP filesystem server (production verified with Claude Desktop)
 
@@ -117,7 +116,6 @@ This workspace uses a sophisticated memory bank system for context management an
 │   └── technical_debt_management.md
 ├── sub_projects/                   # Individual project contexts
 │   ├── airs-mcp/                  # MCP client project
-│   ├── airs-mcp-fs/              # Filesystem bridge project  
 │   ├── airs-memspec/             # Memory specification project
 │   └── airs-mcpserver-fs/        # MCP server project
 └── context_snapshots/             # Historical state preservation
