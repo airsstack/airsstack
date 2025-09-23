@@ -19,9 +19,10 @@ use tracing::{error, info};
 use airs_mcp::protocol::Transport;
 use airs_mcp::transport::adapters::stdio::StdioTransportBuilder;
 
-// Layer 3b: Local crate modules
-use airs_mcpserver_fs::mcp::FilesystemMessageHandler;
-use airs_mcpserver_fs::{DefaultFilesystemMcpServer, Settings};
+// Layer 3b: Local crate modules (only through lib.rs gateway)
+use airs_mcpserver_fs::{
+    ConfigurationLoader, DefaultFilesystemMcpServer, FilesystemMessageHandler, Settings,
+};
 
 #[derive(Parser)]
 #[command(name = "airs-mcpserver-fs")]
@@ -328,7 +329,6 @@ async fn run_server(config_dir: Option<PathBuf>, _logs_dir: Option<PathBuf>) -> 
         std::env::set_var("AIRS_MCPSERVER_FS_CONFIG_DIR", &custom_config_dir);
 
         // Create configuration loader with custom directory
-        use airs_mcpserver_fs::config::ConfigurationLoader;
         let loader = ConfigurationLoader::new().with_config_dir(custom_config_dir);
         let (settings, source_info) = loader.load().map_err(|e| {
             error!(

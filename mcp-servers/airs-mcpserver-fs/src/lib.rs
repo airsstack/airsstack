@@ -16,8 +16,10 @@ pub mod filesystem;
 pub mod mcp;
 pub mod security;
 
-// Public API re-exports
-pub use config::Settings;
+// Public API re-exports for core functionality
+pub use config::{ConfigurationLoader, Settings};
 pub use filesystem::FileOperation;
-pub use mcp::{DefaultFilesystemMcpServer, FilesystemMcpServer, OperationType};
+pub use mcp::{
+    DefaultFilesystemMcpServer, FilesystemMcpServer, FilesystemMessageHandler, OperationType,
+};
 pub use security::{ApprovalDecision, SecurityManager};
