@@ -8,7 +8,7 @@
 - [task_001] architectural_migration - **PHASE 4 READY** on 2025-09-22 - **Backward Compatibility Implementation (Phase 4/5)** 🎯
 
 ## Pending
-*No pending tasks*
+- [task_003] cli_refactoring - **PLANNED** on 2025-09-23 - **CLI Module Architecture Refactoring for Better Separation of Concerns** 🏗️
 
 ## Completed
 - [task_002] cli_improvements - **✅ COMPLETED** on 2025-09-23 - **CLI enhancements with setup command, custom directories, command rename, environment variable updates** ✅ Phases

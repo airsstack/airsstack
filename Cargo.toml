@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "crates/airs-mcp", 
-    "crates/airs-mcp-fs", 
     "crates/airs-memspec",
     "mcp-servers/airs-mcpserver-fs",
 ]

@@ -1,52 +1,77 @@
-# Architecture Decision Records Index
+# Architecture Decision Record Registry - airs-mcpserver-fs
 
-**Sub-Project:** airs-mcpserver-fs  
-**Last Updated:** 2025-09-22  
-**Status:** Migration Phase - Initial ADR Planning
+**Last Updated**: 2025-09-23  
+**Total ADRs**: 2 (Migrated from Legacy)  
+**Active ADRs**: 2  
+**Superseded ADRs**: 0  
+**Migration Status**: Complete - All Legacy ADRs Migrated
 
-## Overview
+## Migration Notice
 
-This index tracks Architecture Decision Records (ADRs) for the AIRS MCP Server - Filesystem project. During migration from `airs-mcp-fs`, significant architectural decisions will be documented here.
+**Source**: All ADRs migrated from `airs-mcp-fs` project  
+**Status**: Review required for applicability to new architecture  
+**Action**: Assess if decisions still apply to airs-mcpserver-fs
 
-## Migration ADRs
+## Decision Categories
 
-### Planned ADRs for Migration
-- **ADR-001**: [Planned] Gradual Migration Strategy vs. Complete Rewrite
-- **ADR-002**: [Planned] Project Structure and Naming Convention Decision
-- **ADR-003**: [Planned] Backward Compatibility Implementation Approach
-- **ADR-004**: [Planned] Memory Bank Sub-Project Organization
+### System Architecture
+- **Active**: 1 ADRs (Migrated)
+  - [ADR-001: Foundation Architecture Patterns](./ADR-001-foundation-architecture-patterns.md) *(Assessment Required)*
+- **Superseded**: 0 ADRs
 
-## Legacy Architecture Decisions
+### Integration Patterns
+- **Active**: 1 ADRs (Migrated)
+  - [ADR-002: MCP Server Architecture Decisions](./ADR-002-mcp-server-architecture-decisions.md) *(Assessment Required)*
+- **Superseded**: 0 ADRs
 
-### Decisions to Review and Document
-From the legacy `airs-mcp-fs` project, several architectural decisions should be formally documented:
+### Technology Selection  
+- **Active**: 0 ADRs
+- **Superseded**: 0 ADRs
 
-1. **Security-First Architecture**: 5-layer security framework design
-2. **Human Approval Workflows**: Interactive authorization for write operations
-3. **Configuration Management**: Hierarchical configuration with environment overrides
-4. **MCP Protocol Integration**: STDIO transport and tool registration patterns
+### Security & Compliance
+- **Active**: 0 ADRs
+- **Superseded**: 0 ADRs
 
-### Decision Documentation Strategy
-1. **Review**: Analyze legacy project for implicit architectural decisions
-2. **Document**: Formalize important decisions as ADRs
-3. **Validate**: Confirm decisions remain valid in new structure
-4. **Update**: Modify decisions if new architecture requires changes
+### Performance Strategy
+- **Active**: 0 ADRs
+- **Superseded**: 0 ADRs
 
-## ADR Workflow
+## Chronological Decision History
 
-### Decision Making Process
-1. **Identify Decision Point**: Recognize when architectural decision is needed
-2. **Gather Context**: Document problem, constraints, and stakeholders
-3. **Evaluate Options**: Analysis of alternatives with pros/cons
-4. **Make Decision**: Select approach with clear rationale
-5. **Document ADR**: Create formal record using template
-6. **Communicate**: Share decision with relevant stakeholders
+### 2025-09-23 (Migration)
+- **Migration Complete**: All legacy ADRs transferred to airs-mcpserver-fs
+- **Assessment Required**: Review applicability of each decision to new architecture
 
-### ADR Status Lifecycle
-- **Proposed**: Decision under consideration
-- **Accepted**: Decision approved and implementation planned
-- **Implemented**: Decision deployed in codebase
-- **Deprecated**: Decision no longer applicable
-- **Superseded**: Decision replaced by newer ADR
+### 2025-08-25 (Legacy Origin)
+- **[ADR-002: MCP Server Architecture Decisions](./ADR-002-mcp-server-architecture-decisions.md)** - **ACCEPTED** *(MIGRATED)*
+  - **Impact**: High - Establishes MCP server foundation architecture
+  - **Scope**: airs-mcp foundation leverage, STDIO transport, ToolProvider patterns
+  - **Drivers**: Claude Desktop compatibility, development velocity, ecosystem alignment
+  - **Migration Status**: May still apply - assessment required
 
-**Migration Focus**: Priority on documenting decisions that affect migration strategy and new project architecture while preserving successful patterns from legacy implementation.
+### 2025-08-22 (Legacy Origin)
+- **[ADR-001: Foundation Architecture Patterns](./ADR-001-foundation-architecture-patterns.md)** - **ACCEPTED** *(MIGRATED)*
+  - **Impact**: High - Establishes fundamental project architecture
+  - **Scope**: Workspace dependency management, lib.rs patterns, testing strategy
+  - **Drivers**: Workspace consistency, development velocity, standard compliance
+  - **Migration Status**: Likely still applies - assessment required
+
+## Assessment Required
+
+### Decision Applicability Review
+1. **ADR-001**: Do foundation patterns still apply to airs-mcpserver-fs?
+2. **ADR-002**: Is MCP server architecture consistent between old and new?
+3. **New Decisions**: Are there architectural decisions unique to airs-mcpserver-fs?
+
+### Action Items
+- [ ] Review ADR-001 for continued applicability
+- [ ] Review ADR-002 for architecture consistency  
+- [ ] Document any new architectural decisions made during migration
+- [ ] Update decision status based on new architecture
+
+## Pending Decisions for Current Architecture
+
+### High Priority Decisions Needed
+1. **CLI Architecture Design** - Module structure and command handling patterns (Task 003)
+2. **Migration Compatibility** - Backward compatibility strategies with legacy tools
+3. **Security Framework Adaptation** - How security decisions apply to new architecture
