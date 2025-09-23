@@ -2,6 +2,8 @@
 //!
 //! This test runs multiple security test suites and generates detailed reports.
 
+#![allow(clippy::assertions_on_constants)]
+
 // Import test modules from individual test files
 mod security_input_validation_tests;
 mod security_path_traversal_tests;

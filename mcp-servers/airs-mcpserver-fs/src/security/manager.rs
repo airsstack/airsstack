@@ -105,7 +105,10 @@ impl SecurityManager {
             .log_operation_requested(correlation_id, operation);
 
         // 0. Validate binary file restrictions (security hardening)
-        if let Err(err) = self.validate_binary_file_restriction(&operation.path, correlation_id).await {
+        if let Err(err) = self
+            .validate_binary_file_restriction(&operation.path, correlation_id)
+            .await
+        {
             let execution_time_ms = start_time.elapsed().as_millis() as u64;
             self.audit_logger.log_operation_failed(
                 correlation_id,
@@ -265,7 +268,7 @@ impl SecurityManager {
     ) -> Result<()> {
         // First, try to detect format from file extension (fast check)
         let format_from_extension = self.format_detector.detect_from_extension(path);
-        
+
         // Check if it's a known binary format based on extension
         if self.is_binary_format(&format_from_extension) {
             let error_msg = format!(
@@ -273,7 +276,7 @@ impl SecurityManager {
                 path.display(),
                 format_from_extension
             );
-            
+
             // Log security violation for binary file access attempt
             self.audit_logger.log_security_violation(
                 correlation_id,
@@ -282,10 +285,10 @@ impl SecurityManager {
                 &error_msg,
                 RiskLevel::High,
             );
-            
+
             return Err(anyhow::anyhow!("{}", error_msg));
         }
-        
+
         // For file operations on existing files, read a small sample to verify format
         // Only check if file exists and we can read it safely
         if path.exists() && path.is_file() {
@@ -293,15 +296,17 @@ impl SecurityManager {
                 Ok(bytes) if !bytes.is_empty() => {
                     // Only check first 512 bytes for format detection (efficient)
                     let sample_size = std::cmp::min(bytes.len(), 512);
-                    let format_from_content = self.format_detector.detect_from_bytes(&bytes[..sample_size]);
-                    
+                    let format_from_content = self
+                        .format_detector
+                        .detect_from_bytes(&bytes[..sample_size]);
+
                     if self.is_binary_format(&format_from_content) {
                         let error_msg = format!(
                             "Binary file access denied for security reasons: {} (content analysis: {:?})",
                             path.display(),
                             format_from_content
                         );
-                        
+
                         // Log security violation for binary content detection
                         self.audit_logger.log_security_violation(
                             correlation_id,
@@ -310,7 +315,7 @@ impl SecurityManager {
                             &error_msg,
                             RiskLevel::High,
                         );
-                        
+
                         return Err(anyhow::anyhow!("{}", error_msg));
                     }
                 }
@@ -323,24 +328,28 @@ impl SecurityManager {
                 }
             }
         }
-        
+
         // File is safe (text or unknown but not detectably binary)
         Ok(())
     }
-    
+
     /// Helper method to determine if a file format is considered binary
     fn is_binary_format(&self, format: &FileFormat) -> bool {
         match format {
             // All image formats are binary
-            FileFormat::Jpeg | FileFormat::Png | FileFormat::Gif | 
-            FileFormat::WebP | FileFormat::Tiff | FileFormat::Bmp => true,
-            
+            FileFormat::Jpeg
+            | FileFormat::Png
+            | FileFormat::Gif
+            | FileFormat::WebP
+            | FileFormat::Tiff
+            | FileFormat::Bmp => true,
+
             // Document formats are binary
             FileFormat::Pdf => true,
-            
+
             // Text formats are allowed
             FileFormat::Text => false,
-            
+
             // Unknown formats are allowed (benefit of the doubt for text files)
             // This prevents false positives while maintaining security
             FileFormat::Unknown => false,
@@ -1147,25 +1156,20 @@ mod tests {
         ];
 
         for (path, description) in binary_files {
-            let operation = FileOperation::new(
-                OperationType::Read,
-                PathBuf::from(path),
-            );
+            let operation = FileOperation::new(OperationType::Read, PathBuf::from(path));
 
             let result = manager.validate_operation_permission(&operation).await;
             assert!(
                 result.is_err(),
-                "Binary file {} should be rejected for security", 
-                description
+                "Binary file {description} should be rejected for security"
             );
-            
+
             let error_msg = result.unwrap_err().to_string();
             assert!(
-                error_msg.contains("Binary file access denied") || 
-                error_msg.contains("binary") ||
-                error_msg.contains("security"),
-                "Error message should indicate binary file security restriction: {}", 
-                error_msg
+                error_msg.contains("Binary file access denied")
+                    || error_msg.contains("binary")
+                    || error_msg.contains("security"),
+                "Error message should indicate binary file security restriction: {error_msg}"
             );
         }
     }
@@ -1178,7 +1182,7 @@ mod tests {
         // Test that text files are still allowed
         let text_files = vec![
             "/tmp/test.txt",
-            "/tmp/test.md", 
+            "/tmp/test.md",
             "/tmp/test.rs",
             "/tmp/test.py",
             "/tmp/test.js",
@@ -1188,21 +1192,17 @@ mod tests {
         ];
 
         for path in text_files {
-            let operation = FileOperation::new(
-                OperationType::Read,
-                PathBuf::from(path),
-            );
+            let operation = FileOperation::new(OperationType::Read, PathBuf::from(path));
 
             let result = manager.validate_operation_permission(&operation).await;
             // Should not fail due to binary restriction (may fail for other policy reasons)
             if let Err(err) = &result {
                 let error_msg = err.to_string();
                 assert!(
-                    !error_msg.contains("Binary file access denied") && 
-                    !error_msg.contains("binary") && 
-                    !error_msg.contains("Binary"),
-                    "Text file {} should not trigger binary file restriction: {}", 
-                    path, error_msg
+                    !error_msg.contains("Binary file access denied")
+                        && !error_msg.contains("binary")
+                        && !error_msg.contains("Binary"),
+                    "Text file {path} should not trigger binary file restriction: {error_msg}"
                 );
             }
         }
@@ -1215,32 +1215,28 @@ mod tests {
 
         let config = create_test_config();
         let manager = SecurityManager::new(config).expect("Should create security manager");
-        
+
         // Create temporary directory for test files
         let temp_dir = TempDir::new().expect("Should create temp dir");
-        
+
         // Create a file with binary content (fake JPEG header)
         let binary_file = temp_dir.path().join("fake.txt"); // .txt extension but binary content
         let jpeg_header = vec![0xFF, 0xD8, 0xFF, 0xE0]; // JPEG magic bytes
         fs::write(&binary_file, &jpeg_header).expect("Should write binary file");
-        
-        let operation = FileOperation::new(
-            OperationType::Read,
-            binary_file,
-        );
+
+        let operation = FileOperation::new(OperationType::Read, binary_file);
 
         let result = manager.validate_operation_permission(&operation).await;
         assert!(
             result.is_err(),
             "File with binary content should be rejected regardless of extension"
         );
-        
+
         let error_msg = result.unwrap_err().to_string();
         assert!(
-            error_msg.contains("Binary file access denied") || 
-            error_msg.contains("content analysis"),
-            "Error should indicate content-based binary detection: {}", 
-            error_msg
+            error_msg.contains("Binary file access denied")
+                || error_msg.contains("content analysis"),
+            "Error should indicate content-based binary detection: {error_msg}"
         );
     }
 }

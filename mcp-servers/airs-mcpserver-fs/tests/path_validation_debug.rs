@@ -3,6 +3,8 @@
 //! These tests verify that the dual-layer security system works correctly
 //! for real-world scenarios like journal file access using dynamic paths.
 
+#![allow(clippy::panic)]
+
 use airs_mcpserver_fs::{
     config::{
         settings::{RiskLevel, SecurityPolicy},
@@ -17,7 +19,7 @@ use std::path::PathBuf;
 
 /// Get the user's home directory dynamically for cross-platform testing
 fn get_home_dir() -> PathBuf {
-    dirs::home_dir().expect("Could not determine home directory")
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
 }
 
 /// Create test directory paths using the home directory
@@ -26,8 +28,8 @@ fn create_test_paths() -> (String, String, PathBuf, PathBuf) {
     let home_str = home.to_string_lossy().to_string();
 
     // Create cross-platform patterns
-    let documents_pattern = format!("{}/Documents/**/*", home_str);
-    let projects_pattern = format!("{}/Projects/**/*", home_str);
+    let documents_pattern = format!("{home_str}/Documents/**/*");
+    let projects_pattern = format!("{home_str}/Projects/**/*");
 
     // Create test paths that simulate the journal structure
     let test_journal_dir = home.join("Documents").join("test_journal").join("entries");
@@ -49,8 +51,8 @@ fn test_path_validator_globset_patterns() {
         create_test_paths();
 
     println!("🏠 Using home directory: {}", get_home_dir().display());
-    println!("📋 Documents pattern: {}", documents_pattern);
-    println!("📋 Projects pattern: {}", projects_pattern);
+    println!("📋 Documents pattern: {documents_pattern}");
+    println!("📋 Projects pattern: {projects_pattern}");
 
     // Test patterns with dynamic home directory
     let allowed_patterns = vec![documents_pattern.clone(), projects_pattern];
@@ -59,27 +61,24 @@ fn test_path_validator_globset_patterns() {
     let validator = PathValidator::new(allowed_patterns, denied_patterns);
 
     // Test directory path validation
-    println!("📁 Testing directory: {:?}", test_journal_dir);
+    println!("📁 Testing directory: {test_journal_dir:?}");
 
     match validator.validate_path(&test_journal_dir) {
         Ok(_) => println!("✅ Directory validation passed"),
         Err(e) => {
-            println!("❌ Directory validation failed: {:?}", e);
-            panic!(
-                "Directory should be allowed by pattern {}",
-                documents_pattern
-            );
+            println!("❌ Directory validation failed: {e:?}");
+            panic!("Directory should be allowed by pattern {documents_pattern}");
         }
     }
 
     // Test file path validation
-    println!("📄 Testing file: {:?}", test_journal_file);
+    println!("📄 Testing file: {test_journal_file:?}");
 
     match validator.validate_path(&test_journal_file) {
         Ok(_) => println!("✅ File validation passed"),
         Err(e) => {
-            println!("❌ File validation failed: {:?}", e);
-            panic!("File should be allowed by pattern {}", documents_pattern);
+            println!("❌ File validation failed: {e:?}");
+            panic!("File should be allowed by pattern {documents_pattern}");
         }
     }
 }
@@ -94,7 +93,7 @@ fn test_globset_pattern_matching() {
     let home = get_home_dir();
 
     println!("🏠 Testing with home directory: {}", home.display());
-    println!("📋 Using pattern: {}", documents_pattern);
+    println!("📋 Using pattern: {documents_pattern}");
 
     // Create globset with our dynamic pattern
     let mut builder = GlobSetBuilder::new();
@@ -120,18 +119,17 @@ fn test_globset_pattern_matching() {
                     for path in test_paths {
                         let matches = globset.is_match(&path);
                         println!(
-                            "🔍 Pattern '{}' matches '{}': {}",
-                            documents_pattern, path, matches
+                            "🔍 Pattern '{documents_pattern}' matches '{path}': {matches}"
                         );
 
                         // All these should match our pattern
-                        assert!(matches, "Pattern should match path: {}", path);
+                        assert!(matches, "Pattern should match path: {path}");
                     }
                 }
-                Err(e) => panic!("Failed to build globset: {:?}", e),
+                Err(e) => panic!("Failed to build globset: {e:?}"),
             }
         }
-        Err(e) => panic!("Failed to create glob pattern: {:?}", e),
+        Err(e) => panic!("Failed to create glob pattern: {e:?}"),
     }
 }
 
@@ -142,8 +140,8 @@ fn test_security_manager_creation() {
     let (documents_pattern, projects_pattern, _, _) = create_test_paths();
 
     println!("🏠 Using home directory: {}", get_home_dir().display());
-    println!("📋 Documents pattern: {}", documents_pattern);
-    println!("📋 Projects pattern: {}", projects_pattern);
+    println!("📋 Documents pattern: {documents_pattern}");
+    println!("📋 Projects pattern: {projects_pattern}");
 
     // Create minimal SecurityConfig for testing with dynamic paths
     let filesystem_config = FilesystemConfig {
@@ -180,7 +178,7 @@ fn test_security_manager_creation() {
             println!("📊 Manager configuration loaded with dynamic paths");
         }
         Err(e) => {
-            println!("❌ SecurityManager creation failed: {:?}", e);
+            println!("❌ SecurityManager creation failed: {e:?}");
             panic!("SecurityManager should be created successfully");
         }
     }
@@ -199,9 +197,9 @@ fn test_operation_type_usage() {
     ];
 
     for op in operations {
-        println!("🔧 Operation type: {:?}", op);
+        println!("🔧 Operation type: {op:?}");
         // Just verify they can be created and formatted
-        let _debug_str = format!("{:?}", op);
+        let _debug_str = format!("{op:?}");
     }
 
     println!("✅ All operation types work correctly");
@@ -215,8 +213,8 @@ fn test_permission_system_integration() {
         create_test_paths();
 
     println!("🏠 Using home directory: {}", get_home_dir().display());
-    println!("📂 Test journal directory: {:?}", test_journal_dir);
-    println!("📄 Test journal file: {:?}", test_journal_file);
+    println!("📂 Test journal directory: {test_journal_dir:?}");
+    println!("📄 Test journal file: {test_journal_file:?}");
 
     // Create filesystem config
     let filesystem_config = FilesystemConfig {
@@ -254,7 +252,7 @@ fn test_permission_system_integration() {
             mgr
         }
         Err(e) => {
-            println!("❌ SecurityManager creation failed: {:?}", e);
+            println!("❌ SecurityManager creation failed: {e:?}");
             panic!("SecurityManager should be created successfully");
         }
     };
@@ -273,15 +271,14 @@ fn test_permission_system_integration() {
     ];
 
     for (scenario, path, _operation) in test_scenarios {
-        println!("\n🔍 Testing scenario: {} with path: {:?}", scenario, path);
+        println!("\n🔍 Testing scenario: {scenario} with path: {path:?}");
 
         // Test PathValidator first
         match validator.validate_path(path) {
-            Ok(_) => println!("  ✅ PathValidator: {} validation passed", scenario),
+            Ok(_) => println!("  ✅ PathValidator: {scenario} validation passed"),
             Err(e) => {
                 println!(
-                    "  ❌ PathValidator: {} validation failed: {:?}",
-                    scenario, e
+                    "  ❌ PathValidator: {scenario} validation failed: {e:?}"
                 );
                 // Don't panic here, let's see what SecurityManager does
             }
@@ -302,12 +299,12 @@ fn test_permission_system_integration() {
             if let Ok(globset) = builder.build() {
                 let path_str = path.to_string_lossy();
                 let matches = globset.is_match(path_str.as_ref());
-                println!("  🎯 Direct globset match result: {}", matches);
+                println!("  🎯 Direct globset match result: {matches}");
 
                 if !matches {
                     println!("  ⚠️  WARNING: Pattern does not match! This indicates the permission issue!");
-                    println!("  🔧 Pattern: {}", documents_pattern);
-                    println!("  🔧 Path: {}", path_str);
+                    println!("  🔧 Pattern: {documents_pattern}");
+                    println!("  🔧 Path: {path_str}");
                 }
             }
         }
@@ -323,7 +320,7 @@ fn test_claude_desktop_simulation() {
     let (documents_pattern, _, test_journal_dir, test_journal_file) = create_test_paths();
 
     println!("🤖 Simulating Claude Desktop MCP server scenario");
-    println!("📋 Configuration pattern: {}", documents_pattern);
+    println!("📋 Configuration pattern: {documents_pattern}");
 
     // This test simulates the exact scenario that was failing
     // where file reading worked but directory listing failed
@@ -338,7 +335,7 @@ fn test_claude_desktop_simulation() {
     match validator.validate_path(&test_journal_dir) {
         Ok(_) => println!("  ✅ Directory listing validation passed"),
         Err(e) => {
-            println!("  ❌ Directory listing validation failed: {:?}", e);
+            println!("  ❌ Directory listing validation failed: {e:?}");
             println!("  🚨 This reproduces the Claude Desktop issue!");
         }
     }
@@ -347,7 +344,7 @@ fn test_claude_desktop_simulation() {
     match validator.validate_path(&test_journal_file) {
         Ok(_) => println!("  ✅ File reading validation passed"),
         Err(e) => {
-            println!("  ❌ File reading validation failed: {:?}", e);
+            println!("  ❌ File reading validation failed: {e:?}");
             println!("  🚨 This is unexpected - file reading should work!");
         }
     }
@@ -363,8 +360,8 @@ fn test_claude_desktop_simulation() {
             let dir_matches = globset.is_match(test_journal_dir.to_string_lossy().as_ref());
             let file_matches = globset.is_match(test_journal_file.to_string_lossy().as_ref());
 
-            println!("  📁 Directory matches pattern: {}", dir_matches);
-            println!("  📄 File matches pattern: {}", file_matches);
+            println!("  📁 Directory matches pattern: {dir_matches}");
+            println!("  📄 File matches pattern: {file_matches}");
 
             if dir_matches && file_matches {
                 println!("  ✅ Both paths match - pattern system is working correctly");

@@ -90,10 +90,8 @@ async fn main() -> Result<()> {
     // Extract logs directory for server command
     let logs_dir_override = if let Some(Commands::Serve { logs_dir, .. }) = &cli.command {
         logs_dir.clone()
-    } else if matches!(cli.command, None) {
-        None // Default serve command
     } else {
-        None // Not a serve command
+        None // Default serve command or not a serve command
     };
 
     // Initialize structured logging with environment filter support
@@ -193,11 +191,10 @@ async fn setup_directories(
 
     // Determine directories to create
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    let default_base = format!("{}/.airs-mcpserver-fs", home);
+    let default_base = format!("{home}/.airs-mcpserver-fs");
 
-    let config_path =
-        config_dir.unwrap_or_else(|| PathBuf::from(format!("{}/config", default_base)));
-    let logs_path = logs_dir.unwrap_or_else(|| PathBuf::from(format!("{}/logs", default_base)));
+    let config_path = config_dir.unwrap_or_else(|| PathBuf::from(format!("{default_base}/config")));
+    let logs_path = logs_dir.unwrap_or_else(|| PathBuf::from(format!("{default_base}/logs")));
 
     info!("📁 Configuration directory: {}", config_path.display());
     info!("📁 Logs directory: {}", logs_path.display());
