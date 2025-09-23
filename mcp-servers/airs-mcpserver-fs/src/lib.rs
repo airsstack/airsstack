@@ -11,6 +11,7 @@
 
 // Layer 3: Internal module declarations
 pub mod binary;
+pub mod cli;
 pub mod config;
 pub mod filesystem;
 pub mod mcp;
