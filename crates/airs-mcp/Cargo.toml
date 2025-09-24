@@ -89,29 +89,3 @@ harness = false
 [[bench]]
 name = "lightweight_benchmarks"
 harness = false
-
-
-# Integration Examples - Production-ready implementations demonstrating TransportClient architecture
-
-# STDIO Transport Examples
-[[example]]
-name = "stdio-client-integration"
-path = "examples/stdio-client-integration/src/main.rs"
-
-[[example]]
-name = "stdio-server-integration"
-path = "examples/stdio-server-integration/src/main.rs"
-
-# HTTP API Key Authentication Examples  
-[[example]]
-name = "http-apikey-client-integration"
-path = "examples/http-apikey-client-integration/src/main.rs"
-
-[[example]]
-name = "http-apikey-server-integration"
-path = "examples/http-apikey-server-integration/src/main.rs"
-
-# HTTP OAuth2 Authentication Examples
-[[example]]
-name = "http-oauth2-server-integration"
-path = "examples/http-oauth2-server-integration/src/main.rs"
