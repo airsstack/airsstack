@@ -1445,8 +1445,6 @@ mod tests {
             "Should have sent 2 response messages"
         );
 
-        println!(
-            "✅ Lifecycle test completed in {elapsed:?} without stdin blocking"
-        );
+        println!("✅ Lifecycle test completed in {elapsed:?} without stdin blocking");
     }
 }
