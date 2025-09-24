@@ -1,6 +1,7 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
+- [release_v0.2.0_preparation] Release v0.2.0 Preparation - Started on 2025-09-24: Comprehensive preparation and validation for airs-mcp v0.2.0 major release with breaking changes. Ensuring quality standards, documentation requirements, and release readiness criteria compliance.
 
 ## Pending
 
