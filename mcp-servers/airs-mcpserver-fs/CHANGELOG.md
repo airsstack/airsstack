@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - Performance optimizations and additional security features
 
+## [0.1.1] - 2025-09-24
+
+### Changed
+- **Dependency update**: Upgraded airs-mcp from 0.2.1 to 0.2.2
+- **Security enhancement**: Now uses airs-mcp v0.2.2 with RSA vulnerability fix (RUSTSEC-2023-0071 resolved)
+
+### Security
+- **Improved security posture**: Indirect resolution of RSA Marvin Attack vulnerability through upstream dependency update
+
 ## [0.1.0] - 2025-09-24
 
 ### Added

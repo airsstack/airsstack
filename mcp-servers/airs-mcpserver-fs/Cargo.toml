@@ -1,6 +1,6 @@
 [package]
 name = "airs-mcpserver-fs"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -18,7 +18,7 @@ workspace = true
 
 [dependencies]
 # AIRS Foundation
-airs-mcp = { version = "0.2.1", path = "../../crates/airs-mcp" }
+airs-mcp = { version = "0.2.2", path = "../../crates/airs-mcp" }
 
 # Core runtime (workspace managed)
 tokio.workspace = true
