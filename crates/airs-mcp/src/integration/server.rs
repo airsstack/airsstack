@@ -119,30 +119,69 @@ mod tests {
 
     #[tokio::test]
     async fn test_lifecycle_operations() {
+        use std::io::Cursor;
+        use tokio::io::BufReader;
+
+        // Create a proper test message handler
         let handler = Arc::new(TestMessageHandler);
+
+        // Create mock I/O streams for true lifecycle testing
+        // Use Vec<u8> directly to avoid lifetime issues
+        let input_data = vec![
+            r#"{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}"#,
+            "\n",
+            r#"{"jsonrpc":"2.0","method":"ping","id":2}"#,
+            "\n",
+        ]
+        .concat()
+        .into_bytes();
+
+        let reader = BufReader::new(Cursor::new(input_data));
+        let writer = Vec::<u8>::new(); // Simple Vec writer for testing
+
+        // Build transport with custom I/O for real lifecycle testing
         let transport = StdioTransportBuilder::new()
             .with_message_handler(handler)
+            .with_custom_io(reader, writer)
             .build()
             .await
-            .unwrap();
+            .expect("Failed to build transport with mock I/O");
 
         let server = McpServer::new(transport);
 
-        // NOTE: We don't test actual start() because STDIO transport
-        // blocks on stdin reading in test environment. This is a known
-        // limitation documented in the transport's own tests.
-        //
-        // Instead, we test that the server can be created successfully
-        // and basic operations work without hanging.
-
-        // Test server creation and basic state
+        // Test initial state
         assert!(!server.transport.lock().await.is_connected());
 
-        // Test shutdown when not running (should be safe)
+        // Test REAL server lifecycle operations with mock I/O
+        let start_result = server.start().await;
+        assert!(
+            start_result.is_ok(),
+            "Server start should succeed with mock I/O: {:?}",
+            start_result
+        );
+
+        // Verify transport is now connected
+        assert!(server.transport.lock().await.is_connected());
+
+        // Allow time for message processing
+        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+
+        // Test server shutdown with real operations
         let shutdown_result = server.shutdown().await;
         assert!(
             shutdown_result.is_ok(),
-            "Server shutdown should succeed even when not started"
+            "Server shutdown should succeed: {:?}",
+            shutdown_result
         );
+
+        // Verify transport is disconnected after shutdown
+        assert!(!server.transport.lock().await.is_connected());
+
+        // NOTE: This test now performs REAL lifecycle operations including:
+        // - Real transport.start() with message processing
+        // - Real I/O stream handling (via Vec<u8> writer)
+        // - Real transport.close() with proper cleanup
+        // - No blocking on stdin - completes in milliseconds
+        // - Tests actual server.start() and server.shutdown() operations
     }
 }
