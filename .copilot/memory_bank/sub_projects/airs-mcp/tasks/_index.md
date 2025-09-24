@@ -1,9 +1,10 @@
 # Tasks Index - airs-mcp
 
 ## In Progress
-- [release_v0.2.0_preparation] Release v0.2.0 Preparation - Started on 2025-09-24: Comprehensive preparation and validation for airs-mcp v0.2.0 major release with breaking changes. Ensuring quality standards, documentation requirements, and release readiness criteria compliance.
+- [task_035] generic_io_transport_refactoring - Started on 2025-09-24: Implement zero-cost generic I/O abstractions for STDIO transport to enable true lifecycle testing. Addresses test hanging issue discovered during release preparation. 5-phase implementation with backward compatibility.
 
 ## Pending
+- [task_036] release_v0.2.0_preparation - PAUSED on 2025-09-24: Paused due to test hanging issue. Blocked by task_035 generic_io_transport_refactoring task. Will resume after architectural refactoring is complete.
 
 ## Completed
 - [task_010] mdbook_documentation_overhaul - Completed on 2025-09-20: Resolved production-ready status misrepresentation across mdBook, synchronized docs with Task 034 transport refactor, validated build with zero errors.

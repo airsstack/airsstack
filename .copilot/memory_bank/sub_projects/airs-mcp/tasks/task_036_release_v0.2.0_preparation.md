@@ -1,10 +1,11 @@
 # Task: Release v0.2.0 Preparation
 
-**task_id:** release_v0.2.0_preparation  
+**task_id:** task_036_release_v0.2.0_preparation  
 **created:** 2025-09-24T00:00:00Z  
 **type:** release_preparation  
 **priority:** high  
-**status:** in_progress  
+**status:** paused  
+**blocked_by:** task_035_generic_io_transport_refactoring  
 
 ## Overview
 
@@ -87,7 +88,33 @@ Comprehensive preparation and validation for `airs-mcp` v0.2.0 major release wit
 ### Next Phase Requirements
 - All critical items passed
 - Ready to proceed to Phase 2: Quality Verification (Zero-Defect Policy)
-- No blocking issues identified
+- **BLOCKING ISSUE IDENTIFIED**: Test hanging in `integration::server::tests::test_lifecycle_operations`
+
+## 🚫 TASK PAUSED - Critical Issue Discovered
+
+**Date**: 2025-09-24  
+**Issue**: Test hanging during Phase 2 quality verification  
+**Root Cause**: STDIO transport blocks indefinitely on stdin reading in test environment  
+**Impact**: Cannot complete 100% test coverage verification (Phase 2.3)
+
+### Issue Details
+- **Test**: `integration::server::tests::test_lifecycle_operations`
+- **Symptom**: Hangs for 60+ seconds, never completes
+- **Cause**: `transport.start().await` blocks on `tokio::io::stdin().read_line()`
+- **Scope**: Affects ability to test real lifecycle operations
+
+### Resolution Plan
+**Blocked by**: `task_035_generic_io_transport_refactoring` task  
+**Solution**: Implement generic I/O abstractions for testable transports  
+**Timeline**: 5 days estimated for complete implementation  
+
+### Resume Criteria
+- [ ] Generic I/O transport refactoring complete
+- [ ] Test hanging issue resolved
+- [ ] All tests pass with real lifecycle coverage
+- [ ] No regression in production performance
+
+**Status**: Release preparation will resume after architectural refactoring is complete.
 
 ### Phase 2: Quality Verification (Zero-Defect Policy) ⏳
 **Objective**: Ensure complete compliance with AIRS quality standards
