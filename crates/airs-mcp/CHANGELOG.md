@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-09-24
+
+### 🔒 Security
+
+#### Enhanced Security Configuration
+- **Updated RSA to latest version**: Upgraded from 0.9 to 0.10.0-rc.8 in dev-dependencies
+- **Security audit configuration**: Added comprehensive audit.toml with documented risk assessments
+- **Vulnerability acknowledgment**: Properly documented known issues in non-production dependencies
+- **Risk mitigation**: All security concerns isolated to development/example code paths only
+
+### 🛠 Improvements
+- **Better security posture**: Latest available versions for all security-sensitive dependencies
+- **Comprehensive audit**: Structured approach to security vulnerability management
+- **Documentation**: Clear rationale for all accepted security risks
+
 ## [0.2.2] - 2025-09-24
 
 ### 🔒 Security

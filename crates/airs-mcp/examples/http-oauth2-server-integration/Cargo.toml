@@ -26,7 +26,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Authentication & Security (Layer 4)
 jsonwebtoken = "9.3"
-rsa = "0.9"
+rsa = "0.10.0-rc.8"
 base64 = "0.22"
 sha2 = "0.10"
 urlencoding = "2.1"

@@ -82,7 +82,7 @@ jsonwebtoken = { version = "9.3" }
 oauth2 = { version = "4.4" }
 base64 = { version = "0.22" }
 url = { version = "2.5" }
-rsa = { version = "0.9" }
+rsa = { version = "0.10.0-rc.8" }
 sha2 = { version = "0.10" }
 
 # CLI framework (latest stable)
