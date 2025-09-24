@@ -589,7 +589,7 @@ impl<E: HttpEngine> HttpTransportBuilder<E> {
     ///
     /// # Arguments
     ///
-    /// * `handler` - MessageHandler<HttpContext> for processing JSON-RPC messages
+    /// * `handler` - MessageHandler\<HttpContext\> for processing JSON-RPC messages
     ///
     /// # Returns
     ///

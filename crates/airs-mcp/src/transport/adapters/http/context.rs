@@ -1,7 +1,7 @@
 //! HTTP Transport Context Implementation
 //!
 //! This module provides the HttpContext structure that carries HTTP-specific
-//! information with each message in the generic MessageHandler<HttpContext> pattern.
+//! information with each message in the generic MessageHandler\<HttpContext\> pattern.
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;

@@ -1,6 +1,6 @@
 //! HTTP Message Handler Examples
 //!
-//! This module provides example implementations of MessageHandler<HttpContext>
+//! This module provides example implementations of MessageHandler\<HttpContext\>
 //! demonstrating how to handle MCP protocol messages with HTTP-specific context.
 //! These handlers showcase the Generic MessageHandler pattern in practice.
 

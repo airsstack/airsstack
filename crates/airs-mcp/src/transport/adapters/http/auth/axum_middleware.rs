@@ -15,12 +15,14 @@ use futures::future::BoxFuture;
 use tower::{Layer, Service};
 
 // Layer 3: Internal module imports
-use super::middleware::{HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter};
+use super::middleware::{
+    HttpAuthConfig, HttpAuthMiddleware, HttpAuthRequest, HttpAuthStrategyAdapter,
+};
 use super::oauth2::error::HttpAuthError;
 
 /// Axum-compatible HTTP authentication middleware wrapper
 ///
-/// This middleware integrates HttpAuthMiddleware<A> with Tower's Layer and Service
+/// This middleware integrates HttpAuthMiddleware\<A\> with Tower's Layer and Service
 /// traits for seamless integration with Axum routers. It provides zero-cost
 /// authentication by using compile-time generics and avoiding dynamic dispatch.
 ///
@@ -29,7 +31,7 @@ use super::oauth2::error::HttpAuthError;
 ///
 /// # Performance Characteristics
 /// * Zero dynamic dispatch - all authentication calls are monomorphized
-/// * Stack allocation - middleware state is stack-allocated 
+/// * Stack allocation - middleware state is stack-allocated
 /// * Compile-time optimization - authentication logic is inlined
 /// * Tower compatibility - works with all Tower middleware
 ///
@@ -45,17 +47,17 @@ use super::oauth2::error::HttpAuthError;
 /// # use airs_mcp::authentication::{AuthContext, AuthMethod};
 /// # use airs_mcp::transport::adapters::http::auth::oauth2::error::HttpAuthError;
 /// # use airs_mcp::transport::adapters::http::auth::middleware::HttpAuthRequest;
-/// # 
+/// #
 /// # // Mock adapter for the example
 /// # #[derive(Clone, Debug)]
 /// # struct MockAdapter;
-/// # 
+/// #
 /// # #[async_trait::async_trait]
 /// # impl HttpAuthStrategyAdapter for MockAdapter {
 /// #     type RequestType = ();
 /// #     type AuthData = ();
 /// #     fn auth_method(&self) -> &'static str { "mock" }
-/// #     async fn authenticate_http_request(&self, _request: &HttpAuthRequest) 
+/// #     async fn authenticate_http_request(&self, _request: &HttpAuthRequest)
 /// #         -> Result<AuthContext<Self::AuthData>, HttpAuthError> {
 /// #         Ok(AuthContext::new(AuthMethod::new("mock"), ()))
 /// #     }
@@ -65,7 +67,7 @@ use super::oauth2::error::HttpAuthError;
 /// let config = HttpAuthConfig::default();
 /// let middleware = HttpAuthMiddleware::new(adapter, config);
 /// let layer = AxumHttpAuthLayer::from_middleware(middleware);
-/// 
+///
 /// // Use with ServiceBuilder
 /// let service_builder = ServiceBuilder::new().layer(layer);
 /// ```
@@ -262,7 +264,10 @@ fn create_auth_error_response(error: HttpAuthError, config: &HttpAuthConfig) -> 
             if config.include_error_details {
                 (StatusCode::UNAUTHORIZED, message)
             } else {
-                (StatusCode::UNAUTHORIZED, "Authentication failed".to_string())
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Authentication failed".to_string(),
+                )
             }
         }
         HttpAuthError::InvalidRequest { message } => {
@@ -274,16 +279,25 @@ fn create_auth_error_response(error: HttpAuthError, config: &HttpAuthConfig) -> 
         }
         HttpAuthError::MissingHeader { header } => {
             if config.include_error_details {
-                (StatusCode::UNAUTHORIZED, format!("Missing header: {header}"))
+                (
+                    StatusCode::UNAUTHORIZED,
+                    format!("Missing header: {header}"),
+                )
             } else {
-                (StatusCode::UNAUTHORIZED, "Missing required header".to_string())
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Missing required header".to_string(),
+                )
             }
         }
         HttpAuthError::MalformedAuth { message } => {
             if config.include_error_details {
                 (StatusCode::UNAUTHORIZED, message)
             } else {
-                (StatusCode::UNAUTHORIZED, "Malformed authorization".to_string())
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Malformed authorization".to_string(),
+                )
             }
         }
         _ => (StatusCode::UNAUTHORIZED, "Authentication error".to_string()),
@@ -318,7 +332,9 @@ mod tests {
 
     impl MockAuthAdapter {
         fn new(should_authenticate: bool) -> Self {
-            Self { should_authenticate }
+            Self {
+                should_authenticate,
+            }
         }
     }
 
@@ -372,7 +388,7 @@ mod tests {
         let config = HttpAuthConfig::default();
         let middleware = HttpAuthMiddleware::new(adapter, config);
         let layer = AxumHttpAuthLayer::from_middleware(middleware);
-        
+
         let mut service = layer.layer(MockService);
 
         let request = Request::builder()
@@ -390,7 +406,7 @@ mod tests {
         let config = HttpAuthConfig::default();
         let middleware = HttpAuthMiddleware::new(adapter, config);
         let layer = AxumHttpAuthLayer::from_middleware(middleware);
-        
+
         let mut service = layer.layer(MockService);
 
         let request = Request::builder()
@@ -414,9 +430,18 @@ mod tests {
         let auth_request = extract_auth_request(&request).unwrap();
 
         assert_eq!(auth_request.path, "/api/test");
-        assert_eq!(auth_request.headers.get("authorization"), Some(&"Bearer token123".to_string()));
-        assert_eq!(auth_request.headers.get("x-custom"), Some(&"custom-value".to_string()));
-        assert_eq!(auth_request.query_params.get("param"), Some(&"value".to_string()));
+        assert_eq!(
+            auth_request.headers.get("authorization"),
+            Some(&"Bearer token123".to_string())
+        );
+        assert_eq!(
+            auth_request.headers.get("x-custom"),
+            Some(&"custom-value".to_string())
+        );
+        assert_eq!(
+            auth_request.query_params.get("param"),
+            Some(&"value".to_string())
+        );
     }
 
     #[test]
@@ -433,9 +458,13 @@ mod tests {
 
         let response = create_auth_error_response(error, &config);
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        
+
         let auth_header = response.headers().get("WWW-Authenticate");
         assert!(auth_header.is_some());
-        assert!(auth_header.unwrap().to_str().unwrap().contains("Test Realm"));
+        assert!(auth_header
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .contains("Test Realm"));
     }
 }

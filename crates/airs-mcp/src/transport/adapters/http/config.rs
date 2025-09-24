@@ -214,7 +214,7 @@ pub enum OptimizationStrategy {
 /// Buffer pool configuration
 ///
 /// Controls memory buffer reuse strategy for optimization.
-/// Buffer pooling reuses memory allocations (Vec<u8>) rather than
+/// Buffer pooling reuses memory allocations (Vec\<u8\>) rather than
 /// entire parser objects for better performance and lower overhead.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BufferPoolConfig {

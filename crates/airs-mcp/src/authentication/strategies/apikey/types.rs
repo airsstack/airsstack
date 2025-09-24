@@ -24,11 +24,11 @@ pub struct ApiKeyRequest {
 /// Enum defining different API key sources
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ApiKeySource {
-    /// Authorization header with Bearer scheme: "Authorization: Bearer <key>"
+    /// Authorization header with Bearer scheme: "Authorization: Bearer \<key\>"
     AuthorizationBearer,
-    /// Custom header: "X-API-Key: <key>", "API-Key: <key>", etc.
+    /// Custom header: "X-API-Key: \<key\>", "API-Key: \<key\>", etc.
     Header(String),
-    /// Query parameter: "?api_key=<key>", "?apikey=<key>", etc.
+    /// Query parameter: "?api_key=\<key\>", "?apikey=\<key\>", etc.
     QueryParameter(String),
 }
 

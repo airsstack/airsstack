@@ -2,7 +2,7 @@
 //!
 //! This module provides memory buffer pooling for HTTP transport optimization.
 //! Based on principal engineer review, this implements buffer pooling (reusing
-//! Vec<u8> memory) rather than parser pooling for better performance and simplicity.
+//! Vec\<u8\> memory) rather than parser pooling for better performance and simplicity.
 
 use std::sync::{Arc, Mutex};
 
@@ -10,7 +10,7 @@ use crate::transport::adapters::http::config::BufferPoolConfig;
 
 /// Thread-safe buffer pool for memory reuse
 ///
-/// The buffer pool maintains a collection of reusable Vec<u8> buffers
+/// The buffer pool maintains a collection of reusable Vec\<u8\> buffers
 /// to reduce allocation overhead in high-throughput scenarios.
 ///
 /// # Performance Characteristics

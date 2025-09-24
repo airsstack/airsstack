@@ -14,15 +14,15 @@
 //!
 //! ## Available Transports
 //!
-//! - **STDIO Transport** (`stdio/`): Self-contained STDIO implementation with MessageHandler<()>
-//! - **HTTP Transport** (`http/`): Self-contained HTTP implementation with MessageHandler<HttpContext>
+//! - **STDIO Transport** (`stdio/`): Self-contained STDIO implementation with MessageHandler\<()\>
+//! - **HTTP Transport** (`http/`): Self-contained HTTP implementation with MessageHandler\<HttpContext\>
 //! - **Future Transports**: WebSocket, TCP, etc. will follow the same pattern
 //!
 //! # Generic MessageHandler Pattern
 //!
 //! All transports follow the Generic MessageHandler pattern:
 //! 1. **Transport-Specific Context**: Each transport defines its own context type
-//! 2. **Generic MessageHandler<T>**: Handlers receive transport-specific context data
+//! 2. **Generic MessageHandler\<T\>**: Handlers receive transport-specific context data
 //! 3. **Type Aliases**: Convenient aliases like `HttpMessageHandler` for clarity
 //! 4. **Self-Contained Modules**: No dependencies between transport implementations
 //!
@@ -65,7 +65,6 @@
 //!     async fn handle_error(&self, error: airs_mcp::protocol::TransportError) {}
 //!     async fn handle_close(&self) {}
 //! }
-//! ```
 //! ```
 
 pub mod http;

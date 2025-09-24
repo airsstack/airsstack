@@ -12,11 +12,11 @@
 //!
 //! # Usage Example
 //!
-//! ```rust,no_run
-//! // Provider implementations will be available in future versions
-//! // This module is currently a placeholder for production-ready
-//! // MCP provider implementations that integrate with the generic
-//! // MessageHandler architecture
+//! ```text
+//! Provider implementations will be available in future versions
+//! This module is currently a placeholder for production-ready
+//! MCP provider implementations that integrate with the generic
+//! MessageHandler architecture
 //! ```
 
 pub mod logging;

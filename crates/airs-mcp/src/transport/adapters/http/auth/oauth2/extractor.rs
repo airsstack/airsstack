@@ -22,7 +22,7 @@ pub struct HttpExtractor;
 impl HttpExtractor {
     /// Extract bearer token from HTTP Authorization header
     ///
-    /// Supports standard "Bearer <token>" format with case-insensitive header matching.
+    /// Supports standard "Bearer \<token\>" format with case-insensitive header matching.
     ///
     /// # Arguments
     /// * `headers` - HTTP headers from the request
@@ -64,7 +64,6 @@ impl HttpExtractor {
             })
         }
     }
-
 }
 
 #[cfg(test)]
@@ -128,5 +127,4 @@ mod tests {
             _ => panic!("Expected MalformedAuth error"),
         }
     }
-
 }
