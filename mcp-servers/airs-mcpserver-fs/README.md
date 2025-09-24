@@ -24,29 +24,42 @@ A security-first filesystem bridge that enables Claude Desktop and other MCP-com
 
 ### Installation
 
-#### From Source
+#### From crates.io (Recommended)
 ```bash
-git clone https://github.com/rstlix0x0/airs.git
-cd airs
-cargo build --release --bin airs-mcpserver-fs
+cargo install airs-mcpserver-fs
 ```
 
-#### Using Cargo
+#### From Source
 ```bash
-cargo install --path crates/airs-mcpserver-fs
+git clone https://github.com/airsstack/airsstack.git
+cd airsstack
+cargo build --release --package airs-mcpserver-fs
 ```
 
 ### Basic Setup
 
-**Step 1: Generate Configuration**
+**Step 1: Setup Directory Structure (Optional)**
 ```bash
-# Generate development configuration
-airs-mcpserver-fs generate-config
+# Create directory structure with proper permissions
+airs-mcpserver-fs setup
 
-# This creates ~/.config/airs-mcpserver-fs/development.toml
+# Or specify custom directories
+airs-mcpserver-fs setup --config-dir ~/.config/airs-mcpserver-fs --logs-dir ~/.local/share/airs-mcpserver-fs/logs
 ```
 
-**Step 2: Configure Claude Desktop**
+**Step 2: Generate Configuration**
+```bash
+# Generate development configuration
+airs-mcpserver-fs config
+
+# Generate config for specific environment
+airs-mcpserver-fs config --env development
+
+# Generate config in specific directory
+airs-mcpserver-fs config --output ~/.config/airs-mcpserver-fs
+```
+
+**Step 3: Configure Claude Desktop**
 
 Add to your Claude Desktop MCP configuration:
 
@@ -69,9 +82,13 @@ Add to your Claude Desktop MCP configuration:
 }
 ```
 
-**Important**: Replace `/path/to/airs-mcpserver-fs` with the actual path to your binary and `yourusername` with your actual username.
+**Important**: Replace `/path/to/airs-mcpserver-fs` with the actual path to your binary:
+- **If installed via cargo**: `~/.cargo/bin/airs-mcpserver-fs` (or `airs-mcpserver-fs` if `~/.cargo/bin` is in your PATH)
+- **If built from source**: `path/to/airsstack/target/release/airs-mcpserver-fs`
 
-**Step 3: Restart Claude Desktop**
+Also replace `yourusername` with your actual username.
+
+**Step 4: Restart Claude Desktop**
 
 Restart Claude Desktop to load the new MCP server configuration.
 
@@ -283,7 +300,7 @@ Extend functionality with custom text file processors:
 - **Cause**: No environment-specific configuration file exists
 - **Solution**: Generate configuration for your environment:
   ```bash
-  airs-mcpserver-fs generate-config --env development
+  airs-mcpserver-fs config --env development
   ```
 
 #### "Invalid server response" in Claude Desktop
@@ -307,8 +324,8 @@ RUST_LOG=debug airs-mcpserver-fs --config ./debug-config.toml
 ### Development Setup
 ```bash
 # Clone the repository
-git clone https://github.com/rstlix0x0/airs.git
-cd airs/crates/airs-mcpserver-fs
+git clone https://github.com/airsstack/airsstack.git
+cd airsstack/mcp-servers/airs-mcpserver-fs
 
 # Install dependencies
 cargo build
@@ -398,16 +415,15 @@ mdbook serve
 ## Support
 
 - **Documentation**: [Full documentation and guides](./docs/src/SUMMARY.md)
-- **Issues**: [GitHub Issues](https://github.com/rstlix0x0/airs/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/rstlix0x0/airs/discussions)
+- **Issues**: [GitHub Issues](https://github.com/airsstack/airsstack/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/airsstack/airsstack/discussions)
 - **Community**: [Discord Server](https://discord.gg/airs-community)
 
 ## Related Projects
 
 - **[airs-mcp](../airs-mcp)**: Core MCP protocol implementation
-- **[airs-memspec](../airs-memspec)**: Memory bank management CLI
-- **[airs-mcp-kb](../airs-mcp-kb)**: Knowledge base and RAG system
-- **[AIRS Platform](https://github.com/rstlix0x0/airs)**: Complete AI & Rust technology stack
+- **[airs-memspec](../airs-memspec)**: Memory bank management CLI  
+- **[AIRS Platform](https://github.com/airsstack/airsstack)**: Complete AI & Rust technology stack
 
 ---
 
