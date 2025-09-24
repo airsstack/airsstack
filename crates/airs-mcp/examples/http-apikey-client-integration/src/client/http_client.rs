@@ -19,9 +19,8 @@ use crate::config::{AuthenticationMethod, ClientConfig};
 
 /// HTTP MCP client with API key authentication support
 pub struct HttpMcpClient {
-    client: airs_mcp::integration::McpClient<
-        airs_mcp::transport::adapters::http::HttpTransportClient,
-    >,
+    client:
+        airs_mcp::integration::McpClient<airs_mcp::transport::adapters::http::HttpTransportClient>,
     config: ClientConfig,
 }
 
@@ -31,7 +30,9 @@ impl HttpMcpClient {
         config: &ClientConfig,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         // Validate configuration
-        config.validate().map_err(|e| format!("Configuration error: {}", e))?;
+        config
+            .validate()
+            .map_err(|e| format!("Configuration error: {e}"))?;
 
         info!(
             "Creating HTTP transport client for endpoint: {}",
@@ -106,7 +107,7 @@ impl HttpMcpClient {
                 Err(e.into())
             }
             Err(_) => {
-                let err = format!("MCP initialization timed out after {:?}", init_timeout);
+                let err = format!("MCP initialization timed out after {init_timeout:?}");
                 error!("✗ {}", err);
                 Err(err.into())
             }
@@ -153,7 +154,7 @@ impl HttpMcpClient {
         {
             Ok(Ok(result)) => {
                 info!("✓ Tool '{}' executed successfully", tool_name);
-                Ok(format!("Tool '{}' result: {:?}", tool_name, result))
+                Ok(format!("Tool '{tool_name}' result: {result:?}"))
             }
             Ok(Err(e)) => {
                 error!("✗ Tool '{}' execution failed: {}", tool_name, e);
@@ -178,7 +179,8 @@ impl HttpMcpClient {
 
         match timeout(self.config.timeout, self.client.list_resources()).await {
             Ok(Ok(resources)) => {
-                let resource_uris: Vec<String> = resources.iter().map(|r| r.uri.to_string()).collect();
+                let resource_uris: Vec<String> =
+                    resources.iter().map(|r| r.uri.to_string()).collect();
                 info!("✓ Found {} resources", resource_uris.len());
                 Ok(resource_uris)
             }
@@ -204,7 +206,7 @@ impl HttpMcpClient {
         match timeout(self.config.timeout, self.client.read_resource(uri)).await {
             Ok(Ok(content)) => {
                 info!("✓ Resource '{}' read successfully", uri);
-                Ok(format!("Resource '{}' content: {:?}", uri, content))
+                Ok(format!("Resource '{uri}' content: {content:?}"))
             }
             Ok(Err(e)) => {
                 error!("✗ Failed to read resource '{}': {}", uri, e);
@@ -240,7 +242,7 @@ impl HttpMcpClient {
                 println!("   ✓ Initialization successful\n");
             }
             Err(e) => {
-                println!("   ✗ Initialization failed: {}\n", e);
+                println!("   ✗ Initialization failed: {e}\n");
                 return Err(e);
             }
         }
@@ -251,7 +253,7 @@ impl HttpMcpClient {
             Ok(tools) => {
                 println!("   ✓ Found {} tools:", tools.len());
                 for tool in &tools {
-                    println!("     • {}", tool);
+                    println!("     • {tool}");
                 }
                 println!();
 
@@ -260,16 +262,16 @@ impl HttpMcpClient {
                     println!("3️⃣  Calling tool '{}'...", tools[0]);
                     match self.call_tool(&tools[0], None).await {
                         Ok(result) => {
-                            println!("   ✓ {}\n", result);
+                            println!("   ✓ {result}\n");
                         }
                         Err(e) => {
-                            println!("   ✗ Tool call failed: {}\n", e);
+                            println!("   ✗ Tool call failed: {e}\n");
                         }
                     }
                 }
             }
             Err(e) => {
-                println!("   ✗ Failed to list tools: {}\n", e);
+                println!("   ✗ Failed to list tools: {e}\n");
             }
         }
 
@@ -279,7 +281,7 @@ impl HttpMcpClient {
             Ok(resources) => {
                 println!("   ✓ Found {} resources:", resources.len());
                 for resource in &resources {
-                    println!("     • {}", resource);
+                    println!("     • {resource}");
                 }
                 println!();
 
@@ -288,16 +290,16 @@ impl HttpMcpClient {
                     println!("5️⃣  Reading resource '{}'...", resources[0]);
                     match self.read_resource(&resources[0]).await {
                         Ok(content) => {
-                            println!("   ✓ {}\n", content);
+                            println!("   ✓ {content}\n");
                         }
                         Err(e) => {
-                            println!("   ✗ Resource read failed: {}\n", e);
+                            println!("   ✗ Resource read failed: {e}\n");
                         }
                     }
                 }
             }
             Err(e) => {
-                println!("   ✗ Failed to list resources: {}\n", e);
+                println!("   ✗ Failed to list resources: {e}\n");
             }
         }
 
@@ -307,7 +309,9 @@ impl HttpMcpClient {
 
     /// Test connection health
     #[allow(dead_code)]
-    pub async fn test_connection(&mut self) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn test_connection(
+        &mut self,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         info!("Testing connection health");
 
         match self.initialize().await {

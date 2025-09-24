@@ -289,7 +289,7 @@ async fn start_mcp_server(
         // Create HTTP transport configuration for MCP server
         let socket_addr: std::net::SocketAddr = bind_addr
             .parse()
-            .map_err(|e| format!("Failed to parse bind address '{}': {}", bind_addr, e))?;
+            .map_err(|e| format!("Failed to parse bind address '{bind_addr}': {e}"))?;
         let http_config = HttpTransportConfig::new().bind_address(socket_addr);
 
         // Create connection manager
@@ -298,7 +298,7 @@ async fn start_mcp_server(
         // Create test environment and MCP handlers
         let (handlers, _temp_dir_guard) = create_test_environment()
             .await
-            .map_err(|e| format!("Failed to create test environment: {}", e))?;
+            .map_err(|e| format!("Failed to create test environment: {e}"))?;
 
         // Create the OAuth2-enabled MCP server using AxumHttpServer
         let mut engine = AxumHttpServer::from_parts(Arc::new(connection_manager), http_config)?
@@ -374,7 +374,7 @@ async fn start_proxy_server_task(
 > {
     let handle = tokio::spawn(async move {
         if let Err(e) = start_proxy_server(&bind_addr, mcp_server_url, custom_routes_url).await {
-            return Err(format!("Proxy server error: {}", e).into());
+            return Err(format!("Proxy server error: {e}").into());
         }
         Ok(()) as Result<(), Box<dyn std::error::Error + Send + Sync>>
     });

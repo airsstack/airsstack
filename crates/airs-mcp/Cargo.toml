@@ -52,6 +52,19 @@ oauth2.workspace = true
 base64.workspace = true
 url.workspace = true
 
+# Logging for examples and utilities
+tracing-subscriber.workspace = true
+
+# File system utilities for examples
+tempfile.workspace = true
+
+# CLI framework for examples
+clap.workspace = true
+
+# Cryptographic dependencies for OAuth2 examples
+rsa.workspace = true
+sha2.workspace = true
+
 [dev-dependencies]
 # Async testing utilities
 tokio-test.workspace = true
@@ -61,12 +74,6 @@ proptest.workspace = true
 
 # Performance benchmarking
 criterion.workspace = true
-
-# Test logging and debugging for async flows
-tracing-subscriber.workspace = true
-
-# Temporary file/directory creation for tests (inherited from workspace)
-tempfile.workspace = true
 
 # HTTP mocking for JWT validation tests
 wiremock.workspace = true
@@ -84,7 +91,27 @@ name = "lightweight_benchmarks"
 harness = false
 
 
-# Phase 4.3.1: STDIO Server Integration Example
+# Integration Examples - Production-ready implementations demonstrating TransportClient architecture
+
+# STDIO Transport Examples
+[[example]]
+name = "stdio-client-integration"
+path = "examples/stdio-client-integration/src/main.rs"
+
 [[example]]
 name = "stdio-server-integration"
 path = "examples/stdio-server-integration/src/main.rs"
+
+# HTTP API Key Authentication Examples  
+[[example]]
+name = "http-apikey-client-integration"
+path = "examples/http-apikey-client-integration/src/main.rs"
+
+[[example]]
+name = "http-apikey-server-integration"
+path = "examples/http-apikey-server-integration/src/main.rs"
+
+# HTTP OAuth2 Authentication Examples
+[[example]]
+name = "http-oauth2-server-integration"
+path = "examples/http-oauth2-server-integration/src/main.rs"

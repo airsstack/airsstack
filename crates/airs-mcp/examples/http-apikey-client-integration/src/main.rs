@@ -12,11 +12,11 @@ use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 // Layer 3: Internal module imports
-mod config;
 mod client;
+mod config;
 
-use config::ClientConfig;
 use client::HttpMcpClient;
+use config::ClientConfig;
 
 /// HTTP MCP Client CLI
 #[derive(Parser)]
@@ -73,11 +73,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
 
     // Initialize tracing
-    let level = if cli.verbose { Level::DEBUG } else { Level::INFO };
+    let level = if cli.verbose {
+        Level::DEBUG
+    } else {
+        Level::INFO
+    };
     let subscriber = FmtSubscriber::builder().with_max_level(level).finish();
-    
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!("Starting HTTP MCP Client Integration");
 
@@ -110,7 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 async fn run_demo(config: ClientConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Running interactive demo");
-    
+
     match HttpMcpClient::new(&config).await {
         Ok(mut client) => {
             if let Err(e) = client.run_demo().await {
@@ -123,20 +126,22 @@ async fn run_demo(config: ClientConfig) -> Result<(), Box<dyn std::error::Error 
             std::process::exit(1);
         }
     }
-    
+
     Ok(())
 }
 
-async fn run_list_tools(config: ClientConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_list_tools(
+    config: ClientConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut client = HttpMcpClient::new(&config).await?;
     client.initialize().await?;
-    
+
     let tools = client.list_tools().await?;
     println!("Available tools:");
     for tool in tools {
-        println!("  - {}", tool);
+        println!("  - {tool}");
     }
-    
+
     Ok(())
 }
 
@@ -147,29 +152,31 @@ async fn run_call_tool(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut client = HttpMcpClient::new(&config).await?;
     client.initialize().await?;
-    
+
     let arguments = if let Some(args_str) = args {
         Some(serde_json::from_str(&args_str)?)
     } else {
         None
     };
-    
+
     let result = client.call_tool(&name, arguments).await?;
-    println!("Tool result: {}", result);
-    
+    println!("Tool result: {result}");
+
     Ok(())
 }
 
-async fn run_list_resources(config: ClientConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_list_resources(
+    config: ClientConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut client = HttpMcpClient::new(&config).await?;
     client.initialize().await?;
-    
+
     let resources = client.list_resources().await?;
     println!("Available resources:");
     for resource in resources {
-        println!("  - {}", resource);
+        println!("  - {resource}");
     }
-    
+
     Ok(())
 }
 
@@ -179,58 +186,60 @@ async fn run_read_resource(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut client = HttpMcpClient::new(&config).await?;
     client.initialize().await?;
-    
+
     let content = client.read_resource(&uri).await?;
-    println!("Resource content: {}", content);
-    
+    println!("Resource content: {content}");
+
     Ok(())
 }
 
-async fn run_test_connection(config: ClientConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_test_connection(
+    config: ClientConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Testing connection to server: {}", config.server_url);
-    
+
     match HttpMcpClient::new(&config).await {
-        Ok(mut client) => {
-            match client.initialize().await {
-                Ok(()) => {
-                    println!("✓ Connection successful!");
-                    println!("✓ Authentication working");
-                    println!("✓ MCP session initialized");
-                }
-                Err(e) => {
-                    println!("✗ Connection failed during initialization: {}", e);
-                    std::process::exit(1);
-                }
+        Ok(mut client) => match client.initialize().await {
+            Ok(()) => {
+                println!("✓ Connection successful!");
+                println!("✓ Authentication working");
+                println!("✓ MCP session initialized");
             }
-        }
+            Err(e) => {
+                println!("✗ Connection failed during initialization: {e}");
+                std::process::exit(1);
+            }
+        },
         Err(e) => {
-            println!("✗ Failed to create client: {}", e);
+            println!("✗ Failed to create client: {e}");
             std::process::exit(1);
         }
     }
-    
+
     Ok(())
 }
 
-async fn run_validate_config(config: ClientConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_validate_config(
+    config: ClientConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Configuration validation:");
     println!("  Server URL: {}", config.server_url);
     println!("  Auth Method: {:?}", config.auth_method);
     println!("  API Key: [REDACTED]");
     println!("  Timeout: {:?}", config.timeout);
     println!("  Mock Mode: {}", config.mock_mode);
-    
+
     // Basic validation
     if config.server_url.is_empty() {
         println!("✗ Server URL is empty");
         std::process::exit(1);
     }
-    
+
     if config.api_key.is_empty() {
         println!("✗ API key is empty");
         std::process::exit(1);
     }
-    
+
     println!("✓ Configuration appears valid");
     Ok(())
 }

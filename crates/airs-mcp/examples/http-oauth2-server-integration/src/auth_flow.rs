@@ -321,7 +321,7 @@ pub async fn authorize_handler(
     // Create redirect URI with authorization code
     let mut redirect_url = format!("{}?code={}", params.redirect_uri, code);
     if let Some(state_param) = &params.state {
-        redirect_url.push_str(&format!("&state={}", state_param));
+        redirect_url.push_str(&format!("&state={state_param}"));
     }
 
     debug!(redirect_url = %redirect_url, "Redirecting with authorization code");
@@ -791,8 +791,8 @@ async fn dev_dashboard_handler(State(state): State<AppState>) -> impl IntoRespon
         <div class="section">
             <h2>📊 Server Status</h2>
             <p><strong>Status:</strong> <span class="status">Running</span></p>
-            <p><strong>Uptime:</strong> {:.2?}</p>
-            <p><strong>Active Flows:</strong> {}</p>
+            <p><strong>Uptime:</strong> {uptime:.2?}</p>
+            <p><strong>Active Flows:</strong> {flows_count}</p>
         </div>
         
         <div class="section">
@@ -821,8 +821,7 @@ async fn dev_dashboard_handler(State(state): State<AppState>) -> impl IntoRespon
     </div>
 </body>
 </html>
-"#,
-        uptime, flows_count
+"#
     );
 
     axum::response::Html(html)
@@ -834,8 +833,8 @@ async fn dev_flows_handler(State(state): State<AppState>) -> impl IntoResponse {
 
     // Create a simple serializable summary instead of trying to serialize OAuth2FlowState
     let flows_summary: std::collections::HashMap<String, serde_json::Value> = flows
-        .iter()
-        .map(|(k, _v)| {
+        .keys()
+        .map(|k| {
             (
                 k.clone(),
                 serde_json::json!({

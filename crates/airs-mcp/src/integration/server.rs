@@ -126,8 +126,8 @@ mod tests {
         let handler = Arc::new(TestMessageHandler);
 
         // Create mock I/O streams for true lifecycle testing
-        // Use Vec<u8> directly to avoid lifetime issues
-        let input_data = vec![
+        // Use array instead of vec for input data
+        let input_data = [
             r#"{"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{}},"id":1}"#,
             "\n",
             r#"{"jsonrpc":"2.0","method":"ping","id":2}"#,
@@ -156,8 +156,7 @@ mod tests {
         let start_result = server.start().await;
         assert!(
             start_result.is_ok(),
-            "Server start should succeed with mock I/O: {:?}",
-            start_result
+            "Server start should succeed with mock I/O: {start_result:?}"
         );
 
         // Verify transport is now connected
@@ -170,8 +169,7 @@ mod tests {
         let shutdown_result = server.shutdown().await;
         assert!(
             shutdown_result.is_ok(),
-            "Server shutdown should succeed: {:?}",
-            shutdown_result
+            "Server shutdown should succeed: {shutdown_result:?}"
         );
 
         // Verify transport is disconnected after shutdown
