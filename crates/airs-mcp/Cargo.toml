@@ -11,7 +11,7 @@ keywords = ["mcp", "jsonrpc", "protocol", "rpc"]
 categories = ["network-programming", "api-bindings"]
 readme = "README.md"
 documentation = "https://docs.rs/airs-mcp"
-homepage = "https://github.com/rstlix0x0/airs/tree/main/crates/airs-mcp"
+homepage = "https://github.com/airsstack/airsstack/tree/main/crates/airs-mcp"
 
 
 [dependencies]

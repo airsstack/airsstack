@@ -1,11 +1,17 @@
 [package]
 name = "airs-mcpserver-fs"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "MCP tool to serve local file system as MCP provider"
+keywords = ["mcp", "file-system", "provider"]
+categories = ["network-programming", "api-bindings", "file-system"]
+readme = "README.md"
+documentation = "https://docs.rs/airs-mcpserver-fs"
+homepage = "https://github.com/airsstack/airsstack/tree/main/mcp-servers/airs-mcpserver-fs"
 
 [lints]
 workspace = true
