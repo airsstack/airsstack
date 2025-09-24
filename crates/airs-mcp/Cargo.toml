@@ -1,6 +1,6 @@
 [package]
 name = "airs-mcp"
-version = "0.2.1"
+version = "0.2.2"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -61,11 +61,11 @@ tempfile.workspace = true
 # CLI framework for examples
 clap.workspace = true
 
-# Cryptographic dependencies for OAuth2 examples
+[dev-dependencies]
+# Cryptographic dependencies for OAuth2 examples (moved to dev-dependencies)
 rsa.workspace = true
 sha2.workspace = true
 
-[dev-dependencies]
 # Async testing utilities
 tokio-test.workspace = true
 
