@@ -291,18 +291,16 @@ class TestHttpApiKeyIntegration:
     def test_invalid_method(self):
         """Test error handling for invalid MCP methods."""
         response = self.mcp_request("invalid/method")
-        assert response.status_code == 500  # Server error for invalid method
+        # JSON-RPC 2.0 spec: protocol errors should return HTTP 200 with error object
+        assert response.status_code == 200
         
-        # Check that it's still JSON-RPC response format (if parseable)
-        try:
-            data = response.json()
-            if "error" in data:
-                print(f"✅ Invalid method properly rejected with JSON-RPC error: {data['error']['message']}")
-            else:
-                print("✅ Invalid method properly rejected with server error")
-        except:
-            # If response isn't JSON, that's also acceptable for invalid methods
-            print("✅ Invalid method properly rejected with server error")
+        # Verify it's a proper JSON-RPC error response
+        data = response.json()
+        assert "error" in data, "Response should contain an error object"
+        assert "code" in data["error"], "Error should have a code"
+        assert "message" in data["error"], "Error should have a message"
+        
+        print(f"✅ Invalid method properly rejected with JSON-RPC error: {data['error']['message']}")
     
     def test_invalid_tool_parameters(self):
         """Test error handling for invalid tool parameters."""
