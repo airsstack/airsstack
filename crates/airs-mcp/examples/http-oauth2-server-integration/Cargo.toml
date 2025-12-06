@@ -20,13 +20,13 @@ tokio = { version = "1.47", features = ["full"] }
 async-trait = "0.1"
 
 # Web Framework Dependencies (Layer 3)
-axum = { version = "0.7", features = ["json"] }
+axum = { version = "0.8", features = ["json"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Authentication & Security (Layer 4)
 jsonwebtoken = "9.3"
-rsa = "0.10.0-rc.8"
+rsa = "0.9"
 base64 = "0.22"
 sha2 = "0.10"
 urlencoding = "2.1"
