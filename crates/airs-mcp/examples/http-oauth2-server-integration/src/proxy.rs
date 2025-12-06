@@ -258,7 +258,7 @@ pub async fn access_logging_middleware(
 /// Create proxy router with comprehensive logging and CORS
 pub fn create_proxy_router(state: ProxyState) -> Router {
     Router::new()
-        .route("/*path", any(proxy_handler))
+        .route("/{*path}", any(proxy_handler))
         .with_state(state)
         .layer(
             ServiceBuilder::new()
