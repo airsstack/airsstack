@@ -174,32 +174,320 @@ The AirsStack Controller is in early conceptual design. We're defining:
 - Integration patterns with existing protocols
 - WASM component management approach
 
+> **⚠️ Important Note**: All development plans outlined below are preliminary and subject to change based on community feedback, technical discoveries, and evolving requirements. This roadmap represents our current vision but should not be considered final.
+
+### Architecture Overview
+
+The following diagram illustrates the planned architecture of AirsStack Controller:
+
+```mermaid
+graph TB
+    CLI[AirsStack CLI Controller]
+    
+    subgraph "Core Management Layers"
+        SPEC[Spec Management]
+        WASM[WASM Component Management]
+        SERVER[Server Management]
+        AGENT[Agent Management & Orchestration]
+        BUILD[Build Management]
+        CLOUD[Cloud Management]
+    end
+    
+    subgraph "Infrastructure"
+        MCP[MCP Servers]
+        PROTO[Protocol Servers]
+        COMP[WASM Components]
+        AGENTS[AI Agents]
+    end
+    
+    subgraph "Deployment Targets"
+        LOCAL[Local Development]
+        REMOTE[Remote Servers]
+        K8S[Kubernetes]
+        CLOUDPROV[Cloud Providers]
+    end
+    
+    CLI --> SPEC
+    CLI --> WASM
+    CLI --> SERVER
+    CLI --> AGENT
+    CLI --> BUILD
+    CLI --> CLOUD
+    
+    SPEC -.-> BUILD
+    SERVER --> MCP
+    SERVER --> PROTO
+    WASM --> COMP
+    AGENT --> AGENTS
+    BUILD -.-> WASM
+    BUILD -.-> SERVER
+    
+    CLOUD --> LOCAL
+    CLOUD --> REMOTE
+    CLOUD --> K8S
+    CLOUD --> CLOUDPROV
+    
+    AGENT -.-> SERVER
+    AGENT -.-> WASM
+```
+
+### Planned Management Capabilities
+
+#### 1. Spec Management
+Configuration and specification management for all AirsStack resources.
+
+```mermaid
+graph LR
+    subgraph "Spec Management"
+        VALIDATE[Validate Specs]
+        GENERATE[Generate Configs]
+        TEMPLATE[Template Engine]
+        SCHEMA[Schema Validation]
+    end
+    
+    SPECS[Stack Specs] --> VALIDATE
+    VALIDATE --> SCHEMA
+    TEMPLATE --> GENERATE
+    GENERATE --> OUTPUT[Output Configs]
+    
+    style VALIDATE fill:#e1f5ff
+    style GENERATE fill:#e1f5ff
+```
+
+**Capabilities:**
+- Declarative configuration files (YAML/TOML)
+- Spec validation and linting
+- Template system for reusable configurations
+- Schema versioning and migration
+
+#### 2. WASM Component Management
+Lifecycle management for WebAssembly components.
+
+```mermaid
+graph TB
+    subgraph "WASM Management"
+        REGISTRY[Component Registry]
+        DEPLOY[Deploy Components]
+        LIFECYCLE[Lifecycle Control]
+        MONITOR[Monitoring]
+    end
+    
+    WASM_FILE[.wasm Files] --> REGISTRY
+    REGISTRY --> DEPLOY
+    DEPLOY --> RUNNING[Running Components]
+    RUNNING --> LIFECYCLE
+    LIFECYCLE --> MONITOR
+    MONITOR -.-> LOGS[Logs & Metrics]
+    
+    style DEPLOY fill:#fff4e1
+    style LIFECYCLE fill:#fff4e1
+```
+
+**Capabilities:**
+- WASM component deployment and versioning
+- Component isolation and sandboxing
+- Resource limits and quotas
+- Hot-reload and updates
+- Inter-component communication
+
+#### 3. Server Management
+Control plane for protocol servers (MCP, A2A, etc.).
+
+```mermaid
+graph TB
+    subgraph "Server Management"
+        DISCOVER[Service Discovery]
+        CONTROL[Lifecycle Control]
+        CONFIG[Configuration]
+        HEALTH[Health Checks]
+    end
+    
+    SERVERS[Protocol Servers] --> DISCOVER
+    DISCOVER --> CONTROL
+    CONTROL --> START[Start/Stop/Restart]
+    CONFIG --> SERVERS
+    HEALTH -.-> SERVERS
+    
+    style CONTROL fill:#e8f5e9
+    style HEALTH fill:#e8f5e9
+```
+
+**Capabilities:**
+- Start, stop, restart servers
+- Configuration management
+- Health monitoring and auto-restart
+- Log aggregation
+- Port management and routing
+
+#### 4. Agent Management & Orchestration
+Orchestrate AI agents and their interactions.
+
+```mermaid
+graph TB
+    subgraph "Agent Orchestration"
+        DEPLOY_A[Deploy Agents]
+        COORD[Coordination Layer]
+        WORKFLOW[Workflow Engine]
+        MONITOR_A[Monitoring]
+    end
+    
+    AGENT_DEF[Agent Definitions] --> DEPLOY_A
+    DEPLOY_A --> RUNNING_A[Running Agents]
+    RUNNING_A --> COORD
+    COORD <--> WORKFLOW
+    WORKFLOW --> TASKS[Task Execution]
+    MONITOR_A -.-> RUNNING_A
+    
+    style COORD fill:#f3e5f5
+    style WORKFLOW fill:#f3e5f5
+```
+
+**Capabilities:**
+- Multi-agent deployment
+- Agent-to-agent communication
+- Workflow orchestration
+- Task scheduling and distribution
+- State management
+- Failure handling and recovery
+
+#### 5. Build Management
+Unified build system for AirsStack projects.
+
+```mermaid
+graph LR
+    subgraph "Build Management"
+        SOURCE[Source Code] --> BUILD_SYS[Build System]
+        BUILD_SYS --> COMPILE[Compile]
+        COMPILE --> TEST[Test]
+        TEST --> PACKAGE[Package]
+        PACKAGE --> ARTIFACTS[Artifacts]
+    end
+    
+    BUILD_SYS -.-> CACHE[Build Cache]
+    ARTIFACTS --> WASM_OUT[WASM Components]
+    ARTIFACTS --> BINARY[Binaries]
+    
+    style BUILD_SYS fill:#fff9c4
+    style COMPILE fill:#fff9c4
+```
+
+**Capabilities:**
+- Multi-language support (Rust, Python, JavaScript)
+- Incremental builds and caching
+- Cross-compilation for WASM
+- Dependency management
+- Testing integration
+- Artifact publishing
+
+#### 6. Cloud Management
+Deploy and manage AirsStack resources across environments.
+
+```mermaid
+graph TB
+    subgraph "Cloud Management"
+        PROVISION[Provisioning]
+        DEPLOY_C[Deployment]
+        SCALE[Scaling]
+        MONITOR_C[Monitoring]
+    end
+    
+    subgraph "Targets"
+        LOCAL_T[Local]
+        DOCKER[Docker]
+        K8S_T[Kubernetes]
+        AWS[AWS]
+        GCP[GCP]
+        AZURE[Azure]
+    end
+    
+    PROVISION --> DEPLOY_C
+    DEPLOY_C --> LOCAL_T
+    DEPLOY_C --> DOCKER
+    DEPLOY_C --> K8S_T
+    DEPLOY_C --> AWS
+    DEPLOY_C --> GCP
+    DEPLOY_C --> AZURE
+    
+    SCALE -.-> DEPLOY_C
+    MONITOR_C -.-> DEPLOY_C
+    
+    style PROVISION fill:#e0f2f1
+    style DEPLOY_C fill:#e0f2f1
+```
+
+**Capabilities:**
+- Multi-cloud deployment
+- Container orchestration (Docker, Kubernetes)
+- Infrastructure as Code
+- Auto-scaling policies
+- Cost optimization
+- Disaster recovery
+
+### Development Workflow
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant CLI as AirsStack CLI
+    participant Spec as Spec Manager
+    participant Build as Build System
+    participant Deploy as Deployment
+    participant Cloud as Cloud Provider
+    
+    Dev->>CLI: airsstack init my-project
+    CLI->>Spec: Generate project specs
+    Spec-->>Dev: Project scaffolded
+    
+    Dev->>CLI: airsstack build
+    CLI->>Build: Compile & package
+    Build-->>CLI: Artifacts ready
+    
+    Dev->>CLI: airsstack deploy --env staging
+    CLI->>Deploy: Process deployment
+    Deploy->>Cloud: Provision resources
+    Cloud-->>Deploy: Resources ready
+    Deploy->>Cloud: Deploy components
+    Cloud-->>CLI: Deployment complete
+    CLI-->>Dev: Stack deployed successfully
+```
+
 ### Future Development Phases (Indicative)
 
 **Phase 1: Foundation**
 - CLI framework and core architecture
 - Basic command structure
 - Configuration system
+- Spec management foundation
 
 **Phase 2: Server Management**
 - MCP server lifecycle management
 - Protocol server orchestration
 - Service discovery
+- Health monitoring
 
-**Phase 3: Stack Orchestration**
-- Declarative stack definitions
-- Deployment and configuration management
-- Multi-component coordination
-
-**Phase 4: WASM Integration**
+**Phase 3: WASM & Component Management**
 - WASM component deployment
 - Component lifecycle management
-- Cross-component communication
+- Component registry
+- Inter-component communication
 
-**Phase 5: Ecosystem**
+**Phase 4: Agent Orchestration**
+- Multi-agent deployment
+- Agent coordination layer
+- Workflow engine
+- State management
+
+**Phase 5: Build & Cloud Integration**
+- Unified build system
+- Multi-language support
+- Cloud provider integrations
+- Kubernetes operator
+
+**Phase 6: Ecosystem & Advanced Features**
 - Plugin system
 - Community extensions
-- Advanced features
+- Advanced monitoring and observability
+- Cost optimization tools
 
 ---
 
