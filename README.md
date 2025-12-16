@@ -179,31 +179,29 @@ AirsStack Controller is part of a larger ecosystem of interconnected projects:
 
 ```mermaid
 graph TB
-    subgraph "AirsStack Ecosystem"
-        AIRSSTACK[AirsStack Controller CLI]
-        
-        subgraph "Foundation Layer"
-            AIRSDLC[@airsdlc<br/>AI-DLC Framework]
-            AIRSSYS[@airssys/airssys-wasm<br/>WASM Runtime]
-        end
-        
-        subgraph "Protocol Layer"
-            AIRSPROTOCOLS[@airsprotocols<br/>Protocols & Servers]
-        end
-        
-        subgraph "Application Layer"
-            AGENTS[AI Agent Components]
-            SERVERS[Protocol Servers]
-            PLUGINS[Plugin Components]
-        end
+    subgraph Foundation["Foundation Layer"]
+        AIRSDLC["@airsdlc<br/>AI-DLC Framework"]
+        AIRSSYS["@airssys/airssys-wasm<br/>WASM Runtime"]
     end
     
-    AIRSSTACK --> AIRSDLC
-    AIRSSTACK --> AIRSSYS
-    AIRSSTACK --> AIRSPROTOCOLS
+    subgraph Controller["AirsStack Controller"]
+        AIRSSTACK[AirsStack CLI]
+    end
+    
+    subgraph Protocol["Protocol Layer"]
+        AIRSPROTOCOLS["@airsprotocols<br/>Protocols & Servers"]
+    end
+    
+    subgraph Application["Application Layer"]
+        AGENTS[AI Agent Components]
+        SERVERS[Protocol Servers]
+        PLUGINS[Plugin Components]
+    end
     
     AIRSDLC -.->|Spec Framework| AIRSSTACK
     AIRSSYS -.->|WASM Runtime| AIRSSTACK
+    
+    AIRSSTACK --> AIRSPROTOCOLS
     AIRSPROTOCOLS -.->|MCP/A2A| SERVERS
     
     AIRSSTACK -->|Deploy| AGENTS
