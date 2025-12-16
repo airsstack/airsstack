@@ -46,19 +46,45 @@ A single, powerful command-line tool that serves as the control plane for:
 - **Protocol Integration**: Seamless interaction with MCP, A2A, and emerging AI protocols
 - **Build Tooling**: Unified build and deployment system for the airsstack ecosystem
 
+### Core Architecture
+
+**WASM-First Design**
+
+AirsStack is built on a WebAssembly-first architecture, leveraging [@airssys/airssys-wasm](https://github.com/airsstack/airssys) as the foundation:
+
+- **Agents as WASM Components**: All AI agents are packaged as WASM binaries, ensuring portability, security, and performance
+- **Plugin Architecture**: Components and plugins are WASM modules that can be loaded dynamically into the AirsStack runtime
+- **Host-Component Model**: The `airsstack` CLI acts as the WASM host, managing multiple components/plugins with isolation and security
+- **Inter-Component Communication**: WASM components can communicate with each other through the runtime's message-passing system
+
+**Specification Framework**
+
+Built on [@airsdlc](https://github.com/airsstack/airsdlc) (AI Development Lifecycle) as the core framework:
+
+- **Standardized Specifications**: All configurations follow AI-DLC artifact guidelines (PRD, RFC, ADR, DAA, Playbooks, TIPs)
+- **Lifecycle Management**: Comprehensive development lifecycle support from planning to deployment
+- **Extensible Artifacts**: Support for custom artifact types and workflows
+- **Attribution System**: Built-in attribution and provenance tracking
+
 ### Design Philosophy
 
 **Inspired by kubectl**
 - Single entry point for all operations
 - Declarative configuration management
-- Extensible plugin architecture
+- Extensible plugin architecture through WASM
 - Consistent developer experience
+
+**WASM-Native**
+- All agents run as isolated WASM components
+- Sandboxed execution with fine-grained permissions
+- Cross-platform compatibility (Linux, macOS, Windows, cloud)
+- Hot-reload and zero-downtime updates
 
 **Practical & Visionary**
 - Start with immediate developer needs
 - Build toward comprehensive AI infrastructure orchestration
 - WASM-first for portability and performance
-- Community-driven extensibility
+- Community-driven extensibility through plugin ecosystem
 
 ### High-Level Architecture (Conceptual)
 
@@ -144,6 +170,80 @@ cargo install airsprotocols-mcpserver-filesystem
 - This project has been discontinued
 - No direct replacement available
 - Consider alternative memory/context management solutions
+
+---
+
+## 🏗️ Ecosystem Architecture
+
+AirsStack Controller is part of a larger ecosystem of interconnected projects:
+
+```mermaid
+graph TB
+    subgraph "AirsStack Ecosystem"
+        AIRSSTACK[AirsStack Controller CLI]
+        
+        subgraph "Foundation Layer"
+            AIRSDLC[@airsdlc<br/>AI-DLC Framework]
+            AIRSSYS[@airssys/airssys-wasm<br/>WASM Runtime]
+        end
+        
+        subgraph "Protocol Layer"
+            AIRSPROTOCOLS[@airsprotocols<br/>Protocols & Servers]
+        end
+        
+        subgraph "Application Layer"
+            AGENTS[AI Agent Components]
+            SERVERS[Protocol Servers]
+            PLUGINS[Plugin Components]
+        end
+    end
+    
+    AIRSSTACK --> AIRSDLC
+    AIRSSTACK --> AIRSSYS
+    AIRSSTACK --> AIRSPROTOCOLS
+    
+    AIRSDLC -.->|Spec Framework| AIRSSTACK
+    AIRSSYS -.->|WASM Runtime| AIRSSTACK
+    AIRSPROTOCOLS -.->|MCP/A2A| SERVERS
+    
+    AIRSSTACK -->|Deploy| AGENTS
+    AIRSSTACK -->|Manage| SERVERS
+    AIRSSTACK -->|Load| PLUGINS
+    
+    AGENTS -->|Run on| AIRSSYS
+    PLUGINS -->|Run on| AIRSSYS
+    
+    style AIRSSTACK fill:#e3f2fd
+    style AIRSDLC fill:#fff3e0
+    style AIRSSYS fill:#fff3e0
+    style AIRSPROTOCOLS fill:#e8f5e9
+```
+
+### Project Relationships
+
+**[@airsdlc](https://github.com/airsstack/airsdlc)** - AI Development Lifecycle Framework
+- Provides standardized specification and artifact framework
+- Defines PRD, RFC, ADR, DAA, Playbooks, and TIPs formats
+- Used by AirsStack for spec management and configuration
+- Ensures consistent lifecycle management across all tools
+
+**[@airssys/airssys-wasm](https://github.com/airsstack/airssys)** - WASM Component Runtime
+- Core WASM execution engine for all components
+- Provides component isolation, security, and permission management
+- Hosts all AI agents as WASM binaries
+- Enables plugin architecture through WASM component model
+- Powers inter-component communication and message-passing
+
+**[@airsprotocols](https://github.com/airsstack/airsprotocols)** - Protocol Implementations
+- Production-ready protocol implementations (MCP, A2A)
+- Protocol servers managed by AirsStack Controller
+- Integration layer between agents and external systems
+
+**AirsStack Controller** - Orchestration & Management CLI
+- Main control plane for the entire ecosystem
+- Manages WASM components, agents, servers, and deployments
+- Acts as WASM host for plugin and component execution
+- Orchestrates multi-agent systems and cloud deployments
 
 ---
 
@@ -234,7 +334,7 @@ graph TB
 ### Planned Management Capabilities
 
 #### 1. Spec Management
-Configuration and specification management for all AirsStack resources.
+Configuration and specification management for all AirsStack resources, built on [@airsdlc](https://github.com/airsstack/airsdlc) (AI Development Lifecycle) framework.
 
 ```mermaid
 graph LR
@@ -245,23 +345,39 @@ graph LR
         SCHEMA[Schema Validation]
     end
     
+    subgraph "AI-DLC Artifacts"
+        PRD[PRD - Requirements]
+        RFC[RFC - Proposals]
+        ADR[ADR - Decisions]
+        DAA[DAA - Analysis]
+        PLAY[Playbooks]
+        TIP[TIPs - Improvements]
+    end
+    
     SPECS[Stack Specs] --> VALIDATE
     VALIDATE --> SCHEMA
     TEMPLATE --> GENERATE
     GENERATE --> OUTPUT[Output Configs]
+    
+    PRD -.-> SPECS
+    RFC -.-> SPECS
+    ADR -.-> SPECS
     
     style VALIDATE fill:#e1f5ff
     style GENERATE fill:#e1f5ff
 ```
 
 **Capabilities:**
-- Declarative configuration files (YAML/TOML)
-- Spec validation and linting
-- Template system for reusable configurations
-- Schema versioning and migration
+- **AI-DLC Framework Integration**: All specifications follow standardized AI Development Lifecycle artifacts
+- **Artifact Types**: Support for PRD, RFC, ADR, DAA, Playbooks, and TIPs
+- **Declarative Configuration**: YAML/TOML-based stack definitions
+- **Spec Validation**: Linting and validation against AI-DLC schemas
+- **Template System**: Reusable configuration templates
+- **Version Management**: Schema versioning and migration support
+- **Attribution Tracking**: Built-in provenance and attribution system
 
 #### 2. WASM Component Management
-Lifecycle management for WebAssembly components.
+Lifecycle management for WebAssembly components, leveraging [@airssys/airssys-wasm](https://github.com/airsstack/airssys) runtime.
 
 ```mermaid
 graph TB
@@ -272,23 +388,40 @@ graph TB
         MONITOR[Monitoring]
     end
     
+    subgraph "AirsSys WASM Runtime"
+        HOST[WASM Host]
+        ISOLATE[Component Isolation]
+        BRIDGE[Message Bridge]
+        SECURITY[Security & Permissions]
+    end
+    
     WASM_FILE[.wasm Files] --> REGISTRY
     REGISTRY --> DEPLOY
-    DEPLOY --> RUNNING[Running Components]
+    DEPLOY --> HOST
+    HOST --> ISOLATE
+    ISOLATE --> RUNNING[Running Components]
     RUNNING --> LIFECYCLE
     LIFECYCLE --> MONITOR
     MONITOR -.-> LOGS[Logs & Metrics]
     
+    BRIDGE -.-> RUNNING
+    SECURITY -.-> ISOLATE
+    
     style DEPLOY fill:#fff4e1
     style LIFECYCLE fill:#fff4e1
+    style HOST fill:#fff4e1
 ```
 
 **Capabilities:**
-- WASM component deployment and versioning
-- Component isolation and sandboxing
-- Resource limits and quotas
-- Hot-reload and updates
-- Inter-component communication
+- **WASM Runtime**: Built on airssys-wasm for high-performance component execution
+- **Plugin Architecture**: Load components dynamically as plugins into the host runtime
+- **Component Isolation**: Sandboxed execution with capability-based security
+- **Host-Component Model**: AirsStack CLI acts as the WASM host managing multiple components
+- **Inter-Component Communication**: Message-passing between isolated components
+- **Hot-Reload**: Zero-downtime component updates
+- **Resource Limits**: CPU, memory, and I/O quotas per component
+- **Permission System**: Fine-grained capability permissions (network, filesystem, etc.)
+- **Component Registry**: Version management and dependency resolution
 
 #### 3. Server Management
 Control plane for protocol servers (MCP, A2A, etc.).
@@ -320,7 +453,7 @@ graph TB
 - Port management and routing
 
 #### 4. Agent Management & Orchestration
-Orchestrate AI agents and their interactions.
+Orchestrate AI agents as WASM components from [@airssys/airssys-wasm](https://github.com/airsstack/airssys), enabling multi-agent systems with secure inter-agent communication.
 
 ```mermaid
 graph TB
@@ -331,24 +464,53 @@ graph TB
         MONITOR_A[Monitoring]
     end
     
+    subgraph "WASM Agent Runtime"
+        AGENT1[Agent WASM 1]
+        AGENT2[Agent WASM 2]
+        AGENT3[Agent WASM 3]
+        MSG_BUS[Message Bus]
+    end
+    
+    subgraph "AirsStack Controller"
+        CLI_CTRL[CLI Controller]
+        ORCHESTRATOR[Orchestrator]
+    end
+    
     AGENT_DEF[Agent Definitions] --> DEPLOY_A
-    DEPLOY_A --> RUNNING_A[Running Agents]
-    RUNNING_A --> COORD
+    DEPLOY_A --> AGENT1
+    DEPLOY_A --> AGENT2
+    DEPLOY_A --> AGENT3
+    
+    AGENT1 <--> MSG_BUS
+    AGENT2 <--> MSG_BUS
+    AGENT3 <--> MSG_BUS
+    
+    MSG_BUS --> COORD
     COORD <--> WORKFLOW
     WORKFLOW --> TASKS[Task Execution]
-    MONITOR_A -.-> RUNNING_A
+    MONITOR_A -.-> MSG_BUS
+    
+    CLI_CTRL --> ORCHESTRATOR
+    ORCHESTRATOR -.-> COORD
+    ORCHESTRATOR -.-> WORKFLOW
     
     style COORD fill:#f3e5f5
     style WORKFLOW fill:#f3e5f5
+    style CLI_CTRL fill:#f3e5f5
 ```
 
 **Capabilities:**
-- Multi-agent deployment
-- Agent-to-agent communication
-- Workflow orchestration
-- Task scheduling and distribution
-- State management
-- Failure handling and recovery
+- **WASM-Based Agents**: All agents packaged as WASM binaries from airssys-wasm
+- **Multi-Agent Systems**: Deploy and coordinate multiple agent instances
+- **Inter-Agent Communication**: Secure message-passing between agent components
+- **Orchestration Control**: AirsStack CLI as the main controller for agent orchestration
+- **Workflow Engine**: Define and execute multi-agent workflows
+- **Task Distribution**: Intelligent task scheduling across agent pool
+- **State Management**: Distributed state coordination
+- **Failure Recovery**: Supervisor trees and restart strategies
+- **Agent Isolation**: Each agent runs in isolated WASM sandbox
+- **Cloud Deployment**: Orchestrate agents across local and cloud environments
+- **Scalability**: Dynamic agent scaling based on workload
 
 #### 5. Build Management
 Unified build system for AirsStack projects.
